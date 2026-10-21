@@ -1,0 +1,4 @@
+[tags]
+type = ["idea", "decision", "milestone", "design", "evidence", "question", "process"]
+status = ["open", "decided", "done", "dropped", "reference"]
+category = ["project", "notation", "engines", "backend", "architecture", "process", "open-items"]
