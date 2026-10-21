@@ -58,6 +58,7 @@ fn worker_loop(receiver: Arc<Mutex<Receiver<Job>>>) {
             Err(_) => return,
         };
         IN_POOL_WORKER.with(|in_worker| in_worker.set(true));
+        // The panic hook has already reported the panic; callers see a missing result.
         let _ = catch_unwind(AssertUnwindSafe(job));
         IN_POOL_WORKER.with(|in_worker| in_worker.set(false));
     }

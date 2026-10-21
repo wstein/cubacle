@@ -2026,7 +2026,11 @@ pub fn solve_batch<T: AsRef<str> + Sync>(facelets: &[T], maxl: u8) -> Vec<SolveS
     }
     results
         .into_iter()
-        .map(|result| result.expect("min2phase batch job did not return a result"))
+        .map(|result| {
+            result.expect(
+                "min2phase batch job produced no result (a worker panicked; see message above)",
+            )
+        })
         .collect()
 }
 
@@ -2147,10 +2151,11 @@ fn solve_parallel_cubie_entry(
         results[urf_idx] = Some(stats);
     }
     let mut first_error = None;
-    for stats in results
-        .into_iter()
-        .map(|result| result.expect("parallel solver worker did not return a result"))
-    {
+    for stats in results.into_iter().map(|result| {
+        result.expect(
+            "parallel solver worker produced no result (a worker panicked; see message above)",
+        )
+    }) {
         if !stats.solution.starts_with("Error ") {
             return stats;
         }
