@@ -44,7 +44,7 @@ cross-check against `generate` or `Facelets::apply`).
 Items are private, or `pub(crate)` when a sibling module needs them. Only what
 a future crate would export is `pub`: the `puzzle`, `notation` and `generate`
 APIs, `Min2PhaseSolver` and `PocketSolver`. Inside `engines::three` the
-sub-modules (`cubie`, `tables`, `coordinates`, `search`, `engine`) are private
+sub-modules (`consts`, `coordinates`, `cubie`, `engine`, `pool`, `search`, `solver`, `stats`, `tables`) are private
 and talk to each other with `pub(super)` items.
 
 ## Shared state
