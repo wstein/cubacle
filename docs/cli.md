@@ -161,16 +161,26 @@ cubacle scramble -n 8
 ```
 
 ```text
-L' U  F' R2 F  L2 F' D2
+L' U F' R2 F L2 F' D2
 ```
 
-The output is random, and the spacing can include padding for single-character moves. `random` prints a uniformly random 3x3x3 state as facelets:
+The output is random; moves are separated by single spaces. `random` prints a uniformly random 3x3x3 state as facelets:
 
 ```sh
 cubacle random
 ```
 
 ## Apply a scramble
+
+A scramble is standard move notation with the moves separated by whitespace. Besides the canonical forms (`R`, `R2`, `R'`, and wide or inner-layer moves such as `Rw` or `2R`), these whole-token aliases are accepted:
+
+| Written | Read as |
+| --- | --- |
+| `R1` | `R` |
+| `R3` | `R'` |
+| `R2'`, `R'2` | `R2` |
+
+Moves must be separated: a run such as `RUR'` and a lone `-` are rejected. A 3x3x3 whose centres a wide or inner-layer move has displaced cannot be solved; `solve` reports that instead of a wrong solution.
 
 `facelets` prints the facelets reached by applying a scramble to a solved cube:
 

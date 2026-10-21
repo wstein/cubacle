@@ -101,9 +101,9 @@ impl FromStr for Move {
             None => (false, rest),
         };
         let turn = match rest {
-            "" => Turn::Clockwise,
-            "2" => Turn::Half,
-            "'" => Turn::CounterClockwise,
+            "" | "1" => Turn::Clockwise,
+            "2" | "2'" | "'2" => Turn::Half,
+            "'" | "3" => Turn::CounterClockwise,
             _ => return Err(bad()),
         };
         let depth = if prefix.is_empty() {
@@ -200,6 +200,31 @@ mod tests {
     }
 
     #[test]
+    fn whole_token_aliases_normalise() {
+        for (alias, canonical) in [
+            ("R1", "R"),
+            ("R3", "R'"),
+            ("R2'", "R2"),
+            ("R'2", "R2"),
+            ("U2'", "U2"),
+            ("Rw3", "Rw'"),
+            ("3Rw2'", "3Rw2"),
+        ] {
+            let mv: Move = alias.parse().expect(alias);
+            assert_eq!(mv.to_string(), canonical, "{alias}");
+        }
+        let seq: MoveSequence = "R1 U3 F2' D'2".parse().unwrap();
+        assert_eq!(seq.to_string(), "R U' F2 D2");
+    }
+
+    #[test]
+    fn runs_without_separators_are_rejected() {
+        for text in ["RUR'", "R U R'U'", "-", "R -", "RU"] {
+            assert!(text.parse::<MoveSequence>().is_err(), "{text:?}");
+        }
+    }
+
+    #[test]
     fn depth_and_width_are_distinguished() {
         let inner: Move = "3R".parse().unwrap();
         assert_eq!((inner.depth, inner.wide), (3, false));
@@ -211,7 +236,9 @@ mod tests {
 
     #[test]
     fn rejects_malformed_tokens() {
-        for text in ["", "X", "R3", "R''", "0R", "1Rw", "Rw3", "2", "r"] {
+        for text in [
+            "", "X", "R4", "R''", "R22", "R1'", "R3'", "0R", "1Rw", "2", "r", "-", "RUR'",
+        ] {
             assert!(text.parse::<Move>().is_err(), "{text:?} should be rejected");
         }
     }
