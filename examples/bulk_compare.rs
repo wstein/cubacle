@@ -9,7 +9,10 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 const MAX_LENGTH: u8 = 19;
-const SOLVE_BUDGET: Duration = Duration::from_millis(100);
+const DEFAULT_SOLVE_BUDGET: Duration = Duration::from_millis(100);
+const SCRAMBLE_HEADER: &str =
+    "competitionId,evntId,roundTypeId,group,isExtra,number,scramble,moves,solution";
+const REPORT_HEADER: &str = "line,competitionId,eventId,roundTypeId,group,number,classification,expected_length,actual_length,probes,solve_micros,timed_out,scramble,expected_solution,actual_solution";
 
 #[derive(Default)]
 struct Summary {
@@ -124,54 +127,82 @@ fn print_progress(completed: usize, total: usize, started: Instant) -> io::Resul
     stdout().flush()
 }
 
-fn read_jobs(input_path: &str) -> io::Result<Vec<Job>> {
+fn read_jobs(input_path: &str, longer_only: bool) -> io::Result<Vec<Job>> {
     let input = BufReader::new(File::open(input_path)?);
     let mut lines = input.lines();
     let header = lines.next().transpose()?.unwrap_or_default();
-    if header != "competitionId,evntId,roundTypeId,group,isExtra,number,scramble,moves,solution" {
+    if header != SCRAMBLE_HEADER && header != REPORT_HEADER {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
             "unexpected scramble CSV header",
         ));
     }
 
-    lines
-        .enumerate()
-        .map(|(index, line)| {
-            let line_number = index + 2;
-            let line = line?;
-            let columns: Vec<_> = line.split(',').collect();
-            if columns.len() != 9 {
-                return Err(io::Error::new(
-                    io::ErrorKind::InvalidData,
-                    format!(
-                        "line {line_number} has {} columns, expected 9",
-                        columns.len()
-                    ),
-                ));
-            }
+    let is_report = header == REPORT_HEADER;
+    if longer_only && !is_report {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "the longer filter requires a bulk report input",
+        ));
+    }
 
-            let expected_solution = normalize_moves(columns[8]);
-            Ok(Job {
-                line_number,
-                competition_id: columns[0].to_owned(),
-                event_id: columns[1].to_owned(),
-                round_type_id: columns[2].to_owned(),
-                group: columns[3].to_owned(),
-                number: columns[5].to_owned(),
-                scramble: columns[6].to_owned(),
-                expected_length: move_count(&expected_solution),
-                expected_solution,
-            })
-        })
-        .collect()
+    let mut jobs = Vec::new();
+    for (index, line) in lines.enumerate() {
+        let line_number = index + 2;
+        let line = line?;
+        let columns: Vec<_> = line.split(',').collect();
+        let expected_columns = if is_report { 15 } else { 9 };
+        if columns.len() != expected_columns {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!(
+                    "line {line_number} has {} columns, expected {expected_columns}",
+                    columns.len()
+                ),
+            ));
+        }
+        if longer_only && columns[6] != "longer" {
+            continue;
+        }
+
+        let (competition_id, event_id, round_type_id, group, number, scramble, solution) =
+            if is_report {
+                (
+                    columns[1],
+                    columns[2],
+                    columns[3],
+                    columns[4],
+                    columns[5],
+                    columns[12],
+                    columns[13],
+                )
+            } else {
+                (
+                    columns[0], columns[1], columns[2], columns[3], columns[5], columns[6],
+                    columns[8],
+                )
+            };
+        let expected_solution = normalize_moves(solution);
+        jobs.push(Job {
+            line_number,
+            competition_id: competition_id.to_owned(),
+            event_id: event_id.to_owned(),
+            round_type_id: round_type_id.to_owned(),
+            group: group.to_owned(),
+            number: number.to_owned(),
+            scramble: scramble.to_owned(),
+            expected_length: move_count(&expected_solution),
+            expected_solution,
+        });
+    }
+    Ok(jobs)
 }
 
-fn solve_job(job_index: usize, job: &Job) -> Row {
+fn solve_job(job_index: usize, job: &Job, budget: Duration) -> Row {
     let (actual_solution, probes, solve_micros, timed_out) = from_moves(&job.scramble)
         .map(|cube| {
             let started = Instant::now();
-            let result = solve_with_budget(&cube, MAX_LENGTH, SOLVE_BUDGET);
+            let result = solve_with_budget(&cube, MAX_LENGTH, budget);
             (
                 result.solution,
                 result.probes,
@@ -194,7 +225,7 @@ fn solve_job(job_index: usize, job: &Job) -> Row {
     }
 }
 
-fn solve_jobs(jobs: Arc<Vec<Job>>, workers: usize) -> io::Result<Vec<Row>> {
+fn solve_jobs(jobs: Arc<Vec<Job>>, workers: usize, budget: Duration) -> io::Result<Vec<Row>> {
     if jobs.is_empty() {
         return Ok(Vec::new());
     }
@@ -216,7 +247,7 @@ fn solve_jobs(jobs: Arc<Vec<Job>>, workers: usize) -> io::Result<Vec<Row>> {
                 if index >= jobs.len() {
                     break;
                 }
-                if sender.send(solve_job(index, &jobs[index])).is_err() {
+                if sender.send(solve_job(index, &jobs[index], budget)).is_err() {
                     break;
                 }
             });
@@ -258,7 +289,10 @@ fn requested_workers(argument: Option<String>) -> io::Result<usize> {
 fn requested_job_limit(argument: Option<String>) -> io::Result<Option<usize>> {
     argument
         .map(|value| {
-            value
+            if value == "-" {
+                return Ok(None);
+            }
+            let limit = value
                 .parse::<usize>()
                 .ok()
                 .filter(|count| *count > 0)
@@ -267,9 +301,26 @@ fn requested_job_limit(argument: Option<String>) -> io::Result<Option<usize>> {
                         io::ErrorKind::InvalidInput,
                         "job limit must be a positive integer",
                     )
-                })
+                })?;
+            Ok(Some(limit))
         })
         .transpose()
+        .map(Option::flatten)
+}
+
+fn requested_budget(argument: Option<String>) -> io::Result<Duration> {
+    match argument {
+        Some(value) => value
+            .parse::<u64>()
+            .map(Duration::from_millis)
+            .map_err(|_| {
+                io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "budget must be a non-negative number of milliseconds",
+                )
+            }),
+        None => Ok(DEFAULT_SOLVE_BUDGET),
+    }
 }
 
 fn main() -> io::Result<()> {
@@ -282,12 +333,14 @@ fn main() -> io::Result<()> {
         .unwrap_or_else(|| "examples/scramble-report-19.csv".to_owned());
     let workers = requested_workers(arguments.next())?;
     let job_limit = requested_job_limit(arguments.next())?;
-    let mut jobs = read_jobs(&input_path)?;
+    let budget = requested_budget(arguments.next())?;
+    let longer_only = arguments.next().is_some_and(|value| value == "longer");
+    let mut jobs = read_jobs(&input_path, longer_only)?;
     if let Some(job_limit) = job_limit {
         jobs.truncate(job_limit);
     }
     let jobs = Arc::new(jobs);
-    let rows = solve_jobs(Arc::clone(&jobs), workers)?;
+    let rows = solve_jobs(Arc::clone(&jobs), workers, budget)?;
 
     let mut report = BufWriter::new(File::create(&report_path)?);
     writeln!(
@@ -346,7 +399,7 @@ fn main() -> io::Result<()> {
 
     println!(
         "Bulk comparison (max solution length: {MAX_LENGTH}, time budget: {} ms)",
-        SOLVE_BUDGET.as_millis()
+        budget.as_millis()
     );
     println!("Input:  {}", Path::new(&input_path).display());
     println!("Report: {}", Path::new(&report_path).display());
@@ -377,7 +430,8 @@ fn main() -> io::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{classify, normalize_moves, Classification};
+    use super::{classify, normalize_moves, read_jobs, Classification, REPORT_HEADER};
+    use std::fs;
 
     #[test]
     fn normalizes_reference_notation() {
@@ -403,5 +457,29 @@ mod tests {
     fn rejects_an_invalid_job_limit() {
         assert!(super::requested_job_limit(Some("0".to_owned())).is_err());
         assert!(super::requested_job_limit(Some("two".to_owned())).is_err());
+    }
+
+    #[test]
+    fn parses_budget_in_milliseconds() {
+        assert_eq!(
+            super::requested_budget(Some("200".to_owned())).expect("valid budget"),
+            std::time::Duration::from_millis(200)
+        );
+    }
+
+    #[test]
+    fn filters_longer_rows_from_a_report() {
+        let path =
+            std::env::temp_dir().join(format!("min2phase-bulk-compare-{}.csv", std::process::id()));
+        let contents = format!(
+            "{REPORT_HEADER}\n2,event-a,333fm,f,A,1,longer,15,19,10,100,false,R U,R U,U R\n3,event-b,333fm,f,A,2,same-length,15,15,11,110,false,F U,F U,U F\n"
+        );
+        fs::write(&path, contents).expect("write report fixture");
+
+        let jobs = read_jobs(path.to_str().expect("UTF-8 path"), true).expect("read report");
+        fs::remove_file(path).expect("remove report fixture");
+
+        assert_eq!(jobs.len(), 1);
+        assert_eq!(jobs[0].scramble, "R U");
     }
 }

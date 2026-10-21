@@ -57,16 +57,24 @@ RUSTFLAGS='-C target-cpu=native' cargo run --release --example bulk_compare -- \
   examples/scrambles.csv examples/scramble-report-100ms.csv
 ```
 
-The command uses one worker per available logical CPU by default and shows progress, elapsed time, and an ETA. To choose a worker count or limit the number of rows, pass optional third and fourth arguments:
+The command uses one worker per available logical CPU by default and shows progress, elapsed time, and an ETA. To choose a worker count, row limit, or budget in milliseconds, pass optional third through fifth arguments:
 
 ```sh
 cargo run --release --example bulk_compare -- \
-  examples/scrambles.csv examples/scramble-report-19.csv 12 100
+  examples/scrambles.csv examples/scramble-report-100ms.csv 12 100 200
 ```
 
 The command prints a summary and writes every row to the report CSV. Each row includes the classification, expected and actual length, phase-two probes, elapsed microseconds, and `timed_out` status. Reference moves using `1` and `3` suffixes are normalized to the solver's bare-turn and apostrophe notation before comparison.
 
 The summary distinguishes an exact move sequence, any same-length solution (including exact sequences), shorter solutions, longer solutions, errors, and timeouts. A deadline expiry returns `Error 8` with `SolveStats::timed_out == true`; it is distinct from ordinary input errors.
+
+To retry only `longer` rows from an existing report, use `-` for no row limit and pass `longer` as the sixth optional argument:
+
+```sh
+RUSTFLAGS='-C target-cpu=native' cargo run --release --example bulk_compare -- \
+  examples/scramble-report-100ms.csv examples/scramble-report-longer-200ms.csv \
+  12 - 200 longer
+```
 
 Unbounded solves are deterministic for a fixed cube, move limit, solver version, and build. Deadline-bounded solves are intentionally not deterministic: CPU scheduling and the point at which the search observes the deadline can affect whether a given cube completes in time.
 
