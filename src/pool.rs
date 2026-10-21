@@ -27,9 +27,9 @@ impl ThreadPool {
             let receiver = Arc::clone(&receiver);
             workers.push(
                 thread::Builder::new()
-                    .name(format!("min2phase-{index}"))
+                    .name(format!("cubacle-{index}"))
                     .spawn(move || worker_loop(receiver))
-                    .expect("failed to start min2phase worker"),
+                    .expect("failed to start cubacle worker"),
             );
         }
 
@@ -43,7 +43,7 @@ impl ThreadPool {
     pub(crate) fn execute(&self, job: impl FnOnce() + Send + 'static) {
         self.sender
             .send(Box::new(job))
-            .expect("min2phase worker pool unexpectedly stopped");
+            .expect("cubacle worker pool unexpectedly stopped");
     }
 
     fn worker_count(&self) -> usize {
@@ -65,7 +65,7 @@ fn worker_loop(receiver: Arc<Mutex<Receiver<Job>>>) {
 }
 
 fn configured_worker_count() -> usize {
-    std::env::var("MIN2PHASE_THREADS")
+    std::env::var("CUBACLE_THREADS")
         .ok()
         .and_then(|value| value.parse::<usize>().ok())
         .filter(|&count| count > 0)

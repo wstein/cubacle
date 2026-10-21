@@ -1,4 +1,4 @@
-use min2phase::{from_moves, solve_with_minimum_time};
+use cubacle::{from_moves, solve_with_minimum_time};
 use std::env;
 use std::fs::File;
 use std::io::{self, stdout, BufRead, BufReader, BufWriter, Write};
@@ -593,7 +593,7 @@ mod tests {
     #[test]
     fn filters_longer_rows_from_a_report() {
         let path =
-            std::env::temp_dir().join(format!("min2phase-bulk-compare-{}.csv", std::process::id()));
+            std::env::temp_dir().join(format!("cubacle-bulk-compare-{}.csv", std::process::id()));
         let contents = format!(
             "{REPORT_HEADER}\n2,event-a,333fm,f,A,1,longer,15,19,10,100,false,R U,R U,U R\n3,event-b,333fm,f,A,2,same-length,15,15,11,110,false,F U,F U,U F\n"
         );

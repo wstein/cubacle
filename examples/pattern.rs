@@ -1,4 +1,4 @@
-use min2phase::{apply_moves, from_moves, solve_pattern};
+use cubacle::{apply_moves, from_moves, solve_pattern};
 
 const SOLVED: &str = "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB";
 

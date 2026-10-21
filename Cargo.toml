@@ -1,15 +1,15 @@
 [package]
-name = "min2phase"
-authors = ["Chen Shuang <cs0x7f@gmail.com>"]
+name = "cubacle"
+authors = ["Werner Stein", "Chen Shuang <cs0x7f@gmail.com>"]
 version = "0.3.0"
 edition = "2021"
 rust-version = "1.82"
 license = "AGPL-3.0-or-later"
-keywords = ["rubik", "cubing", "solving"]
+keywords = ["rubik", "cubing", "solver", "kociemba", "cube-explorer"]
 readme = "README.md"
-description = "An optimized implementation of two-phase algorithm for solving Rubik's cube"
-documentation = "https://docs.rs/min2phase"
-repository = "https://github.com/cs0x7f/min2phase_rust"
+description = "Rubik's cube solver and generator, 2x2 to 7x7: a two-phase 3x3 core, a size-independent solver facade and a backend for cube explorers"
+documentation = "https://docs.rs/cubacle"
+repository = "https://github.com/wstein/cubacle"
 
 [dependencies]
 rand = "0.8"

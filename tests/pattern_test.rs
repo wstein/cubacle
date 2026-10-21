@@ -1,4 +1,4 @@
-use min2phase::{
+use cubacle::{
     apply_moves, from_moves, random_cube, solve_pattern, solve_pattern_parallel, solve_with_stats,
     SolveOutcome,
 };

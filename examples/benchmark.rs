@@ -1,4 +1,4 @@
-use min2phase::{apply_moves, from_moves, solve_parallel, solve_with_stats, SolveStats};
+use cubacle::{apply_moves, from_moves, solve_parallel, solve_with_stats, SolveStats};
 use std::env;
 use std::io;
 use std::time::{Duration, Instant};

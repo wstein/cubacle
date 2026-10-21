@@ -1,4 +1,4 @@
-use min2phase::{from_moves, random_cube, random_moves, solve};
+use cubacle::{from_moves, random_cube, random_moves, solve};
 
 fn main() {
     println!("=== Testing orbit64: A_VAs734dSkb ===");

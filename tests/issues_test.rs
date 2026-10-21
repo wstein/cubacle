@@ -1,4 +1,4 @@
-use min2phase::{
+use cubacle::{
     apply_moves, solve, solve_with_budget, solve_with_minimum_time, solve_with_stats, SolveOutcome,
 };
 use std::time::{Duration, Instant};

@@ -1,4 +1,4 @@
-use min2phase::{
+use cubacle::{
     apply_moves, from_moves, solve_batch, solve_parallel, solve_parallel_with_budget,
     solve_parallel_with_minimum_time, SolveOutcome,
 };

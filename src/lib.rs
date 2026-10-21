@@ -1999,7 +1999,7 @@ pub fn solve_pattern(from_facelet: &str, to_facelet: &str, maxl: u8) -> SolveSta
 /// Solve independent cube states concurrently and return results in input order.
 ///
 /// This API is intended for throughput-oriented bulk work. It uses a persistent
-/// process-wide worker pool, whose size is read once from `MIN2PHASE_THREADS` on
+/// process-wide worker pool, whose size is read once from `CUBACLE_THREADS` on
 /// first use; otherwise the available parallelism is used. Calls made from one
 /// of those workers run serially to avoid nested-pool oversubscription.
 pub fn solve_batch<T: AsRef<str> + Sync>(facelets: &[T], maxl: u8) -> Vec<SolveStats> {
@@ -2029,7 +2029,7 @@ pub fn solve_batch<T: AsRef<str> + Sync>(facelets: &[T], maxl: u8) -> Vec<SolveS
         .into_iter()
         .map(|result| {
             result.expect(
-                "min2phase batch job produced no result (a worker panicked; see message above)",
+                "cubacle batch job produced no result (a worker panicked; see message above)",
             )
         })
         .collect()

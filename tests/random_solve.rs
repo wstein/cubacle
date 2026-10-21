@@ -1,4 +1,4 @@
-use min2phase::{apply_moves, from_moves, random_cube, random_moves, solve};
+use cubacle::{apply_moves, from_moves, random_cube, random_moves, solve};
 use std::time::Instant;
 
 const MAX_SOL_LEN: u8 = 20;

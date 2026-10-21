@@ -1,7 +1,7 @@
-use min2phase::api::{
+use cubacle::api::{
     Facelets, Failure, Min2PhaseSolver, MoveSequence, PuzzleKind, SolveOptions, Solver,
 };
-use min2phase::{apply_moves, from_moves};
+use cubacle::{apply_moves, from_moves};
 use std::time::Duration;
 
 fn scrambled(moves: &str) -> Facelets {
