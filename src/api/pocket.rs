@@ -4,7 +4,7 @@
 //! A state is then the arrangement of the other seven corners (7! = 5040)
 //! together with the twists of six of them (3^6 = 729; the seventh follows),
 //! 3,674,160 states in all. A breadth-first search from the solved state fills
-//! a table of exact distances, and a solution is read off by walking downhill.
+//! a table of exact distances (4 bits each, two states per byte), and a solution is read off by walking downhill.
 //! The result is optimal in the half-turn metric restricted to U, R and F,
 //! which equals the optimal length over all six faces.
 //!
@@ -24,7 +24,8 @@ use super::{
 const PERMS: usize = 5040;
 const TWISTS: usize = 729;
 const STATES: usize = PERMS * TWISTS;
-const UNSEEN: u8 = u8::MAX;
+/// The nibble of a state the search has not reached; real depths are at most 11.
+const UNSEEN: u8 = 0xF;
 /// The corner that never moves: DBL, in the Kociemba corner order.
 const FIXED: usize = 6;
 /// The slots whose occupants are permuted, in coordinate order.
@@ -161,7 +162,8 @@ fn twist_unrank(mut rank: usize) -> Cubie {
 struct Tables {
     perm_move: Vec<[u16; 9]>,
     twist_move: Vec<[u16; 9]>,
-    dist: Vec<u8>,
+    /// Distances to the solved state, two states per byte (low nibble first).
+    dist: Box<[u8]>,
 }
 
 impl Tables {
@@ -183,8 +185,8 @@ impl Tables {
             }
         }
 
-        let mut dist = vec![UNSEEN; STATES];
-        dist[0] = 0;
+        let mut dist = vec![0xFF_u8; STATES / 2].into_boxed_slice();
+        set_depth(&mut dist, 0, 0);
         let mut frontier = vec![0u32];
         let mut depth = 0u8;
         while !frontier.is_empty() {
@@ -193,11 +195,11 @@ impl Tables {
             for &state in &frontier {
                 let (perm, twist) = (state as usize / TWISTS, state as usize % TWISTS);
                 for m in 0..9 {
-                    let to = usize::from(perm_move[perm][m]) * TWISTS
-                        + usize::from(twist_move[twist][m]);
-                    if dist[to] == UNSEEN {
-                        dist[to] = depth;
-                        next.push(to as u32);
+                    let to = u32::from(perm_move[perm][m]) * TWISTS as u32
+                        + u32::from(twist_move[twist][m]);
+                    if get_depth(&dist, to) == UNSEEN {
+                        set_depth(&mut dist, to, depth);
+                        next.push(to);
                     }
                 }
             }
@@ -210,24 +212,38 @@ impl Tables {
         }
     }
 
-    fn step(&self, state: usize, m: usize) -> usize {
-        usize::from(self.perm_move[state / TWISTS][m]) * TWISTS
-            + usize::from(self.twist_move[state % TWISTS][m])
+    fn step(&self, state: u32, m: usize) -> u32 {
+        let (perm, twist) = (state as usize / TWISTS, state as usize % TWISTS);
+        u32::from(self.perm_move[perm][m]) * TWISTS as u32 + u32::from(self.twist_move[twist][m])
+    }
+
+    fn depth(&self, state: u32) -> u8 {
+        get_depth(&self.dist, state)
     }
 
     /// Moves along strictly decreasing distance until the cube is solved.
-    fn walk(&self, mut state: usize) -> Vec<(usize, Turn)> {
+    fn walk(&self, mut state: u32) -> Vec<(usize, Turn)> {
         let mut moves = Vec::new();
-        while self.dist[state] > 0 {
-            let want = self.dist[state] - 1;
+        while self.depth(state) > 0 {
+            let want = self.depth(state) - 1;
             let m = (0..9)
-                .find(|&m| self.dist[self.step(state, m)] == want)
+                .find(|&m| self.depth(self.step(state, m)) == want)
                 .expect("every state but the solved one has a neighbour one closer");
             moves.push(search_move(m));
             state = self.step(state, m);
         }
         moves
     }
+}
+
+fn get_depth(table: &[u8], state: u32) -> u8 {
+    (table[state as usize >> 1] >> ((state & 1) * 4)) & 0xF
+}
+
+fn set_depth(table: &mut [u8], state: u32, depth: u8) {
+    let shift = (state & 1) * 4;
+    let byte = &mut table[state as usize >> 1];
+    *byte = (*byte & !(0xF << shift)) | (depth << shift);
 }
 
 static TABLES: OnceLock<Tables> = OnceLock::new();
@@ -344,7 +360,7 @@ fn read_corners(facelets: &Facelets) -> Result<Cubie, String> {
 /// A cube rotated so that the fixed corner is home: its table index, and the
 /// face each position of the rotated cube held originally.
 struct Normalised {
-    state: usize,
+    state: u32,
     origin: [usize; 6],
 }
 
@@ -359,7 +375,7 @@ fn normalise(facelets: &Facelets) -> Result<Normalised, String> {
         .expect("the 24 rotations bring any corner to any slot and orientation");
     let turned = rotation.apply(&cube);
     Ok(Normalised {
-        state: perm_rank(&turned) * TWISTS + twist_rank(&turned),
+        state: (perm_rank(&turned) * TWISTS + twist_rank(&turned)) as u32,
         origin: rotation.origin,
     })
 }
@@ -408,7 +424,7 @@ impl Solver for PocketSolver {
             );
         }
 
-        let length = usize::from(tables.dist[normalised.state]);
+        let length = usize::from(tables.depth(normalised.state));
         if options
             .max_moves
             .is_some_and(|max| length > usize::from(max))
@@ -518,7 +534,9 @@ mod tests {
         let tables = tables();
         eprintln!("table ready after {:?}", started.elapsed());
         let mut counts = [0usize; 12];
-        for &d in &tables.dist {
+        assert_eq!(tables.dist.len(), 1_837_080);
+        for state in 0..STATES as u32 {
+            let d = tables.depth(state);
             assert_ne!(d, UNSEEN);
             counts[usize::from(d)] += 1;
         }
@@ -568,7 +586,7 @@ mod tests {
             let normalised = normalise(&facelets).unwrap();
             assert_eq!(
                 solution.len(),
-                usize::from(tables().dist[normalised.state]),
+                usize::from(tables().depth(normalised.state)),
                 "{state}"
             );
             assert!(solution.len() <= 11);
