@@ -593,7 +593,8 @@ impl Tables {
 /// solver, including the worker threads it hands them to.
 pub(super) type SharedTables = Arc<OnceLock<Tables>>;
 
-pub(super) fn shared() -> SharedTables {
+/// A new table set, not yet built and shared with no other solver.
+pub(super) fn fresh() -> SharedTables {
     Arc::new(OnceLock::new())
 }
 

@@ -51,7 +51,7 @@ pub(super) fn solve_batch<T: AsRef<str> + Sync>(
     facelets: &[T],
     maxl: u8,
 ) -> Vec<SolveStats> {
-    if facelets.len() < 2 || crate::pool::worker_count() <= 1 || crate::pool::in_pool_worker() {
+    if facelets.len() < 2 || super::pool::worker_count() <= 1 || super::pool::in_pool_worker() {
         return facelets
             .iter()
             .map(|facelet| solve_with_stats(tables, facelet.as_ref(), maxl))
@@ -63,7 +63,7 @@ pub(super) fn solve_batch<T: AsRef<str> + Sync>(
         let sender = sender.clone();
         let facelet = facelet.as_ref().to_owned();
         let tables = Arc::clone(tables);
-        crate::pool::global().execute(move || {
+        super::pool::global().execute(move || {
             let stats = solve_with_stats(&tables, &facelet, maxl);
             let _ = sender.send((index, stats));
         });
@@ -142,7 +142,7 @@ fn solve_parallel_cubie_entry(
     minimum_search_time: Duration,
     maximum_search_time: Option<Duration>,
 ) -> SolveStats {
-    if crate::pool::worker_count() <= 1 || crate::pool::in_pool_worker() {
+    if super::pool::worker_count() <= 1 || super::pool::in_pool_worker() {
         return solve_cubie_entry(tables, cc, maxl, minimum_search_time, maximum_search_time);
     }
 
@@ -160,7 +160,7 @@ fn solve_parallel_cubie_entry(
         let sender = sender.clone();
         let best_len = Arc::clone(&best_len);
         let tables = Arc::clone(tables);
-        crate::pool::global().execute(move || {
+        super::pool::global().execute(move || {
             let mut ctx = IdaContext::new();
             ctx.improve = true;
             ctx.shared_best = Some(best_len);

@@ -11,7 +11,7 @@ thread_local! {
 }
 
 /// A small, process-lifetime worker pool used by the opt-in parallel APIs.
-pub(crate) struct ThreadPool {
+pub(super) struct ThreadPool {
     sender: Sender<Job>,
     worker_count: usize,
     _workers: Vec<JoinHandle<()>>,
@@ -40,7 +40,7 @@ impl ThreadPool {
         }
     }
 
-    pub(crate) fn execute(&self, job: impl FnOnce() + Send + 'static) {
+    pub(super) fn execute(&self, job: impl FnOnce() + Send + 'static) {
         self.sender
             .send(Box::new(job))
             .expect("cubacle worker pool unexpectedly stopped");
@@ -76,14 +76,14 @@ fn configured_worker_count() -> usize {
 static GLOBAL_POOL: LazyLock<ThreadPool> =
     LazyLock::new(|| ThreadPool::new(configured_worker_count()));
 
-pub(crate) fn global() -> &'static ThreadPool {
+pub(super) fn global() -> &'static ThreadPool {
     &GLOBAL_POOL
 }
 
-pub(crate) fn worker_count() -> usize {
+pub(super) fn worker_count() -> usize {
     GLOBAL_POOL.worker_count()
 }
 
-pub(crate) fn in_pool_worker() -> bool {
+pub(super) fn in_pool_worker() -> bool {
     IN_POOL_WORKER.with(Cell::get)
 }

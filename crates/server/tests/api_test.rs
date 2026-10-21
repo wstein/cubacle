@@ -508,3 +508,24 @@ async fn unprepared_state_serves_non_solving_endpoints() {
     assert_eq!(call(app.clone(), get("/health")).await.0, StatusCode::OK);
     assert_eq!(call(app, get("/v1/scramble")).await.0, StatusCode::OK);
 }
+
+#[tokio::test]
+async fn an_injected_solver_is_prepared_and_used() {
+    use cubacle::engines::three::Min2PhaseSolver;
+
+    let solver = Min2PhaseSolver::new();
+    assert!(format!("{solver:?}").contains("tables_built: false"));
+    let state = AppState::with_solver(Config::default(), solver.clone());
+    assert!(
+        format!("{solver:?}").contains("tables_built: true"),
+        "with_solver must prepare the injected solver"
+    );
+
+    let (status, _, body) = call(
+        router(state),
+        post_json("/v1/solve", json!({"cube": "A4ib8aejxj4Y"})),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(body["kind"], "3x3x3");
+}

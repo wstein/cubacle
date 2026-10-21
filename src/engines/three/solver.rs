@@ -47,7 +47,7 @@ impl Min2PhaseSolver {
     /// A solver with a table set of its own, not yet built.
     pub fn new() -> Min2PhaseSolver {
         Min2PhaseSolver {
-            tables: tables::shared(),
+            tables: tables::fresh(),
         }
     }
 

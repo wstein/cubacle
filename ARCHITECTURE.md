@@ -12,9 +12,9 @@ src/
   notation/       Orbit64, colour schemes, input detection and parsing
   generate/       random states and scrambles
   engines/
-    three/        the 3x3x3 two-phase engine (Min2PhaseSolver)
+    three/        the 3x3x3 two-phase engine (Min2PhaseSolver), with its
+                  private worker pool in pool.rs
     two/          the optimal 2x2x2 engine (PocketSolver)
-  pool.rs         worker pool, private to engines/three
   main.rs         the cubacle command line
 crates/server/    the cubacle-server HTTP backend
 ```
@@ -33,7 +33,7 @@ puzzle  <-  notation  <-  engines  <-  apps (CLI, server)
   tables in `notation`). Engines never use each other's internals: they meet
   the world only through the `Solver` trait and `puzzle` types.
 - Applications (the CLI and the server) sit on top and may use everything.
-- `pool` is an implementation detail of `engines::three`.
+- The worker pool lives in `engines/three/pool.rs` and is private to that engine.
 
 `tests/architecture_test.rs` reads the sources and fails on a `crate::` path
 that breaks these rules (unit tests are exempt, so an engine's tests may

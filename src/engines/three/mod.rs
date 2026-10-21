@@ -10,6 +10,7 @@ mod consts;
 mod coordinates;
 mod cubie;
 mod engine;
+mod pool;
 mod search;
 mod solver;
 mod stats;
@@ -27,7 +28,7 @@ mod tests {
 
     /// Applies moves with the engine's own cubie model.
     fn engine_apply(moves: &MoveSequence) -> String {
-        let shared = tables::shared();
+        let shared = tables::fresh();
         let built = tables::get(&shared);
         let mut cube = Cubie::new();
         let mut next = Cubie::new();
@@ -88,7 +89,7 @@ mod tests {
         let cube = Facelets::solved(PuzzleKind::Cube3)
             .apply(&"R U R' U'".parse().unwrap())
             .unwrap();
-        let result = solve_with_stats(&tables::shared(), &cube.to_string(), 20);
+        let result = solve_with_stats(&tables::fresh(), &cube.to_string(), 20);
         assert_eq!(result.outcome, SolveOutcome::Solved);
         assert!(result.probes > 0, "expected phase-two search probes");
         assert!(result.phase1_nodes > 0, "expected phase-one search nodes");

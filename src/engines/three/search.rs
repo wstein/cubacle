@@ -138,7 +138,7 @@ pub(super) struct IdaContext {
 }
 
 impl IdaContext {
-    pub fn new() -> Self {
+    pub(super) fn new() -> Self {
         IdaContext {
             mv: [0; 30],
             allow_shorter: false,
@@ -229,7 +229,7 @@ impl IdaContext {
         TimeLimit::Continue
     }
 
-    pub fn solve_cubie(
+    pub(super) fn solve_cubie(
         &mut self,
         sctx: &StaticContext,
         stbl: &StaticTables,

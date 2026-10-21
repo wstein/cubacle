@@ -296,7 +296,7 @@ impl Cubie {
 
 #[allow(clippy::needless_range_loop)]
 impl Cubie {
-    pub fn verify(&self) -> i32 {
+    pub(super) fn verify(&self) -> i32 {
         let mut sum = 0;
         let mut edge_mask = 0;
         for e in 0..12 {

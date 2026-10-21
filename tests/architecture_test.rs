@@ -13,7 +13,7 @@ const RULES: [(&str, &[&str]); 5] = [
     ("src/puzzle", &["puzzle"]),
     ("src/notation", &["puzzle", "notation"]),
     ("src/generate", &["puzzle", "generate"]),
-    ("src/engines/three", &["puzzle", "engines::three", "pool"]),
+    ("src/engines/three", &["puzzle", "engines::three"]),
     ("src/engines/two", &["puzzle", "notation", "engines::two"]),
 ];
 
@@ -73,7 +73,8 @@ fn modules_only_use_what_the_dependency_rules_allow() {
 #[test]
 fn the_worker_pool_stays_private_to_the_3x3_engine() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let lib = fs::read_to_string(root.join("src/lib.rs")).expect("lib.rs");
-    assert!(lib.contains("\nmod pool;"), "pool must not be public");
-    assert!(!lib.contains("pub mod pool"));
+    assert!(root.join("src/engines/three/pool.rs").exists());
+    assert!(!root.join("src/pool.rs").exists());
+    let engine = fs::read_to_string(root.join("src/engines/three/mod.rs")).expect("mod.rs");
+    assert!(engine.contains("\nmod pool;"), "pool must stay private");
 }
