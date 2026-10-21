@@ -71,8 +71,30 @@ impl Solver for Min2PhaseSolver {
             _ if is_invalid_cube(&stats.solution) => Failure::InvalidInput,
             _ => Failure::Exhausted,
         };
-        failed(failure, stats.solution, started, probes)
+        failed(failure, describe_error(&stats.solution), started, probes)
     }
+}
+
+/// Turns an engine `Error <code>` result into a stable sentence.
+///
+/// The codes come from `Cubie::set_from_facelet` / `Cubie::verify` (1 to 6)
+/// and from the search (8). Code 7 is not produced by the engine; anything
+/// unrecognised is passed through unchanged.
+fn describe_error(error: &str) -> String {
+    let code = error
+        .strip_prefix("Error ")
+        .and_then(|code| code.trim().parse::<u8>().ok());
+    let text = match code {
+        Some(1) => "the facelets are malformed: each colour must appear exactly nine times",
+        Some(2) => "the edges are invalid: not every edge piece appears exactly once",
+        Some(3) => "the edges are invalid: one edge is flipped on its own",
+        Some(4) => "the corners are invalid: not every corner piece appears exactly once",
+        Some(5) => "the corners are invalid: one corner is twisted on its own",
+        Some(6) => "the cube is invalid: two pieces are swapped (parity error)",
+        Some(8) => "the search ended without a solution (time budget or move limit reached)",
+        _ => return error.to_owned(),
+    };
+    text.to_owned()
 }
 
 /// Engine error codes 1 to 6 describe an impossible cube; the rest are limits.
@@ -95,5 +117,26 @@ fn failed(failure: Failure, message: String, started: Instant, probes: Option<u6
         outcome: Err(failure),
         message: Some(message),
         metrics: metrics(started, probes),
+    }
+}
+
+#[cfg(test)]
+mod describe_tests {
+    use super::describe_error;
+
+    #[test]
+    fn every_known_code_has_a_sentence() {
+        for code in [1, 2, 3, 4, 5, 6, 8] {
+            let text = describe_error(&format!("Error {code}"));
+            assert!(!text.starts_with("Error"), "code {code}: {text}");
+        }
+        assert!(describe_error("Error 2").contains("edge"));
+        assert!(describe_error("Error 5").contains("twisted"));
+    }
+
+    #[test]
+    fn unknown_codes_pass_through() {
+        assert_eq!(describe_error("Error 7"), "Error 7");
+        assert_eq!(describe_error("Error 99"), "Error 99");
     }
 }
