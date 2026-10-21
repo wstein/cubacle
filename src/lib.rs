@@ -94,6 +94,14 @@ pub struct SolveStats {
     pub phase1_rejected_slice_twist: u64,
     /// Number of phase-one children rejected by the slice-flip pruning estimate after passing slice-twist.
     pub phase1_rejected_slice_flip: u64,
+    /// Number of phase-one axis branches stopped by a slice-twist estimate above the remaining depth.
+    pub phase1_slice_twist_breaks: u64,
+    /// Number of phase-one children skipped when slice-twist equals the remaining depth.
+    pub phase1_slice_twist_equals: u64,
+    /// Number of phase-one axis branches stopped by a slice-flip estimate above the remaining depth.
+    pub phase1_slice_flip_breaks: u64,
+    /// Number of phase-one children skipped when slice-flip equals the remaining depth.
+    pub phase1_slice_flip_equals: u64,
     /// Number of phase-one children that passed pruning and recursed.
     pub phase1_children_recurred: u64,
     /// Whether the search ended because its configured time budget expired.
@@ -245,6 +253,10 @@ struct IdaContext {
     phase1_nodes: u64,
     phase1_rejected_slice_twist: u64,
     phase1_rejected_slice_flip: u64,
+    phase1_slice_twist_breaks: u64,
+    phase1_slice_twist_equals: u64,
+    phase1_slice_flip_breaks: u64,
+    phase1_slice_flip_equals: u64,
     phase1_children_recurred: u64,
     deadline: Option<Instant>,
     minimum_deadline: Option<Instant>,
@@ -1216,6 +1228,10 @@ impl IdaContext {
             phase1_nodes: 0,
             phase1_rejected_slice_twist: 0,
             phase1_rejected_slice_flip: 0,
+            phase1_slice_twist_breaks: 0,
+            phase1_slice_twist_equals: 0,
+            phase1_slice_flip_breaks: 0,
+            phase1_slice_flip_equals: 0,
             phase1_children_recurred: 0,
             deadline: None,
             minimum_deadline: None,
@@ -1435,15 +1451,19 @@ impl IdaContext {
                 if prun > maxl {
                     if pruning.slice_twist > maxl {
                         self.phase1_rejected_slice_twist += 1;
+                        self.phase1_slice_twist_breaks += 1;
                     } else {
                         self.phase1_rejected_slice_flip += 1;
+                        self.phase1_slice_flip_breaks += 1;
                     }
                     break;
                 } else if prun == maxl {
                     if pruning.slice_twist == maxl {
                         self.phase1_rejected_slice_twist += 1;
+                        self.phase1_slice_twist_equals += 1;
                     } else {
                         self.phase1_rejected_slice_flip += 1;
+                        self.phase1_slice_flip_equals += 1;
                     }
                     continue;
                 }
@@ -1865,6 +1885,10 @@ fn solve_with_time_limits(
             phase1_nodes: 0,
             phase1_rejected_slice_twist: 0,
             phase1_rejected_slice_flip: 0,
+            phase1_slice_twist_breaks: 0,
+            phase1_slice_twist_equals: 0,
+            phase1_slice_flip_breaks: 0,
+            phase1_slice_flip_equals: 0,
             phase1_children_recurred: 0,
             timed_out: false,
         };
@@ -1877,6 +1901,10 @@ fn solve_with_time_limits(
             phase1_nodes: 0,
             phase1_rejected_slice_twist: 0,
             phase1_rejected_slice_flip: 0,
+            phase1_slice_twist_breaks: 0,
+            phase1_slice_twist_equals: 0,
+            phase1_slice_flip_breaks: 0,
+            phase1_slice_flip_equals: 0,
             phase1_children_recurred: 0,
             timed_out: false,
         };
@@ -1895,6 +1923,10 @@ fn solve_with_time_limits(
         phase1_nodes: ctx.phase1_nodes,
         phase1_rejected_slice_twist: ctx.phase1_rejected_slice_twist,
         phase1_rejected_slice_flip: ctx.phase1_rejected_slice_flip,
+        phase1_slice_twist_breaks: ctx.phase1_slice_twist_breaks,
+        phase1_slice_twist_equals: ctx.phase1_slice_twist_equals,
+        phase1_slice_flip_breaks: ctx.phase1_slice_flip_breaks,
+        phase1_slice_flip_equals: ctx.phase1_slice_flip_equals,
         phase1_children_recurred: ctx.phase1_children_recurred,
         timed_out: ctx.timed_out && !ctx.has_solution,
     }

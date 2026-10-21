@@ -26,6 +26,14 @@ fn solve_stats_include_phase_two_probes() {
         result.phase1_children_recurred > 0,
         "expected phase-one recursive children"
     );
+    assert_eq!(
+        result.phase1_rejected_slice_twist,
+        result.phase1_slice_twist_breaks + result.phase1_slice_twist_equals
+    );
+    assert_eq!(
+        result.phase1_rejected_slice_flip,
+        result.phase1_slice_flip_breaks + result.phase1_slice_flip_equals
+    );
 }
 
 #[test]

@@ -72,6 +72,10 @@ fn main() -> io::Result<()> {
     let mut total_phase1_nodes = 0_u64;
     let mut total_phase1_rejected_slice_twist = 0_u64;
     let mut total_phase1_rejected_slice_flip = 0_u64;
+    let mut total_phase1_slice_twist_breaks = 0_u64;
+    let mut total_phase1_slice_twist_equals = 0_u64;
+    let mut total_phase1_slice_flip_breaks = 0_u64;
+    let mut total_phase1_slice_flip_equals = 0_u64;
     let mut total_phase1_children_recurred = 0_u64;
     for _ in 0..iterations {
         for cube in &cubes {
@@ -83,6 +87,10 @@ fn main() -> io::Result<()> {
             total_phase1_nodes += result.phase1_nodes;
             total_phase1_rejected_slice_twist += result.phase1_rejected_slice_twist;
             total_phase1_rejected_slice_flip += result.phase1_rejected_slice_flip;
+            total_phase1_slice_twist_breaks += result.phase1_slice_twist_breaks;
+            total_phase1_slice_twist_equals += result.phase1_slice_twist_equals;
+            total_phase1_slice_flip_breaks += result.phase1_slice_flip_breaks;
+            total_phase1_slice_flip_equals += result.phase1_slice_flip_equals;
             total_phase1_children_recurred += result.phase1_children_recurred;
         }
     }
@@ -112,6 +120,9 @@ fn main() -> io::Result<()> {
     println!("Phase-one nodes:    {total_phase1_nodes}");
     println!(
         "Phase-one rejects:  slice-twist {total_phase1_rejected_slice_twist}, slice-flip {total_phase1_rejected_slice_flip}"
+    );
+    println!(
+        "Phase-one outcomes: slice-twist break {total_phase1_slice_twist_breaks}, equal {total_phase1_slice_twist_equals}; slice-flip break {total_phase1_slice_flip_breaks}, equal {total_phase1_slice_flip_equals}"
     );
     println!("Phase-one recursed: {total_phase1_children_recurred}");
     println!(

@@ -83,7 +83,7 @@ Unbounded solves are deterministic for a fixed cube, move limit, solver version,
 
 ## Benchmarking
 
-The validating benchmark warms the solver tables, solves a fixed corpus repeatedly, and checks every returned sequence by applying it to the cube. It reports average, median, and p95 solver time, phase-two probes per second, and phase-one expansion/pruning counters. The argument is the number of passes over the corpus:
+The validating benchmark warms the solver tables, solves a fixed corpus repeatedly, and checks every returned sequence by applying it to the cube. It reports average, median, and p95 solver time, phase-two probes per second, and phase-one expansion/pruning counters, including the `break` versus `continue` split for each phase-one pruning estimate. The argument is the number of passes over the corpus:
 
 ```sh
 RUSTFLAGS='-C target-cpu=native' cargo run --release --example benchmark -- 100
