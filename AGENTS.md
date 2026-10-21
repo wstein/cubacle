@@ -41,6 +41,8 @@ change pass; a change that alters solver output needs an explicit decision.
   applications (CLI, server). Engines do not use each other's internals; a future
   reduction engine (4x4 and up) uses the 3x3 solver only through the `Solver` trait,
   with an injected instance, never through a global.
+- File size: no source file over 1000 lines, ever. From about 500 lines, plan a split
+  along a real responsibility. Most files should stay far smaller.
 - Compute-heavy work never runs on async threads in the server.
 - The server is stateless and binds to `127.0.0.1` by default.
 
