@@ -1353,6 +1353,10 @@ impl IdaContext {
                 TimeLimit::ReturnSolution => return self.solution.format_moves(),
                 TimeLimit::TimedOut => return String::from("Error 8"),
             }
+            // A solution of at most target_length - 1 moves cannot have a longer first phase.
+            if length1 >= self.target_length {
+                break;
+            }
             self.length1 = length1;
             self.max_depth2 =
                 std::cmp::min(MAX_DEPTH2 as i8, self.target_length - self.length1 - 1);
@@ -1413,6 +1417,10 @@ impl IdaContext {
                 TimeLimit::Continue => {}
                 TimeLimit::ReturnSolution => return self.solution.format_moves(),
                 TimeLimit::TimedOut => return String::from("Error 8"),
+            }
+            // A solution of at most target_length - 1 moves cannot have a longer first phase.
+            if length1 >= self.target_length {
+                break;
             }
             self.length1 = length1;
             if let Some(best) = &self.shared_best {

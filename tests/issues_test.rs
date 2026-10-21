@@ -81,3 +81,15 @@ fn test_issue1_solve() {
         "unexpected result: solution={solution} solved_cubie={solved_cubie:?}"
     );
 }
+
+#[test]
+fn a_small_move_limit_gives_up_quickly() {
+    // A cube needing 20 moves has no 3-move solution; the search must end at once
+    // instead of exploring first phases far deeper than the limit allows.
+    let cube = "FLUBUDDLDBRLFRDDRBRDLBFUDLRLBFUDFBDLUUBLLRURFFFRFBUUBR";
+    let started = Instant::now();
+    let result = solve_with_stats(cube, 3);
+
+    assert!(result.solution.starts_with("Error"), "{}", result.solution);
+    assert!(started.elapsed() < Duration::from_secs(5));
+}
