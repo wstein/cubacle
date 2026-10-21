@@ -9,12 +9,14 @@ cargo run --release -p cubacle-server -- --bind 127.0.0.1:8080
 | Flag | Env | Default |
 |---|---|---|
 | `--bind` | `CUBACLE_BIND` | `127.0.0.1:8080` (local only) |
-| `--max-concurrency` | `CUBACLE_MAX_CONCURRENCY` | number of CPUs |
-| `--request-timeout-ms` | `CUBACLE_REQUEST_TIMEOUT_MS` | 30000 (cap and default of `budgetMs`) |
+| `--max-concurrency` | `CUBACLE_MAX_CONCURRENCY` | number of CPUs (range 1..=256) |
+| `--request-timeout-ms` | `CUBACLE_REQUEST_TIMEOUT_MS` | 30000 (range 1..=600000; cap and default of `budgetMs`) |
 | `--max-body-bytes` | `CUBACLE_MAX_BODY_BYTES` | 16384 |
 | `--log` | `CUBACLE_LOG` | `info` |
 
-SIGINT/SIGTERM trigger a graceful shutdown that lets in-flight requests finish.
+SIGINT/SIGTERM trigger a graceful shutdown: in-flight requests may finish, but for at most `request-timeout + 5 s`, after which open connections are dropped. A second signal exits immediately. Connections that do not finish their request head within 10 s are closed (slowloris guard).
+
+The server logs method, path, status and latency of every request (never bodies); 429 and 504 are logged at warn.
 
 ## API
 
@@ -24,7 +26,7 @@ SIGINT/SIGTERM trigger a graceful shutdown that lets in-flight requests finish.
 | `GET /v1/scramble?moves=25` | moves 1..=200 | `{"scramble":"R U ..."}` |
 | `GET /v1/random?size=3` | size 2 or 3 | `{"kind":"3x3x3","facelets":"..."}` |
 | `POST /v1/convert` | `{"cube","scheme"?}` | `{"kind","facelets"}` |
-| `POST /v1/solve` | `{"cube","scheme"?,"maxMoves"?,"budgetMs"?}` | `{"kind","solution","length","elapsedMicros"}` |
+| `POST /v1/solve` | `{"cube","scheme"?,"maxMoves"? (1..=25),"budgetMs"? (1..=600000)}` | `{"kind","solution","length","elapsedMicros"}` |
 
 `cube` accepts Orbit64 tokens, URFDLB facelets (spaced or compact) or W/R/G/Y/O/B colours; `scheme` is `western-boy`, `japanese-bl-wt` or six letters.
 
@@ -32,14 +34,17 @@ Errors are `{"error":{"code","message"}}`:
 
 | Status | code | Cause |
 |---|---|---|
-| 400 | `bad_input` | unparseable cube, bad JSON or parameter |
+| 400 | `bad_input` | unparseable cube, bad JSON, unknown field or query parameter, out-of-range value (`size` outside 2..=7, `maxMoves`, `budgetMs`) |
+| 405 | `method_not_allowed` | wrong method (with an `Allow` header) |
 | 404 | `not_found` | unknown path |
+| 415 | `unsupported_media_type` | POST without `Content-Type: application/json` |
 | 413 | `payload_too_large` | body above `--max-body-bytes` |
 | 422 | `impossible_cube` | unreachable cube state |
 | 422 | `no_solution_within_limit` | nothing within `maxMoves` |
 | 429 | `busy` | all solver slots in use (`Retry-After: 1`) |
-| 501 | `no_engine` | size other than 2 or 3 |
-| 504 | `budget_exhausted` | time budget ran out (not 408: the client was not slow, the server was) |
+| 500 | `internal` | a handler or solver thread panicked |
+| 501 | `no_engine` | a valid cube size (4..=7) without an engine, including Orbit64 tokens of those sizes |
+| 504 | `budget_exhausted` | time budget ran out (not 408: the client was not slow, the server was). Do not retry unchanged: retry only with a larger `budgetMs` or an easier input |
 
 ```sh
 curl -s localhost:8080/health
@@ -49,3 +54,11 @@ curl -s -XPOST localhost:8080/v1/convert -d '{"cube":"A4ib8aejxj4Y"}'
 curl -s -XPOST localhost:8080/v1/solve -d '{"cube":"A4ib8aejxj4Y","maxMoves":21,"budgetMs":2000}'
 curl -s -XPOST localhost:8080/v1/solve -d '{"cube":"CFJnI"}'
 ```
+
+## Browsers and CORS
+
+There is deliberately no CORS layer, and JSON-only bodies (415 otherwise) keep cross-site "simple requests" from triggering solves. A browser frontend will need an explicit allow-list CORS layer in a later round (never `*` together with credentials).
+
+## Tests
+
+The server tests are not run by a plain `cargo test` at the repository root. Use `cargo test -p cubacle-server --release` or `cargo test --workspace --release`.
