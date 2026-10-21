@@ -27,6 +27,31 @@ struct Summary {
     total_solve_micros: u128,
 }
 
+impl Summary {
+    fn record(&mut self, row: &Row) {
+        self.total += 1;
+        self.total_probes += row.probes;
+        self.total_solve_micros += row.solve_micros;
+        match &row.classification {
+            Classification::Exact => {
+                self.exact += 1;
+                self.equal_length += 1;
+            }
+            Classification::SameLength => self.equal_length += 1,
+            Classification::Shorter => self.shorter += 1,
+            Classification::Longer => self.longer += 1,
+            Classification::Error => self.errors += 1,
+        }
+        if row.timed_out {
+            self.timed_out += 1;
+        }
+    }
+
+    fn average_solve_millis(&self) -> f64 {
+        self.total_solve_micros as f64 / self.total.max(1) as f64 / 1_000.0
+    }
+}
+
 #[derive(Clone)]
 struct Job {
     line_number: usize,
@@ -110,19 +135,29 @@ fn classify(expected_solution: &str, actual_solution: &str) -> (Classification, 
     (classification, actual_length)
 }
 
-fn print_progress(completed: usize, total: usize, started: Instant) -> io::Result<()> {
+fn print_progress(summary: &Summary, total: usize, started: Instant) -> io::Result<()> {
     const WIDTH: usize = 30;
 
-    let filled = completed * WIDTH / total;
+    let filled = summary.total * WIDTH / total;
     let elapsed_seconds = started.elapsed().as_secs_f64();
-    let remaining_seconds = elapsed_seconds / completed as f64 * (total - completed) as f64;
+    let remaining_seconds = elapsed_seconds / summary.total as f64 * (total - summary.total) as f64;
     print!(
-        "\r[{}{}] {completed}/{total} ({:5.1}%) elapsed {:6.1}s ETA {:6.1}s",
+        "\r[{}{}] {}/{} ({:5.1}%) elapsed {:6.1}s ETA {:6.1}s | exact {} same {} short {} long {} error {} timeout {} probes {} avg {:.1}ms",
         "#".repeat(filled),
         "-".repeat(WIDTH - filled),
-        completed as f64 / total as f64 * 100.0,
+        summary.total,
+        total,
+        summary.total as f64 / total as f64 * 100.0,
         elapsed_seconds,
         remaining_seconds,
+        summary.exact,
+        summary.equal_length,
+        summary.shorter,
+        summary.longer,
+        summary.errors,
+        summary.timed_out,
+        summary.total_probes,
+        summary.average_solve_millis(),
     );
     stdout().flush()
 }
@@ -251,6 +286,7 @@ fn solve_jobs(
     let (sender, receiver) = mpsc::channel();
     let started = Instant::now();
     let mut rows = Vec::with_capacity(total);
+    let mut summary = Summary::default();
 
     thread::scope(|scope| -> io::Result<()> {
         for _ in 0..workers {
@@ -278,10 +314,10 @@ fn solve_jobs(
         drop(sender);
 
         for row in receiver {
+            summary.record(&row);
             rows.push(row);
-            let completed = rows.len();
-            if completed % 10 == 0 || completed == total {
-                print_progress(completed, total, started)?;
+            if summary.total % 10 == 0 || summary.total == total {
+                print_progress(&summary, total, started)?;
             }
         }
         Ok(())
@@ -395,29 +431,7 @@ fn main() -> io::Result<()> {
     let mut summary = Summary::default();
     for row in rows {
         let job = &jobs[row.job_index];
-        summary.total += 1;
-        summary.total_probes += row.probes;
-        summary.total_solve_micros += row.solve_micros;
-
-        match row.classification {
-            Classification::Exact => {
-                summary.exact += 1;
-                summary.equal_length += 1;
-            }
-            Classification::SameLength => {
-                summary.equal_length += 1;
-            }
-            Classification::Shorter => {
-                summary.shorter += 1;
-            }
-            Classification::Longer => {
-                summary.longer += 1;
-            }
-            Classification::Error => summary.errors += 1,
-        }
-        if row.timed_out {
-            summary.timed_out += 1;
-        }
+        summary.record(&row);
 
         writeln!(
             report,
@@ -467,7 +481,7 @@ fn main() -> io::Result<()> {
     );
     println!(
         "Average solve time: {:.3} ms",
-        summary.total_solve_micros as f64 / summary.total as f64 / 1_000.0
+        summary.average_solve_millis()
     );
 
     Ok(())
@@ -475,7 +489,9 @@ fn main() -> io::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{classify, normalize_moves, read_jobs, Classification, REPORT_HEADER};
+    use super::{
+        classify, normalize_moves, read_jobs, Classification, Row, Summary, REPORT_HEADER,
+    };
     use std::fs;
 
     #[test]
@@ -490,6 +506,37 @@ mod tests {
         assert_eq!(classify("R U", "F"), (Classification::Shorter, 1));
         assert_eq!(classify("R U", "F B L"), (Classification::Longer, 3));
         assert_eq!(classify("R U", "Error 8"), (Classification::Error, 0));
+    }
+
+    #[test]
+    fn summary_tracks_live_solve_statistics() {
+        let mut summary = Summary::default();
+        summary.record(&Row {
+            job_index: 0,
+            classification: Classification::Exact,
+            actual_length: 12,
+            probes: 10,
+            solve_micros: 2_000,
+            actual_solution: "R U".to_owned(),
+            timed_out: false,
+        });
+        summary.record(&Row {
+            job_index: 1,
+            classification: Classification::Error,
+            actual_length: 0,
+            probes: 5,
+            solve_micros: 4_000,
+            actual_solution: "Error 8".to_owned(),
+            timed_out: true,
+        });
+
+        assert_eq!(summary.total, 2);
+        assert_eq!(summary.exact, 1);
+        assert_eq!(summary.equal_length, 1);
+        assert_eq!(summary.errors, 1);
+        assert_eq!(summary.timed_out, 1);
+        assert_eq!(summary.total_probes, 15);
+        assert_eq!(summary.average_solve_millis(), 3.0);
     }
 
     #[test]

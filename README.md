@@ -58,7 +58,7 @@ RUSTFLAGS='-C target-cpu=native' cargo run --release --example bulk_compare -- \
   examples/scrambles.csv examples/scramble-report-100ms.csv
 ```
 
-The command uses one worker per available logical CPU by default and shows progress, elapsed time, and an ETA. To choose a worker count, row limit, minimum search time, and maximum search time in milliseconds, pass optional third through sixth arguments:
+The command uses one worker per available logical CPU by default and shows progress, elapsed time, and an ETA. Its live progress line also reports completed classifications, timeouts, accumulated phase-two probes, and average solve time. To choose a worker count, row limit, minimum search time, and maximum search time in milliseconds, pass optional third through sixth arguments:
 
 ```sh
 cargo run --release --example bulk_compare -- \
