@@ -1,4 +1,4 @@
-use min2phase::{from_moves, solve_with_budget};
+use min2phase::{from_moves, solve_with_minimum_time};
 use std::env;
 use std::fs::File;
 use std::io::{self, stdout, BufRead, BufReader, BufWriter, Write};
@@ -202,7 +202,7 @@ fn solve_job(job_index: usize, job: &Job, budget: Duration) -> Row {
     let (actual_solution, probes, solve_micros, timed_out) = from_moves(&job.scramble)
         .map(|cube| {
             let started = Instant::now();
-            let result = solve_with_budget(&cube, MAX_LENGTH, budget);
+            let result = solve_with_minimum_time(&cube, MAX_LENGTH, budget, budget);
             (
                 result.solution,
                 result.probes,
@@ -398,7 +398,7 @@ fn main() -> io::Result<()> {
     report.flush()?;
 
     println!(
-        "Bulk comparison (max solution length: {MAX_LENGTH}, time budget: {} ms)",
+        "Bulk comparison (max solution length: {MAX_LENGTH}, minimum and maximum search time: {} ms)",
         budget.as_millis()
     );
     println!("Input:  {}", Path::new(&input_path).display());
