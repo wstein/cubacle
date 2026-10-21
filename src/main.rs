@@ -3,7 +3,9 @@ use std::process::ExitCode;
 use std::time::Duration;
 
 use clap::{Args, Parser, Subcommand};
-use cubacle::api::{Facelets, Failure, Min2PhaseSolver, PuzzleKind, SolveOptions, Solver};
+use cubacle::api::{
+    parse_cube, ColourScheme, Facelets, Failure, Min2PhaseSolver, PuzzleKind, SolveOptions, Solver,
+};
 use cubacle::{apply_moves, from_moves, random_cube, random_moves};
 
 /// Rubik's cube solver and generator.
@@ -26,6 +28,8 @@ enum Command {
     },
     /// Print a uniformly random cube state as facelets
     Random,
+    /// Translate any supported notation into canonical URFDLB facelets
+    Convert(InputArgs),
     /// Print the facelets reached by applying a scramble to a solved cube
     Facelets {
         /// Moves in standard notation, e.g. "R U R' U'"
@@ -33,14 +37,26 @@ enum Command {
     },
 }
 
+/// How a cube is written on the command line.
 #[derive(Args)]
-struct SolveArgs {
-    /// Facelets in URFDLB order (54 characters for a 3x3x3); "-" reads stdin
-    #[arg(required_unless_present = "scramble", conflicts_with = "scramble")]
-    facelets: Option<String>,
-    /// Solve the cube produced by this scramble instead of facelets
+struct InputArgs {
+    /// An Orbit64 token, URFDLB facelets or W/R/G/Y/O/B colours; spaces are
+    /// allowed and need no quoting. "-" reads stdin.
+    #[arg(num_args = 1.., required_unless_present = "scramble", conflicts_with = "scramble")]
+    cube: Vec<String>,
+    /// Solve the cube produced by this scramble instead
     #[arg(short, long)]
     scramble: Option<String>,
+    /// Colour scheme: western-boy, japanese-bl-wt or six letters in URFDLB order
+    /// (default: read from the centres, western-boy without centres)
+    #[arg(long)]
+    scheme: Option<ColourScheme>,
+}
+
+#[derive(Args)]
+struct SolveArgs {
+    #[command(flatten)]
+    input: InputArgs,
     /// Longest solution to accept
     #[arg(short = 'm', long, default_value_t = 21)]
     max_moves: u8,
@@ -65,6 +81,10 @@ fn main() -> ExitCode {
 fn run(cli: Cli) -> Result<(), String> {
     match cli.command {
         Command::Solve(args) => solve(args),
+        Command::Convert(input) => {
+            println!("{}", read_cube(&input)?);
+            Ok(())
+        }
         Command::Scramble { moves } => {
             println!("{}", random_moves(moves).trim());
             Ok(())
@@ -81,20 +101,26 @@ fn run(cli: Cli) -> Result<(), String> {
     }
 }
 
-fn solve(args: SolveArgs) -> Result<(), String> {
-    let text = match (&args.scramble, &args.facelets) {
-        (Some(scramble), _) => from_moves(scramble).ok_or("scramble is not valid move notation")?,
-        (None, Some(arg)) if arg == "-" => {
-            let mut input = String::new();
+fn read_cube(input: &InputArgs) -> Result<Facelets, String> {
+    if let Some(scramble) = &input.scramble {
+        let text = from_moves(scramble).ok_or("scramble is not valid move notation")?;
+        return Facelets::parse(&text).map_err(|error| error.to_string());
+    }
+    let text = match input.cube.as_slice() {
+        [single] if single == "-" => {
+            let mut text = String::new();
             std::io::stdin()
-                .read_to_string(&mut input)
+                .read_to_string(&mut text)
                 .map_err(|error| format!("cannot read stdin: {error}"))?;
-            input.trim().to_owned()
+            text
         }
-        (None, Some(arg)) => arg.clone(),
-        (None, None) => unreachable!("clap requires facelets or --scramble"),
+        parts => parts.join(" "),
     };
-    let facelets = Facelets::parse(&text).map_err(|error| error.to_string())?;
+    parse_cube(&text, input.scheme).map_err(|error| error.to_string())
+}
+
+fn solve(args: SolveArgs) -> Result<(), String> {
+    let facelets = read_cube(&args.input)?;
     if facelets.kind() != PuzzleKind::Cube3 {
         let size = facelets.kind().size();
         return Err(format!(
