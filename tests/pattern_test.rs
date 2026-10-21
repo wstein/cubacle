@@ -1,5 +1,6 @@
 use min2phase::{
-    apply_moves, from_moves, random_cube, solve_pattern, solve_with_stats, SolveOutcome,
+    apply_moves, from_moves, random_cube, solve_pattern, solve_pattern_parallel, solve_with_stats,
+    SolveOutcome,
 };
 
 const SOLVED: &str = "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB";
@@ -50,4 +51,14 @@ fn invalid_pattern_endpoint_is_reported() {
 
     assert_eq!(result.solution, "Error 1");
     assert_eq!(result.outcome, SolveOutcome::Unsolvable);
+}
+
+#[test]
+fn parallel_pattern_solution_transforms_source_into_target() {
+    let from = from_moves("R U R' U' F2 D L2").expect("valid source scramble");
+    let to = from_moves("B2 U2 R2 F2").expect("valid target scramble");
+    let result = solve_pattern_parallel(&from, &to, 20);
+
+    assert_eq!(result.outcome, SolveOutcome::Solved, "{result:?}");
+    assert_eq!(apply_moves(&from, &result.solution), Some(to));
 }

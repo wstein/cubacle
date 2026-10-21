@@ -4,7 +4,9 @@ extern crate lazy_static;
 mod pool;
 
 use rand::Rng;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 #[derive(Clone, Copy)]
@@ -271,6 +273,7 @@ struct IdaContext {
     minimum_deadline: Option<Instant>,
     timed_out: bool,
     deadline_with_solution: bool,
+    shared_stop: Option<Arc<AtomicBool>>,
     has_solution: bool,
     solution: Solution,
 }
@@ -1254,6 +1257,7 @@ impl IdaContext {
             minimum_deadline: None,
             timed_out: false,
             deadline_with_solution: false,
+            shared_stop: None,
             has_solution: false,
             solution: Solution {
                 depth1: 0,
@@ -1268,16 +1272,30 @@ impl IdaContext {
 
     fn set_time_limits(&mut self, minimum: Duration, maximum: Option<Duration>) {
         let started = Instant::now();
-        self.deadline = maximum.and_then(|budget| started.checked_add(budget));
-        self.minimum_deadline = maximum
-            .map(|maximum| minimum.min(maximum))
-            .and_then(|minimum| started.checked_add(minimum));
+        self.set_deadlines(
+            maximum.and_then(|budget| started.checked_add(budget)),
+            maximum
+                .map(|maximum| minimum.min(maximum))
+                .and_then(|minimum| started.checked_add(minimum)),
+        )
+    }
+
+    fn set_deadlines(&mut self, deadline: Option<Instant>, minimum_deadline: Option<Instant>) {
+        self.deadline = deadline;
+        self.minimum_deadline = minimum_deadline;
         self.timed_out = false;
         self.deadline_with_solution = false;
         self.has_solution = false;
     }
 
     fn time_limit(&mut self) -> TimeLimit {
+        if self
+            .shared_stop
+            .as_ref()
+            .is_some_and(|stop| stop.load(Ordering::Acquire))
+        {
+            return TimeLimit::TimedOut;
+        }
         let Some(maximum_deadline) = self.deadline else {
             return if self.has_solution {
                 TimeLimit::ReturnSolution
@@ -1367,6 +1385,51 @@ impl IdaContext {
                         String::from("Error 8")
                     };
                 }
+            }
+        }
+        if self.has_solution {
+            self.solution.format_moves()
+        } else {
+            String::from("Error 8")
+        }
+    }
+
+    fn solve_one_urf(
+        &mut self,
+        sctx: &StaticContext,
+        stbl: &StaticTables,
+        cc: &Cubie,
+        urf_idx: u8,
+        target_length: i8,
+    ) -> String {
+        match self.time_limit() {
+            TimeLimit::Continue => {}
+            TimeLimit::ReturnSolution => return self.solution.format_moves(),
+            TimeLimit::TimedOut => return String::from("Error 8"),
+        }
+        self.target_length = target_length + 1;
+        self.probes = 0;
+        self.urf_idx = urf_idx;
+        for length1 in 0..21 {
+            match self.time_limit() {
+                TimeLimit::Continue => {}
+                TimeLimit::ReturnSolution => return self.solution.format_moves(),
+                TimeLimit::TimedOut => return String::from("Error 8"),
+            }
+            self.length1 = length1;
+            self.max_depth2 = std::cmp::min(MAX_DEPTH2 as i8, self.target_length - length1 - 1);
+            self.depth1 = self.length1 - self.premv_len;
+            self.allow_shorter = false;
+            let ret = self.phase1_pre_moves(sctx, stbl, MAX_PREMV_LEN, -30, cc, 0);
+            if ret == 0 {
+                return self.solution.format_moves();
+            }
+            if ret == PREMOVE_TIMEOUT {
+                return if self.has_solution {
+                    self.solution.format_moves()
+                } else {
+                    String::from("Error 8")
+                };
             }
         }
         if self.has_solution {
@@ -1953,6 +2016,52 @@ pub fn solve_batch<T: AsRef<str> + Sync>(facelets: &[T], maxl: u8) -> Vec<SolveS
         .collect()
 }
 
+/// Experimentally solve one cube by searching its six URF orientations concurrently.
+///
+/// The returned valid solution is nondeterministic because worker scheduling decides
+/// which orientation reports first. Use [`solve_batch`] for predictable bulk throughput.
+pub fn solve_parallel(facelet: &str, maxl: u8) -> SolveStats {
+    solve_parallel_with_time_limits(facelet, maxl, Duration::ZERO, None)
+}
+
+/// Experimentally solve one cube in parallel subject to a wall-clock search budget.
+pub fn solve_parallel_with_budget(facelet: &str, maxl: u8, budget: Duration) -> SolveStats {
+    solve_parallel_with_time_limits(facelet, maxl, Duration::ZERO, Some(budget))
+}
+
+/// Experimentally solve one cube in parallel while retaining solutions until `minimum_search_time`.
+pub fn solve_parallel_with_minimum_time(
+    facelet: &str,
+    maxl: u8,
+    minimum_search_time: Duration,
+    maximum_search_time: Duration,
+) -> SolveStats {
+    solve_parallel_with_time_limits(
+        facelet,
+        maxl,
+        minimum_search_time,
+        Some(maximum_search_time),
+    )
+}
+
+/// Experimentally find a parallel solution that transforms `from_facelet` into `to_facelet`.
+pub fn solve_pattern_parallel(from_facelet: &str, to_facelet: &str, maxl: u8) -> SolveStats {
+    let from = match parse_facelet(from_facelet) {
+        Ok(cubie) => cubie,
+        Err(stats) => return stats,
+    };
+    let to = match parse_facelet(to_facelet) {
+        Ok(cubie) => cubie,
+        Err(stats) => return stats,
+    };
+    let mut to_inverse = Cubie::new();
+    let mut relative = Cubie::new();
+    Cubie::inv(&to, &mut to_inverse);
+    Cubie::corn_mult(&to_inverse, &from, &mut relative);
+    Cubie::edge_mult(&to_inverse, &from, &mut relative);
+    solve_parallel_cubie_entry(relative, maxl, Duration::ZERO, None)
+}
+
 fn solve_with_time_limits(
     facelet: &str,
     maxl: u8,
@@ -1964,6 +2073,86 @@ fn solve_with_time_limits(
         Err(stats) => return stats,
     };
     solve_cubie_entry(cc, maxl, minimum_search_time, maximum_search_time)
+}
+
+fn solve_parallel_with_time_limits(
+    facelet: &str,
+    maxl: u8,
+    minimum_search_time: Duration,
+    maximum_search_time: Option<Duration>,
+) -> SolveStats {
+    let cc = match parse_facelet(facelet) {
+        Ok(cubie) => cubie,
+        Err(stats) => return stats,
+    };
+    solve_parallel_cubie_entry(cc, maxl, minimum_search_time, maximum_search_time)
+}
+
+fn solve_parallel_cubie_entry(
+    cc: Cubie,
+    maxl: u8,
+    minimum_search_time: Duration,
+    maximum_search_time: Option<Duration>,
+) -> SolveStats {
+    if pool::worker_count() <= 1 || pool::in_pool_worker() {
+        return solve_cubie_entry(cc, maxl, minimum_search_time, maximum_search_time);
+    }
+
+    let started = Instant::now();
+    let deadline = maximum_search_time.and_then(|maximum| started.checked_add(maximum));
+    let minimum_deadline = maximum_search_time
+        .map(|maximum| minimum_search_time.min(maximum))
+        .and_then(|minimum| started.checked_add(minimum));
+    let stop = Arc::new(AtomicBool::new(false));
+    let urf_cubies = make_urf_cubies(&cc);
+    let (sender, receiver) = mpsc::channel();
+
+    for (urf_idx, urf_cubie) in urf_cubies.into_iter().enumerate() {
+        let sender = sender.clone();
+        let stop = Arc::clone(&stop);
+        pool::global().execute(move || {
+            let mut ctx = IdaContext::new();
+            ctx.shared_stop = Some(stop);
+            ctx.set_deadlines(deadline, minimum_deadline);
+            let solution = ctx.solve_one_urf(
+                &global_sctx,
+                &global_stbl,
+                &urf_cubie,
+                urf_idx as u8,
+                std::cmp::min(25, maxl) as i8,
+            );
+            let _ = sender.send(stats_from_context(&ctx, solution));
+        });
+    }
+    drop(sender);
+
+    let mut last_error = None;
+    for stats in receiver {
+        if !stats.solution.starts_with("Error ") {
+            stop.store(true, Ordering::Release);
+            return stats;
+        }
+        last_error = Some(stats);
+    }
+    last_error.expect("parallel solver did not return a result")
+}
+
+fn make_urf_cubies(cc: &Cubie) -> [Cubie; 6] {
+    let mut cubies = [Cubie::new(); 6];
+    let mut current = *cc;
+    let mut next = Cubie::new();
+    for (index, cubie) in cubies.iter_mut().enumerate() {
+        *cubie = current;
+        Cubie::corn_mult(&global_sctx.symurfi, &current, &mut next);
+        Cubie::edge_mult(&global_sctx.symurfi, &current, &mut next);
+        Cubie::corn_mult(&next, &global_sctx.symurf, &mut current);
+        Cubie::edge_mult(&next, &global_sctx.symurf, &mut current);
+        if index == 2 {
+            Cubie::inv(&current, &mut next);
+            current = next;
+        }
+    }
+    cubies
 }
 
 fn parse_facelet(facelet: &str) -> Result<Cubie, SolveStats> {
@@ -2011,6 +2200,10 @@ fn solve_cubie_entry(
         &cc,
         std::cmp::min(25, maxl) as i8,
     );
+    stats_from_context(&ctx, solution)
+}
+
+fn stats_from_context(ctx: &IdaContext, solution: String) -> SolveStats {
     let outcome = if ctx.deadline_with_solution {
         SolveOutcome::DeadlineWithSolution
     } else if ctx.timed_out {

@@ -1,5 +1,9 @@
-use min2phase::{apply_moves, from_moves, solve_batch, SolveOutcome};
+use min2phase::{
+    apply_moves, from_moves, solve_batch, solve_parallel, solve_parallel_with_budget,
+    solve_parallel_with_minimum_time, SolveOutcome,
+};
 use std::thread;
+use std::time::{Duration, Instant};
 
 const SOLVED: &str = "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB";
 
@@ -44,4 +48,43 @@ fn batch_pool_is_safe_under_concurrent_callers() {
     for caller in callers {
         caller.join().expect("batch caller panicked");
     }
+}
+
+#[test]
+fn parallel_solve_returns_a_valid_solution() {
+    let cube = from_moves("R U R' U' F2 D L2").expect("valid scramble");
+    let result = solve_parallel(&cube, 20);
+
+    assert_eq!(result.outcome, SolveOutcome::Solved, "{result:?}");
+    assert_eq!(
+        apply_moves(&cube, &result.solution).as_deref(),
+        Some(SOLVED)
+    );
+}
+
+#[test]
+fn parallel_budget_reports_a_deadline_without_a_solution() {
+    let cube = from_moves("R U R' U'").expect("valid scramble");
+    let result = solve_parallel_with_budget(&cube, 20, Duration::ZERO);
+
+    assert_eq!(result.solution, "Error 8");
+    assert_eq!(result.outcome, SolveOutcome::DeadlineNoSolution);
+}
+
+#[test]
+fn parallel_minimum_time_retains_a_valid_solution() {
+    let cube = from_moves("R U R' U' F2 D L2").expect("valid scramble");
+    let minimum = Duration::from_millis(5);
+    let started = Instant::now();
+    let result = solve_parallel_with_minimum_time(&cube, 20, minimum, Duration::from_millis(30));
+
+    assert!(started.elapsed() >= minimum);
+    assert!(matches!(
+        result.outcome,
+        SolveOutcome::Solved | SolveOutcome::DeadlineWithSolution
+    ));
+    assert_eq!(
+        apply_moves(&cube, &result.solution).as_deref(),
+        Some(SOLVED)
+    );
 }

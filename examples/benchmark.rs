@@ -1,4 +1,4 @@
-use min2phase::{apply_moves, from_moves, solve_with_stats};
+use min2phase::{apply_moves, from_moves, solve_parallel, solve_with_stats, SolveStats};
 use std::env;
 use std::io;
 use std::time::{Duration, Instant};
@@ -37,7 +37,19 @@ fn validate_solution(cube: &str, solution: &str) -> io::Result<()> {
 }
 
 fn main() -> io::Result<()> {
-    let iterations = match env::args().nth(1) {
+    let mut parallel = false;
+    let mut iteration_arg = None;
+    for argument in env::args().skip(1) {
+        if argument == "--parallel" {
+            parallel = true;
+        } else if iteration_arg.replace(argument).is_some() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "usage: benchmark [iterations] [--parallel]",
+            ));
+        }
+    }
+    let iterations = match iteration_arg {
         Some(value) => value.parse::<u32>().map_err(|_| {
             io::Error::new(
                 io::ErrorKind::InvalidInput,
@@ -61,9 +73,14 @@ fn main() -> io::Result<()> {
             })
         })
         .collect::<io::Result<_>>()?;
+    let solve: fn(&str, u8) -> SolveStats = if parallel {
+        solve_parallel
+    } else {
+        solve_with_stats
+    };
 
     for cube in &cubes {
-        let result = solve_with_stats(cube, MAX_LENGTH);
+        let result = solve(cube, MAX_LENGTH);
         validate_solution(cube, &result.solution)?;
     }
 
@@ -80,7 +97,7 @@ fn main() -> io::Result<()> {
     for _ in 0..iterations {
         for cube in &cubes {
             let started = Instant::now();
-            let result = solve_with_stats(cube, MAX_LENGTH);
+            let result = solve(cube, MAX_LENGTH);
             durations.push(started.elapsed());
             validate_solution(cube, &result.solution)?;
             total_probes += result.probes;
@@ -100,7 +117,8 @@ fn main() -> io::Result<()> {
     let total_duration: Duration = durations.iter().sum();
     let total_seconds = total_duration.as_secs_f64();
     println!(
-        "Validated {total} solves from {} fixed scrambles at a {MAX_LENGTH}-move limit after warm-up.",
+        "Validated {total} {} solves from {} fixed scrambles at a {MAX_LENGTH}-move limit after warm-up.",
+        if parallel { "parallel" } else { "serial" },
         SCRAMBLES.len()
     );
     println!("Total solver time: {:.3} s", total_seconds);

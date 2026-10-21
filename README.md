@@ -45,6 +45,8 @@ UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB
 - `solve_with_minimum_time(facelet: &str, maxl: u8, minimum: Duration, maximum: Duration) -> SolveStats`: retain and improve a solution until the minimum search time, subject to a hard maximum.
 - `solve_pattern(from_facelet: &str, to_facelet: &str, maxl: u8) -> SolveStats`: find moves that transform one valid cube state into another.
 - `solve_batch(facelets: &[T], maxl: u8) -> Vec<SolveStats>` where `T: AsRef<str> + Sync`: solve independent cubes concurrently while preserving input order.
+- `solve_parallel`, `solve_parallel_with_budget`, and `solve_parallel_with_minimum_time`: experimental six-orientation single-cube searches; returned valid sequences are nondeterministic.
+- `solve_pattern_parallel(from_facelet, to_facelet, maxl) -> SolveStats`: experimental parallel goal-state solving.
 - `from_moves(cube_moves: &str) -> Option<String>`: apply a move sequence to a solved cube.
 - `apply_moves(facelet: &str, cube_moves: &str) -> Option<String>`: apply a move sequence to a valid cube.
 - `random_cube() -> String` and `random_moves(n_moves) -> String`: generate valid random inputs.
@@ -75,6 +77,8 @@ assert_eq!(apply_moves(&from, &result.solution), Some(to));
 MIN2PHASE_THREADS=4 cargo run --release --example bulk_compare -- \
   examples/scrambles.csv examples/scramble-report.csv 4 - 100 100
 ```
+
+The `solve_parallel*` APIs split one solve across the six URF orientations and cancel remaining work after the first valid answer. They use the same pool, so set `MIN2PHASE_THREADS` before their first use. This is an experimental latency mode: it can perform more total IDA* work than serial search and the solution sequence is intentionally nondeterministic. Validate it on the target machine before adopting it.
 
 ## Comparing a scramble batch
 
@@ -114,6 +118,12 @@ The validating benchmark warms the solver tables, solves a fixed corpus repeated
 
 ```sh
 RUSTFLAGS='-C target-cpu=native' cargo run --release --example benchmark -- 100
+```
+
+To benchmark the experimental single-cube parallel path with the same fixed corpus, add `--parallel`; compare its p50 and p95 against a serial run on the same warm machine:
+
+```sh
+RUSTFLAGS='-C target-cpu=native' cargo run --release --example benchmark -- 200 --parallel
 ```
 
 For a parallel throughput comparison, run the same bulk sample with one worker and then with your desired worker count. The report and summary make probe totals and result classifications directly comparable.
