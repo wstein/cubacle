@@ -1,12 +1,12 @@
 # Licensing and provenance
 
-This crate is distributed under the **GNU Affero General Public License,
+cubacle is distributed under the **GNU Affero General Public License,
 version 3 or (at your option) any later version** (`AGPL-3.0-or-later`).
 The full text is in [`LICENSE`](LICENSE).
 
 ## Third-party origin
 
-The solver core is a Rust port of [min2phase](https://github.com/cs0x7f/min2phase)
+The 3x3 solver core is a Rust port of [min2phase](https://github.com/cs0x7f/min2phase)
 by Chen Shuang, originally published as
 [min2phase_rust](https://github.com/cs0x7f/min2phase_rust) under the MIT License.
 That grant is retained unmodified in [`LICENSE-MIT`](LICENSE-MIT); its copyright

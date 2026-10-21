@@ -1,13 +1,17 @@
-# min2phase
+# cubacle
 
-An optimized Rust implementation of the two-phase algorithm for solving a 3×3×3 Rubik's Cube.
+A Rubik's cube solver and generator in Rust, built as a backend for cube explorers. The name is a play on *cubicle*: a small room for working on cubes.
+
+Today the 3×3×3 is solved with an optimized implementation of the two-phase algorithm (derived from [min2phase](https://github.com/cs0x7f/min2phase) by Chen Shuang). The `cubacle::api` module describes cubes of every size from 2×2×2 to 7×7×7 behind one `Solver` trait; engines for the other sizes are being added.
+
+Licensed under AGPL-3.0-or-later; see [`NOTICE.md`](NOTICE.md) for the MIT-licensed origin of the 3×3×3 core.
 
 The solver accepts a cube in facelet order and returns a move sequence. It also provides helpers for creating random cubes, parsing scrambles, and applying moves.
 
 ## Usage
 
 ```rust
-use min2phase::{apply_moves, from_moves, solve};
+use cubacle::{apply_moves, from_moves, solve};
 
 let cube = from_moves("R U R' U'").expect("valid scramble");
 let solution = solve(&cube, 20);
@@ -60,7 +64,7 @@ The solver initializes its shared move and pruning tables on first use. For a ba
 Use `solve_pattern` when the desired result is an arbitrary valid cube state rather than the solved cube:
 
 ```rust
-use min2phase::{apply_moves, from_moves, solve_pattern};
+use cubacle::{apply_moves, from_moves, solve_pattern};
 
 let from = from_moves("R U R' U'").expect("valid source");
 let to = from_moves("F2 D L2").expect("valid target");
@@ -71,14 +75,14 @@ assert_eq!(apply_moves(&from, &result.solution), Some(to));
 
 ### Batch throughput
 
-`solve_batch` reuses a process-wide worker pool, avoiding per-solve thread creation. Set `MIN2PHASE_THREADS` to a positive worker count before its first use to override the default of `available_parallelism()`. The pool has no shutdown operation and lives for the process lifetime. It is optimized for many independent cubes, not lower latency for a single cube.
+`solve_batch` reuses a process-wide worker pool, avoiding per-solve thread creation. Set `CUBACLE_THREADS` to a positive worker count before its first use to override the default of `available_parallelism()`. The pool has no shutdown operation and lives for the process lifetime. It is optimized for many independent cubes, not lower latency for a single cube.
 
 ```sh
-MIN2PHASE_THREADS=4 cargo run --release --example bulk_compare -- \
+CUBACLE_THREADS=4 cargo run --release --example bulk_compare -- \
   examples/scrambles.csv examples/scramble-report.csv 4 - 100 100
 ```
 
-The `solve_parallel*` APIs split one solve across the six URF orientations, complete every orientation search, and select the first valid result in fixed URF order. Thus unbounded parallel solves are deterministic for a fixed cube, move limit, solver version, and build. They use the same pool, so set `MIN2PHASE_THREADS` before their first use. Wall-clock budgets still have the same timing sensitivity as the serial budget APIs. This is an experimental latency mode: it can perform more total IDA* work than serial search. Validate it on the target machine before adopting it.
+The `solve_parallel*` APIs split one solve across the six URF orientations, complete every orientation search, and select the first valid result in fixed URF order. Thus unbounded parallel solves are deterministic for a fixed cube, move limit, solver version, and build. They use the same pool, so set `CUBACLE_THREADS` before their first use. Wall-clock budgets still have the same timing sensitivity as the serial budget APIs. This is an experimental latency mode: it can perform more total IDA* work than serial search. Validate it on the target machine before adopting it.
 
 ## Comparing a scramble batch
 
