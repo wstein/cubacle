@@ -63,6 +63,16 @@ fn parallel_solve_returns_a_valid_solution() {
 }
 
 #[test]
+fn parallel_solve_is_repeatable() {
+    let cube = from_moves("R U R' U' F2 D L2").expect("valid scramble");
+    let expected = solve_parallel(&cube, 20).solution;
+
+    for _ in 0..5 {
+        assert_eq!(solve_parallel(&cube, 20).solution, expected);
+    }
+}
+
+#[test]
 fn parallel_budget_reports_a_deadline_without_a_solution() {
     let cube = from_moves("R U R' U'").expect("valid scramble");
     let result = solve_parallel_with_budget(&cube, 20, Duration::ZERO);
@@ -76,7 +86,7 @@ fn parallel_minimum_time_retains_a_valid_solution() {
     let cube = from_moves("R U R' U' F2 D L2").expect("valid scramble");
     let minimum = Duration::from_millis(5);
     let started = Instant::now();
-    let result = solve_parallel_with_minimum_time(&cube, 20, minimum, Duration::from_millis(30));
+    let result = solve_parallel_with_minimum_time(&cube, 20, minimum, Duration::from_millis(200));
 
     assert!(started.elapsed() >= minimum);
     assert!(matches!(

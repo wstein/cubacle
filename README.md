@@ -45,7 +45,7 @@ UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB
 - `solve_with_minimum_time(facelet: &str, maxl: u8, minimum: Duration, maximum: Duration) -> SolveStats`: retain and improve a solution until the minimum search time, subject to a hard maximum.
 - `solve_pattern(from_facelet: &str, to_facelet: &str, maxl: u8) -> SolveStats`: find moves that transform one valid cube state into another.
 - `solve_batch(facelets: &[T], maxl: u8) -> Vec<SolveStats>` where `T: AsRef<str> + Sync`: solve independent cubes concurrently while preserving input order.
-- `solve_parallel`, `solve_parallel_with_budget`, and `solve_parallel_with_minimum_time`: experimental six-orientation single-cube searches; returned valid sequences are nondeterministic.
+- `solve_parallel`, `solve_parallel_with_budget`, and `solve_parallel_with_minimum_time`: experimental six-orientation single-cube searches with deterministic result selection.
 - `solve_pattern_parallel(from_facelet, to_facelet, maxl) -> SolveStats`: experimental parallel goal-state solving.
 - `from_moves(cube_moves: &str) -> Option<String>`: apply a move sequence to a solved cube.
 - `apply_moves(facelet: &str, cube_moves: &str) -> Option<String>`: apply a move sequence to a valid cube.
@@ -78,7 +78,7 @@ MIN2PHASE_THREADS=4 cargo run --release --example bulk_compare -- \
   examples/scrambles.csv examples/scramble-report.csv 4 - 100 100
 ```
 
-The `solve_parallel*` APIs split one solve across the six URF orientations and cancel remaining work after the first valid answer. They use the same pool, so set `MIN2PHASE_THREADS` before their first use. This is an experimental latency mode: it can perform more total IDA* work than serial search and the solution sequence is intentionally nondeterministic. Validate it on the target machine before adopting it.
+The `solve_parallel*` APIs split one solve across the six URF orientations, complete every orientation search, and select the first valid result in fixed URF order. Thus unbounded parallel solves are deterministic for a fixed cube, move limit, solver version, and build. They use the same pool, so set `MIN2PHASE_THREADS` before their first use. Wall-clock budgets still have the same timing sensitivity as the serial budget APIs. This is an experimental latency mode: it can perform more total IDA* work than serial search. Validate it on the target machine before adopting it.
 
 ## Comparing a scramble batch
 

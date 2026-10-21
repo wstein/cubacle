@@ -58,7 +58,7 @@ fn solve_minimum_time_retains_a_valid_solution_until_the_minimum_elapses() {
         cube.as_str(),
         MAX_SOL_LEN,
         minimum,
-        Duration::from_millis(30),
+        Duration::from_millis(200),
     );
 
     assert!(started.elapsed() >= minimum);

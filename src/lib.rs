@@ -4,9 +4,7 @@ extern crate lazy_static;
 mod pool;
 
 use rand::Rng;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
-use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 #[derive(Clone, Copy)]
@@ -273,7 +271,6 @@ struct IdaContext {
     minimum_deadline: Option<Instant>,
     timed_out: bool,
     deadline_with_solution: bool,
-    shared_stop: Option<Arc<AtomicBool>>,
     has_solution: bool,
     solution: Solution,
 }
@@ -1257,7 +1254,6 @@ impl IdaContext {
             minimum_deadline: None,
             timed_out: false,
             deadline_with_solution: false,
-            shared_stop: None,
             has_solution: false,
             solution: Solution {
                 depth1: 0,
@@ -1289,13 +1285,6 @@ impl IdaContext {
     }
 
     fn time_limit(&mut self) -> TimeLimit {
-        if self
-            .shared_stop
-            .as_ref()
-            .is_some_and(|stop| stop.load(Ordering::Acquire))
-        {
-            return TimeLimit::TimedOut;
-        }
         let Some(maximum_deadline) = self.deadline else {
             return if self.has_solution {
                 TimeLimit::ReturnSolution
@@ -2018,8 +2007,8 @@ pub fn solve_batch<T: AsRef<str> + Sync>(facelets: &[T], maxl: u8) -> Vec<SolveS
 
 /// Experimentally solve one cube by searching its six URF orientations concurrently.
 ///
-/// The returned valid solution is nondeterministic because worker scheduling decides
-/// which orientation reports first. Use [`solve_batch`] for predictable bulk throughput.
+/// The result is selected deterministically from all orientation searches. Use
+/// [`solve_batch`] for throughput-oriented work on independent cubes.
 pub fn solve_parallel(facelet: &str, maxl: u8) -> SolveStats {
     solve_parallel_with_time_limits(facelet, maxl, Duration::ZERO, None)
 }
@@ -2103,16 +2092,14 @@ fn solve_parallel_cubie_entry(
     let minimum_deadline = maximum_search_time
         .map(|maximum| minimum_search_time.min(maximum))
         .and_then(|minimum| started.checked_add(minimum));
-    let stop = Arc::new(AtomicBool::new(false));
     let urf_cubies = make_urf_cubies(&cc);
+    let task_count = urf_cubies.len();
     let (sender, receiver) = mpsc::channel();
 
     for (urf_idx, urf_cubie) in urf_cubies.into_iter().enumerate() {
         let sender = sender.clone();
-        let stop = Arc::clone(&stop);
         pool::global().execute(move || {
             let mut ctx = IdaContext::new();
-            ctx.shared_stop = Some(stop);
             ctx.set_deadlines(deadline, minimum_deadline);
             let solution = ctx.solve_one_urf(
                 &global_sctx,
@@ -2121,20 +2108,28 @@ fn solve_parallel_cubie_entry(
                 urf_idx as u8,
                 std::cmp::min(25, maxl) as i8,
             );
-            let _ = sender.send(stats_from_context(&ctx, solution));
+            let _ = sender.send((urf_idx, stats_from_context(&ctx, solution)));
         });
     }
     drop(sender);
 
-    let mut last_error = None;
-    for stats in receiver {
+    let mut results = vec![None; task_count];
+    for (urf_idx, stats) in receiver {
+        results[urf_idx] = Some(stats);
+    }
+    let mut first_error = None;
+    for stats in results
+        .into_iter()
+        .map(|result| result.expect("parallel solver worker did not return a result"))
+    {
         if !stats.solution.starts_with("Error ") {
-            stop.store(true, Ordering::Release);
             return stats;
         }
-        last_error = Some(stats);
+        if first_error.is_none() {
+            first_error = Some(stats);
+        }
     }
-    last_error.expect("parallel solver did not return a result")
+    first_error.expect("parallel solver did not return a result")
 }
 
 fn make_urf_cubies(cc: &Cubie) -> [Cubie; 6] {
