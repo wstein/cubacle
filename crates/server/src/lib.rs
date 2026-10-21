@@ -203,7 +203,10 @@ async fn scramble(
         return Err(ApiError::bad_input("moves must be between 1 and 200"));
     }
     Ok(Json(ScrambleBody {
-        scramble: cubacle::random_moves(moves).trim().to_owned(),
+        scramble: cubacle::random_moves(moves)
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" "),
     }))
 }
 
