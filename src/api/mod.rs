@@ -3,6 +3,8 @@
 //! Every engine, whatever the cube size, is described by the same vocabulary:
 //! a [`PuzzleKind`], a [`Facelets`] state, a [`MoveSequence`] and a [`Solver`].
 
+mod facelets;
 mod kind;
 
+pub use facelets::{Face, Facelets, FaceletsError};
 pub use kind::PuzzleKind;
