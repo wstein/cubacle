@@ -11,14 +11,26 @@ The solver accepts a cube in facelet order and returns a move sequence. It also 
 ## Command line
 
 ```
-cubacle solve FLUBUDDLDBRLFRDDRBRDLBFUDLRLBFUDFBDLUUBLLRURFFFRFBUUBR
+cubacle solve A4ib8aejxj4Y                       # Orbit64 token
+cubacle solve FUFUUFFFF UUUURRURU RRRFFRRFR BDBBDDBBB DLDDLLDDD LBLBBLLLL
+cubacle solve GWGWWGGGG WWWWRRWRW RRRGGRRGR BYBBYYBBB YOYYOOYYY OBOBBOOOO
 cubacle solve --scramble "R U R' U'" --max-moves 20 --budget-ms 500 --verbose
+cubacle convert --scheme japanese-bl-wt WWWW RRRR GGGG BBBB OOOO YYYY
 cubacle random | cubacle solve -
 cubacle scramble -n 25
 cubacle facelets "R U R' U'"
 ```
 
-`solve` prints the solution and checks by replay that it solves the cube. It exits with a non-zero status when the state is impossible, the limit is too tight or the time budget runs out. Only the 3×3×3 has an engine so far.
+A cube may be written as an [Orbit64](https://github.com/wstein/flix-orbit64) state token, as `URFDLB` facelets, or as sticker colours `W R G Y O B`. Facelets and colours may be compact or spaced, in any grouping, and need no quoting. Colours are read from the fixed centres of an odd cube, so western and Japanese cubes need no flag. A cube without centres (the 2×2×2) uses `--scheme`:
+
+| Scheme | U R F D L B | Opposite pairs |
+| --- | --- | --- |
+| `western-boy` (default) | W R G Y O B | white–yellow, green–blue, red–orange |
+| `japanese-bl-wt` | W R G B O Y | white–blue, green–yellow, red–orange |
+
+Any six letters in `URFDLB` order also work, e.g. `--scheme WRGYOB`.
+
+`solve` prints the solution and checks by replay that it solves the cube. It exits with a non-zero status when the state is impossible, the limit is too tight or the time budget runs out. Orbit64 tokens decode for the 2×2×2 and 3×3×3; only the 3×3×3 has an engine so far.
 
 ## Usage
 
