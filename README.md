@@ -173,7 +173,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --release --all-targets
 ```
 
-`tests/golden_test.rs` replays `tests/fixtures/golden.txt`, a record of the exact solutions and probe counts of both engines for 555 fixed cubes; a change that alters search behaviour fails it. `tests/architecture_test.rs` enforces the module dependency rules.
+`tests/golden_test.rs` replays `tests/fixtures/golden.txt`, a record of the exact solutions and probe counts of both engines for 554 fixed cubes; a change that alters search behaviour fails it. `tests/architecture_test.rs` enforces the module dependency rules.
 
 ## HTTP server
 

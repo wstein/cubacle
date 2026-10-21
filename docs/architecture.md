@@ -6,7 +6,7 @@ weight: 6
 
 # Architecture
 
-This page describes the intent of the design. Module and file names are changing during an ongoing refactor, so the page names roles, not paths.
+This page describes the design by role. The source layout and the dependency rules are in [ARCHITECTURE.md](https://github.com/wstein/cubacle/blob/main/ARCHITECTURE.md).
 
 ## Roles
 

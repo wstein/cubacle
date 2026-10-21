@@ -18,14 +18,8 @@ Run these checks before you commit. All of them must pass.
 
 ```sh
 cargo fmt --check
-cargo clippy --release --all-targets -- -D warnings
-cargo test --release --all-targets
-```
-
-To include the server tests, run the workspace form of the test command:
-
-```sh
-cargo test --workspace --release
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace --release --all-targets
 ```
 
 ## Docs site

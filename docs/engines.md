@@ -29,8 +29,9 @@ Because the 2x2x2 has no centres, colour input needs a [colour scheme](cli.md#co
 
 The 3x3x3 solver uses an optimized implementation of the two-phase algorithm, derived from [min2phase](https://github.com/cs0x7f/min2phase). It returns a solution of at most the move limit you give. A limit of 20 or 21 moves is a good choice. The default is 21.
 
-- The solver builds its move and pruning tables on first use. In a long-running process, this cost is paid once.
+- A `Min2PhaseSolver` builds its move and pruning tables on first use or in `prepare()`. The tables belong to the solver instance and are shared by its clones, so create one solver at startup and clone it. `Min2PhaseSolver::shared()` returns a process-wide default instance.
 - A search without a time budget is deterministic for a fixed cube, move limit and build.
+- The parallel searches (`solve_parallel*`) share a best-length bound between workers, so they are not guaranteed to return the same solution on every run; the result is always a valid solution within the move limit.
 - A search with a time budget is not deterministic. CPU scheduling and the moment the search sees the time limit can change the best result.
 - The command-line tool checks each 3x3x3 solution by replaying it on the cube.
 
