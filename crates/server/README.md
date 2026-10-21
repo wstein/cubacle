@@ -24,7 +24,7 @@ The server logs method, path, status and latency of every request (never bodies)
 |---|---|---|
 | `GET /health` | | `{"status":"ok"}` |
 | `GET /v1/scramble?moves=25` | moves 1..=200 | `{"scramble":"R U ..."}` |
-| `GET /v1/random?size=3` | size 2 or 3 | `{"kind":"3x3x3","facelets":"..."}` |
+| `GET /v1/random?size=3` | size 2..=7 (only 2 and 3 have engines) | `{"kind":"3x3x3","facelets":"..."}` |
 | `POST /v1/convert` | `{"cube","scheme"?}` | `{"kind","facelets"}` |
 | `POST /v1/solve` | `{"cube","scheme"?,"maxMoves"? (1..=25),"budgetMs"? (1..=600000)}` | `{"kind","solution","length","elapsedMicros"}` |
 
@@ -50,9 +50,9 @@ Errors are `{"error":{"code","message"}}`:
 curl -s localhost:8080/health
 curl -s 'localhost:8080/v1/scramble?moves=20'
 curl -s 'localhost:8080/v1/random?size=2'
-curl -s -XPOST localhost:8080/v1/convert -d '{"cube":"A4ib8aejxj4Y"}'
-curl -s -XPOST localhost:8080/v1/solve -d '{"cube":"A4ib8aejxj4Y","maxMoves":21,"budgetMs":2000}'
-curl -s -XPOST localhost:8080/v1/solve -d '{"cube":"CFJnI"}'
+curl -s -XPOST localhost:8080/v1/convert -H 'Content-Type: application/json' -d '{"cube":"A4ib8aejxj4Y"}'
+curl -s -XPOST localhost:8080/v1/solve -H 'Content-Type: application/json' -d '{"cube":"A4ib8aejxj4Y","maxMoves":21,"budgetMs":2000}'
+curl -s -XPOST localhost:8080/v1/solve -H 'Content-Type: application/json' -d '{"cube":"CFJnI"}'
 ```
 
 ## Browsers and CORS
