@@ -7,6 +7,7 @@ mod facelets;
 mod kind;
 mod min2phase;
 mod moves;
+pub mod orbit64;
 mod scheme;
 mod solver;
 

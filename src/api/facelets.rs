@@ -107,6 +107,15 @@ impl Facelets {
         Ok(facelets)
     }
 
+    /// Builds facelets from stickers already in `URFDLB` order.
+    pub fn from_stickers(stickers: Vec<Face>) -> Result<Facelets, FaceletsError> {
+        let kind = PuzzleKind::of_facelet_count(stickers.len())
+            .ok_or(FaceletsError::BadLength(stickers.len()))?;
+        let facelets = Facelets { kind, stickers };
+        facelets.validate_sticker_counts()?;
+        Ok(facelets)
+    }
+
     pub fn solved(kind: PuzzleKind) -> Facelets {
         let stickers = Face::ALL
             .into_iter()
