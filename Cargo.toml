@@ -12,8 +12,9 @@ documentation = "https://docs.rs/cubacle"
 repository = "https://github.com/wstein/cubacle"
 
 [dependencies]
-rand = "0.8"
-lazy_static = "1.5.0"
+rand = "0.10.3"
+lazy_static = "1.5.1"
+clap = { version = "4.6.7", features = ["derive"] }
 
 [profile.release]
 codegen-units = 1

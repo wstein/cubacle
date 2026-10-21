@@ -4,7 +4,7 @@ extern crate lazy_static;
 pub mod api;
 mod pool;
 
-use rand::Rng;
+use rand::RngExt;
 use std::sync::atomic::{AtomicI8, Ordering};
 use std::sync::mpsc;
 use std::sync::Arc;
@@ -1801,15 +1801,15 @@ impl Cubie {
     }
 
     fn random_reset(&mut self) {
-        let mut rng = rand::thread_rng();
-        let cperm = rng.gen_range(0..N_PERM) as u16;
+        let mut rng = rand::rng();
+        let cperm = rng.random_range(0..N_PERM) as u16;
         let mut parity = get_nparity(cperm as i32, 8);
         self.reset();
         self.set_cperm(cperm);
-        self.set_twst(rng.gen_range(0..N_TWST) as u16);
-        self.set_flip(rng.gen_range(0..N_FLIP) as u16);
+        self.set_twst(rng.random_range(0..N_TWST) as u16);
+        self.set_flip(rng.random_range(0..N_FLIP) as u16);
         for i in 0..10 {
-            let j = i + rng.gen_range(0..12 - i);
+            let j = i + rng.random_range(0..12 - i);
             if i != j {
                 self.ea.swap(i, j);
                 parity ^= 1;
@@ -2357,12 +2357,12 @@ pub fn apply_moves(facelet: &str, cube_moves: &str) -> Option<String> {
 ///
 /// Call ```from_moves(cube_moves)``` to obtain the scrambled cube
 pub fn random_moves(n_moves: u16) -> String {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let mut last_axis = 18;
     let mut scramble = String::new();
     let mut i = 0;
     while i < n_moves {
-        let mv = rng.gen_range(0..18);
+        let mv = rng.random_range(0..18);
         let axis = mv / 3;
         if axis == last_axis || (axis % 3 == last_axis % 3 && axis > last_axis) {
             continue;
