@@ -6,7 +6,9 @@
 mod facelets;
 mod kind;
 mod moves;
+mod solver;
 
 pub use facelets::{Face, Facelets, FaceletsError};
 pub use kind::PuzzleKind;
 pub use moves::{Move, MoveSequence, NotationError, Turn};
+pub use solver::{Failure, SolveMetrics, SolveOptions, SolveResult, Solver};
