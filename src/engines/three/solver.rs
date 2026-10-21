@@ -10,7 +10,8 @@ use super::engine::{
 use super::stats::{SolveOutcome, SolveStats};
 use super::tables::{self, SharedTables};
 use crate::puzzle::{
-    Facelets, Failure, MoveSequence, PuzzleKind, SolveMetrics, SolveOptions, SolveResult, Solver,
+    Face, Facelets, Failure, MoveSequence, PuzzleKind, SolveMetrics, SolveOptions, SolveResult,
+    Solver,
 };
 
 /// The longest solution the engine searches for when no limit is given.
@@ -95,7 +96,7 @@ impl Min2PhaseSolver {
         let started = Instant::now();
         let texts: Vec<String> = cubes
             .iter()
-            .filter(|cube| cube.kind() == PuzzleKind::Cube3)
+            .filter(|cube| wrong_size(cube, started).is_none())
             .map(Facelets::to_string)
             .collect();
         let mut solved = solve_batch(&self.tables, &texts, max_moves(options)).into_iter();
@@ -196,11 +197,27 @@ fn max_moves(options: &SolveOptions) -> u8 {
     options.max_moves.unwrap_or(DEFAULT_MAX_MOVES)
 }
 
+/// Why this engine cannot take `cube`, if it cannot.
+///
+/// Besides the size, the centres must be in their standard places: wide and
+/// inner-layer moves can move them, and the engine neither solves such a cube
+/// nor would its solution (layer turns only) put them back.
 fn wrong_size(cube: &Facelets, started: Instant) -> Option<SolveResult> {
-    (cube.kind() != PuzzleKind::Cube3).then(|| {
-        failed(
+    if cube.kind() != PuzzleKind::Cube3 {
+        return Some(failed(
             Failure::InvalidInput,
             format!("expected a 3x3x3, got a {0}x{0}x{0}", cube.kind().size()),
+            started,
+            None,
+        ));
+    }
+    let centres_home = Face::ALL
+        .into_iter()
+        .all(|face| cube.stickers()[face as usize * 9 + 4] == face);
+    (!centres_home).then(|| {
+        failed(
+            Failure::InvalidInput,
+            "the centres are not in their standard places (a wide or inner-layer move turned them); only cubes with fixed centres can be solved".to_owned(),
             started,
             None,
         )
@@ -340,5 +357,39 @@ mod ownership_tests {
         let second = Min2PhaseSolver::new().solve(&cube, &options).outcome;
         assert!(first.is_ok());
         assert_eq!(first, second);
+    }
+}
+
+#[cfg(test)]
+mod centre_tests {
+    use super::*;
+
+    fn scrambled(moves: &str) -> Facelets {
+        Facelets::solved(PuzzleKind::Cube3)
+            .apply(&moves.parse().unwrap())
+            .unwrap()
+    }
+
+    #[test]
+    fn a_wide_move_moves_the_centres_and_is_rejected() {
+        let solver = Min2PhaseSolver::new();
+        for moves in ["Rw U", "2R", "2Rw' F"] {
+            let result = solver.solve(&scrambled(moves), &SolveOptions::default());
+            assert_eq!(result.outcome, Err(Failure::InvalidInput), "{moves}");
+            assert!(result.message.unwrap().contains("centres"), "{moves}");
+        }
+        let cube = scrambled("Rw U");
+        let results = solver.solve_batch(std::slice::from_ref(&cube), &SolveOptions::default());
+        assert_eq!(results[0].outcome, Err(Failure::InvalidInput));
+        let solved = Facelets::solved(PuzzleKind::Cube3);
+        let pattern = solver.solve_pattern(&cube, &solved, &SolveOptions::default());
+        assert_eq!(pattern.outcome, Err(Failure::InvalidInput));
+    }
+
+    #[test]
+    fn outer_face_moves_are_unaffected() {
+        let cube = scrambled("R U R' U' F2 D L2 B");
+        let result = Min2PhaseSolver::new().solve(&cube, &SolveOptions::default());
+        assert!(cube.apply(result.solution().unwrap()).unwrap().is_solved());
     }
 }

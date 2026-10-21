@@ -215,3 +215,11 @@ fn a_tight_move_limit_fails_quickly() {
     assert!(!ok);
     assert!(error.contains("move limit"), "{error}");
 }
+
+#[test]
+fn a_scramble_that_moves_the_centres_is_reported_not_mis_solved() {
+    let (ok, _, error) = cubacle(&["solve", "--scramble", "Rw U"]);
+    assert!(!ok);
+    assert!(error.contains("centres"), "{error}");
+    assert!(!error.contains("internal error"), "{error}");
+}
