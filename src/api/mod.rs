@@ -4,6 +4,7 @@
 //! a [`PuzzleKind`], a [`Facelets`] state, a [`MoveSequence`] and a [`Solver`].
 
 mod facelets;
+mod input;
 mod kind;
 mod min2phase;
 mod moves;
@@ -12,6 +13,7 @@ mod scheme;
 mod solver;
 
 pub use facelets::{Face, Facelets, FaceletsError};
+pub use input::{parse_cube, InputError};
 pub use kind::PuzzleKind;
 pub use min2phase::Min2PhaseSolver;
 pub use moves::{Move, MoveSequence, NotationError, Turn};
