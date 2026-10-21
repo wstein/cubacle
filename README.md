@@ -2,7 +2,7 @@
 
 A Rubik's cube solver and generator in Rust, built as a backend for cube explorers. The name is a play on *cubicle*: a small room for working on cubes.
 
-Today the 3×3×3 is solved with an optimized implementation of the two-phase algorithm (derived from [min2phase](https://github.com/cs0x7f/min2phase) by Chen Shuang). The `cubacle::api` module describes cubes of every size from 2×2×2 to 7×7×7 behind one `Solver` trait; engines for the other sizes are being added.
+Today the 2×2×2 is solved optimally and the 3×3×3 is solved with an optimized implementation of the two-phase algorithm (derived from [min2phase](https://github.com/cs0x7f/min2phase) by Chen Shuang). The `cubacle::api` module describes cubes of every size from 2×2×2 to 7×7×7 behind one `Solver` trait; engines for the other sizes are being added.
 
 Licensed under AGPL-3.0-or-later; see [`NOTICE.md`](NOTICE.md) for the MIT-licensed origin of the 3×3×3 core.
 
@@ -30,7 +30,9 @@ A cube may be written as an [Orbit64](https://github.com/wstein/flix-orbit64) st
 
 Any six letters in `URFDLB` order also work, e.g. `--scheme WRGYOB`.
 
-`solve` prints the solution and checks by replay that it solves the cube. It exits with a non-zero status when the state is impossible, the limit is too tight or the time budget runs out. Orbit64 tokens decode for the 2×2×2 and 3×3×3; only the 3×3×3 has an engine so far.
+`solve` handles the 2×2×2 and the 3×3×3; larger sizes have no engine yet. It prints the solution, and for the 3×3×3 checks by replay that it solves the cube. It exits with a non-zero status when the state is impossible, the limit is too tight or the time budget runs out. Orbit64 tokens decode for the 2×2×2 and 3×3×3.
+
+The 2×2×2 solver (`PocketSolver`) keeps one corner fixed and searches an exact distance table of all 3,674,160 states, so its solutions are optimal in the half-turn metric (U, R and F turns by 90° or 180°). The table is built on first use in well under a second in a release build. A cube that is solved in any orientation needs no moves.
 
 ## Usage
 
