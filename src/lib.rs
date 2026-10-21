@@ -62,6 +62,13 @@ const SEARCH_TIMEOUT: i8 = i8::MIN;
 const SEARCH_COMPLETE: i8 = i8::MIN + 1;
 const PREMOVE_TIMEOUT: i32 = i32::MIN;
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum TimeLimit {
+    Continue,
+    ReturnSolution,
+    TimedOut,
+}
+
 /// The result and search statistics for one solver invocation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SolveStats {
@@ -1205,22 +1212,27 @@ impl IdaContext {
         self.has_solution = false;
     }
 
-    fn deadline_reached(&mut self) -> bool {
-        if self
-            .deadline
-            .is_some_and(|deadline| Instant::now() >= deadline)
-        {
-            self.timed_out = true;
-            return true;
-        }
-        false
-    }
-
-    fn should_return_solution(&self) -> bool {
-        self.has_solution
+    fn time_limit(&mut self) -> TimeLimit {
+        let Some(maximum_deadline) = self.deadline else {
+            return if self.has_solution {
+                TimeLimit::ReturnSolution
+            } else {
+                TimeLimit::Continue
+            };
+        };
+        let now = Instant::now();
+        if self.has_solution
             && self
                 .minimum_deadline
-                .is_none_or(|deadline| Instant::now() >= deadline)
+                .is_none_or(|minimum_deadline| now >= minimum_deadline)
+        {
+            return TimeLimit::ReturnSolution;
+        }
+        if now >= maximum_deadline {
+            self.timed_out = true;
+            return TimeLimit::TimedOut;
+        }
+        TimeLimit::Continue
     }
 
     pub fn solve_cubie(
@@ -1230,11 +1242,10 @@ impl IdaContext {
         cc: &Cubie,
         target_length: i8,
     ) -> String {
-        if self.should_return_solution() {
-            return self.solution.format_moves();
-        }
-        if self.deadline_reached() {
-            return String::from("Error 8");
+        match self.time_limit() {
+            TimeLimit::Continue => {}
+            TimeLimit::ReturnSolution => return self.solution.format_moves(),
+            TimeLimit::TimedOut => return String::from("Error 8"),
         }
         let mut cc1 = *cc;
         let mut cc2 = Cubie::new();
@@ -1252,15 +1263,10 @@ impl IdaContext {
             }
         }
         for length1 in 0..21 {
-            if self.should_return_solution() {
-                return self.solution.format_moves();
-            }
-            if self.deadline_reached() {
-                return if self.has_solution {
-                    self.solution.format_moves()
-                } else {
-                    String::from("Error 8")
-                };
+            match self.time_limit() {
+                TimeLimit::Continue => {}
+                TimeLimit::ReturnSolution => return self.solution.format_moves(),
+                TimeLimit::TimedOut => return String::from("Error 8"),
             }
             self.length1 = length1;
             self.max_depth2 =
@@ -1310,11 +1316,10 @@ impl IdaContext {
         cc: &Cubie,
         _ssym: i32,
     ) -> i32 {
-        if self.should_return_solution() {
-            return 0;
-        }
-        if self.deadline_reached() {
-            return PREMOVE_TIMEOUT;
+        match self.time_limit() {
+            TimeLimit::Continue => {}
+            TimeLimit::ReturnSolution => return 0,
+            TimeLimit::TimedOut => return PREMOVE_TIMEOUT,
         }
         self.premv_len = MAX_PREMV_LEN - maxl;
         if self.premv_len == 0 || ((0o667667 >> lm) & 1) == 0 {
@@ -1372,11 +1377,10 @@ impl IdaContext {
         maxl: i8,
         lm: i8,
     ) -> i8 {
-        if self.should_return_solution() {
-            return 0;
-        }
-        if self.deadline_reached() {
-            return SEARCH_TIMEOUT;
+        match self.time_limit() {
+            TimeLimit::Continue => {}
+            TimeLimit::ReturnSolution => return 0,
+            TimeLimit::TimedOut => return SEARCH_TIMEOUT,
         }
         let mut next_node: Coord = Coord::new();
         if node.prun == 0 && maxl < 5 {
@@ -1417,11 +1421,10 @@ impl IdaContext {
     }
 
     fn init_phase2(&mut self, sctx: &StaticContext, stbl: &StaticTables) -> i8 {
-        if self.should_return_solution() {
-            return SEARCH_COMPLETE;
-        }
-        if self.deadline_reached() {
-            return SEARCH_TIMEOUT;
+        match self.time_limit() {
+            TimeLimit::Continue => {}
+            TimeLimit::ReturnSolution => return SEARCH_COMPLETE,
+            TimeLimit::TimedOut => return SEARCH_TIMEOUT,
         }
         self.probes += 1;
         let mut cc = if self.depth1 == 0 {
@@ -1503,7 +1506,11 @@ impl IdaContext {
         if depth2 != self.max_depth2 {
             self.max_depth2 =
                 std::cmp::min(MAX_DEPTH2 as i8, self.target_length - self.length1 - 1);
-            return if self.should_return_solution() { 0 } else { 1 };
+            return match self.time_limit() {
+                TimeLimit::Continue => 1,
+                TimeLimit::ReturnSolution => 0,
+                TimeLimit::TimedOut => SEARCH_TIMEOUT,
+            };
         }
         1
     }
@@ -1518,11 +1525,10 @@ impl IdaContext {
         depth: i8,
         lm: i8,
     ) -> i8 {
-        if self.should_return_solution() {
-            return SEARCH_COMPLETE;
-        }
-        if self.deadline_reached() {
-            return SEARCH_TIMEOUT;
+        match self.time_limit() {
+            TimeLimit::Continue => {}
+            TimeLimit::ReturnSolution => return SEARCH_COMPLETE,
+            TimeLimit::TimedOut => return SEARCH_TIMEOUT,
         }
         if node.edge == 0 && node.corn == 0 && node.mid == 0 {
             return maxl;
