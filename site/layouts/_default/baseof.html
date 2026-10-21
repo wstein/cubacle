@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ if .IsHome }}{{ .Site.Title }}{{ else }}{{ .Title }} - {{ .Site.Title }}{{ end }}</title>
+<meta name="description" content="{{ .Description | default .Site.Title }}">
+<style>
+:root{color-scheme:light dark;--fg:#1f2328;--bg:#fff;--muted:#59636e;--line:#d1d9e0;--accent:#0969da;--code:#f6f8fa}
+@media (prefers-color-scheme:dark){:root{--fg:#e6edf3;--bg:#0d1117;--muted:#9198a1;--line:#3d444d;--accent:#4493f8;--code:#161b22}}
+body{margin:0;color:var(--fg);background:var(--bg);font:1rem/1.6 system-ui,sans-serif}
+a{color:var(--accent)}
+.wrap{display:flex;flex-wrap:wrap;gap:2rem;max-width:62rem;margin:0 auto;padding:1rem}
+nav{flex:0 0 12rem}
+nav a{display:block;padding:.2rem 0;text-decoration:none}
+nav a[aria-current=page]{font-weight:700}
+nav .brand{font-size:1.25rem;font-weight:700;margin-bottom:.5rem}
+main{flex:1 1 30rem;min-width:0}
+pre,code{font-family:ui-monospace,monospace;font-size:.9em}
+pre{overflow-x:auto;padding:.8rem;background:var(--code);border-radius:6px}
+code{background:var(--code);padding:.1em .3em;border-radius:4px}
+pre code{padding:0;background:none}
+table{border-collapse:collapse;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:.3rem .6rem;text-align:left}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav aria-label="Pages">
+<a class="brand" href="{{ .Site.Home.RelPermalink }}">{{ .Site.Title }}</a>
+{{ $cur := . }}{{ range .Site.Home.Pages.ByWeight }}<a href="{{ .RelPermalink }}"{{ if eq .RelPermalink $cur.RelPermalink }} aria-current="page"{{ end }}>{{ .Title }}</a>
+{{ end }}</nav>
+<main>{{ block "main" . }}{{ end }}</main>
+</div>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{{- $dest := .Destination -}}
+{{- if and (strings.HasSuffix (index (split $dest "#") 0) ".md") (not (findRE `^[a-z]+:` $dest)) -}}
+{{- $parts := split $dest "#" -}}
+{{- $p := .Page.GetPage (index $parts 0) -}}
+{{- if not $p }}{{ errorf "broken link %q in %s" $dest .Page.File.Path }}{{ end -}}
+{{- $dest = $p.RelPermalink -}}
+{{- if gt (len $parts) 1 }}{{ $dest = printf "%s#%s" $dest (index $parts 1) }}{{ end -}}
+{{- end -}}
+<a href="{{ $dest | safeURL }}"{{ with .Title }} title="{{ . }}"{{ end }}>{{ .Text | safeHTML }}</a>

@@ -1,0 +1,7 @@
+baseURL = "https://wstein.github.io/cubacle/"
+languageCode = "en"
+title = "cubacle"
+disableKinds = ["taxonomy", "term", "RSS"]
+
+[markup.goldmark.renderer]
+unsafe = false
