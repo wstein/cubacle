@@ -1,4 +1,59 @@
 # min2phase
-An optimized implementation of two-phase algorithm for solving Rubik's cube
 
-See examples for usage
+An optimized Rust implementation of the two-phase algorithm for solving a 3×3×3 Rubik's Cube.
+
+The solver accepts a cube in facelet order and returns a move sequence. It also provides helpers for creating random cubes, parsing scrambles, and applying moves.
+
+## Usage
+
+```rust
+use min2phase::{apply_moves, from_moves, solve};
+
+let cube = from_moves("R U R' U'").expect("valid scramble");
+let solution = solve(&cube, 20);
+let solved = apply_moves(&cube, &solution).expect("valid solution");
+
+assert_eq!(
+    solved,
+    "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB"
+);
+```
+
+All text inputs are `&str`; callers can pass string literals, slices, or `&String` values without allocating a new string.
+
+### Facelet order
+
+Facelets must be supplied in this order:
+
+```text
+U1U2...U9R1R2...R9F1...F9D1...D9L1...L9B1...B9
+```
+
+The solved cube is:
+
+```text
+UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB
+```
+
+`solve(facelet, maxl)` returns a solution of at most `maxl` moves, or an `Error <code>` string when the input is invalid or no solution is found within the requested limit. A limit of 20 or 21 moves is recommended.
+
+## API overview
+
+- `solve(facelet: &str, maxl: u8) -> String`: solve a valid facelet representation.
+- `from_moves(cube_moves: &str) -> Option<String>`: apply a move sequence to a solved cube.
+- `apply_moves(facelet: &str, cube_moves: &str) -> Option<String>`: apply a move sequence to a valid cube.
+- `random_cube() -> String` and `random_moves(n_moves) -> String`: generate valid random inputs.
+
+The solver initializes its shared move and pruning tables on first use. For a batch of cubes, keep the process alive and call `solve` repeatedly so this one-time cost is amortized.
+
+## Development
+
+Run the project quality checks with:
+
+```sh
+cargo fmt --check
+cargo clippy --release --all-targets -- -D warnings
+cargo test --release
+```
+
+See `examples/main.rs` for a runnable demonstration.
