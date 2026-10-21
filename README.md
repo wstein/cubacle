@@ -65,7 +65,7 @@ cargo run --release --example bulk_compare -- \
   examples/scrambles.csv examples/scramble-report-200-500ms.csv 12 100 200 500
 ```
 
-The command prints a summary and writes every row to the report CSV. Each row includes the classification, expected and actual length, phase-two probes, elapsed microseconds, and `timed_out` status. A timed-out row has no solution before the hard limit; a row with a solution is returned after the minimum search time or the hard maximum, whichever comes first. Reference moves using `1` and `3` suffixes are normalized to the solver's bare-turn and apostrophe notation before comparison.
+The command prints a summary and writes every row to the report CSV. The summary reports actual worker count, wall-clock batch duration, and the sum of per-job solve times. Each row includes the classification, expected and actual length, phase-two probes, elapsed microseconds, and `timed_out` status. A timed-out row has no solution before the hard limit; a row with a solution is returned after the minimum search time or the hard maximum, whichever comes first. Reference moves using `1` and `3` suffixes are normalized to the solver's bare-turn and apostrophe notation before comparison.
 
 The summary distinguishes an exact move sequence, any same-length solution (including exact sequences), shorter solutions, longer solutions, errors, and timeouts. `SolveStats::timed_out == true` indicates `Error 8`: no solution was found before the hard limit. It is distinct from ordinary input errors.
 

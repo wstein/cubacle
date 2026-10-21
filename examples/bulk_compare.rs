@@ -75,6 +75,12 @@ struct Row {
     timed_out: bool,
 }
 
+struct BatchResult {
+    rows: Vec<Row>,
+    elapsed: Duration,
+    workers: usize,
+}
+
 #[derive(Debug, PartialEq, Eq)]
 enum Classification {
     Exact,
@@ -275,9 +281,13 @@ fn solve_jobs(
     workers: usize,
     minimum_search_time: Duration,
     maximum_search_time: Duration,
-) -> io::Result<Vec<Row>> {
+) -> io::Result<BatchResult> {
     if jobs.is_empty() {
-        return Ok(Vec::new());
+        return Ok(BatchResult {
+            rows: Vec::new(),
+            elapsed: Duration::ZERO,
+            workers: 0,
+        });
     }
 
     let total = jobs.len();
@@ -324,7 +334,11 @@ fn solve_jobs(
     })?;
     println!();
     rows.sort_by_key(|row| row.job_index);
-    Ok(rows)
+    Ok(BatchResult {
+        rows,
+        elapsed: started.elapsed(),
+        workers,
+    })
 }
 
 fn requested_workers(argument: Option<String>) -> io::Result<usize> {
@@ -415,12 +429,17 @@ fn main() -> io::Result<()> {
         jobs.truncate(job_limit);
     }
     let jobs = Arc::new(jobs);
-    let rows = solve_jobs(
+    let batch = solve_jobs(
         Arc::clone(&jobs),
         workers,
         minimum_search_time,
         maximum_search_time,
     )?;
+    let BatchResult {
+        rows,
+        elapsed: batch_elapsed,
+        workers: effective_workers,
+    } = batch;
 
     let mut report = BufWriter::new(File::create(&report_path)?);
     writeln!(
@@ -462,7 +481,8 @@ fn main() -> io::Result<()> {
     );
     println!("Input:  {}", Path::new(&input_path).display());
     println!("Report: {}", Path::new(&report_path).display());
-    println!("Workers: {}", workers);
+    println!("Workers: {}", effective_workers);
+    println!("Wall time: {:.3} s", batch_elapsed.as_secs_f64());
     println!("Total:              {}", summary.total);
     println!("Exact move sequence: {}", summary.exact);
     println!("Same length:        {}", summary.equal_length);
