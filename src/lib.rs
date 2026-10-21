@@ -1893,21 +1893,53 @@ pub fn solve_with_minimum_time(
     )
 }
 
+/// Find a move sequence that transforms `from_facelet` into `to_facelet`.
+///
+/// The returned sequence has at most `maxl` moves, or is an `Error <code>` result
+/// when either facelet representation is invalid or no sequence is found within
+/// the requested limit.
+pub fn solve_pattern(from_facelet: &str, to_facelet: &str, maxl: u8) -> SolveStats {
+    let from = match parse_facelet(from_facelet) {
+        Ok(cubie) => cubie,
+        Err(stats) => return stats,
+    };
+    let to = match parse_facelet(to_facelet) {
+        Ok(cubie) => cubie,
+        Err(stats) => return stats,
+    };
+    let mut to_inverse = Cubie::new();
+    let mut relative = Cubie::new();
+    Cubie::inv(&to, &mut to_inverse);
+    Cubie::corn_mult(&to_inverse, &from, &mut relative);
+    Cubie::edge_mult(&to_inverse, &from, &mut relative);
+    solve_cubie_entry(relative, maxl, Duration::ZERO, None)
+}
+
 fn solve_with_time_limits(
     facelet: &str,
     maxl: u8,
     minimum_search_time: Duration,
     maximum_search_time: Option<Duration>,
 ) -> SolveStats {
+    let cc = match parse_facelet(facelet) {
+        Ok(cubie) => cubie,
+        Err(stats) => return stats,
+    };
+    solve_cubie_entry(cc, maxl, minimum_search_time, maximum_search_time)
+}
+
+fn parse_facelet(facelet: &str) -> Result<Cubie, SolveStats> {
     let mut cc = Cubie::new();
     if cc.set_from_facelet(facelet) < 0 {
-        return unsolvable_stats(String::from("Error 1"));
+        return Err(unsolvable_stats(String::from("Error 1")));
     }
     let verify = cc.verify();
     if verify < 0 {
-        return unsolvable_stats(String::from("Error ") + &(-verify).to_string());
+        return Err(unsolvable_stats(
+            String::from("Error ") + &(-verify).to_string(),
+        ));
     }
-    solve_cubie_entry(cc, maxl, minimum_search_time, maximum_search_time)
+    Ok(cc)
 }
 
 fn unsolvable_stats(solution: String) -> SolveStats {

@@ -43,6 +43,7 @@ UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB
 - `solve_with_stats(facelet: &str, maxl: u8) -> SolveStats`: solve with search counters and a `SolveOutcome`.
 - `solve_with_budget(facelet: &str, maxl: u8, budget: Duration) -> SolveStats`: solve with a wall-clock search budget.
 - `solve_with_minimum_time(facelet: &str, maxl: u8, minimum: Duration, maximum: Duration) -> SolveStats`: retain and improve a solution until the minimum search time, subject to a hard maximum.
+- `solve_pattern(from_facelet: &str, to_facelet: &str, maxl: u8) -> SolveStats`: find moves that transform one valid cube state into another.
 - `from_moves(cube_moves: &str) -> Option<String>`: apply a move sequence to a solved cube.
 - `apply_moves(facelet: &str, cube_moves: &str) -> Option<String>`: apply a move sequence to a valid cube.
 - `random_cube() -> String` and `random_moves(n_moves) -> String`: generate valid random inputs.
@@ -50,6 +51,20 @@ UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB
 The solver initializes its shared move and pruning tables on first use. For a batch of cubes, keep the process alive and call `solve` repeatedly so this one-time cost is amortized.
 
 `SolveStats::outcome` distinguishes a normal solution, a deadline reached with a retained solution, a deadline reached without a solution, and invalid or unsolved input. For compatibility, `SolveStats::timed_out` remains `true` only for `DeadlineNoSolution` (`Error 8`).
+
+### Goal-state solving
+
+Use `solve_pattern` when the desired result is an arbitrary valid cube state rather than the solved cube:
+
+```rust
+use min2phase::{apply_moves, from_moves, solve_pattern};
+
+let from = from_moves("R U R' U'").expect("valid source");
+let to = from_moves("F2 D L2").expect("valid target");
+let result = solve_pattern(&from, &to, 20);
+
+assert_eq!(apply_moves(&from, &result.solution), Some(to));
+```
 
 ## Comparing a scramble batch
 
