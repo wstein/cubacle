@@ -169,3 +169,7 @@ cargo test --release --all-targets
 ```
 
 See `examples/main.rs` for a runnable demonstration.
+
+## HTTP server
+
+`crates/server` holds `cubacle-server`, a stateless REST backend (solve, convert, scramble, random) for the 2x2x2 and 3x3x3. See [crates/server/README.md](crates/server/README.md).
