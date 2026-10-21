@@ -29,18 +29,6 @@ struct Coord2 {
     mid: u16,
 }
 
-#[derive(Clone, Copy)]
-struct Phase1Pruning {
-    slice_twist: i8,
-    slice_flip: i8,
-}
-
-impl Phase1Pruning {
-    fn maximum(self) -> i8 {
-        self.slice_twist.max(self.slice_flip)
-    }
-}
-
 #[repr(C)]
 struct Solution {
     depth1: i8,
@@ -1128,37 +1116,41 @@ impl Coord {
         self.prun
     }
 
-    fn move_prun(
+    fn move_slice_twist(
         &mut self,
         sctx: &StaticContext,
         stbl: &StaticTables,
         src: &Coord,
         mv: usize,
-    ) -> Phase1Pruning {
+    ) -> i8 {
         self.slice = stbl.slice_move[src.slice as usize * N_MOVES_P1 + mv];
-        self.flip = stbl.flip_move
-            [src.flip as usize * N_MOVES_P1 + sctx.symmove[mv][src.fsym as usize] as usize];
-        self.fsym = (self.flip & 7) ^ src.fsym;
-        self.flip >>= 3;
         self.twst = stbl.twst_move
             [src.twst as usize * N_MOVES_P1 + sctx.symmove[mv][src.tsym as usize] as usize];
         self.tsym = (self.twst & 7) ^ src.tsym;
         self.twst >>= 3;
-        let slice_twist = get_pruning(
+        get_pruning(
             &stbl.slice_twst_prun,
             self.twst as usize * N_SLICE
                 + stbl.slice_conj[(self.slice * 8 + self.tsym) as usize] as usize,
-        ) as i8;
-        let slice_flip = get_pruning(
+        ) as i8
+    }
+
+    fn move_flip_prun(
+        &mut self,
+        sctx: &StaticContext,
+        stbl: &StaticTables,
+        src: &Coord,
+        mv: usize,
+    ) -> i8 {
+        self.flip = stbl.flip_move
+            [src.flip as usize * N_MOVES_P1 + sctx.symmove[mv][src.fsym as usize] as usize];
+        self.fsym = (self.flip & 7) ^ src.fsym;
+        self.flip >>= 3;
+        get_pruning(
             &stbl.slice_flip_prun,
             self.flip as usize * N_SLICE
                 + stbl.slice_conj[(self.slice * 8 + self.fsym) as usize] as usize,
-        ) as i8;
-        self.prun = slice_twist.max(slice_flip);
-        Phase1Pruning {
-            slice_twist,
-            slice_flip,
-        }
+        ) as i8
     }
 }
 
@@ -1446,19 +1438,21 @@ impl IdaContext {
             }
             for power in 0..3 {
                 let m = axis + power;
-                let pruning = next_node.move_prun(sctx, stbl, node, m as usize);
-                let prun = pruning.maximum();
+                let slice_twist = next_node.move_slice_twist(sctx, stbl, node, m as usize);
+                if slice_twist > maxl {
+                    self.phase1_rejected_slice_twist += 1;
+                    self.phase1_slice_twist_breaks += 1;
+                    break;
+                }
+                let slice_flip = next_node.move_flip_prun(sctx, stbl, node, m as usize);
+                let prun = slice_twist.max(slice_flip);
+                next_node.prun = prun;
                 if prun > maxl {
-                    if pruning.slice_twist > maxl {
-                        self.phase1_rejected_slice_twist += 1;
-                        self.phase1_slice_twist_breaks += 1;
-                    } else {
-                        self.phase1_rejected_slice_flip += 1;
-                        self.phase1_slice_flip_breaks += 1;
-                    }
+                    self.phase1_rejected_slice_flip += 1;
+                    self.phase1_slice_flip_breaks += 1;
                     break;
                 } else if prun == maxl {
-                    if pruning.slice_twist == maxl {
+                    if slice_twist == maxl {
                         self.phase1_rejected_slice_twist += 1;
                         self.phase1_slice_twist_equals += 1;
                     } else {
