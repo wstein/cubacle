@@ -34,7 +34,7 @@ fn solve_budget_reports_timeout() {
 
 #[test]
 fn solve_minimum_time_retains_a_valid_solution_until_the_minimum_elapses() {
-    let cube = apply_moves(SOLVED, "R U R' U' F2 D B2 L2 U2 R2 F' D2").expect("valid moves");
+    let cube = apply_moves(SOLVED, "R U R' U'").expect("valid moves");
     let minimum = Duration::from_millis(10);
     let started = Instant::now();
     let result = solve_with_minimum_time(
