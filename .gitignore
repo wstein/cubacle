@@ -18,3 +18,4 @@ Cargo.lock
 *.pdb
 examples/*.csv
 sample_profile*.txt
+.claude/worktrees/
