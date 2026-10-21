@@ -172,6 +172,35 @@ async fn solves_a_2x2_token() {
     assert_eq!(status, StatusCode::OK, "{body}");
     assert_eq!(body["kind"], "2x2x2");
     assert!(body["length"].as_u64().unwrap() <= 11);
+
+    // Replay on a 3x3 whose edges and centres are solved: afterwards every
+    // face must show one colour on its four corner stickers.
+    let (_, _, converted) = call(app(), post_json("/v1/convert", json!({"cube": "CFJnI"}))).await;
+    let two: Vec<char> = converted["facelets"].as_str().unwrap().chars().collect();
+    let mut three: Vec<char> = SOLVED3.chars().collect();
+    for face in 0..6 {
+        for (k, index) in [0, 2, 6, 8].into_iter().enumerate() {
+            three[face * 9 + index] = two[face * 4 + k];
+        }
+    }
+    // The 3x3 must be a legal cube: if the corners are an odd permutation,
+    // swap two edges (UR and UF) to match the parity.
+    let solution = body["solution"].as_str().unwrap();
+    let plain: String = three.iter().collect();
+    three.swap(5, 7);
+    three.swap(10, 19);
+    let swapped: String = three.iter().collect();
+    let replayed = cubacle::apply_moves(&plain, solution)
+        .or_else(|| cubacle::apply_moves(&swapped, solution))
+        .expect("one of the two embeddings is a legal 3x3");
+    let r: Vec<char> = replayed.chars().collect();
+    for face in 0..6 {
+        let corners = [0, 2, 6, 8].map(|i| r[face * 9 + i]);
+        assert!(
+            corners.iter().all(|c| *c == corners[0]),
+            "face {face}: {replayed}"
+        );
+    }
 }
 
 #[tokio::test]
@@ -193,7 +222,7 @@ async fn bad_requests() {
 
 #[tokio::test]
 async fn impossible_cube_is_422() {
-    // One corner twisted in place: right sticker counts, unreachable state.
+    // Two stickers swapped (U9 and R1): right sticker counts, unreachable state.
     let twisted = "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB";
     let mut chars: Vec<char> = twisted.chars().collect();
     chars.swap(8, 9); // U9 <-> R1
@@ -287,4 +316,192 @@ async fn real_socket_smoke() {
     assert!(text.starts_with("HTTP/1.1 200"), "{text}");
     assert!(text.contains(r#"{"status":"ok"}"#), "{text}");
     server.abort();
+}
+
+const SUPERFLIP: &str = "UBULURUFURURFRBRDRFUFLFRFDFDFDLDRDBDLULBLFLDLBUBRBLBDB";
+
+#[tokio::test]
+async fn text_plain_posts_are_rejected_with_415() {
+    for uri in ["/v1/solve", "/v1/convert"] {
+        let request = Request::post(uri)
+            .header(header::CONTENT_TYPE, "text/plain")
+            .body(Body::from(r#"{"cube":"CFJnI"}"#))
+            .unwrap();
+        let (status, _, body) = call(app(), request).await;
+        assert_eq!(status, StatusCode::UNSUPPORTED_MEDIA_TYPE, "{uri}");
+        assert_eq!(code(&body), "unsupported_media_type");
+        let request = Request::post(uri)
+            .body(Body::from(r#"{"cube":"CFJnI"}"#))
+            .unwrap();
+        let (status, _, _) = call(app(), request).await;
+        assert_eq!(status, StatusCode::UNSUPPORTED_MEDIA_TYPE);
+    }
+    let request = Request::post("/v1/convert")
+        .header(header::CONTENT_TYPE, "Application/JSON; charset=utf-8")
+        .body(Body::from(r#"{"cube":"CFJnI"}"#))
+        .unwrap();
+    assert_eq!(call(app(), request).await.0, StatusCode::OK);
+}
+
+#[tokio::test]
+async fn wrong_methods_get_json_405() {
+    for request in [
+        Request::post("/v1/scramble").body(Body::empty()).unwrap(),
+        get("/v1/solve"),
+        Request::options("/v1/solve").body(Body::empty()).unwrap(),
+    ] {
+        let (status, headers, body) = call(app(), request).await;
+        assert_eq!(status, StatusCode::METHOD_NOT_ALLOWED);
+        assert_eq!(code(&body), "method_not_allowed");
+        assert!(headers.contains_key(header::ALLOW), "{headers:?}");
+    }
+}
+
+#[tokio::test]
+async fn size_validation_distinguishes_400_and_501() {
+    for size in ["0", "1", "8", "18446744073709551615"] {
+        let (status, _, body) = call(app(), get(&format!("/v1/random?size={size}"))).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST, "{size}");
+        assert_eq!(code(&body), "bad_input");
+    }
+    for size in ["4", "7"] {
+        let (status, _, body) = call(app(), get(&format!("/v1/random?size={size}"))).await;
+        assert_eq!(status, StatusCode::NOT_IMPLEMENTED, "{size}");
+        assert_eq!(code(&body), "no_engine");
+    }
+}
+
+#[tokio::test]
+async fn orbit64_tokens_of_unsupported_sizes_are_501() {
+    // 27 characters is the width of a 4x4x4 token.
+    for uri in ["/v1/solve", "/v1/convert"] {
+        let (status, _, body) = call(app(), post_json(uri, json!({"cube": "A".repeat(27)}))).await;
+        assert_eq!(status, StatusCode::NOT_IMPLEMENTED, "{uri}: {body}");
+        assert_eq!(code(&body), "no_engine");
+    }
+}
+
+#[tokio::test]
+async fn unknown_parameters_and_wrong_fields_are_400() {
+    for uri in [
+        "/v1/scramble?moves=5&x=1",
+        "/v1/random?size=3&x=1",
+        "/v1/random?foo",
+    ] {
+        let (status, _, body) = call(app(), get(uri)).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST, "{uri}");
+        assert_eq!(code(&body), "bad_input");
+    }
+    for extra in [json!({"maxMoves": 5}), json!({"budgetMs": 5})] {
+        let mut request = json!({"cube": "CFJnI"});
+        request
+            .as_object_mut()
+            .unwrap()
+            .extend(extra.as_object().unwrap().clone());
+        let (status, _, _) = call(app(), post_json("/v1/convert", request)).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+    }
+    for (field, value) in [("maxMoves", 26), ("maxMoves", 0), ("budgetMs", 600_001)] {
+        let (status, _, body) = call(
+            app(),
+            post_json("/v1/solve", json!({"cube": "CFJnI", field: value})),
+        )
+        .await;
+        assert_eq!(status, StatusCode::BAD_REQUEST, "{field}={value}");
+        assert_eq!(code(&body), "bad_input");
+    }
+}
+
+#[tokio::test]
+async fn engine_errors_are_readable() {
+    // One edge flipped in place: an error from the engine.
+    let mut chars: Vec<char> = SOLVED3.chars().collect();
+    chars.swap(5, 10);
+    let cube: String = chars.into_iter().collect();
+    let (status, _, body) = call(app(), post_json("/v1/solve", json!({"cube": cube}))).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{body}");
+    assert!(!body["error"]["message"]
+        .as_str()
+        .unwrap()
+        .starts_with("Error"));
+}
+
+#[tokio::test]
+async fn exhausted_budget_is_504() {
+    // Constructed directly: the CLI refuses a zero timeout.
+    let config = Config {
+        request_timeout: std::time::Duration::ZERO,
+        ..Config::default()
+    };
+    let (app, _) = app_with(config);
+    let (status, _, body) = call(app, post_json("/v1/solve", json!({"cube": SUPERFLIP}))).await;
+    assert_eq!(status, StatusCode::GATEWAY_TIMEOUT, "{body}");
+    assert_eq!(code(&body), "budget_exhausted");
+
+    // And through a real budget: the superflip has no 12-move solution and
+    // the search runs until the budget ends.
+    let (status, _, body) = call(
+        app_with(Config::default()).0,
+        post_json(
+            "/v1/solve",
+            json!({"cube": SUPERFLIP, "maxMoves": 12, "budgetMs": 150}),
+        ),
+    )
+    .await;
+    assert_eq!(status, StatusCode::GATEWAY_TIMEOUT, "{body}");
+}
+
+async fn boom() -> &'static str {
+    panic!("test panic")
+}
+
+#[tokio::test]
+async fn handler_panics_become_json_500() {
+    use axum::routing::get as route_get;
+    let state = AppState::unprepared(Config::default());
+    let routes = Router::new().route("/boom", route_get(boom));
+    let app = cubacle_server::finish(routes, &state).with_state(state);
+    let (status, _, body) = call(app, get("/boom")).await;
+    assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(code(&body), "internal");
+}
+
+#[tokio::test]
+async fn permit_is_held_until_the_solve_ends_even_if_the_client_leaves() {
+    let config = Config {
+        max_concurrency: 1,
+        ..Config::default()
+    };
+    let (app, state) = app_with(config);
+    let slow = json!({"cube": SUPERFLIP, "maxMoves": 12, "budgetMs": 400});
+    let abandoned = tokio::spawn(app.clone().oneshot(post_json("/v1/solve", slow)));
+    // Wait until the solve really holds the permit, then drop the client.
+    for _ in 0..200 {
+        if state.permits().available_permits() == 0 {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+    }
+    abandoned.abort();
+    let (status, _, body) = call(
+        app.clone(),
+        post_json("/v1/solve", json!({"cube": "CFJnI"})),
+    )
+    .await;
+    assert_eq!(status, StatusCode::TOO_MANY_REQUESTS, "{body}");
+    for _ in 0..200 {
+        if state.permits().available_permits() == 1 {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+    }
+    let (status, _, _) = call(app, post_json("/v1/solve", json!({"cube": "CFJnI"}))).await;
+    assert_eq!(status, StatusCode::OK);
+}
+
+#[tokio::test]
+async fn unprepared_state_serves_non_solving_endpoints() {
+    let app = router(AppState::unprepared(Config::default()));
+    assert_eq!(call(app.clone(), get("/health")).await.0, StatusCode::OK);
+    assert_eq!(call(app, get("/v1/scramble")).await.0, StatusCode::OK);
 }
