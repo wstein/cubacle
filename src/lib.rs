@@ -252,6 +252,7 @@ struct IdaContext {
     length1: i8,
     valid1: i8,
     urf_idx: u8,
+    root_only_axis: i8,
     p1_cubies: [Cubie; 20],
     urf_cubies: [Cubie; 6],
     premv: [u8; 15],
@@ -1235,6 +1236,7 @@ impl IdaContext {
             length1: 0,
             valid1: 0,
             urf_idx: 0,
+            root_only_axis: -1,
             p1_cubies: [Cubie::new(); 20],
             urf_cubies: [Cubie::new(); 6],
             premv: [0; 15],
@@ -1516,6 +1518,9 @@ impl IdaContext {
             }
         }
         for axis in (0..N_MOVES_P1 as i8).step_by(3) {
+            if maxl == self.depth1 && self.root_only_axis >= 0 && axis != self.root_only_axis {
+                continue;
+            }
             if axis == lm || axis == lm - 9 {
                 continue;
             }
