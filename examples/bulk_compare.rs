@@ -9,7 +9,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 const MAX_LENGTH: u8 = 19;
-const DEFAULT_SOLVE_BUDGET: Duration = Duration::from_millis(100);
+const DEFAULT_MINIMUM_SEARCH_TIME: Duration = Duration::from_millis(100);
 const SCRAMBLE_HEADER: &str =
     "competitionId,evntId,roundTypeId,group,isExtra,number,scramble,moves,solution";
 const REPORT_HEADER: &str = "line,competitionId,eventId,roundTypeId,group,number,classification,expected_length,actual_length,probes,solve_micros,timed_out,scramble,expected_solution,actual_solution";
@@ -198,11 +198,21 @@ fn read_jobs(input_path: &str, longer_only: bool) -> io::Result<Vec<Job>> {
     Ok(jobs)
 }
 
-fn solve_job(job_index: usize, job: &Job, budget: Duration) -> Row {
+fn solve_job(
+    job_index: usize,
+    job: &Job,
+    minimum_search_time: Duration,
+    maximum_search_time: Duration,
+) -> Row {
     let (actual_solution, probes, solve_micros, timed_out) = from_moves(&job.scramble)
         .map(|cube| {
             let started = Instant::now();
-            let result = solve_with_minimum_time(&cube, MAX_LENGTH, budget, budget);
+            let result = solve_with_minimum_time(
+                &cube,
+                MAX_LENGTH,
+                minimum_search_time,
+                maximum_search_time,
+            );
             (
                 result.solution,
                 result.probes,
@@ -225,7 +235,12 @@ fn solve_job(job_index: usize, job: &Job, budget: Duration) -> Row {
     }
 }
 
-fn solve_jobs(jobs: Arc<Vec<Job>>, workers: usize, budget: Duration) -> io::Result<Vec<Row>> {
+fn solve_jobs(
+    jobs: Arc<Vec<Job>>,
+    workers: usize,
+    minimum_search_time: Duration,
+    maximum_search_time: Duration,
+) -> io::Result<Vec<Row>> {
     if jobs.is_empty() {
         return Ok(Vec::new());
     }
@@ -247,7 +262,15 @@ fn solve_jobs(jobs: Arc<Vec<Job>>, workers: usize, budget: Duration) -> io::Resu
                 if index >= jobs.len() {
                     break;
                 }
-                if sender.send(solve_job(index, &jobs[index], budget)).is_err() {
+                if sender
+                    .send(solve_job(
+                        index,
+                        &jobs[index],
+                        minimum_search_time,
+                        maximum_search_time,
+                    ))
+                    .is_err()
+                {
                     break;
                 }
             });
@@ -308,7 +331,7 @@ fn requested_job_limit(argument: Option<String>) -> io::Result<Option<usize>> {
         .map(Option::flatten)
 }
 
-fn requested_budget(argument: Option<String>) -> io::Result<Duration> {
+fn requested_search_time(argument: Option<String>, default: Duration) -> io::Result<Duration> {
     match argument {
         Some(value) => value
             .parse::<u64>()
@@ -316,11 +339,26 @@ fn requested_budget(argument: Option<String>) -> io::Result<Duration> {
             .map_err(|_| {
                 io::Error::new(
                     io::ErrorKind::InvalidInput,
-                    "budget must be a non-negative number of milliseconds",
+                    "search time must be a non-negative number of milliseconds",
                 )
             }),
-        None => Ok(DEFAULT_SOLVE_BUDGET),
+        None => Ok(default),
     }
+}
+
+fn requested_search_times(
+    minimum_argument: Option<String>,
+    maximum_argument: Option<String>,
+) -> io::Result<(Duration, Duration)> {
+    let minimum = requested_search_time(minimum_argument, DEFAULT_MINIMUM_SEARCH_TIME)?;
+    let maximum = requested_search_time(maximum_argument, minimum)?;
+    if maximum < minimum {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "maximum search time must be at least the minimum search time",
+        ));
+    }
+    Ok((minimum, maximum))
 }
 
 fn main() -> io::Result<()> {
@@ -333,14 +371,20 @@ fn main() -> io::Result<()> {
         .unwrap_or_else(|| "examples/scramble-report-19.csv".to_owned());
     let workers = requested_workers(arguments.next())?;
     let job_limit = requested_job_limit(arguments.next())?;
-    let budget = requested_budget(arguments.next())?;
+    let (minimum_search_time, maximum_search_time) =
+        requested_search_times(arguments.next(), arguments.next())?;
     let longer_only = arguments.next().is_some_and(|value| value == "longer");
     let mut jobs = read_jobs(&input_path, longer_only)?;
     if let Some(job_limit) = job_limit {
         jobs.truncate(job_limit);
     }
     let jobs = Arc::new(jobs);
-    let rows = solve_jobs(Arc::clone(&jobs), workers, budget)?;
+    let rows = solve_jobs(
+        Arc::clone(&jobs),
+        workers,
+        minimum_search_time,
+        maximum_search_time,
+    )?;
 
     let mut report = BufWriter::new(File::create(&report_path)?);
     writeln!(
@@ -398,8 +442,9 @@ fn main() -> io::Result<()> {
     report.flush()?;
 
     println!(
-        "Bulk comparison (max solution length: {MAX_LENGTH}, minimum and maximum search time: {} ms)",
-        budget.as_millis()
+        "Bulk comparison (max solution length: {MAX_LENGTH}, minimum search time: {} ms, maximum search time: {} ms)",
+        minimum_search_time.as_millis(),
+        maximum_search_time.as_millis(),
     );
     println!("Input:  {}", Path::new(&input_path).display());
     println!("Report: {}", Path::new(&report_path).display());
@@ -460,10 +505,21 @@ mod tests {
     }
 
     #[test]
-    fn parses_budget_in_milliseconds() {
+    fn parses_minimum_and_maximum_search_times_in_milliseconds() {
         assert_eq!(
-            super::requested_budget(Some("200".to_owned())).expect("valid budget"),
-            std::time::Duration::from_millis(200)
+            super::requested_search_times(Some("200".to_owned()), Some("500".to_owned()))
+                .expect("valid search times"),
+            (
+                std::time::Duration::from_millis(200),
+                std::time::Duration::from_millis(500),
+            )
+        );
+    }
+
+    #[test]
+    fn rejects_a_maximum_search_time_below_the_minimum() {
+        assert!(
+            super::requested_search_times(Some("500".to_owned()), Some("200".to_owned())).is_err()
         );
     }
 
