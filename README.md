@@ -2,11 +2,11 @@
 
 A Rubik's cube solver and generator in Rust, built as a backend for cube explorers. The name is a play on *cubicle*: a small room for working on cubes.
 
-Today the 2×2×2 is solved optimally and the 3×3×3 is solved with an optimized implementation of the two-phase algorithm (derived from [min2phase](https://github.com/cs0x7f/min2phase) by Chen Shuang). The `cubacle::api` module describes cubes of every size from 2×2×2 to 7×7×7 behind one `Solver` trait; engines for the other sizes are being added.
+Today the 2×2×2 is solved optimally and the 3×3×3 is solved with an optimized implementation of the two-phase algorithm (derived from [min2phase](https://github.com/cs0x7f/min2phase) by Chen Shuang). The `cubacle::puzzle` module describes cubes of every size from 2×2×2 to 7×7×7 behind one `Solver` trait; engines for the other sizes are being added. [ARCHITECTURE.md](ARCHITECTURE.md) explains how the crate is laid out and which module may depend on which.
 
 Licensed under AGPL-3.0-or-later; see [`NOTICE.md`](NOTICE.md) for the MIT-licensed origin of the 3×3×3 core.
 
-The solver accepts a cube in facelet order and returns a move sequence. It also provides helpers for creating random cubes, parsing scrambles, and applying moves.
+A solver accepts a cube as typed facelets and returns a typed move sequence. The crate also generates random states and scrambles, parses scrambles and applies them to a cube.
 
 ## Command line
 
@@ -20,6 +20,8 @@ cubacle random | cubacle solve -
 cubacle scramble -n 25
 cubacle facelets "R U R' U'"
 ```
+
+A scramble is standard move notation with spaces between the moves (`R U R' U'`, `F2`, `B'`).
 
 A cube may be written as an [Orbit64](https://github.com/wstein/flix-orbit64) state token, as `URFDLB` facelets, or as sticker colours `W R G Y O B`. Facelets and colours may be compact or spaced, in any grouping, and need no quoting. Colours are read from the fixed centres of an odd cube, so western and Japanese cubes need no flag. A cube without centres (the 2×2×2) uses `--scheme`:
 
@@ -37,78 +39,81 @@ The 2×2×2 solver (`PocketSolver`) keeps one corner fixed and searches an exact
 ## Usage
 
 ```rust
-use cubacle::{apply_moves, from_moves, solve};
+use cubacle::engines::three::Min2PhaseSolver;
+use cubacle::puzzle::{Facelets, PuzzleKind, SolveOptions, Solver};
 
-let cube = from_moves("R U R' U'").expect("valid scramble");
-let solution = solve(&cube, 20);
-let solved = apply_moves(&cube, &solution).expect("valid solution");
+let scramble = "R U R' U'".parse().expect("valid scramble");
+let cube = Facelets::solved(PuzzleKind::Cube3).apply(&scramble).expect("fits a 3x3");
 
-assert_eq!(
-    solved,
-    "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB"
-);
+let solver = Min2PhaseSolver::shared();
+let result = solver.solve(&cube, &SolveOptions::default().with_max_moves(20));
+let solution = result.solution().expect("solvable");
+
+assert!(cube.apply(solution).expect("fits").is_solved());
 ```
 
-All text inputs are `&str`; callers can pass string literals, slices, or `&String` values without allocating a new string.
+Failures are values, not strings: `result.outcome` is `Err(Failure::InvalidInput)` for an impossible cube, `Err(Failure::BudgetExhausted)` when the time budget ran out and `Err(Failure::Exhausted)` when no solution exists within the move limit; `result.message` carries a sentence for people.
 
 ### Facelet order
 
-Facelets must be supplied in this order:
+`Facelets::parse` reads, and `Facelets` prints, stickers in this order:
 
 ```text
 U1U2...U9R1R2...R9F1...F9D1...D9L1...L9B1...B9
 ```
 
-The solved cube is:
+The solved 3×3×3 is:
 
 ```text
 UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB
 ```
 
-`solve(facelet, maxl)` returns a solution of at most `maxl` moves, or an `Error <code>` string when the input is invalid or no solution is found within the requested limit. A limit of 20 or 21 moves is recommended.
+A limit of 20 or 21 moves is recommended for the 3×3×3 (`SolveOptions::with_max_moves`; the default is 21).
 
 ## API overview
 
-- `solve(facelet: &str, maxl: u8) -> String`: solve a valid facelet representation.
-- `solve_with_stats(facelet: &str, maxl: u8) -> SolveStats`: solve with search counters and a `SolveOutcome`.
-- `solve_with_budget(facelet: &str, maxl: u8, budget: Duration) -> SolveStats`: solve with a wall-clock search budget.
-- `solve_with_minimum_time(facelet: &str, maxl: u8, minimum: Duration, maximum: Duration) -> SolveStats`: retain and improve a solution until the minimum search time, subject to a hard maximum.
-- `solve_pattern(from_facelet: &str, to_facelet: &str, maxl: u8) -> SolveStats`: find moves that transform one valid cube state into another.
-- `solve_batch(facelets: &[T], maxl: u8) -> Vec<SolveStats>` where `T: AsRef<str> + Sync`: solve independent cubes concurrently while preserving input order.
-- `solve_parallel`, `solve_parallel_with_budget`, and `solve_parallel_with_minimum_time`: experimental six-orientation single-cube searches with deterministic result selection.
-- `solve_pattern_parallel(from_facelet, to_facelet, maxl) -> SolveStats`: experimental parallel goal-state solving.
-- `from_moves(cube_moves: &str) -> Option<String>`: apply a move sequence to a solved cube.
-- `apply_moves(facelet: &str, cube_moves: &str) -> Option<String>`: apply a move sequence to a valid cube.
-- `random_cube() -> String` and `random_moves(n_moves) -> String`: generate valid random inputs.
+- `puzzle`: `PuzzleKind`, `Facelets` (with `apply(&MoveSequence)`), `Move` and `MoveSequence` (parse with `str::parse`), the `Solver` trait, `SolveOptions`, `SolveResult` and `Failure`.
+- `notation`: `parse_cube` (Orbit64 tokens, facelets and colours), `ColourScheme`, the `orbit64` codec.
+- `generate`: `random_state(kind)` (a uniform 2×2×2 or 3×3×3 state) and `scramble(kind, length)`.
+- `engines::three::Min2PhaseSolver`: the 3×3×3 `Solver`, plus
+  - `solve_pattern(&from, &to, &options)`: moves that transform one cube state into another.
+  - `solve_batch(&cubes, &options)`: independent cubes solved concurrently, results in input order.
+  - `solve_parallel`, `solve_parallel_with_minimum_time` and `solve_pattern_parallel`: experimental six-orientation single-cube searches with deterministic result selection.
+  - `solve_with_minimum_time(&cube, &options, minimum)`: keep improving the solution until the minimum search time, within the hard maximum set by `options.time_budget`.
+- `engines::two::PocketSolver`: the optimal 2×2×2 `Solver`.
 
-The solver initializes its shared move and pruning tables on first use. For a batch of cubes, keep the process alive and call `solve` repeatedly so this one-time cost is amortized.
+A `Min2PhaseSolver` owns its move and pruning tables, built on first use or by `prepare()`. Clones share them: create one solver at startup and pass clones to whoever needs one. `Min2PhaseSolver::new()` starts a table set of its own, and `Min2PhaseSolver::shared()` returns a process-wide default for code with nothing to inject.
 
-`SolveStats::outcome` distinguishes a normal solution, a deadline reached with a retained solution, a deadline reached without a solution, and invalid or unsolved input. For compatibility, `SolveStats::timed_out` remains `true` only for `DeadlineNoSolution` (`Error 8`).
+A time budget that expires after a solution was found still returns that solution; only a deadline reached with no solution is `Failure::BudgetExhausted`.
 
 ### Goal-state solving
 
 Use `solve_pattern` when the desired result is an arbitrary valid cube state rather than the solved cube:
 
 ```rust
-use cubacle::{apply_moves, from_moves, solve_pattern};
+use cubacle::engines::three::Min2PhaseSolver;
+use cubacle::puzzle::{Facelets, PuzzleKind, SolveOptions};
 
-let from = from_moves("R U R' U'").expect("valid source");
-let to = from_moves("F2 D L2").expect("valid target");
-let result = solve_pattern(&from, &to, 20);
+let solved = Facelets::solved(PuzzleKind::Cube3);
+let from = solved.apply(&"R U R' U'".parse().unwrap()).unwrap();
+let to = solved.apply(&"F2 D L2".parse().unwrap()).unwrap();
 
-assert_eq!(apply_moves(&from, &result.solution), Some(to));
+let options = SolveOptions::default().with_max_moves(20);
+let result = Min2PhaseSolver::shared().solve_pattern(&from, &to, &options);
+
+assert_eq!(from.apply(result.solution().unwrap()).unwrap(), to);
 ```
 
 ### Batch throughput
 
-`solve_batch` reuses a process-wide worker pool, avoiding per-solve thread creation. Set `CUBACLE_THREADS` to a positive worker count before its first use to override the default of `available_parallelism()`. The pool has no shutdown operation and lives for the process lifetime. It is optimized for many independent cubes, not lower latency for a single cube.
+`Min2PhaseSolver::solve_batch` reuses a process-wide worker pool, avoiding per-solve thread creation. Set `CUBACLE_THREADS` to a positive worker count before its first use to override the default of `available_parallelism()`. The pool has no shutdown operation and lives for the process lifetime. It is optimized for many independent cubes, not lower latency for a single cube.
 
 ```sh
 CUBACLE_THREADS=4 cargo run --release --example bulk_compare -- \
   examples/scrambles.csv examples/scramble-report.csv 4 - 100 100
 ```
 
-The `solve_parallel*` APIs split one solve across the six URF orientations, complete every orientation search, and select the first valid result in fixed URF order. Thus unbounded parallel solves are deterministic for a fixed cube, move limit, solver version, and build. They use the same pool, so set `CUBACLE_THREADS` before their first use. Wall-clock budgets still have the same timing sensitivity as the serial budget APIs. This is an experimental latency mode: it can perform more total IDA* work than serial search. Validate it on the target machine before adopting it.
+The `solve_parallel*` methods split one solve across the six URF orientations, complete every orientation search, and select the first valid result in fixed URF order. Thus unbounded parallel solves are deterministic for a fixed cube, move limit, solver version, and build. They use the same pool, so set `CUBACLE_THREADS` before their first use. Wall-clock budgets still have the same timing sensitivity as the serial budget APIs. This is an experimental latency mode: it can perform more total IDA* work than serial search. Validate it on the target machine before adopting it.
 
 ## Comparing a scramble batch
 
@@ -128,7 +133,7 @@ cargo run --release --example bulk_compare -- \
 
 The command prints a summary and writes every row to the report CSV. The summary reports actual worker count, wall-clock batch duration, and the sum of per-job solve times. Each row includes the classification, expected and actual length, phase-two probes, elapsed microseconds, and `timed_out` status. A timed-out row has no solution before the hard limit; a row with a solution is returned after the minimum search time or the hard maximum, whichever comes first. Reference moves using `1` and `3` suffixes are normalized to the solver's bare-turn and apostrophe notation before comparison.
 
-The summary distinguishes an exact move sequence, any same-length solution (including exact sequences), shorter solutions, longer solutions, errors, and timeouts. `SolveStats::timed_out == true` indicates `Error 8`: no solution was found before the hard limit. It is distinct from ordinary input errors.
+The summary distinguishes an exact move sequence, any same-length solution (including exact sequences), shorter solutions, longer solutions, errors, and timeouts. A timeout is `Failure::BudgetExhausted`: no solution was found before the hard limit. It is distinct from ordinary input errors.
 
 To retry only `longer` rows from an existing report, use `-` for no row limit and pass `longer` after the minimum and maximum search times:
 
@@ -144,7 +149,7 @@ Unbounded solves are deterministic for a fixed cube, move limit, solver version,
 
 ## Benchmarking
 
-The validating benchmark warms the solver tables, solves a fixed corpus repeatedly, and checks every returned sequence by applying it to the cube. It reports average, median, and p95 solver time, phase-two probes per second, and phase-one expansion/pruning counters, including the `break` versus `continue` split for each phase-one pruning estimate. The argument is the number of passes over the corpus:
+The validating benchmark warms the solver tables, solves a fixed corpus repeatedly, and checks every returned sequence by applying it to the cube. It reports average, median, and p95 solver time and phase-two probes per second. The argument is the number of passes over the corpus:
 
 ```sh
 RUSTFLAGS='-C target-cpu=native' cargo run --release --example benchmark -- 100
@@ -164,11 +169,11 @@ Run the project quality checks with:
 
 ```sh
 cargo fmt --check
-cargo clippy --release --all-targets -- -D warnings
-cargo test --release --all-targets
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace --release --all-targets
 ```
 
-See `examples/main.rs` for a runnable demonstration.
+`tests/golden_test.rs` replays `tests/fixtures/golden.txt`, a record of the exact solutions and probe counts of both engines for 555 fixed cubes; a change that alters search behaviour fails it. `tests/architecture_test.rs` enforces the module dependency rules.
 
 ## HTTP server
 

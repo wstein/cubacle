@@ -16,8 +16,8 @@ while the original portions remain available under their MIT terms.
 
 | Component | Upstream | Upstream licence | Terms of this work |
 | --- | --- | --- | --- |
-| 3x3 two-phase core (`src/lib.rs`) | cs0x7f/min2phase_rust | MIT | AGPL-3.0-or-later, MIT notice retained |
-| Worker pool, batch/parallel/pattern APIs | original work | — | AGPL-3.0-or-later |
+| 3x3 two-phase core (`src/engines/three/`) | cs0x7f/min2phase_rust | MIT | AGPL-3.0-or-later, MIT notice retained |
+| Worker pool (`src/pool.rs`), batch/parallel/pattern APIs | original work | — | AGPL-3.0-or-later |
 
 Ports added later (2x2, 4x4, 5x5) record their upstream, licence and the option
 taken in this table before they land.
