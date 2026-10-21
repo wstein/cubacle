@@ -1,0 +1,61 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Checks for develop and pull requests against develop.
+# No MSRV (1.82) step yet: the locked dependencies (chacha20 0.10) need edition 2024, i.e. a newer cargo.
+# A notes/cscribe job is intentionally absent until the owner has settled a release of that tool.
+name: ci
+on:
+  push:
+    branches: [develop]
+  pull_request:
+    branches: [develop]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/develop' }}
+env:
+  CARGO_TERM_COLOR: always
+jobs:
+  rust:
+    name: rust
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Show toolchain
+        run: rustc --version && cargo --version
+      - name: Format
+        run: cargo fmt --check
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Test
+        run: cargo test --workspace --release
+  docs:
+    name: docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install pinned Hugo
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/hugo"
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/hugo/hugo.tar.gz" https://github.com/gohugoio/hugo/releases/download/v0.168.0/hugo_0.168.0_linux-amd64.tar.gz
+          echo 'fada83ad56bb27ed4cb7dd81590303bdac16140f944ac4e66fc248117e2d5594  '"$RUNNER_TEMP/hugo/hugo.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/hugo/hugo.tar.gz" -C "$RUNNER_TEMP/hugo" hugo
+      - name: Build the docs site
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/site"
+          cp site/hugo.toml "$RUNNER_TEMP/site/hugo.toml"
+          cp -r site/layouts "$RUNNER_TEMP/site/layouts"
+          cp -r docs "$RUNNER_TEMP/site/content"
+          HUGO_CACHEDIR="$RUNNER_TEMP/hugo-cache" "$RUNNER_TEMP/hugo/hugo" --source "$RUNNER_TEMP/site" --destination "$RUNNER_TEMP/public" --noBuildLock --quiet
+          test -s "$RUNNER_TEMP/public/index.html"
