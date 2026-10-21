@@ -206,7 +206,6 @@ name = "cubacle"
 version = "0.3.0"
 dependencies = [
  "clap",
- "lazy_static",
  "rand",
 ]
 

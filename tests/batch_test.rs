@@ -29,7 +29,7 @@ fn options() -> SolveOptions {
 #[test]
 fn batch_solutions_validate_in_input_order() {
     let cubes = cubes();
-    let results = Min2PhaseSolver::new().solve_batch(&cubes, &options());
+    let results = Min2PhaseSolver::shared().solve_batch(&cubes, &options());
 
     assert_eq!(results.len(), cubes.len());
     for (cube, result) in cubes.iter().zip(results) {
@@ -42,7 +42,7 @@ fn batch_solutions_validate_in_input_order() {
 fn batch_rejects_the_wrong_size_without_losing_the_order() {
     let mut cubes = cubes();
     cubes.insert(2, Facelets::solved(PuzzleKind::Cube2));
-    let results = Min2PhaseSolver::new().solve_batch(&cubes, &options());
+    let results = Min2PhaseSolver::shared().solve_batch(&cubes, &options());
 
     assert_eq!(results.len(), cubes.len());
     assert_eq!(results[2].outcome, Err(Failure::InvalidInput));
@@ -59,7 +59,7 @@ fn batch_pool_is_safe_under_concurrent_callers() {
         .map(|_| {
             thread::spawn(|| {
                 let cubes = cubes();
-                for result in Min2PhaseSolver::new().solve_batch(&cubes, &options()) {
+                for result in Min2PhaseSolver::shared().solve_batch(&cubes, &options()) {
                     assert!(result.is_solved(), "{result:?}");
                 }
             })
@@ -74,7 +74,7 @@ fn batch_pool_is_safe_under_concurrent_callers() {
 #[test]
 fn parallel_solve_returns_a_valid_solution() {
     let cube = scrambled("R U R' U' F2 D L2");
-    let result = Min2PhaseSolver::new().solve_parallel(&cube, &options());
+    let result = Min2PhaseSolver::shared().solve_parallel(&cube, &options());
 
     let solution = result.solution().unwrap_or_else(|| panic!("{result:?}"));
     assert!(cube.apply(solution).unwrap().is_solved());
@@ -83,7 +83,7 @@ fn parallel_solve_returns_a_valid_solution() {
 #[test]
 fn parallel_solve_is_repeatable() {
     let cube = scrambled("R U R' U' F2 D L2");
-    let solver = Min2PhaseSolver::new();
+    let solver = Min2PhaseSolver::shared();
     let expected = solver.solve_parallel(&cube, &options()).outcome;
 
     for _ in 0..5 {
@@ -95,7 +95,7 @@ fn parallel_solve_is_repeatable() {
 fn parallel_budget_reports_a_deadline_without_a_solution() {
     let cube = scrambled("R U R' U'");
     let options = options().with_time_budget(Duration::ZERO);
-    let result = Min2PhaseSolver::new().solve_parallel(&cube, &options);
+    let result = Min2PhaseSolver::shared().solve_parallel(&cube, &options);
 
     assert_eq!(result.outcome, Err(Failure::BudgetExhausted));
 }
@@ -106,7 +106,8 @@ fn parallel_minimum_time_retains_a_valid_solution() {
     let minimum = Duration::from_millis(5);
     let options = options().with_time_budget(Duration::from_millis(200));
     let started = Instant::now();
-    let result = Min2PhaseSolver::new().solve_parallel_with_minimum_time(&cube, &options, minimum);
+    let result =
+        Min2PhaseSolver::shared().solve_parallel_with_minimum_time(&cube, &options, minimum);
 
     assert!(started.elapsed() >= minimum);
     let solution = result.solution().unwrap_or_else(|| panic!("{result:?}"));

@@ -29,7 +29,7 @@ fn describe(solver: &dyn Solver, facelets: &Facelets, options: &SolveOptions) ->
 
 #[test]
 fn solver_output_matches_the_golden_record() {
-    let three = Min2PhaseSolver::new();
+    let three = Min2PhaseSolver::shared();
     let two = PocketSolver::new();
     let mut rows = 0;
     for (number, line) in GOLDEN.lines().enumerate() {

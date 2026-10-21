@@ -1,7 +1,7 @@
 use std::cell::Cell;
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::mpsc::{self, Receiver, Sender};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, LazyLock, Mutex};
 use std::thread::{self, JoinHandle};
 
 type Job = Box<dyn FnOnce() + Send + 'static>;
@@ -73,9 +73,8 @@ fn configured_worker_count() -> usize {
         .unwrap_or(1)
 }
 
-lazy_static! {
-    static ref GLOBAL_POOL: ThreadPool = ThreadPool::new(configured_worker_count());
-}
+static GLOBAL_POOL: LazyLock<ThreadPool> =
+    LazyLock::new(|| ThreadPool::new(configured_worker_count()));
 
 pub(crate) fn global() -> &'static ThreadPool {
     &GLOBAL_POOL

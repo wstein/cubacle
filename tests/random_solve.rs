@@ -16,7 +16,7 @@ fn assert_solves(solver: &Min2PhaseSolver, cube: &Facelets) {
 
 #[test]
 fn random_move_solve() {
-    let solver = Min2PhaseSolver::new();
+    let solver = Min2PhaseSolver::shared();
     let now = Instant::now();
     let n_moves = 100;
     for _ in 0..N_TEST {
@@ -33,7 +33,7 @@ fn random_move_solve() {
 
 #[test]
 fn random_state_solve() {
-    let solver = Min2PhaseSolver::new();
+    let solver = Min2PhaseSolver::shared();
     let now = Instant::now();
     for _ in 0..N_TEST {
         let cube = generate::random_state(PuzzleKind::Cube3).expect("generator");

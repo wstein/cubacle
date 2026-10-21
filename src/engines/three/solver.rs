@@ -1,9 +1,14 @@
 use std::time::{Duration, Instant};
 
-use super::{
+use std::fmt;
+use std::sync::OnceLock;
+
+use super::engine::{
     solve_batch, solve_parallel_with_time_limits, solve_pattern, solve_pattern_parallel,
-    solve_with_stats, solve_with_time_limits, SolveOutcome, SolveStats,
+    solve_with_time_limits,
 };
+use super::stats::{SolveOutcome, SolveStats};
+use super::tables::{self, SharedTables};
 use crate::puzzle::{
     Facelets, Failure, MoveSequence, PuzzleKind, SolveMetrics, SolveOptions, SolveResult, Solver,
 };
@@ -12,12 +17,46 @@ use crate::puzzle::{
 const DEFAULT_MAX_MOVES: u8 = 21;
 
 /// The 3x3x3 two-phase engine behind the [`Solver`] trait.
-#[derive(Debug, Clone, Copy, Default)]
-pub struct Min2PhaseSolver;
+///
+/// The solver owns its pruning tables, which are built on first use (or by
+/// [`Solver::prepare`]) and are immutable afterwards. Clones share them, so
+/// build one solver at startup and hand clones to whoever needs one;
+/// [`Min2PhaseSolver::new`] starts a table set of its own.
+#[derive(Clone)]
+pub struct Min2PhaseSolver {
+    tables: SharedTables,
+}
+
+impl fmt::Debug for Min2PhaseSolver {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Min2PhaseSolver")
+            .field("tables_built", &self.tables.get().is_some())
+            .finish()
+    }
+}
+
+impl Default for Min2PhaseSolver {
+    /// The same as [`Min2PhaseSolver::new`]: a table set of its own.
+    fn default() -> Min2PhaseSolver {
+        Min2PhaseSolver::new()
+    }
+}
 
 impl Min2PhaseSolver {
+    /// A solver with a table set of its own, not yet built.
     pub fn new() -> Min2PhaseSolver {
-        Min2PhaseSolver
+        Min2PhaseSolver {
+            tables: tables::shared(),
+        }
+    }
+
+    /// A handle on the process-wide default solver, created on first call.
+    ///
+    /// For code that has no solver to inject, such as a one-off tool. Library
+    /// code should take a solver as a parameter instead.
+    pub fn shared() -> Min2PhaseSolver {
+        static DEFAULT: OnceLock<Min2PhaseSolver> = OnceLock::new();
+        DEFAULT.get_or_init(Min2PhaseSolver::new).clone()
     }
 
     /// Finds moves that turn `from` into `to`, within `options.max_moves`.
@@ -27,7 +66,9 @@ impl Min2PhaseSolver {
         to: &Facelets,
         options: &SolveOptions,
     ) -> SolveResult {
-        self.pattern(from, to, options, solve_pattern)
+        self.pattern(from, to, options, |from, to, max| {
+            solve_pattern(&self.tables, from, to, max)
+        })
     }
 
     /// Like [`Min2PhaseSolver::solve_pattern`], searching the six URF
@@ -38,7 +79,9 @@ impl Min2PhaseSolver {
         to: &Facelets,
         options: &SolveOptions,
     ) -> SolveResult {
-        self.pattern(from, to, options, solve_pattern_parallel)
+        self.pattern(from, to, options, |from, to, max| {
+            solve_pattern_parallel(&self.tables, from, to, max)
+        })
     }
 
     /// Solves independent cubes concurrently; results are in input order.
@@ -55,7 +98,7 @@ impl Min2PhaseSolver {
             .filter(|cube| cube.kind() == PuzzleKind::Cube3)
             .map(Facelets::to_string)
             .collect();
-        let mut solved = solve_batch(&texts, max_moves(options)).into_iter();
+        let mut solved = solve_batch(&self.tables, &texts, max_moves(options)).into_iter();
         cubes
             .iter()
             .map(|cube| match wrong_size(cube, started) {
@@ -71,7 +114,7 @@ impl Min2PhaseSolver {
     /// prefer [`Min2PhaseSolver::solve_batch`].
     pub fn solve_parallel(&self, cube: &Facelets, options: &SolveOptions) -> SolveResult {
         self.timed(cube, options, |text, max, budget| {
-            solve_parallel_with_time_limits(text, max, Duration::ZERO, budget)
+            solve_parallel_with_time_limits(&self.tables, text, max, Duration::ZERO, budget)
         })
     }
 
@@ -85,7 +128,7 @@ impl Min2PhaseSolver {
         minimum: Duration,
     ) -> SolveResult {
         self.timed(cube, options, |text, max, budget| {
-            solve_with_time_limits(text, max, minimum, budget)
+            solve_with_time_limits(&self.tables, text, max, minimum, budget)
         })
     }
 
@@ -97,7 +140,7 @@ impl Min2PhaseSolver {
         minimum: Duration,
     ) -> SolveResult {
         self.timed(cube, options, |text, max, budget| {
-            solve_parallel_with_time_limits(text, max, minimum, budget)
+            solve_parallel_with_time_limits(&self.tables, text, max, minimum, budget)
         })
     }
 
@@ -139,13 +182,12 @@ impl Solver for Min2PhaseSolver {
     }
 
     fn prepare(&self) {
-        // The engine builds its tables on first use; a trivial solve forces them.
-        let _ = solve_with_stats(&Facelets::solved(PuzzleKind::Cube3).to_string(), 1);
+        tables::get(&self.tables);
     }
 
     fn solve(&self, facelets: &Facelets, options: &SolveOptions) -> SolveResult {
         self.timed(facelets, options, |text, max, budget| {
-            solve_with_time_limits(text, max, Duration::ZERO, budget)
+            solve_with_time_limits(&self.tables, text, max, Duration::ZERO, budget)
         })
     }
 }
@@ -254,5 +296,49 @@ mod describe_tests {
     fn unknown_codes_pass_through() {
         assert_eq!(describe_error("Error 7"), "Error 7");
         assert_eq!(describe_error("Error 99"), "Error 99");
+    }
+}
+
+#[cfg(test)]
+mod ownership_tests {
+    use std::sync::Arc;
+
+    use super::*;
+
+    #[test]
+    fn clones_share_tables_and_new_instances_do_not() {
+        let solver = Min2PhaseSolver::new();
+        assert!(Arc::ptr_eq(&solver.tables, &solver.clone().tables));
+        assert!(!Arc::ptr_eq(&solver.tables, &Min2PhaseSolver::new().tables));
+        assert!(Arc::ptr_eq(
+            &Min2PhaseSolver::shared().tables,
+            &Min2PhaseSolver::shared().tables
+        ));
+    }
+
+    #[test]
+    fn tables_are_built_lazily_and_by_prepare() {
+        let solver = Min2PhaseSolver::new();
+        assert!(solver.tables.get().is_none());
+        let invalid = Facelets::solved(PuzzleKind::Cube2);
+        let _ = solver.solve(&invalid, &SolveOptions::default());
+        assert!(
+            solver.tables.get().is_none(),
+            "a rejected input builds nothing"
+        );
+        solver.prepare();
+        assert!(solver.tables.get().is_some());
+    }
+
+    #[test]
+    fn independent_solvers_agree() {
+        let cube = Facelets::solved(PuzzleKind::Cube3)
+            .apply(&"R U F' D2 L B".parse().unwrap())
+            .unwrap();
+        let options = SolveOptions::default();
+        let first = Min2PhaseSolver::new().solve(&cube, &options).outcome;
+        let second = Min2PhaseSolver::new().solve(&cube, &options).outcome;
+        assert!(first.is_ok());
+        assert_eq!(first, second);
     }
 }

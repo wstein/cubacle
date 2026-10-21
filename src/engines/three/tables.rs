@@ -1,4 +1,6 @@
 use super::consts::*;
+use std::sync::{Arc, OnceLock};
+
 use super::cubie::*;
 
 pub(super) fn esym2csym(esym: u16) -> u16 {
@@ -571,4 +573,31 @@ pub(super) fn get_perm_sym_inv(
     };
     result = (result & 0xfff0) | (sctx.symmult[result as usize & 0xf][sym as usize] as u16);
     result
+}
+
+/// Both table sets of the engine, built together.
+pub(super) struct Tables {
+    pub(super) sctx: Box<StaticContext>,
+    pub(super) stbl: Box<StaticTables>,
+}
+
+impl Tables {
+    fn build() -> Tables {
+        let sctx = StaticContext::box_new();
+        let stbl = StaticTables::box_new(&sctx);
+        Tables { sctx, stbl }
+    }
+}
+
+/// Tables that are built on first use and shared between the clones of one
+/// solver, including the worker threads it hands them to.
+pub(super) type SharedTables = Arc<OnceLock<Tables>>;
+
+pub(super) fn shared() -> SharedTables {
+    Arc::new(OnceLock::new())
+}
+
+/// The tables, building them if this is the first use.
+pub(super) fn get(shared: &OnceLock<Tables>) -> &Tables {
+    shared.get_or_init(Tables::build)
 }

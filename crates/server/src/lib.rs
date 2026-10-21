@@ -6,8 +6,8 @@
 //! # Statelessness
 //!
 //! There are no sessions and no per-client data. The only shared state is the
-//! immutable engines (their lookup tables live in process-wide statics, built
-//! once by [`AppState::new`]) and the concurrency semaphore, so any number of
+//! immutable engines (their lookup tables are built once by [`AppState::new`]
+//! and shared by every clone of the state) and the concurrency semaphore, so any number of
 //! instances can run behind a load balancer.
 //!
 //! # Compute isolation
@@ -82,22 +82,35 @@ impl Default for Config {
 pub struct AppState {
     permits: Arc<Semaphore>,
     config: Arc<Config>,
+    /// The 3x3x3 engine; clones share its tables.
+    three: Min2PhaseSolver,
 }
 
 impl AppState {
     /// Builds the state and prepares both engines (distance tables), so a
-    /// router made from it is ready to answer the moment it exists.
+    /// router made from it is ready to answer the moment it exists. The 3x3x3
+    /// engine is the process-wide default instance.
     pub fn new(config: Config) -> AppState {
+        AppState::with_solver(config, Min2PhaseSolver::shared())
+    }
+
+    /// Like [`AppState::new`], with the 3x3x3 engine injected.
+    pub fn with_solver(config: Config, three: Min2PhaseSolver) -> AppState {
         PocketSolver::new().prepare();
-        Min2PhaseSolver::new().prepare();
-        AppState::unprepared(config)
+        three.prepare();
+        AppState::assemble(config, three)
     }
 
     /// The state without table construction (tests that do not solve).
     pub fn unprepared(config: Config) -> AppState {
+        AppState::assemble(config, Min2PhaseSolver::shared())
+    }
+
+    fn assemble(config: Config, three: Min2PhaseSolver) -> AppState {
         AppState {
             permits: Arc::new(Semaphore::new(config.max_concurrency.max(1))),
             config: Arc::new(config),
+            three,
         }
     }
 
@@ -434,12 +447,13 @@ async fn solve(
         error
     })?;
 
+    let three = state.three.clone();
     let result = tokio::task::spawn_blocking(move || {
         let _permit = permit; // released when the solve finishes
         match kind {
             PuzzleKind::Cube2 => PocketSolver::new().solve(&facelets, &options),
             _ => {
-                let result = Min2PhaseSolver::new().solve(&facelets, &options);
+                let result = three.solve(&facelets, &options);
                 debug_assert!(result
                     .solution()
                     .is_none_or(|s| facelets.apply(s).is_ok_and(|end| end.is_solved())));
