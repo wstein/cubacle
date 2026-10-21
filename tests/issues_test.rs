@@ -21,6 +21,11 @@ fn solve_stats_include_phase_two_probes() {
 
     assert_eq!(solved, SOLVED);
     assert!(result.probes > 0, "expected phase-two search probes");
+    assert!(result.phase1_nodes > 0, "expected phase-one search nodes");
+    assert!(
+        result.phase1_children_recurred > 0,
+        "expected phase-one recursive children"
+    );
 }
 
 #[test]

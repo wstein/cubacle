@@ -69,6 +69,10 @@ fn main() -> io::Result<()> {
 
     let mut durations = Vec::with_capacity(cubes.len() * iterations as usize);
     let mut total_probes = 0_u64;
+    let mut total_phase1_nodes = 0_u64;
+    let mut total_phase1_rejected_slice_twist = 0_u64;
+    let mut total_phase1_rejected_slice_flip = 0_u64;
+    let mut total_phase1_children_recurred = 0_u64;
     for _ in 0..iterations {
         for cube in &cubes {
             let started = Instant::now();
@@ -76,6 +80,10 @@ fn main() -> io::Result<()> {
             durations.push(started.elapsed());
             validate_solution(cube, &result.solution)?;
             total_probes += result.probes;
+            total_phase1_nodes += result.phase1_nodes;
+            total_phase1_rejected_slice_twist += result.phase1_rejected_slice_twist;
+            total_phase1_rejected_slice_flip += result.phase1_rejected_slice_flip;
+            total_phase1_children_recurred += result.phase1_children_recurred;
         }
     }
 
@@ -101,9 +109,18 @@ fn main() -> io::Result<()> {
         percentile(&durations, 95, 100).as_secs_f64() * 1_000.0
     );
     println!("Total probes:       {total_probes}");
+    println!("Phase-one nodes:    {total_phase1_nodes}");
+    println!(
+        "Phase-one rejects:  slice-twist {total_phase1_rejected_slice_twist}, slice-flip {total_phase1_rejected_slice_flip}"
+    );
+    println!("Phase-one recursed: {total_phase1_children_recurred}");
     println!(
         "Probes per second:  {:.1}",
         total_probes as f64 / total_seconds
+    );
+    println!(
+        "Phase-one nodes/s:  {:.1}",
+        total_phase1_nodes as f64 / total_seconds
     );
 
     Ok(())

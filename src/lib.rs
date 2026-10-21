@@ -29,6 +29,18 @@ struct Coord2 {
     mid: u16,
 }
 
+#[derive(Clone, Copy)]
+struct Phase1Pruning {
+    slice_twist: i8,
+    slice_flip: i8,
+}
+
+impl Phase1Pruning {
+    fn maximum(self) -> i8 {
+        self.slice_twist.max(self.slice_flip)
+    }
+}
+
 #[repr(C)]
 struct Solution {
     depth1: i8,
@@ -76,6 +88,14 @@ pub struct SolveStats {
     pub solution: String,
     /// Number of phase-two search probes performed while solving.
     pub probes: u64,
+    /// Number of phase-one search nodes expanded while solving.
+    pub phase1_nodes: u64,
+    /// Number of phase-one children rejected by the slice-twist pruning estimate.
+    pub phase1_rejected_slice_twist: u64,
+    /// Number of phase-one children rejected by the slice-flip pruning estimate after passing slice-twist.
+    pub phase1_rejected_slice_flip: u64,
+    /// Number of phase-one children that passed pruning and recursed.
+    pub phase1_children_recurred: u64,
     /// Whether the search ended because its configured time budget expired.
     pub timed_out: bool,
 }
@@ -222,6 +242,10 @@ struct IdaContext {
     max_depth2: i8,
     target_length: i8,
     probes: u64,
+    phase1_nodes: u64,
+    phase1_rejected_slice_twist: u64,
+    phase1_rejected_slice_flip: u64,
+    phase1_children_recurred: u64,
     deadline: Option<Instant>,
     minimum_deadline: Option<Instant>,
     timed_out: bool,
@@ -1098,7 +1122,7 @@ impl Coord {
         stbl: &StaticTables,
         src: &Coord,
         mv: usize,
-    ) -> i8 {
+    ) -> Phase1Pruning {
         self.slice = stbl.slice_move[src.slice as usize * N_MOVES_P1 + mv];
         self.flip = stbl.flip_move
             [src.flip as usize * N_MOVES_P1 + sctx.symmove[mv][src.fsym as usize] as usize];
@@ -1108,19 +1132,21 @@ impl Coord {
             [src.twst as usize * N_MOVES_P1 + sctx.symmove[mv][src.tsym as usize] as usize];
         self.tsym = (self.twst & 7) ^ src.tsym;
         self.twst >>= 3;
-        self.prun = std::cmp::max(
-            get_pruning(
-                &stbl.slice_twst_prun,
-                self.twst as usize * N_SLICE
-                    + stbl.slice_conj[(self.slice * 8 + self.tsym) as usize] as usize,
-            ),
-            get_pruning(
-                &stbl.slice_flip_prun,
-                self.flip as usize * N_SLICE
-                    + stbl.slice_conj[(self.slice * 8 + self.fsym) as usize] as usize,
-            ),
+        let slice_twist = get_pruning(
+            &stbl.slice_twst_prun,
+            self.twst as usize * N_SLICE
+                + stbl.slice_conj[(self.slice * 8 + self.tsym) as usize] as usize,
         ) as i8;
-        self.prun
+        let slice_flip = get_pruning(
+            &stbl.slice_flip_prun,
+            self.flip as usize * N_SLICE
+                + stbl.slice_conj[(self.slice * 8 + self.fsym) as usize] as usize,
+        ) as i8;
+        self.prun = slice_twist.max(slice_flip);
+        Phase1Pruning {
+            slice_twist,
+            slice_flip,
+        }
     }
 }
 
@@ -1187,6 +1213,10 @@ impl IdaContext {
             max_depth2: 0,
             target_length: 0,
             probes: 0,
+            phase1_nodes: 0,
+            phase1_rejected_slice_twist: 0,
+            phase1_rejected_slice_flip: 0,
+            phase1_children_recurred: 0,
             deadline: None,
             minimum_deadline: None,
             timed_out: false,
@@ -1382,6 +1412,7 @@ impl IdaContext {
             TimeLimit::ReturnSolution => return 0,
             TimeLimit::TimedOut => return SEARCH_TIMEOUT,
         }
+        self.phase1_nodes += 1;
         let mut next_node: Coord = Coord::new();
         if node.prun == 0 && maxl < 5 {
             if self.allow_shorter || maxl == 0 {
@@ -1399,14 +1430,26 @@ impl IdaContext {
             }
             for power in 0..3 {
                 let m = axis + power;
-                let prun = next_node.move_prun(sctx, stbl, node, m as usize);
+                let pruning = next_node.move_prun(sctx, stbl, node, m as usize);
+                let prun = pruning.maximum();
                 if prun > maxl {
+                    if pruning.slice_twist > maxl {
+                        self.phase1_rejected_slice_twist += 1;
+                    } else {
+                        self.phase1_rejected_slice_flip += 1;
+                    }
                     break;
                 } else if prun == maxl {
+                    if pruning.slice_twist == maxl {
+                        self.phase1_rejected_slice_twist += 1;
+                    } else {
+                        self.phase1_rejected_slice_flip += 1;
+                    }
                     continue;
                 }
                 self.mv[self.depth1 as usize - maxl as usize] = m as u8;
                 self.valid1 = self.valid1.min(self.depth1 - maxl);
+                self.phase1_children_recurred += 1;
                 let ret = self.phase1(sctx, stbl, &next_node, 0, maxl - 1, axis);
                 if ret == 0 {
                     return 0;
@@ -1819,6 +1862,10 @@ fn solve_with_time_limits(
         return SolveStats {
             solution: String::from("Error 1"),
             probes: 0,
+            phase1_nodes: 0,
+            phase1_rejected_slice_twist: 0,
+            phase1_rejected_slice_flip: 0,
+            phase1_children_recurred: 0,
             timed_out: false,
         };
     }
@@ -1827,6 +1874,10 @@ fn solve_with_time_limits(
         return SolveStats {
             solution: String::from("Error ") + &(-verify).to_string(),
             probes: 0,
+            phase1_nodes: 0,
+            phase1_rejected_slice_twist: 0,
+            phase1_rejected_slice_flip: 0,
+            phase1_children_recurred: 0,
             timed_out: false,
         };
     }
@@ -1841,6 +1892,10 @@ fn solve_with_time_limits(
     SolveStats {
         solution,
         probes: ctx.probes,
+        phase1_nodes: ctx.phase1_nodes,
+        phase1_rejected_slice_twist: ctx.phase1_rejected_slice_twist,
+        phase1_rejected_slice_flip: ctx.phase1_rejected_slice_flip,
+        phase1_children_recurred: ctx.phase1_children_recurred,
         timed_out: ctx.timed_out && !ctx.has_solution,
     }
 }
