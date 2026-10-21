@@ -40,7 +40,7 @@ UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB
 ## API overview
 
 - `solve(facelet: &str, maxl: u8) -> String`: solve a valid facelet representation.
-- `solve_with_stats(facelet: &str, maxl: u8) -> SolveStats`: solve with the phase-two probe count.
+- `solve_with_stats(facelet: &str, maxl: u8) -> SolveStats`: solve with search counters and a `SolveOutcome`.
 - `solve_with_budget(facelet: &str, maxl: u8, budget: Duration) -> SolveStats`: solve with a wall-clock search budget.
 - `solve_with_minimum_time(facelet: &str, maxl: u8, minimum: Duration, maximum: Duration) -> SolveStats`: retain and improve a solution until the minimum search time, subject to a hard maximum.
 - `from_moves(cube_moves: &str) -> Option<String>`: apply a move sequence to a solved cube.
@@ -48,6 +48,8 @@ UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB
 - `random_cube() -> String` and `random_moves(n_moves) -> String`: generate valid random inputs.
 
 The solver initializes its shared move and pruning tables on first use. For a batch of cubes, keep the process alive and call `solve` repeatedly so this one-time cost is amortized.
+
+`SolveStats::outcome` distinguishes a normal solution, a deadline reached with a retained solution, a deadline reached without a solution, and invalid or unsolved input. For compatibility, `SolveStats::timed_out` remains `true` only for `DeadlineNoSolution` (`Error 8`).
 
 ## Comparing a scramble batch
 

@@ -69,6 +69,19 @@ enum TimeLimit {
     TimedOut,
 }
 
+/// The reason a solver invocation returned its result.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SolveOutcome {
+    /// A solution was found without reaching the hard deadline.
+    Solved,
+    /// The hard deadline was reached after a valid solution had been found.
+    DeadlineWithSolution,
+    /// The hard deadline was reached before any valid solution was found.
+    DeadlineNoSolution,
+    /// The input was invalid or no solution exists within the requested move limit.
+    Unsolvable,
+}
+
 /// The result and search statistics for one solver invocation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SolveStats {
@@ -92,8 +105,13 @@ pub struct SolveStats {
     pub phase1_slice_flip_equals: u64,
     /// Number of phase-one children that passed pruning and recursed.
     pub phase1_children_recurred: u64,
-    /// Whether the search ended because its configured time budget expired.
+    /// Whether the hard deadline expired before any solution was found.
+    ///
+    /// This remains `false` when a solution is returned at the deadline; inspect
+    /// [`SolveStats::outcome`] to distinguish that case from an ordinary solve.
     pub timed_out: bool,
+    /// The reason the solver returned.
+    pub outcome: SolveOutcome,
 }
 
 static MOVE2STR: [&str; 18] = [
@@ -249,6 +267,7 @@ struct IdaContext {
     deadline: Option<Instant>,
     minimum_deadline: Option<Instant>,
     timed_out: bool,
+    deadline_with_solution: bool,
     has_solution: bool,
     solution: Solution,
 }
@@ -1231,6 +1250,7 @@ impl IdaContext {
             deadline: None,
             minimum_deadline: None,
             timed_out: false,
+            deadline_with_solution: false,
             has_solution: false,
             solution: Solution {
                 depth1: 0,
@@ -1250,6 +1270,7 @@ impl IdaContext {
             .map(|maximum| minimum.min(maximum))
             .and_then(|minimum| started.checked_add(minimum));
         self.timed_out = false;
+        self.deadline_with_solution = false;
         self.has_solution = false;
     }
 
@@ -1262,16 +1283,20 @@ impl IdaContext {
             };
         };
         let now = Instant::now();
+        if now >= maximum_deadline {
+            if self.has_solution {
+                self.deadline_with_solution = true;
+                return TimeLimit::ReturnSolution;
+            }
+            self.timed_out = true;
+            return TimeLimit::TimedOut;
+        }
         if self.has_solution
             && self
                 .minimum_deadline
                 .is_none_or(|minimum_deadline| now >= minimum_deadline)
         {
             return TimeLimit::ReturnSolution;
-        }
-        if now >= maximum_deadline {
-            self.timed_out = true;
-            return TimeLimit::TimedOut;
         }
         TimeLimit::Continue
     }
@@ -1876,36 +1901,38 @@ fn solve_with_time_limits(
 ) -> SolveStats {
     let mut cc = Cubie::new();
     if cc.set_from_facelet(facelet) < 0 {
-        return SolveStats {
-            solution: String::from("Error 1"),
-            probes: 0,
-            phase1_nodes: 0,
-            phase1_rejected_slice_twist: 0,
-            phase1_rejected_slice_flip: 0,
-            phase1_slice_twist_breaks: 0,
-            phase1_slice_twist_equals: 0,
-            phase1_slice_flip_breaks: 0,
-            phase1_slice_flip_equals: 0,
-            phase1_children_recurred: 0,
-            timed_out: false,
-        };
+        return unsolvable_stats(String::from("Error 1"));
     }
     let verify = cc.verify();
     if verify < 0 {
-        return SolveStats {
-            solution: String::from("Error ") + &(-verify).to_string(),
-            probes: 0,
-            phase1_nodes: 0,
-            phase1_rejected_slice_twist: 0,
-            phase1_rejected_slice_flip: 0,
-            phase1_slice_twist_breaks: 0,
-            phase1_slice_twist_equals: 0,
-            phase1_slice_flip_breaks: 0,
-            phase1_slice_flip_equals: 0,
-            phase1_children_recurred: 0,
-            timed_out: false,
-        };
+        return unsolvable_stats(String::from("Error ") + &(-verify).to_string());
     }
+    solve_cubie_entry(cc, maxl, minimum_search_time, maximum_search_time)
+}
+
+fn unsolvable_stats(solution: String) -> SolveStats {
+    SolveStats {
+        solution,
+        probes: 0,
+        phase1_nodes: 0,
+        phase1_rejected_slice_twist: 0,
+        phase1_rejected_slice_flip: 0,
+        phase1_slice_twist_breaks: 0,
+        phase1_slice_twist_equals: 0,
+        phase1_slice_flip_breaks: 0,
+        phase1_slice_flip_equals: 0,
+        phase1_children_recurred: 0,
+        timed_out: false,
+        outcome: SolveOutcome::Unsolvable,
+    }
+}
+
+fn solve_cubie_entry(
+    cc: Cubie,
+    maxl: u8,
+    minimum_search_time: Duration,
+    maximum_search_time: Option<Duration>,
+) -> SolveStats {
     let mut ctx = IdaContext::new();
     ctx.set_time_limits(minimum_search_time, maximum_search_time);
     let solution = ctx.solve_cubie(
@@ -1914,6 +1941,15 @@ fn solve_with_time_limits(
         &cc,
         std::cmp::min(25, maxl) as i8,
     );
+    let outcome = if ctx.deadline_with_solution {
+        SolveOutcome::DeadlineWithSolution
+    } else if ctx.timed_out {
+        SolveOutcome::DeadlineNoSolution
+    } else if solution.starts_with("Error ") {
+        SolveOutcome::Unsolvable
+    } else {
+        SolveOutcome::Solved
+    };
     SolveStats {
         solution,
         probes: ctx.probes,
@@ -1926,6 +1962,7 @@ fn solve_with_time_limits(
         phase1_slice_flip_equals: ctx.phase1_slice_flip_equals,
         phase1_children_recurred: ctx.phase1_children_recurred,
         timed_out: ctx.timed_out && !ctx.has_solution,
+        outcome,
     }
 }
 

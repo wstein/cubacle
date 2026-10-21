@@ -1,4 +1,6 @@
-use min2phase::{apply_moves, solve, solve_with_budget, solve_with_minimum_time, solve_with_stats};
+use min2phase::{
+    apply_moves, solve, solve_with_budget, solve_with_minimum_time, solve_with_stats, SolveOutcome,
+};
 use std::time::{Duration, Instant};
 
 const MAX_SOL_LEN: u8 = 20;
@@ -20,6 +22,7 @@ fn solve_stats_include_phase_two_probes() {
     let solved = apply_moves(cube.as_str(), result.solution.as_str()).expect("valid solver result");
 
     assert_eq!(solved, SOLVED);
+    assert_eq!(result.outcome, SolveOutcome::Solved);
     assert!(result.probes > 0, "expected phase-two search probes");
     assert!(result.phase1_nodes > 0, "expected phase-one search nodes");
     assert!(
@@ -43,6 +46,7 @@ fn solve_budget_reports_timeout() {
 
     assert_eq!(result.solution, "Error 8");
     assert!(result.timed_out);
+    assert_eq!(result.outcome, SolveOutcome::DeadlineNoSolution);
 }
 
 #[test]
@@ -59,6 +63,10 @@ fn solve_minimum_time_retains_a_valid_solution_until_the_minimum_elapses() {
 
     assert!(started.elapsed() >= minimum);
     assert!(!result.timed_out);
+    assert!(matches!(
+        result.outcome,
+        SolveOutcome::Solved | SolveOutcome::DeadlineWithSolution
+    ));
     let solved = apply_moves(cube.as_str(), result.solution.as_str()).expect("valid solver result");
     assert_eq!(solved, SOLVED);
 }
