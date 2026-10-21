@@ -246,6 +246,22 @@ fn set_depth(table: &mut [u8], state: u32, depth: u8) {
     *byte = (*byte & !(0xF << shift)) | (depth << shift);
 }
 
+/// Why a solve missed its time budget, if it did. Only the one-off table
+/// build can: a lookup in a ready table takes microseconds and is treated as
+/// meeting every budget.
+fn budget_verdict(
+    built_table: bool,
+    elapsed: std::time::Duration,
+    budget: Option<std::time::Duration>,
+) -> Option<&'static str> {
+    match budget {
+        Some(budget) if built_table && elapsed > budget => {
+            Some("building the distance table took longer than the time budget")
+        }
+        _ => None,
+    }
+}
+
 static TABLES: OnceLock<Tables> = OnceLock::new();
 
 fn tables() -> &'static Tables {
@@ -414,14 +430,14 @@ impl Solver for PocketSolver {
             Err(message) => return finish(Err(Failure::InvalidInput), Some(message)),
         };
 
-        // The table is built once per process. A budget cannot interrupt that
-        // build, but it is honoured as soon as the build returns.
+        // The table is built once per process, by whichever solve comes first.
+        // That build cannot be interrupted, so a budget is only judged against
+        // it; once the table exists a lookup is instantaneous and always meets
+        // any budget. `prepare()` moves the build out of the first solve.
+        let built_here = TABLES.get().is_none();
         let tables = tables();
-        if options.time_budget.is_some_and(|b| started.elapsed() > b) {
-            return finish(
-                Err(Failure::BudgetExhausted),
-                Some("the time budget ran out building the distance table".into()),
-            );
+        if let Some(message) = budget_verdict(built_here, started.elapsed(), options.time_budget) {
+            return finish(Err(Failure::BudgetExhausted), Some(message.into()));
         }
 
         let length = usize::from(tables.depth(normalised.state));
@@ -662,10 +678,21 @@ mod tests {
             solver.solve(&facelets, &enough).solution().unwrap().len(),
             2
         );
+        // With the table ready, even a zero budget is met.
+        solver.prepare();
         let none = SolveOptions::default().with_time_budget(Duration::ZERO);
+        assert_eq!(solver.solve(&facelets, &none).solution().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn only_a_table_build_can_miss_the_budget() {
+        let (ms5, ms1) = (Duration::from_millis(5), Duration::from_millis(1));
+        assert_eq!(budget_verdict(false, ms5, Some(Duration::ZERO)), None);
+        assert_eq!(budget_verdict(true, ms1, None), None);
+        assert_eq!(budget_verdict(true, ms1, Some(ms5)), None);
         assert_eq!(
-            solver.solve(&facelets, &none).outcome,
-            Err(Failure::BudgetExhausted)
+            budget_verdict(true, ms5, Some(ms1)),
+            Some("building the distance table took longer than the time budget")
         );
     }
 
@@ -700,17 +727,43 @@ mod tests {
         assert_eq!(result.outcome, Err(Failure::InvalidInput));
         assert!(result.message.is_some());
 
-        // Sticker shuffles with valid counts must never panic, and whatever
-        // is accepted must really be solved by the answer.
-        let mut state = solved;
-        for round in 0..300 {
+        // Near-valid states: a legal scramble plus one sticker swap or one
+        // in-place corner twist. Each must be rejected or solved for real,
+        // and both outcomes must occur.
+        let moves = all_moves();
+        let (mut rejected, mut solved_count) = (0, 0);
+        let mut seed = 12345u32;
+        let mut next = |bound: usize| {
+            seed = seed.wrapping_mul(1664525).wrapping_add(1013904223);
+            (seed >> 8) as usize % bound
+        };
+        for _ in 0..300 {
+            let mut state = solved_2x2();
+            for _ in 0..8 {
+                state = apply(&perms, &state, &moves[next(18)]);
+            }
             let mut chars: Vec<char> = state.chars().collect();
-            chars.swap(round % 24, (round * 7 + 3) % 24);
-            state = chars.into_iter().collect();
+            if next(2) == 0 {
+                chars.swap(next(24), next(24));
+            } else {
+                let slot = CORNER_FACELETS[next(8)].map(thinned);
+                chars.swap(slot[0], slot[1]);
+                chars.swap(slot[1], slot[2]);
+            }
+            let state: String = chars.into_iter().collect();
             let result = solver.solve(&Facelets::parse(&state).unwrap(), &options);
-            if let Some(solution) = result.solution() {
-                assert!(is_solved(&replay(&perms, &state, solution)));
+            match result.outcome {
+                Err(Failure::InvalidInput) => rejected += 1,
+                Ok(solution) => {
+                    assert!(is_solved(&replay(&perms, &state, &solution)), "{state}");
+                    solved_count += 1;
+                }
+                Err(other) => panic!("{state}: unexpected {other:?}"),
             }
         }
+        assert!(
+            rejected > 0 && solved_count > 0,
+            "{rejected}/{solved_count}"
+        );
     }
 }
