@@ -4,7 +4,8 @@ use std::time::Duration;
 
 use clap::{Args, Parser, Subcommand};
 use cubacle::api::{
-    parse_cube, ColourScheme, Facelets, Failure, Min2PhaseSolver, PuzzleKind, SolveOptions, Solver,
+    parse_cube, ColourScheme, Facelets, Failure, Min2PhaseSolver, PocketSolver, PuzzleKind,
+    SolveOptions, Solver,
 };
 use cubacle::{apply_moves, from_moves, random_cube, random_moves};
 
@@ -121,18 +122,22 @@ fn read_cube(input: &InputArgs) -> Result<Facelets, String> {
 
 fn solve(args: SolveArgs) -> Result<(), String> {
     let facelets = read_cube(&args.input)?;
-    if facelets.kind() != PuzzleKind::Cube3 {
-        let size = facelets.kind().size();
-        return Err(format!(
-            "no engine for the {size}x{size}x{size} yet; only the 3x3x3 is solvable"
-        ));
-    }
+    let solver: Box<dyn Solver> = match facelets.kind() {
+        PuzzleKind::Cube2 => Box::new(PocketSolver::new()),
+        PuzzleKind::Cube3 => Box::new(Min2PhaseSolver::new()),
+        kind => {
+            let size = kind.size();
+            return Err(format!(
+                "no engine for the {size}x{size}x{size} yet; only the 2x2x2 and 3x3x3 are solvable"
+            ));
+        }
+    };
 
     let mut options = SolveOptions::default().with_max_moves(args.max_moves);
     if let Some(millis) = args.budget_ms {
         options = options.with_time_budget(Duration::from_millis(millis));
     }
-    let result = Min2PhaseSolver::new().solve(&facelets, &options);
+    let result = solver.solve(&facelets, &options);
 
     if args.verbose {
         eprintln!(
@@ -146,10 +151,12 @@ fn solve(args: SolveArgs) -> Result<(), String> {
     }
     match result.outcome {
         Ok(solution) => {
-            let replay = apply_moves(&facelets.to_string(), &solution.to_string());
-            let solved = Facelets::solved(PuzzleKind::Cube3).to_string();
-            if replay.as_deref() != Some(solved.as_str()) {
-                return Err("internal error: solution does not solve the cube".into());
+            if facelets.kind() == PuzzleKind::Cube3 {
+                let replay = apply_moves(&facelets.to_string(), &solution.to_string());
+                let solved = Facelets::solved(PuzzleKind::Cube3).to_string();
+                if replay.as_deref() != Some(solved.as_str()) {
+                    return Err("internal error: solution does not solve the cube".into());
+                }
             }
             println!("{solution}");
             Ok(())
