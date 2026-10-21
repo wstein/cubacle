@@ -10,7 +10,7 @@ cubacle is built from source. No packaged releases are documented yet.
 
 ## Requirements
 
-- A Rust toolchain, version 1.82 or later (the `rust-version` declared in `Cargo.toml`).
+- A Rust toolchain, version 1.85 or later (the `rust-version` declared in `Cargo.toml`).
 
 ## Build
 

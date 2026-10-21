@@ -53,3 +53,9 @@ change pass; a change that alters solver output needs an explicit decision.
 
 AGPL-3.0-or-later. The original MIT grant of Chen Shuang stays in `LICENSE-MIT`;
 provenance of third-party code is recorded in `NOTICE.md` before it lands.
+
+## Dependencies and Rust version
+
+Keep dependencies on their latest releases. `rust-version` is the lowest Rust version
+that is measured to build the workspace (the `msrv` CI job), not a wish; raise it
+deliberately when a dependency update requires it.
