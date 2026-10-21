@@ -1,0 +1,59 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Publishes the documentation in docs/ at https://wstein.github.io/cubacle/.
+# Runs on develop only: main mirrors an upstream repository and stays untouched.
+# Pages must use "GitHub Actions" as source in the repository settings.
+name: pages
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install pinned Hugo
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/hugo"
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/hugo/hugo.tar.gz" https://github.com/gohugoio/hugo/releases/download/v0.168.0/hugo_0.168.0_linux-amd64.tar.gz
+          echo 'fada83ad56bb27ed4cb7dd81590303bdac16140f944ac4e66fc248117e2d5594  '"$RUNNER_TEMP/hugo/hugo.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/hugo/hugo.tar.gz" -C "$RUNNER_TEMP/hugo" hugo
+      - name: Build the docs site
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/site"
+          cp site/hugo.toml "$RUNNER_TEMP/site/hugo.toml"
+          cp -r site/layouts "$RUNNER_TEMP/site/layouts"
+          cp -r docs "$RUNNER_TEMP/site/content"
+          HUGO_CACHEDIR="$RUNNER_TEMP/hugo-cache" "$RUNNER_TEMP/hugo/hugo" --source "$RUNNER_TEMP/site" --destination "$RUNNER_TEMP/public" --noBuildLock --quiet
+          test -s "$RUNNER_TEMP/public/index.html"
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: ${{ runner.temp }}/public
+  deploy:
+    name: deploy
+    needs: build
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
