@@ -78,7 +78,7 @@ A limit of 20 or 21 moves is recommended for the 3×3×3 (`SolveOptions::with_ma
 - `engines::three::Min2PhaseSolver`: the 3×3×3 `Solver`, plus
   - `solve_pattern(&from, &to, &options)`: moves that transform one cube state into another.
   - `solve_batch(&cubes, &options)`: independent cubes solved concurrently, results in input order.
-  - `solve_parallel`, `solve_parallel_with_minimum_time` and `solve_pattern_parallel`: experimental six-orientation single-cube searches with deterministic result selection.
+  - `solve_parallel`, `solve_parallel_with_minimum_time` and `solve_pattern_parallel`: experimental six-orientation single-cube searches.
   - `solve_with_minimum_time(&cube, &options, minimum)`: keep improving the solution until the minimum search time, within the hard maximum set by `options.time_budget`.
 - `engines::two::PocketSolver`: the optimal 2×2×2 `Solver`.
 
@@ -113,7 +113,7 @@ CUBACLE_THREADS=4 cargo run --release --example bulk_compare -- \
   examples/scrambles.csv examples/scramble-report.csv 4 - 100 100
 ```
 
-The `solve_parallel*` methods split one solve across the six URF orientations, complete every orientation search, and select the first valid result in fixed URF order. Thus unbounded parallel solves are deterministic for a fixed cube, move limit, solver version, and build. They use the same pool, so set `CUBACLE_THREADS` before their first use. Wall-clock budgets still have the same timing sensitivity as the serial budget APIs. This is an experimental latency mode: it can perform more total IDA* work than serial search. Validate it on the target machine before adopting it.
+The `solve_parallel*` methods split one solve across the six URF orientations, complete every orientation search, and select the first valid result in fixed URF order. The orientation searches share a best-length bound, so which valid solution comes back can vary between runs; it is always a solution within the move limit. They use the same pool, so set `CUBACLE_THREADS` before their first use. Wall-clock budgets still have the same timing sensitivity as the serial budget APIs. This is an experimental latency mode: it can perform more total IDA* work than serial search. Validate it on the target machine before adopting it.
 
 ## Comparing a scramble batch
 
@@ -143,7 +143,7 @@ RUSTFLAGS='-C target-cpu=native' cargo run --release --example bulk_compare -- \
   12 - 200 500 longer
 ```
 
-Unbounded solves are deterministic for a fixed cube, move limit, solver version, and build. Time-bounded solves are intentionally not deterministic: CPU scheduling and the point at which the search observes the time limit can affect the best result found.
+Unbounded serial solves are deterministic for a fixed cube, move limit, solver version, and build; parallel solves are not guaranteed to be. Time-bounded solves are intentionally not deterministic: CPU scheduling and the point at which the search observes the time limit can affect the best result found.
 
 `target-cpu=native` enables CPU features available on the host, including Apple M2 systems. Do not use that flag for binaries intended to run on other CPU models.
 

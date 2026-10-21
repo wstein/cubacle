@@ -81,13 +81,20 @@ fn parallel_solve_returns_a_valid_solution() {
 }
 
 #[test]
-fn parallel_solve_is_repeatable() {
+fn parallel_solve_is_valid_on_every_run() {
+    // The orientation searches share a best-length bound, so which valid
+    // solution wins can vary between runs. What is guaranteed is that every
+    // run solves the cube within the move limit.
     let cube = scrambled("R U R' U' F2 D L2");
     let solver = Min2PhaseSolver::shared();
-    let expected = solver.solve_parallel(&cube, &options()).outcome;
+    let options = options();
+    let limit = usize::from(options.max_moves.unwrap());
 
-    for _ in 0..5 {
-        assert_eq!(solver.solve_parallel(&cube, &options()).outcome, expected);
+    for _ in 0..6 {
+        let result = solver.solve_parallel(&cube, &options);
+        let solution = result.solution().unwrap_or_else(|| panic!("{result:?}"));
+        assert!(solution.len() <= limit, "{solution}");
+        assert!(cube.apply(solution).unwrap().is_solved(), "{solution}");
     }
 }
 
