@@ -1,4 +1,4 @@
-use min2phase::{from_moves, solve_with_stats};
+use min2phase::{from_moves, solve_with_budget};
 use std::env;
 use std::fs::File;
 use std::io::{self, stdout, BufRead, BufReader, BufWriter, Write};
@@ -6,9 +6,10 @@ use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{mpsc, Arc};
 use std::thread;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 const MAX_LENGTH: u8 = 19;
+const SOLVE_BUDGET: Duration = Duration::from_millis(100);
 
 #[derive(Default)]
 struct Summary {
@@ -18,6 +19,7 @@ struct Summary {
     shorter: usize,
     longer: usize,
     errors: usize,
+    timed_out: usize,
     total_probes: u64,
     total_solve_micros: u128,
 }
@@ -42,6 +44,7 @@ struct Row {
     probes: u64,
     solve_micros: u128,
     actual_solution: String,
+    timed_out: bool,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -165,17 +168,18 @@ fn read_jobs(input_path: &str) -> io::Result<Vec<Job>> {
 }
 
 fn solve_job(job_index: usize, job: &Job) -> Row {
-    let (actual_solution, probes, solve_micros) = from_moves(&job.scramble)
+    let (actual_solution, probes, solve_micros, timed_out) = from_moves(&job.scramble)
         .map(|cube| {
             let started = Instant::now();
-            let result = solve_with_stats(&cube, MAX_LENGTH);
+            let result = solve_with_budget(&cube, MAX_LENGTH, SOLVE_BUDGET);
             (
                 result.solution,
                 result.probes,
                 started.elapsed().as_micros(),
+                result.timed_out,
             )
         })
-        .unwrap_or_else(|| ("Error parse-scramble".to_owned(), 0, 0));
+        .unwrap_or_else(|| ("Error parse-scramble".to_owned(), 0, 0, false));
     let actual_solution = normalize_moves(&actual_solution);
     let (classification, actual_length) = classify(&job.expected_solution, &actual_solution);
 
@@ -186,6 +190,7 @@ fn solve_job(job_index: usize, job: &Job) -> Row {
         probes,
         solve_micros,
         actual_solution,
+        timed_out,
     }
 }
 
@@ -287,7 +292,7 @@ fn main() -> io::Result<()> {
     let mut report = BufWriter::new(File::create(&report_path)?);
     writeln!(
         report,
-        "line,competitionId,eventId,roundTypeId,group,number,classification,expected_length,actual_length,probes,solve_micros,scramble,expected_solution,actual_solution"
+        "line,competitionId,eventId,roundTypeId,group,number,classification,expected_length,actual_length,probes,solve_micros,timed_out,scramble,expected_solution,actual_solution"
     )?;
 
     let mut summary = Summary::default();
@@ -313,10 +318,13 @@ fn main() -> io::Result<()> {
             }
             Classification::Error => summary.errors += 1,
         }
+        if row.timed_out {
+            summary.timed_out += 1;
+        }
 
         writeln!(
             report,
-            "{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
             job.line_number,
             job.competition_id,
             job.event_id,
@@ -328,6 +336,7 @@ fn main() -> io::Result<()> {
             row.actual_length,
             row.probes,
             row.solve_micros,
+            row.timed_out,
             job.scramble,
             job.expected_solution,
             row.actual_solution,
@@ -335,7 +344,10 @@ fn main() -> io::Result<()> {
     }
     report.flush()?;
 
-    println!("Bulk comparison (max solution length: {MAX_LENGTH})");
+    println!(
+        "Bulk comparison (max solution length: {MAX_LENGTH}, time budget: {} ms)",
+        SOLVE_BUDGET.as_millis()
+    );
     println!("Input:  {}", Path::new(&input_path).display());
     println!("Report: {}", Path::new(&report_path).display());
     println!("Workers: {}", workers);
@@ -345,6 +357,7 @@ fn main() -> io::Result<()> {
     println!("Shorter:            {}", summary.shorter);
     println!("Longer:             {}", summary.longer);
     println!("Errors:             {}", summary.errors);
+    println!("Timed out:          {}", summary.timed_out);
     println!("Total probes:       {}", summary.total_probes);
     println!(
         "Average probes:     {:.1}",
