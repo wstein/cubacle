@@ -6,7 +6,7 @@ weight: 6
 
 # Architecture
 
-This page describes the design by role. The source layout and the dependency rules are in [ARCHITECTURE.md](https://github.com/wstein/cubacle/blob/main/ARCHITECTURE.md).
+This page describes the design by role. The source layout and the dependency rules are in [ARCHITECTURE.md](https://github.com/wstein/cubacle/blob/develop/ARCHITECTURE.md).
 
 ## Roles
 

@@ -32,7 +32,7 @@ The server binds to the local machine by default. It has no authentication, so d
 | --- | --- | --- |
 | `GET /health` | None | `{"status":"ok"}` |
 | `GET /v1/scramble?moves=25` | `moves`: 1 to 200 | `{"scramble":"U' L2 F2 D U2"}` |
-| `GET /v1/random?size=3` | `size`: 2 or 3 | `{"kind":"2x2x2","facelets":"..."}` |
+| `GET /v1/random?size=3` | `size`: 2 to 7 (only 2 and 3 have engines) | `{"kind":"2x2x2","facelets":"..."}` |
 | `POST /v1/convert` | `{"cube","scheme"?}` | `{"kind","facelets"}` |
 | `POST /v1/solve` | `{"cube","scheme"?,"maxMoves"?,"budgetMs"?}` | `{"kind","solution","length","elapsedMicros"}` |
 

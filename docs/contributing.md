@@ -8,7 +8,7 @@ weight: 7
 
 ## Workflow
 
-- Work on a branch, not directly on `main`.
+- Work on `develop` or on a short-lived branch from it. `main` mirrors the upstream repository; do not commit to it.
 - Write commit messages in the [Conventional Commits](https://www.conventionalcommits.org/) format, for example `fix(server): bound shutdown` or `docs: add CLI guide`.
 - Keep each commit atomic: one logical change per commit.
 
@@ -19,7 +19,7 @@ Run these checks before you commit. All of them must pass.
 ```sh
 cargo fmt --check
 cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace --release --all-targets
+cargo test --workspace --release
 ```
 
 ## Docs site
