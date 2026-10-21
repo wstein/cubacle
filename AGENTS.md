@@ -4,7 +4,7 @@ Rules for anyone, human or automated, who changes this repository.
 
 ## Project
 
-cubacle is a solver and generator for Rubik's cubes (2x2 now, 3x3 now, larger
+cubacle is a solver and generator for Rubik's cubes (2x2 and 3x3 now, larger
 cubes planned), with a lightweight CLI and a stateless REST backend
 (`crates/server`). Documentation is in `docs/` (Hugo, published from `develop`);
 decision notes are in `notes/` (ChartScribe format) and are raw material, not
