@@ -2,6 +2,7 @@
 extern crate lazy_static;
 
 use rand::Rng;
+use std::time::{Duration, Instant};
 
 #[derive(Clone, Copy)]
 struct Cubie {
@@ -57,6 +58,8 @@ const N_CCOMB: usize = 70;
 const N_MOVES_P1: usize = 18;
 const N_MOVES_P2: usize = 10;
 const MAX_DEPTH2: usize = 13;
+const SEARCH_TIMEOUT: i8 = i8::MIN;
+const PREMOVE_TIMEOUT: i32 = i32::MIN;
 
 /// The result and search statistics for one solver invocation.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -65,6 +68,8 @@ pub struct SolveStats {
     pub solution: String,
     /// Number of phase-two search probes performed while solving.
     pub probes: u64,
+    /// Whether the search ended because its configured time budget expired.
+    pub timed_out: bool,
 }
 
 static MOVE2STR: [&str; 18] = [
@@ -210,6 +215,8 @@ struct IdaContext {
     target_length: i8,
     probes: u64,
     min_probes: u64,
+    deadline: Option<Instant>,
+    timed_out: bool,
     solution: Solution,
 }
 
@@ -1172,6 +1179,8 @@ impl IdaContext {
             target_length: 0,
             probes: 0,
             min_probes: 0,
+            deadline: None,
+            timed_out: false,
             solution: Solution {
                 depth1: 0,
                 verbose: 0,
@@ -1183,6 +1192,22 @@ impl IdaContext {
         }
     }
 
+    fn set_deadline(&mut self, budget: Option<Duration>) {
+        self.deadline = budget.and_then(|budget| Instant::now().checked_add(budget));
+        self.timed_out = false;
+    }
+
+    fn deadline_reached(&mut self) -> bool {
+        if self
+            .deadline
+            .is_some_and(|deadline| Instant::now() >= deadline)
+        {
+            self.timed_out = true;
+            return true;
+        }
+        false
+    }
+
     pub fn solve_cubie(
         &mut self,
         sctx: &StaticContext,
@@ -1190,6 +1215,9 @@ impl IdaContext {
         cc: &Cubie,
         target_length: i8,
     ) -> String {
+        if self.deadline_reached() {
+            return String::from("Error 8");
+        }
         let mut cc1 = *cc;
         let mut cc2 = Cubie::new();
         self.target_length = target_length + 1;
@@ -1206,6 +1234,9 @@ impl IdaContext {
             }
         }
         for length1 in 0..21 {
+            if self.deadline_reached() {
+                return String::from("Error 8");
+            }
             self.length1 = length1;
             self.max_depth2 =
                 std::cmp::min(MAX_DEPTH2 as i8, self.target_length - self.length1 - 1);
@@ -1229,6 +1260,9 @@ impl IdaContext {
                     );
                     return solbuf;
                 }
+                if ret == PREMOVE_TIMEOUT {
+                    return String::from("Error 8");
+                }
             }
         }
         String::from("Error 8")
@@ -1243,6 +1277,9 @@ impl IdaContext {
         cc: &Cubie,
         _ssym: i32,
     ) -> i32 {
+        if self.deadline_reached() {
+            return PREMOVE_TIMEOUT;
+        }
         self.premv_len = MAX_PREMV_LEN - maxl;
         if self.premv_len == 0 || ((0o667667 >> lm) & 1) == 0 {
             self.depth1 = self.length1 - self.premv_len;
@@ -1253,6 +1290,9 @@ impl IdaContext {
                 let ret = self.phase1(sctx, stbl, &node, 0, self.depth1, -1);
                 if ret == 0 {
                     return 0;
+                }
+                if ret == SEARCH_TIMEOUT {
+                    return PREMOVE_TIMEOUT;
                 }
             }
         }
@@ -1280,6 +1320,9 @@ impl IdaContext {
             if ret == 0 {
                 return 0;
             }
+            if ret == PREMOVE_TIMEOUT {
+                return PREMOVE_TIMEOUT;
+            }
         }
         1
     }
@@ -1293,6 +1336,9 @@ impl IdaContext {
         maxl: i8,
         lm: i8,
     ) -> i8 {
+        if self.deadline_reached() {
+            return SEARCH_TIMEOUT;
+        }
         let mut next_node: Coord = Coord::new();
         if node.prun == 0 && maxl < 5 {
             if self.allow_shorter || maxl == 0 {
@@ -1321,6 +1367,8 @@ impl IdaContext {
                 let ret = self.phase1(sctx, stbl, &next_node, 0, maxl - 1, axis);
                 if ret == 0 {
                     return 0;
+                } else if ret == SEARCH_TIMEOUT {
+                    return SEARCH_TIMEOUT;
                 } else if ret >= 2 {
                     break;
                 }
@@ -1330,6 +1378,9 @@ impl IdaContext {
     }
 
     fn init_phase2(&mut self, sctx: &StaticContext, stbl: &StaticTables) -> i8 {
+        if self.deadline_reached() {
+            return SEARCH_TIMEOUT;
+        }
         self.probes += 1;
         let mut cc = if self.depth1 == 0 {
             self.p1_cubies[0]
@@ -1367,9 +1418,15 @@ impl IdaContext {
         while depth2 >= prun {
             let mut sol_src = 0;
             let mut ret = self.phase2(sctx, stbl, &node1, depth2, self.depth1, 10);
+            if ret == SEARCH_TIMEOUT {
+                return SEARCH_TIMEOUT;
+            }
             if ret < 0 && self.premv_len > 0 {
                 sol_src = 1;
                 ret = self.phase2(sctx, stbl, &node2, depth2, self.depth1, 10);
+                if ret == SEARCH_TIMEOUT {
+                    return SEARCH_TIMEOUT;
+                }
             }
             if ret < 0 {
                 break;
@@ -1412,6 +1469,9 @@ impl IdaContext {
         depth: i8,
         lm: i8,
     ) -> i8 {
+        if self.deadline_reached() {
+            return SEARCH_TIMEOUT;
+        }
         if node.edge == 0 && node.corn == 0 && node.mid == 0 {
             return maxl;
         }
@@ -1465,6 +1525,8 @@ impl IdaContext {
             if ret >= 0 {
                 self.mv[depth as usize] = P2MOVES[m];
                 return ret;
+            } else if ret == SEARCH_TIMEOUT {
+                return SEARCH_TIMEOUT;
             } else if ret < -2 {
                 break;
             }
@@ -1657,11 +1719,23 @@ pub fn solve(facelet: &str, maxl: u8) -> String {
 
 /// Solve a Rubik's cube and return its solution with phase-two probe statistics.
 pub fn solve_with_stats(facelet: &str, maxl: u8) -> SolveStats {
+    solve_with_deadline(facelet, maxl, None)
+}
+
+/// Solve a Rubik's cube with an optional wall-clock search budget.
+///
+/// A timed-out search returns `Error 8` with `SolveStats::timed_out` set to `true`.
+pub fn solve_with_budget(facelet: &str, maxl: u8, budget: Duration) -> SolveStats {
+    solve_with_deadline(facelet, maxl, Some(budget))
+}
+
+fn solve_with_deadline(facelet: &str, maxl: u8, budget: Option<Duration>) -> SolveStats {
     let mut cc = Cubie::new();
     if cc.set_from_facelet(facelet) < 0 {
         return SolveStats {
             solution: String::from("Error 1"),
             probes: 0,
+            timed_out: false,
         };
     }
     let verify = cc.verify();
@@ -1669,9 +1743,11 @@ pub fn solve_with_stats(facelet: &str, maxl: u8) -> SolveStats {
         return SolveStats {
             solution: String::from("Error ") + &(-verify).to_string(),
             probes: 0,
+            timed_out: false,
         };
     }
     let mut ctx = IdaContext::new();
+    ctx.set_deadline(budget);
     let solution = ctx.solve_cubie(
         &global_sctx,
         &global_stbl,
@@ -1681,6 +1757,7 @@ pub fn solve_with_stats(facelet: &str, maxl: u8) -> SolveStats {
     SolveStats {
         solution,
         probes: ctx.probes,
+        timed_out: ctx.timed_out,
     }
 }
 

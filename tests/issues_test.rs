@@ -1,4 +1,5 @@
-use min2phase::{apply_moves, solve, solve_with_stats};
+use min2phase::{apply_moves, solve, solve_with_budget, solve_with_stats};
+use std::time::Duration;
 
 const MAX_SOL_LEN: u8 = 20;
 const SOLVED: &str = "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB";
@@ -20,6 +21,15 @@ fn solve_stats_include_phase_two_probes() {
 
     assert_eq!(solved, SOLVED);
     assert!(result.probes > 0, "expected phase-two search probes");
+}
+
+#[test]
+fn solve_budget_reports_timeout() {
+    let cube = apply_moves(SOLVED, "R U R' U' F2 D B2 L2 U2 R2 F' D2").expect("valid moves");
+    let result = solve_with_budget(cube.as_str(), MAX_SOL_LEN, Duration::ZERO);
+
+    assert_eq!(result.solution, "Error 8");
+    assert!(result.timed_out);
 }
 
 #[test]
