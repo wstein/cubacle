@@ -1,4 +1,4 @@
-use min2phase::{apply_moves, solve};
+use min2phase::{apply_moves, solve, solve_with_stats};
 
 const MAX_SOL_LEN: u8 = 20;
 const SOLVED: &str = "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB";
@@ -10,6 +10,16 @@ fn string_slices_are_accepted_by_public_apis() {
     let solved = apply_moves(cube.as_str(), solution.as_str()).expect("valid solver result");
 
     assert_eq!(solved, SOLVED);
+}
+
+#[test]
+fn solve_stats_include_phase_two_probes() {
+    let cube = apply_moves(SOLVED, "R U R' U'").expect("valid move sequence");
+    let result = solve_with_stats(cube.as_str(), MAX_SOL_LEN);
+    let solved = apply_moves(cube.as_str(), result.solution.as_str()).expect("valid solver result");
+
+    assert_eq!(solved, SOLVED);
+    assert!(result.probes > 0, "expected phase-two search probes");
 }
 
 #[test]

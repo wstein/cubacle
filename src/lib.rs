@@ -58,6 +58,15 @@ const N_MOVES_P1: usize = 18;
 const N_MOVES_P2: usize = 10;
 const MAX_DEPTH2: usize = 13;
 
+/// The result and search statistics for one solver invocation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SolveStats {
+    /// The solution move sequence, or an `Error <code>` result.
+    pub solution: String,
+    /// Number of phase-two search probes performed while solving.
+    pub probes: u64,
+}
+
 static MOVE2STR: [&str; 18] = [
     "U ", "U2", "U'", "R ", "R2", "R'", "F ", "F2", "F'", "D ", "D2", "D'", "L ", "L2", "L'", "B ",
     "B2", "B'",
@@ -1643,21 +1652,36 @@ lazy_static! {
 ///
 /// Return solution moves on success, return "Error " + error_code on failure
 pub fn solve(facelet: &str, maxl: u8) -> String {
+    solve_with_stats(facelet, maxl).solution
+}
+
+/// Solve a Rubik's cube and return its solution with phase-two probe statistics.
+pub fn solve_with_stats(facelet: &str, maxl: u8) -> SolveStats {
     let mut cc = Cubie::new();
     if cc.set_from_facelet(facelet) < 0 {
-        return String::from("Error 1");
+        return SolveStats {
+            solution: String::from("Error 1"),
+            probes: 0,
+        };
     }
     let verify = cc.verify();
     if verify < 0 {
-        return String::from("Error ") + &(-verify).to_string();
+        return SolveStats {
+            solution: String::from("Error ") + &(-verify).to_string(),
+            probes: 0,
+        };
     }
     let mut ctx = IdaContext::new();
-    ctx.solve_cubie(
+    let solution = ctx.solve_cubie(
         &global_sctx,
         &global_stbl,
         &cc,
         std::cmp::min(25, maxl) as i8,
-    )
+    );
+    SolveStats {
+        solution,
+        probes: ctx.probes,
+    }
 }
 
 /// Generate a random cube represented in facelet

@@ -14,3 +14,6 @@ repository = "https://github.com/cs0x7f/min2phase_rust"
 rand = "0.8"
 lazy_static = "1.5.0"
 
+[profile.release]
+codegen-units = 1
+lto = "fat"
