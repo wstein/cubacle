@@ -20,7 +20,7 @@ const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwx
 const WIDTHS: [usize; 6] = [5, 12, 27, 43, 66, 90];
 
 /// Facelet indices of each corner slot; the first is the one twist counts from.
-const CORNER_FACELETS: [[usize; 3]; 8] = [
+pub(crate) const CORNER_FACELETS: [[usize; 3]; 8] = [
     [8, 9, 20],
     [6, 18, 38],
     [0, 36, 47],
@@ -48,7 +48,7 @@ const EDGE_FACELETS: [[usize; 2]; 12] = [
 ];
 
 /// Face colours (indices into `URFDLB`) of each corner piece, clockwise.
-const CORNER_COLOURS: [[usize; 3]; 8] = [
+pub(crate) const CORNER_COLOURS: [[usize; 3]; 8] = [
     [0, 1, 2],
     [0, 2, 4],
     [0, 4, 5],
