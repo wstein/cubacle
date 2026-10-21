@@ -32,7 +32,7 @@ Any six letters in `URFDLB` order also work, e.g. `--scheme WRGYOB`.
 
 `solve` handles the 2×2×2 and the 3×3×3; larger sizes have no engine yet. It prints the solution, and for the 3×3×3 checks by replay that it solves the cube. It exits with a non-zero status when the state is impossible, the limit is too tight or the time budget runs out. Orbit64 tokens decode for the 2×2×2 and 3×3×3.
 
-The 2×2×2 solver (`PocketSolver`) keeps one corner fixed and searches an exact distance table of all 3,674,160 states, so its solutions are optimal in the half-turn metric (U, R and F turns by 90° or 180°). The table is built on first use in well under a second in a release build. A cube that is solved in any orientation needs no moves.
+The 2×2×2 solver (`PocketSolver`) keeps one corner fixed and searches an exact distance table of all 3,674,160 states, so its solutions are optimal in the half-turn metric (U, R and F turns by 90° or 180°). The table is built on first use in well under a second in a release build. A cube that is solved in any orientation needs no moves. A solve with a ready table takes microseconds and always meets `--budget-ms`; the first solve in a process includes the one-off table build, which a budget cannot interrupt and which counts against it. `Solver::prepare()` does the build ahead of time.
 
 ## Usage
 
