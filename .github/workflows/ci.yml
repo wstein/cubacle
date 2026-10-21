@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Checks for develop and pull requests against develop.
-# No MSRV (1.82) step yet: the locked dependencies (chacha20 0.10) need edition 2024, i.e. a newer cargo.
+# The msrv job builds with the rust-version of Cargo.toml (1.85, forced by the edition 2024 of rand 0.10).
 # A notes/cscribe job is intentionally absent until the owner has settled a release of that tool.
 name: ci
 on:
@@ -33,6 +33,19 @@ jobs:
         run: cargo clippy --workspace --all-targets -- -D warnings
       - name: Test
         run: cargo test --workspace --release
+  msrv:
+    name: msrv
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check on the declared minimum Rust version
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.85 --profile minimal
+          cargo +1.85 check --workspace --all-targets
   docs:
     name: docs
     runs-on: ubuntu-latest
