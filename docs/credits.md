@@ -1,5 +1,7 @@
 ---
-title: Credits and licence
+title: "Credits and licence"
+description: "People, projects and licence."
+weight: 8
 ---
 
 # Credits and licence

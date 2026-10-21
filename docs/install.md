@@ -1,5 +1,7 @@
 ---
-title: Install and build
+title: "Install and build"
+description: "Install and build cubacle."
+weight: 2
 ---
 
 # Install and build

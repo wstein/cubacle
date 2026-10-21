@@ -1,5 +1,7 @@
 ---
-title: Contributing
+title: "Contributing"
+description: "How to contribute to cubacle."
+weight: 7
 ---
 
 # Contributing
@@ -25,6 +27,20 @@ To include the server tests, run the workspace form of the test command:
 ```sh
 cargo test --workspace --release
 ```
+
+## Docs site
+
+The pages in `docs/` are built with [Hugo](https://gohugo.io/) using the layouts in `site/`. The workflow in `.github/workflows/pages.yml` pins the Hugo version. To build locally with that same version, copy the config, layouts and pages into a scratch directory and run Hugo there:
+
+```sh
+tmp=$(mktemp -d)
+cp site/hugo.toml "$tmp/hugo.toml"
+cp -r site/layouts "$tmp/layouts"
+cp -r docs "$tmp/content"
+hugo --source "$tmp" --destination "$tmp/public"
+```
+
+Open `$tmp/public/index.html` to read the result, or run `hugo server --source "$tmp"` for a live preview. Internal links between pages are written as `page.md` and resolved by Hugo, so a broken link fails the build.
 
 ## Licence of contributions
 

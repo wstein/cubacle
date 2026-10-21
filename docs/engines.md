@@ -1,5 +1,7 @@
 ---
-title: Engines and limits
+title: "Engines and limits"
+description: "Supported cube sizes, engines and limits."
+weight: 5
 ---
 
 # Engines and limits

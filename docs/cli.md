@@ -1,5 +1,7 @@
 ---
-title: Command-line guide
+title: "Command-line guide"
+description: "Use the cubacle command-line tool."
+weight: 3
 ---
 
 # Command-line guide

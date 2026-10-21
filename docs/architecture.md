@@ -1,5 +1,7 @@
 ---
-title: Architecture
+title: "Architecture"
+description: "Roles and design of cubacle."
+weight: 6
 ---
 
 # Architecture

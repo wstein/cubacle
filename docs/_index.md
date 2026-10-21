@@ -1,6 +1,7 @@
 ---
-title: Home
-nav_order: 1
+title: "cubacle"
+description: "A Rubik's cube solver and generator in Rust, from 2x2x2 to 7x7x7."
+weight: 1
 ---
 
 # cubacle

@@ -1,5 +1,7 @@
 ---
-title: REST API reference
+title: "REST API reference"
+description: "Reference for the cubacle-server REST API."
+weight: 4
 ---
 
 # REST API reference
