@@ -59,6 +59,7 @@ const N_MOVES_P1: usize = 18;
 const N_MOVES_P2: usize = 10;
 const MAX_DEPTH2: usize = 13;
 const SEARCH_TIMEOUT: i8 = i8::MIN;
+const SEARCH_COMPLETE: i8 = i8::MIN + 1;
 const PREMOVE_TIMEOUT: i32 = i32::MIN;
 
 /// The result and search statistics for one solver invocation.
@@ -214,9 +215,10 @@ struct IdaContext {
     max_depth2: i8,
     target_length: i8,
     probes: u64,
-    min_probes: u64,
     deadline: Option<Instant>,
+    minimum_deadline: Option<Instant>,
     timed_out: bool,
+    has_solution: bool,
     solution: Solution,
 }
 
@@ -1178,9 +1180,10 @@ impl IdaContext {
             max_depth2: 0,
             target_length: 0,
             probes: 0,
-            min_probes: 0,
             deadline: None,
+            minimum_deadline: None,
             timed_out: false,
+            has_solution: false,
             solution: Solution {
                 depth1: 0,
                 verbose: 0,
@@ -1192,9 +1195,14 @@ impl IdaContext {
         }
     }
 
-    fn set_deadline(&mut self, budget: Option<Duration>) {
-        self.deadline = budget.and_then(|budget| Instant::now().checked_add(budget));
+    fn set_time_limits(&mut self, minimum: Duration, maximum: Option<Duration>) {
+        let started = Instant::now();
+        self.deadline = maximum.and_then(|budget| started.checked_add(budget));
+        self.minimum_deadline = maximum
+            .map(|maximum| minimum.min(maximum))
+            .and_then(|minimum| started.checked_add(minimum));
         self.timed_out = false;
+        self.has_solution = false;
     }
 
     fn deadline_reached(&mut self) -> bool {
@@ -1208,6 +1216,13 @@ impl IdaContext {
         false
     }
 
+    fn should_return_solution(&self) -> bool {
+        self.has_solution
+            && self
+                .minimum_deadline
+                .is_none_or(|deadline| Instant::now() >= deadline)
+    }
+
     pub fn solve_cubie(
         &mut self,
         sctx: &StaticContext,
@@ -1215,6 +1230,9 @@ impl IdaContext {
         cc: &Cubie,
         target_length: i8,
     ) -> String {
+        if self.should_return_solution() {
+            return self.solution.format_moves();
+        }
         if self.deadline_reached() {
             return String::from("Error 8");
         }
@@ -1234,8 +1252,15 @@ impl IdaContext {
             }
         }
         for length1 in 0..21 {
+            if self.should_return_solution() {
+                return self.solution.format_moves();
+            }
             if self.deadline_reached() {
-                return String::from("Error 8");
+                return if self.has_solution {
+                    self.solution.format_moves()
+                } else {
+                    String::from("Error 8")
+                };
             }
             self.length1 = length1;
             self.max_depth2 =
@@ -1261,11 +1286,19 @@ impl IdaContext {
                     return solbuf;
                 }
                 if ret == PREMOVE_TIMEOUT {
-                    return String::from("Error 8");
+                    return if self.has_solution {
+                        self.solution.format_moves()
+                    } else {
+                        String::from("Error 8")
+                    };
                 }
             }
         }
-        String::from("Error 8")
+        if self.has_solution {
+            self.solution.format_moves()
+        } else {
+            String::from("Error 8")
+        }
     }
 
     fn phase1_pre_moves(
@@ -1277,6 +1310,9 @@ impl IdaContext {
         cc: &Cubie,
         _ssym: i32,
     ) -> i32 {
+        if self.should_return_solution() {
+            return 0;
+        }
         if self.deadline_reached() {
             return PREMOVE_TIMEOUT;
         }
@@ -1336,6 +1372,9 @@ impl IdaContext {
         maxl: i8,
         lm: i8,
     ) -> i8 {
+        if self.should_return_solution() {
+            return 0;
+        }
         if self.deadline_reached() {
             return SEARCH_TIMEOUT;
         }
@@ -1345,7 +1384,7 @@ impl IdaContext {
                 self.depth1 -= maxl;
                 let ret = self.init_phase2(sctx, stbl);
                 self.depth1 += maxl;
-                return ret;
+                return if ret == SEARCH_COMPLETE { 0 } else { ret };
             } else {
                 return 1;
             }
@@ -1378,6 +1417,9 @@ impl IdaContext {
     }
 
     fn init_phase2(&mut self, sctx: &StaticContext, stbl: &StaticTables) -> i8 {
+        if self.should_return_solution() {
+            return SEARCH_COMPLETE;
+        }
         if self.deadline_reached() {
             return SEARCH_TIMEOUT;
         }
@@ -1418,12 +1460,18 @@ impl IdaContext {
         while depth2 >= prun {
             let mut sol_src = 0;
             let mut ret = self.phase2(sctx, stbl, &node1, depth2, self.depth1, 10);
+            if ret == SEARCH_COMPLETE {
+                return SEARCH_COMPLETE;
+            }
             if ret == SEARCH_TIMEOUT {
                 return SEARCH_TIMEOUT;
             }
             if ret < 0 && self.premv_len > 0 {
                 sol_src = 1;
                 ret = self.phase2(sctx, stbl, &node2, depth2, self.depth1, 10);
+                if ret == SEARCH_COMPLETE {
+                    return SEARCH_COMPLETE;
+                }
                 if ret == SEARCH_TIMEOUT {
                     return SEARCH_TIMEOUT;
                 }
@@ -1448,13 +1496,14 @@ impl IdaContext {
                 self.solution.append_move(self.premv[i as usize]);
             }
             self.target_length = self.solution.length;
+            self.has_solution = true;
             depth2 -= 1;
         }
 
         if depth2 != self.max_depth2 {
             self.max_depth2 =
                 std::cmp::min(MAX_DEPTH2 as i8, self.target_length - self.length1 - 1);
-            return if self.probes >= self.min_probes { 0 } else { 1 };
+            return if self.should_return_solution() { 0 } else { 1 };
         }
         1
     }
@@ -1469,6 +1518,9 @@ impl IdaContext {
         depth: i8,
         lm: i8,
     ) -> i8 {
+        if self.should_return_solution() {
+            return SEARCH_COMPLETE;
+        }
         if self.deadline_reached() {
             return SEARCH_TIMEOUT;
         }
@@ -1522,7 +1574,9 @@ impl IdaContext {
                 continue;
             }
             let ret = self.phase2(sctx, stbl, &nodex, maxl - 1, depth + 1, m as i8);
-            if ret >= 0 {
+            if ret == SEARCH_COMPLETE {
+                return SEARCH_COMPLETE;
+            } else if ret >= 0 {
                 self.mv[depth as usize] = P2MOVES[m];
                 return ret;
             } else if ret == SEARCH_TIMEOUT {
@@ -1719,17 +1773,41 @@ pub fn solve(facelet: &str, maxl: u8) -> String {
 
 /// Solve a Rubik's cube and return its solution with phase-two probe statistics.
 pub fn solve_with_stats(facelet: &str, maxl: u8) -> SolveStats {
-    solve_with_deadline(facelet, maxl, None)
+    solve_with_time_limits(facelet, maxl, Duration::ZERO, None)
 }
 
 /// Solve a Rubik's cube with an optional wall-clock search budget.
 ///
 /// A timed-out search returns `Error 8` with `SolveStats::timed_out` set to `true`.
 pub fn solve_with_budget(facelet: &str, maxl: u8, budget: Duration) -> SolveStats {
-    solve_with_deadline(facelet, maxl, Some(budget))
+    solve_with_time_limits(facelet, maxl, Duration::ZERO, Some(budget))
 }
 
-fn solve_with_deadline(facelet: &str, maxl: u8, budget: Option<Duration>) -> SolveStats {
+/// Solve a Rubik's cube while retaining and improving solutions for at least `minimum_search_time`.
+///
+/// `maximum_search_time` is a hard wall-clock limit. The solver returns the best solution found
+/// after the minimum has elapsed, or the best available solution when the maximum expires. The
+/// minimum is clamped to the maximum.
+pub fn solve_with_minimum_time(
+    facelet: &str,
+    maxl: u8,
+    minimum_search_time: Duration,
+    maximum_search_time: Duration,
+) -> SolveStats {
+    solve_with_time_limits(
+        facelet,
+        maxl,
+        minimum_search_time,
+        Some(maximum_search_time),
+    )
+}
+
+fn solve_with_time_limits(
+    facelet: &str,
+    maxl: u8,
+    minimum_search_time: Duration,
+    maximum_search_time: Option<Duration>,
+) -> SolveStats {
     let mut cc = Cubie::new();
     if cc.set_from_facelet(facelet) < 0 {
         return SolveStats {
@@ -1747,7 +1825,7 @@ fn solve_with_deadline(facelet: &str, maxl: u8, budget: Option<Duration>) -> Sol
         };
     }
     let mut ctx = IdaContext::new();
-    ctx.set_deadline(budget);
+    ctx.set_time_limits(minimum_search_time, maximum_search_time);
     let solution = ctx.solve_cubie(
         &global_sctx,
         &global_stbl,
@@ -1757,7 +1835,7 @@ fn solve_with_deadline(facelet: &str, maxl: u8, budget: Option<Duration>) -> Sol
     SolveStats {
         solution,
         probes: ctx.probes,
-        timed_out: ctx.timed_out,
+        timed_out: ctx.timed_out && !ctx.has_solution,
     }
 }
 

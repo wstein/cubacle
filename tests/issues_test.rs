@@ -1,5 +1,5 @@
-use min2phase::{apply_moves, solve, solve_with_budget, solve_with_stats};
-use std::time::Duration;
+use min2phase::{apply_moves, solve, solve_with_budget, solve_with_minimum_time, solve_with_stats};
+use std::time::{Duration, Instant};
 
 const MAX_SOL_LEN: u8 = 20;
 const SOLVED: &str = "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB";
@@ -25,11 +25,29 @@ fn solve_stats_include_phase_two_probes() {
 
 #[test]
 fn solve_budget_reports_timeout() {
-    let cube = apply_moves(SOLVED, "R U R' U' F2 D B2 L2 U2 R2 F' D2").expect("valid moves");
+    let cube = apply_moves(SOLVED, "R U R' U'").expect("valid moves");
     let result = solve_with_budget(cube.as_str(), MAX_SOL_LEN, Duration::ZERO);
 
     assert_eq!(result.solution, "Error 8");
     assert!(result.timed_out);
+}
+
+#[test]
+fn solve_minimum_time_retains_a_valid_solution_until_the_minimum_elapses() {
+    let cube = apply_moves(SOLVED, "R U R' U' F2 D B2 L2 U2 R2 F' D2").expect("valid moves");
+    let minimum = Duration::from_millis(10);
+    let started = Instant::now();
+    let result = solve_with_minimum_time(
+        cube.as_str(),
+        MAX_SOL_LEN,
+        minimum,
+        Duration::from_millis(30),
+    );
+
+    assert!(started.elapsed() >= minimum);
+    assert!(!result.timed_out);
+    let solved = apply_moves(cube.as_str(), result.solution.as_str()).expect("valid solver result");
+    assert_eq!(solved, SOLVED);
 }
 
 #[test]
