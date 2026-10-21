@@ -3,6 +3,7 @@ name = "min2phase"
 authors = ["Chen Shuang <cs0x7f@gmail.com>"]
 version = "0.3.0"
 edition = "2021"
+rust-version = "1.82"
 license = "MIT"
 keywords = ["rubik", "cubing", "solving"]
 readme = "README.md"
