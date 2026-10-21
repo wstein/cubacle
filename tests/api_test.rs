@@ -1,15 +1,16 @@
 use cubacle::engines::three::Min2PhaseSolver;
 use cubacle::puzzle::{Facelets, Failure, MoveSequence, PuzzleKind, SolveOptions, Solver};
-use cubacle::{apply_moves, from_moves};
 use std::time::Duration;
 
 fn scrambled(moves: &str) -> Facelets {
-    Facelets::parse(&from_moves(moves).expect("valid scramble")).expect("valid facelets")
+    Facelets::solved(PuzzleKind::Cube3)
+        .apply(&moves.parse().expect("valid scramble"))
+        .expect("moves fit a 3x3")
 }
 
 fn assert_replays_to_solved(start: &Facelets, solution: &MoveSequence) {
-    let end = apply_moves(&start.to_string(), &solution.to_string()).expect("replayable moves");
-    assert_eq!(end, Facelets::solved(PuzzleKind::Cube3).to_string());
+    let end = start.apply(solution).expect("replayable moves");
+    assert!(end.is_solved(), "{end}");
 }
 
 #[test]
@@ -63,4 +64,38 @@ fn prepare_is_idempotent() {
     solver.prepare();
     solver.prepare();
     assert_eq!(solver.kind(), PuzzleKind::Cube3);
+}
+
+#[test]
+fn a_small_move_limit_gives_up_quickly() {
+    // A cube needing 20 moves has no 3-move solution; the search must end at once
+    // instead of exploring first phases far deeper than the limit allows.
+    let cube = Facelets::parse("FLUBUDDLDBRLFRDDRBRDLBFUDLRLBFUDFBDLUUBLLRURFFFRFBUUBR").unwrap();
+    let started = std::time::Instant::now();
+    let result = Min2PhaseSolver::new().solve(&cube, &SolveOptions::default().with_max_moves(3));
+
+    assert_eq!(result.outcome, Err(Failure::Exhausted));
+    assert!(started.elapsed() < Duration::from_secs(5));
+}
+
+#[test]
+fn the_cube_from_the_first_issue_is_solved() {
+    // The cube from the first reported issue.
+    let cube = Facelets::parse("UDUDUDUDURLRLRLRLRFBFBFBFBFDUDUDUDUDLRLRLRLRLBFBFBFBFB").unwrap();
+    let result = Min2PhaseSolver::new().solve(&cube, &SolveOptions::default().with_max_moves(20));
+    assert_replays_to_solved(&cube, result.solution().expect("solved"));
+}
+
+#[test]
+fn the_minimum_time_keeps_a_valid_solution_until_it_elapses() {
+    let cube = scrambled("R U R' U'");
+    let minimum = Duration::from_millis(10);
+    let options = SolveOptions::default()
+        .with_max_moves(20)
+        .with_time_budget(Duration::from_millis(200));
+    let started = std::time::Instant::now();
+    let result = Min2PhaseSolver::new().solve_with_minimum_time(&cube, &options, minimum);
+
+    assert!(started.elapsed() >= minimum);
+    assert_replays_to_solved(&cube, result.solution().expect("solved"));
 }

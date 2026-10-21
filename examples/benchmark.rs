@@ -1,10 +1,10 @@
-use cubacle::{apply_moves, from_moves, solve_parallel, solve_with_stats, SolveStats};
+use cubacle::engines::three::Min2PhaseSolver;
+use cubacle::puzzle::{Facelets, MoveSequence, PuzzleKind, SolveOptions, SolveResult, Solver};
 use std::env;
 use std::io;
 use std::time::{Duration, Instant};
 
 const MAX_LENGTH: u8 = 20;
-const SOLVED: &str = "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB";
 const SCRAMBLES: [&str; 8] = [
     "R U R' U' F2 D B2 L2 U2 R2 F' D2",
     "F R U R' U' F' L U2 L' B2 D R2 F2 U' L2 D' B",
@@ -23,15 +23,16 @@ fn percentile(sorted: &[Duration], numerator: usize, denominator: usize) -> Dura
     sorted[index]
 }
 
-fn validate_solution(cube: &str, solution: &str) -> io::Result<()> {
-    let solved = apply_moves(cube, solution).ok_or_else(|| {
-        io::Error::new(io::ErrorKind::InvalidData, "solver returned invalid moves")
-    })?;
-    if solved != SOLVED {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidData,
-            "solver result did not solve the cube",
-        ));
+fn validate_solution(cube: &Facelets, result: &SolveResult) -> io::Result<()> {
+    let invalid = |message| io::Error::new(io::ErrorKind::InvalidData, message);
+    let solution = result
+        .solution()
+        .ok_or_else(|| invalid("solver found no solution"))?;
+    let solved = cube
+        .apply(solution)
+        .map_err(|_| invalid("solver returned invalid moves"))?;
+    if !solved.is_solved() {
+        return Err(invalid("solver result did not solve the cube"));
     }
     Ok(())
 }
@@ -65,50 +66,41 @@ fn main() -> io::Result<()> {
         ));
     }
 
-    let cubes: Vec<_> = SCRAMBLES
+    let invalid = |message| io::Error::new(io::ErrorKind::InvalidData, message);
+    let cubes: Vec<Facelets> = SCRAMBLES
         .iter()
         .map(|scramble| {
-            from_moves(scramble).ok_or_else(|| {
-                io::Error::new(io::ErrorKind::InvalidData, "benchmark scramble is invalid")
-            })
+            let moves: MoveSequence = scramble
+                .parse()
+                .map_err(|_| invalid("benchmark scramble is invalid"))?;
+            Facelets::solved(PuzzleKind::Cube3)
+                .apply(&moves)
+                .map_err(|_| invalid("benchmark scramble is invalid"))
         })
         .collect::<io::Result<_>>()?;
-    let solve: fn(&str, u8) -> SolveStats = if parallel {
-        solve_parallel
-    } else {
-        solve_with_stats
+    let solver = Min2PhaseSolver::new();
+    let options = SolveOptions::default().with_max_moves(MAX_LENGTH);
+    let solve = |cube: &Facelets| {
+        if parallel {
+            solver.solve_parallel(cube, &options)
+        } else {
+            solver.solve(cube, &options)
+        }
     };
 
     for cube in &cubes {
-        let result = solve(cube, MAX_LENGTH);
-        validate_solution(cube, &result.solution)?;
+        validate_solution(cube, &solve(cube))?;
     }
 
     let mut durations = Vec::with_capacity(cubes.len() * iterations as usize);
     let mut total_probes = 0_u64;
-    let mut total_phase1_nodes = 0_u64;
-    let mut total_phase1_rejected_slice_twist = 0_u64;
-    let mut total_phase1_rejected_slice_flip = 0_u64;
-    let mut total_phase1_slice_twist_breaks = 0_u64;
-    let mut total_phase1_slice_twist_equals = 0_u64;
-    let mut total_phase1_slice_flip_breaks = 0_u64;
-    let mut total_phase1_slice_flip_equals = 0_u64;
-    let mut total_phase1_children_recurred = 0_u64;
     for _ in 0..iterations {
         for cube in &cubes {
             let started = Instant::now();
-            let result = solve(cube, MAX_LENGTH);
+            let result = solve(cube);
             durations.push(started.elapsed());
-            validate_solution(cube, &result.solution)?;
-            total_probes += result.probes;
-            total_phase1_nodes += result.phase1_nodes;
-            total_phase1_rejected_slice_twist += result.phase1_rejected_slice_twist;
-            total_phase1_rejected_slice_flip += result.phase1_rejected_slice_flip;
-            total_phase1_slice_twist_breaks += result.phase1_slice_twist_breaks;
-            total_phase1_slice_twist_equals += result.phase1_slice_twist_equals;
-            total_phase1_slice_flip_breaks += result.phase1_slice_flip_breaks;
-            total_phase1_slice_flip_equals += result.phase1_slice_flip_equals;
-            total_phase1_children_recurred += result.phase1_children_recurred;
+            validate_solution(cube, &result)?;
+            total_probes += result.metrics.probes.unwrap_or(0);
         }
     }
 
@@ -135,21 +127,9 @@ fn main() -> io::Result<()> {
         percentile(&durations, 95, 100).as_secs_f64() * 1_000.0
     );
     println!("Total probes:       {total_probes}");
-    println!("Phase-one nodes:    {total_phase1_nodes}");
-    println!(
-        "Phase-one rejects:  slice-twist {total_phase1_rejected_slice_twist}, slice-flip {total_phase1_rejected_slice_flip}"
-    );
-    println!(
-        "Phase-one outcomes: slice-twist break {total_phase1_slice_twist_breaks}, equal {total_phase1_slice_twist_equals}; slice-flip break {total_phase1_slice_flip_breaks}, equal {total_phase1_slice_flip_equals}"
-    );
-    println!("Phase-one recursed: {total_phase1_children_recurred}");
     println!(
         "Probes per second:  {:.1}",
         total_probes as f64 / total_seconds
-    );
-    println!(
-        "Phase-one nodes/s:  {:.1}",
-        total_phase1_nodes as f64 / total_seconds
     );
 
     Ok(())

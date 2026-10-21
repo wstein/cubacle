@@ -33,6 +33,7 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use cubacle::engines::three::Min2PhaseSolver;
 use cubacle::engines::two::PocketSolver;
+use cubacle::generate;
 use cubacle::notation::orbit64::Orbit64Error;
 use cubacle::notation::{parse_cube, ColourScheme, InputError};
 use cubacle::puzzle::{Facelets, Failure, PuzzleKind, SolveOptions, Solver};
@@ -262,10 +263,7 @@ async fn scramble(
         return Err(ApiError::bad_input("moves must be between 1 and 200"));
     }
     Ok(Json(ScrambleBody {
-        scramble: cubacle::random_moves(moves)
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .join(" "),
+        scramble: generate::scramble(PuzzleKind::Cube3, usize::from(moves)).to_string(),
     }))
 }
 
@@ -284,31 +282,16 @@ struct CubeBody {
 async fn random(params: Result<Query<RandomParams>, QueryRejection>) -> ApiResult<CubeBody> {
     let Query(params) = params.map_err(|e| ApiError::bad_input(e.body_text()))?;
     let size = params.size.unwrap_or(3);
-    let facelets = match size {
-        3 => cubacle::random_cube(),
-        2 => random_pocket(),
+    let kind = match size {
+        2 | 3 => PuzzleKind::of_size(size).expect("2 and 3 are sizes"),
         4..=7 => return Err(ApiError::no_engine(size)),
         _ => return Err(ApiError::bad_input("size must be between 2 and 7")),
     };
-    let kind = PuzzleKind::of_size(size).expect("2 and 3 are sizes");
+    let facelets = generate::random_state(kind).expect("the 2x2x2 and 3x3x3 have generators");
     Ok(Json(CubeBody {
         kind: kind_name(kind),
-        facelets,
+        facelets: facelets.to_string(),
     }))
-}
-
-/// A uniformly random 2x2x2: the corner stickers of a uniformly random 3x3x3
-/// (corner permutation and orientation are uniform and independent of edges
-/// up to the parity coupling, which a 2x2x2 does not have).
-fn random_pocket() -> String {
-    let full: Vec<char> = cubacle::random_cube().chars().collect();
-    let mut out = String::with_capacity(24);
-    for face in 0..6 {
-        for index in [0, 2, 6, 8] {
-            out.push(full[face * 9 + index]);
-        }
-    }
-    out
 }
 
 #[derive(Deserialize)]
@@ -457,10 +440,9 @@ async fn solve(
             PuzzleKind::Cube2 => PocketSolver::new().solve(&facelets, &options),
             _ => {
                 let result = Min2PhaseSolver::new().solve(&facelets, &options);
-                debug_assert!(result.solution().is_none_or(|s| {
-                    cubacle::apply_moves(&facelets.to_string(), &s.to_string())
-                        == Some(Facelets::solved(PuzzleKind::Cube3).to_string())
-                }));
+                debug_assert!(result
+                    .solution()
+                    .is_none_or(|s| facelets.apply(s).is_ok_and(|end| end.is_solved())));
                 result
             }
         }

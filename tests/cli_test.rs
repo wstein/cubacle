@@ -1,3 +1,4 @@
+use cubacle::puzzle::{Facelets, PuzzleKind};
 use std::process::Command;
 
 const SOLUTION: &str = "B R L B L' U' D B D2 R2 F2 R2 L2 D R2 L2 U' L2 U' F2 R";
@@ -88,8 +89,14 @@ fn thinned(facelet: usize) -> usize {
 /// How one move rearranges the 24 stickers of a 2x2, derived from the 3x3
 /// engine: `result[destination] = source`.
 fn sticker_perm(mv: &str) -> [usize; 24] {
-    let solved: Vec<char> = cubacle::from_moves("").unwrap().chars().collect();
-    let moved: Vec<char> = cubacle::from_moves(mv).unwrap().chars().collect();
+    let cube3 = |moves: &str| {
+        Facelets::solved(PuzzleKind::Cube3)
+            .apply(&moves.parse().unwrap())
+            .unwrap()
+            .to_string()
+    };
+    let solved: Vec<char> = cube3("").chars().collect();
+    let moved: Vec<char> = cube3(mv).chars().collect();
     let mut perm: [usize; 24] = std::array::from_fn(|i| i);
     for slot in CORNERS_3X3 {
         let mut colours: Vec<char> = slot.iter().map(|&f| moved[f]).collect();

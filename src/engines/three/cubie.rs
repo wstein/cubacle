@@ -1,7 +1,3 @@
-use rand::RngExt;
-
-use super::consts::*;
-
 #[derive(Clone, Copy)]
 pub(super) struct Cubie {
     pub(super) ca: [u8; 8],
@@ -337,26 +333,6 @@ impl Cubie {
         0
     }
 
-    pub(super) fn random_reset(&mut self) {
-        let mut rng = rand::rng();
-        let cperm = rng.random_range(0..N_PERM) as u16;
-        let mut parity = get_nparity(cperm as i32, 8);
-        self.reset();
-        self.set_cperm(cperm);
-        self.set_twst(rng.random_range(0..N_TWST) as u16);
-        self.set_flip(rng.random_range(0..N_FLIP) as u16);
-        for i in 0..10 {
-            let j = i + rng.random_range(0..12 - i);
-            if i != j {
-                self.ea.swap(i, j);
-                parity ^= 1;
-            }
-        }
-        if parity != 0 {
-            self.ea.swap(10, 11);
-        }
-    }
-
     pub(super) fn set_from_facelet(&mut self, facelet: &str) -> i32 {
         if facelet.len() < 54 {
             return -1;
@@ -416,6 +392,7 @@ impl Cubie {
         0
     }
 
+    #[cfg(test)]
     pub(super) fn as_facelet(&self) -> String {
         let colors: [char; 6] = ['U', 'R', 'F', 'D', 'L', 'B'];
         let mut f: [u8; 54] = [0; 54];

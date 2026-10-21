@@ -5,9 +5,9 @@ use std::time::Duration;
 use clap::{Args, Parser, Subcommand};
 use cubacle::engines::three::Min2PhaseSolver;
 use cubacle::engines::two::PocketSolver;
+use cubacle::generate;
 use cubacle::notation::{parse_cube, ColourScheme};
-use cubacle::puzzle::{Facelets, Failure, PuzzleKind, SolveOptions, Solver};
-use cubacle::{apply_moves, from_moves, random_cube, random_moves};
+use cubacle::puzzle::{Facelets, Failure, MoveSequence, PuzzleKind, SolveOptions, Solver};
 
 /// Rubik's cube solver and generator.
 #[derive(Parser)]
@@ -25,7 +25,7 @@ enum Command {
     Scramble {
         /// Number of moves
         #[arg(short = 'n', long, default_value_t = 25)]
-        moves: u16,
+        moves: usize,
     },
     /// Print a uniformly random cube state as facelets
     Random,
@@ -87,25 +87,35 @@ fn run(cli: Cli) -> Result<(), String> {
             Ok(())
         }
         Command::Scramble { moves } => {
-            println!("{}", random_moves(moves).trim());
+            println!("{}", generate::scramble(PuzzleKind::Cube3, moves));
             Ok(())
         }
         Command::Random => {
-            println!("{}", random_cube());
+            let cube =
+                generate::random_state(PuzzleKind::Cube3).expect("the 3x3x3 has a generator");
+            println!("{cube}");
             Ok(())
         }
         Command::Facelets { scramble } => {
-            let cube = from_moves(&scramble).ok_or("scramble is not valid move notation")?;
-            println!("{cube}");
+            println!("{}", scrambled(&scramble)?);
             Ok(())
         }
     }
 }
 
+/// The solved 3x3x3 with a scramble applied.
+fn scrambled(text: &str) -> Result<Facelets, String> {
+    let moves: MoveSequence = text
+        .parse()
+        .map_err(|error| format!("scramble is not valid move notation ({error})"))?;
+    Facelets::solved(PuzzleKind::Cube3)
+        .apply(&moves)
+        .map_err(|error| error.to_string())
+}
+
 fn read_cube(input: &InputArgs) -> Result<Facelets, String> {
     if let Some(scramble) = &input.scramble {
-        let text = from_moves(scramble).ok_or("scramble is not valid move notation")?;
-        return Facelets::parse(&text).map_err(|error| error.to_string());
+        return scrambled(scramble);
     }
     let text = match input.cube.as_slice() {
         [single] if single == "-" => {
@@ -151,12 +161,10 @@ fn solve(args: SolveArgs) -> Result<(), String> {
     }
     match result.outcome {
         Ok(solution) => {
-            if facelets.kind() == PuzzleKind::Cube3 {
-                let replay = apply_moves(&facelets.to_string(), &solution.to_string());
-                let solved = Facelets::solved(PuzzleKind::Cube3).to_string();
-                if replay.as_deref() != Some(solved.as_str()) {
-                    return Err("internal error: solution does not solve the cube".into());
-                }
+            if facelets.kind() == PuzzleKind::Cube3
+                && !facelets.apply(&solution).is_ok_and(|end| end.is_solved())
+            {
+                return Err("internal error: solution does not solve the cube".into());
             }
             println!("{solution}");
             Ok(())

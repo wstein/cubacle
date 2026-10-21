@@ -1,6 +1,7 @@
 use axum::body::Body;
 use axum::http::{header, Request, StatusCode};
 use axum::Router;
+use cubacle::puzzle::{Facelets, PuzzleKind};
 use cubacle_server::{router, AppState, Config};
 use http_body_util::BodyExt;
 use serde_json::{json, Value};
@@ -160,10 +161,11 @@ async fn solves_a_3x3_token_and_the_solution_replays() {
         solution.split(' ').filter(|m| !m.is_empty()).count()
     );
     assert!(body["elapsedMicros"].is_u64());
-    assert_eq!(
-        cubacle::apply_moves(&facelets, solution).as_deref(),
-        Some(SOLVED3)
-    );
+    let end = Facelets::parse(&facelets)
+        .unwrap()
+        .apply(&solution.parse().unwrap())
+        .unwrap();
+    assert_eq!(end.to_string(), SOLVED3);
 }
 
 #[tokio::test]
@@ -183,16 +185,14 @@ async fn solves_a_2x2_token() {
             three[face * 9 + index] = two[face * 4 + k];
         }
     }
-    // The 3x3 must be a legal cube: if the corners are an odd permutation,
-    // swap two edges (UR and UF) to match the parity.
+    // Turning facelets does not need a legal cube, so the embedding is replayed as is.
     let solution = body["solution"].as_str().unwrap();
     let plain: String = three.iter().collect();
-    three.swap(5, 7);
-    three.swap(10, 19);
-    let swapped: String = three.iter().collect();
-    let replayed = cubacle::apply_moves(&plain, solution)
-        .or_else(|| cubacle::apply_moves(&swapped, solution))
-        .expect("one of the two embeddings is a legal 3x3");
+    let replayed = Facelets::parse(&plain)
+        .unwrap()
+        .apply(&solution.parse().unwrap())
+        .unwrap()
+        .to_string();
     let r: Vec<char> = replayed.chars().collect();
     for face in 0..6 {
         let corners = [0, 2, 6, 8].map(|i| r[face * 9 + i]);
@@ -234,7 +234,10 @@ async fn impossible_cube_is_422() {
 
 #[tokio::test]
 async fn move_limit_too_small_is_422() {
-    let scramble = cubacle::from_moves("R U F D L B R U F D").unwrap();
+    let scramble = Facelets::solved(PuzzleKind::Cube3)
+        .apply(&"R U F D L B R U F D".parse().unwrap())
+        .unwrap()
+        .to_string();
     let (status, _, body) = call(
         app(),
         post_json("/v1/solve", json!({"cube": scramble, "maxMoves": 2})),

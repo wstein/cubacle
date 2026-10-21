@@ -1,4 +1,5 @@
-use cubacle::{from_moves, solve_with_minimum_time};
+use cubacle::engines::three::Min2PhaseSolver;
+use cubacle::puzzle::{Facelets, Failure, MoveSequence, PuzzleKind, SolveOptions};
 use std::env;
 use std::fs::File;
 use std::io::{self, stdout, BufRead, BufReader, BufWriter, Write};
@@ -239,26 +240,35 @@ fn read_jobs(input_path: &str, longer_only: bool) -> io::Result<Vec<Job>> {
     Ok(jobs)
 }
 
+/// The solved 3x3x3 with a scramble applied, or `None` if it is not valid.
+fn scrambled(scramble: &str) -> Option<Facelets> {
+    let moves: MoveSequence = scramble.parse().ok()?;
+    Facelets::solved(PuzzleKind::Cube3).apply(&moves).ok()
+}
+
 fn solve_job(
     job_index: usize,
     job: &Job,
+    solver: &Min2PhaseSolver,
     minimum_search_time: Duration,
     maximum_search_time: Duration,
 ) -> Row {
-    let (actual_solution, probes, solve_micros, timed_out) = from_moves(&job.scramble)
+    let (actual_solution, probes, solve_micros, timed_out) = scrambled(&job.scramble)
         .map(|cube| {
+            let options = SolveOptions::default()
+                .with_max_moves(MAX_LENGTH)
+                .with_time_budget(maximum_search_time);
             let started = Instant::now();
-            let result = solve_with_minimum_time(
-                &cube,
-                MAX_LENGTH,
-                minimum_search_time,
-                maximum_search_time,
-            );
+            let result = solver.solve_with_minimum_time(&cube, &options, minimum_search_time);
+            let solution = match &result.outcome {
+                Ok(solution) => solution.to_string(),
+                Err(failure) => format!("Error {failure:?}"),
+            };
             (
-                result.solution,
-                result.probes,
+                solution,
+                result.metrics.probes.unwrap_or(0),
                 started.elapsed().as_micros(),
-                result.timed_out,
+                result.outcome == Err(Failure::BudgetExhausted),
             )
         })
         .unwrap_or_else(|| ("Error parse-scramble".to_owned(), 0, 0, false));
@@ -292,6 +302,8 @@ fn solve_jobs(
 
     let total = jobs.len();
     let workers = workers.clamp(1, total);
+    let solver = Min2PhaseSolver::new();
+    let solver = &solver;
     let next = Arc::new(AtomicUsize::new(0));
     let (sender, receiver) = mpsc::channel();
     let started = Instant::now();
@@ -312,6 +324,7 @@ fn solve_jobs(
                     .send(solve_job(
                         index,
                         &jobs[index],
+                        solver,
                         minimum_search_time,
                         maximum_search_time,
                     ))

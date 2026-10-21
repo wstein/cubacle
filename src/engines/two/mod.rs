@@ -464,21 +464,29 @@ impl Solver for PocketSolver {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{from_moves, random_moves};
+    use crate::generate;
     use std::collections::HashMap;
     use std::time::Duration;
 
     type Perms = HashMap<String, [usize; 24]>;
 
-    /// Per-move sticker permutations for the 2x2, derived from the 3x3 engine
-    /// alone: `perm[dest] = source`, for all six faces and three turns.
+    /// The solved 3x3 with `moves` applied, as facelets.
+    fn cube3(moves: &str) -> String {
+        Facelets::solved(PuzzleKind::Cube3)
+            .apply(&moves.parse().unwrap())
+            .unwrap()
+            .to_string()
+    }
+
+    /// Per-move sticker permutations for the 2x2, derived from
+    /// `Facelets::apply` on a 3x3: `perm[dest] = source`, for all six faces and three turns.
     fn sticker_perms() -> Perms {
-        let solved: Vec<char> = from_moves("").unwrap().chars().collect();
+        let solved: Vec<char> = cube3("").chars().collect();
         let mut perms = HashMap::new();
         for face in Face::ALL {
             for suffix in ["", "2", "'"] {
                 let name = format!("{}{suffix}", face.letter());
-                let moved: Vec<char> = from_moves(&name).unwrap().chars().collect();
+                let moved: Vec<char> = cube3(&name).chars().collect();
                 let mut perm: [usize; 24] = std::array::from_fn(|i| i);
                 for dest_slot in CORNER_FACELETS {
                     let mut colours: Vec<char> = dest_slot.iter().map(|&f| moved[f]).collect();
@@ -517,7 +525,7 @@ mod tests {
     }
 
     fn solved_2x2() -> String {
-        thin(&from_moves("").unwrap())
+        thin(&cube3(""))
     }
 
     fn all_moves() -> Vec<String> {
@@ -594,7 +602,8 @@ mod tests {
         let perms = sticker_perms();
         let solver = PocketSolver::new();
         for _ in 0..2500 {
-            let state = thin(&from_moves(&random_moves(30)).unwrap());
+            let scramble = generate::scramble(PuzzleKind::Cube3, 30);
+            let state = thin(&cube3(&scramble.to_string()));
             let facelets = Facelets::parse(&state).unwrap();
             let result = solver.solve(&facelets, &SolveOptions::default());
             let solution = result.solution().expect("solvable");
@@ -606,6 +615,18 @@ mod tests {
                 "{state}"
             );
             assert!(solution.len() <= 11);
+        }
+    }
+
+    #[test]
+    fn generated_states_solve_and_replay() {
+        let perms = sticker_perms();
+        let solver = PocketSolver::new();
+        for _ in 0..300 {
+            let cube = generate::random_state(PuzzleKind::Cube2).unwrap();
+            let result = solver.solve(&cube, &SolveOptions::default());
+            let solution = result.solution().expect("a generated state is reachable");
+            assert!(is_solved(&replay(&perms, &cube.to_string(), solution)));
         }
     }
 
