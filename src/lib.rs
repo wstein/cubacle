@@ -851,6 +851,7 @@ fn set_pruning(table: &mut [u32], index: usize, value: u32) {
     table[index >> 3] ^= value << ((index & 7) << 2);
 }
 
+#[inline]
 fn get_pruning(table: &[u32], index: usize) -> u32 {
     (table[index >> 3] >> ((index & 7) << 2)) & 0xf
 }
@@ -1116,6 +1117,7 @@ impl Coord {
         self.prun
     }
 
+    #[inline]
     fn move_slice_twist(
         &mut self,
         sctx: &StaticContext,
@@ -1135,6 +1137,7 @@ impl Coord {
         ) as i8
     }
 
+    #[inline]
     fn move_flip_prun(
         &mut self,
         sctx: &StaticContext,
