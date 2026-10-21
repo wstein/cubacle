@@ -1,7 +1,10 @@
 #[macro_use(lazy_static)]
 extern crate lazy_static;
 
+mod pool;
+
 use rand::Rng;
+use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
 #[derive(Clone, Copy)]
@@ -1913,6 +1916,41 @@ pub fn solve_pattern(from_facelet: &str, to_facelet: &str, maxl: u8) -> SolveSta
     Cubie::corn_mult(&to_inverse, &from, &mut relative);
     Cubie::edge_mult(&to_inverse, &from, &mut relative);
     solve_cubie_entry(relative, maxl, Duration::ZERO, None)
+}
+
+/// Solve independent cube states concurrently and return results in input order.
+///
+/// This API is intended for throughput-oriented bulk work. It uses a persistent
+/// process-wide worker pool, whose size is read once from `MIN2PHASE_THREADS` on
+/// first use; otherwise the available parallelism is used. Calls made from one
+/// of those workers run serially to avoid nested-pool oversubscription.
+pub fn solve_batch<T: AsRef<str> + Sync>(facelets: &[T], maxl: u8) -> Vec<SolveStats> {
+    if facelets.len() < 2 || pool::worker_count() <= 1 || pool::in_pool_worker() {
+        return facelets
+            .iter()
+            .map(|facelet| solve_with_stats(facelet.as_ref(), maxl))
+            .collect();
+    }
+
+    let (sender, receiver) = mpsc::channel();
+    for (index, facelet) in facelets.iter().enumerate() {
+        let sender = sender.clone();
+        let facelet = facelet.as_ref().to_owned();
+        pool::global().execute(move || {
+            let stats = solve_with_stats(&facelet, maxl);
+            let _ = sender.send((index, stats));
+        });
+    }
+    drop(sender);
+
+    let mut results = vec![None; facelets.len()];
+    for (index, stats) in receiver {
+        results[index] = Some(stats);
+    }
+    results
+        .into_iter()
+        .map(|result| result.expect("min2phase batch job did not return a result"))
+        .collect()
 }
 
 fn solve_with_time_limits(

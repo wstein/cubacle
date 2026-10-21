@@ -44,6 +44,7 @@ UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB
 - `solve_with_budget(facelet: &str, maxl: u8, budget: Duration) -> SolveStats`: solve with a wall-clock search budget.
 - `solve_with_minimum_time(facelet: &str, maxl: u8, minimum: Duration, maximum: Duration) -> SolveStats`: retain and improve a solution until the minimum search time, subject to a hard maximum.
 - `solve_pattern(from_facelet: &str, to_facelet: &str, maxl: u8) -> SolveStats`: find moves that transform one valid cube state into another.
+- `solve_batch(facelets: &[T], maxl: u8) -> Vec<SolveStats>` where `T: AsRef<str> + Sync`: solve independent cubes concurrently while preserving input order.
 - `from_moves(cube_moves: &str) -> Option<String>`: apply a move sequence to a solved cube.
 - `apply_moves(facelet: &str, cube_moves: &str) -> Option<String>`: apply a move sequence to a valid cube.
 - `random_cube() -> String` and `random_moves(n_moves) -> String`: generate valid random inputs.
@@ -64,6 +65,15 @@ let to = from_moves("F2 D L2").expect("valid target");
 let result = solve_pattern(&from, &to, 20);
 
 assert_eq!(apply_moves(&from, &result.solution), Some(to));
+```
+
+### Batch throughput
+
+`solve_batch` reuses a process-wide worker pool, avoiding per-solve thread creation. Set `MIN2PHASE_THREADS` to a positive worker count before its first use to override the default of `available_parallelism()`. The pool has no shutdown operation and lives for the process lifetime. It is optimized for many independent cubes, not lower latency for a single cube.
+
+```sh
+MIN2PHASE_THREADS=4 cargo run --release --example bulk_compare -- \
+  examples/scrambles.csv examples/scramble-report.csv 4 - 100 100
 ```
 
 ## Comparing a scramble batch
