@@ -8,6 +8,18 @@ Licensed under AGPL-3.0-or-later; see [`NOTICE.md`](NOTICE.md) for the MIT-licen
 
 The solver accepts a cube in facelet order and returns a move sequence. It also provides helpers for creating random cubes, parsing scrambles, and applying moves.
 
+## Command line
+
+```
+cubacle solve FLUBUDDLDBRLFRDDRBRDLBFUDLRLBFUDFBDLUUBLLRURFFFRFBUUBR
+cubacle solve --scramble "R U R' U'" --max-moves 20 --budget-ms 500 --verbose
+cubacle random | cubacle solve -
+cubacle scramble -n 25
+cubacle facelets "R U R' U'"
+```
+
+`solve` prints the solution and checks by replay that it solves the cube. It exits with a non-zero status when the state is impossible, the limit is too tight or the time budget runs out. Only the 3×3×3 has an engine so far.
+
 ## Usage
 
 ```rust
