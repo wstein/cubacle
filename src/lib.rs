@@ -1,8 +1,9 @@
 #[macro_use(lazy_static)]
 extern crate lazy_static;
 
-pub mod api;
 pub mod engines;
+pub mod notation;
 mod pool;
+pub mod puzzle;
 
 pub use engines::three::*;

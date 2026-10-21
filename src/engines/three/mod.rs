@@ -2,6 +2,7 @@ mod consts;
 mod coordinates;
 mod cubie;
 mod search;
+mod solver;
 mod stats;
 mod tables;
 
@@ -16,6 +17,7 @@ use cubie::*;
 use search::*;
 use tables::*;
 
+pub use solver::Min2PhaseSolver;
 pub use stats::{SolveOutcome, SolveStats};
 
 lazy_static! {

@@ -1,7 +1,7 @@
 /// The cube sizes the solver facade can describe.
 ///
 /// Describing a size does not mean an engine for it exists; see
-/// [`crate::api::Solver::kind`] for which sizes a solver actually handles.
+/// [`crate::puzzle::Solver::kind`] for which sizes a solver actually handles.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum PuzzleKind {
     Cube2,

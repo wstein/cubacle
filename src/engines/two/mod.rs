@@ -15,8 +15,8 @@
 use std::sync::OnceLock;
 use std::time::Instant;
 
-use super::orbit64::{CORNER_COLOURS, CORNER_FACELETS};
-use super::{
+use crate::notation::orbit64::{CORNER_COLOURS, CORNER_FACELETS};
+use crate::puzzle::{
     Face, Facelets, Failure, Move, MoveSequence, PuzzleKind, SolveMetrics, SolveOptions,
     SolveResult, Solver, Turn,
 };

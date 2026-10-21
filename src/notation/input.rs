@@ -1,7 +1,8 @@
 use std::fmt;
 
 use super::orbit64::{self, Orbit64Error};
-use super::{ColourScheme, Face, Facelets, FaceletsError, PuzzleKind, SchemeError};
+use super::{ColourScheme, SchemeError};
+use crate::puzzle::{Face, Facelets, FaceletsError, PuzzleKind};
 
 /// Why a cube description could not be read.
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -6,7 +6,9 @@
 //! change that alters search behaviour shows up here. Never edit the fixture
 //! to make a refactor pass.
 
-use cubacle::api::{Facelets, Failure, Min2PhaseSolver, PocketSolver, SolveOptions, Solver};
+use cubacle::engines::three::Min2PhaseSolver;
+use cubacle::engines::two::PocketSolver;
+use cubacle::puzzle::{Facelets, Failure, SolveOptions, Solver};
 
 const GOLDEN: &str = include_str!("fixtures/golden.txt");
 

@@ -1,7 +1,7 @@
 use std::fmt;
 use std::str::FromStr;
 
-use super::Face;
+use crate::puzzle::Face;
 
 /// Which sticker colour sits on which face, in `URFDLB` order.
 ///

@@ -1,9 +1,9 @@
 use std::time::Instant;
 
-use super::{
+use super::{solve_with_budget, solve_with_stats, SolveOutcome};
+use crate::puzzle::{
     Facelets, Failure, MoveSequence, PuzzleKind, SolveMetrics, SolveOptions, SolveResult, Solver,
 };
-use crate::{solve_with_budget, solve_with_stats, SolveOutcome};
 
 /// The longest solution the engine searches for when no limit is given.
 const DEFAULT_MAX_MOVES: u8 = 21;

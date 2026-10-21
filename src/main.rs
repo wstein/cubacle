@@ -3,10 +3,10 @@ use std::process::ExitCode;
 use std::time::Duration;
 
 use clap::{Args, Parser, Subcommand};
-use cubacle::api::{
-    parse_cube, ColourScheme, Facelets, Failure, Min2PhaseSolver, PocketSolver, PuzzleKind,
-    SolveOptions, Solver,
-};
+use cubacle::engines::three::Min2PhaseSolver;
+use cubacle::engines::two::PocketSolver;
+use cubacle::notation::{parse_cube, ColourScheme};
+use cubacle::puzzle::{Facelets, Failure, PuzzleKind, SolveOptions, Solver};
 use cubacle::{apply_moves, from_moves, random_cube, random_moves};
 
 /// Rubik's cube solver and generator.

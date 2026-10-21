@@ -1,6 +1,5 @@
-use cubacle::api::{
-    Facelets, Failure, Min2PhaseSolver, MoveSequence, PuzzleKind, SolveOptions, Solver,
-};
+use cubacle::engines::three::Min2PhaseSolver;
+use cubacle::puzzle::{Facelets, Failure, MoveSequence, PuzzleKind, SolveOptions, Solver};
 use cubacle::{apply_moves, from_moves};
 use std::time::Duration;
 

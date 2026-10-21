@@ -31,11 +31,11 @@ use axum::middleware::{self, Next};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use cubacle::api::orbit64::Orbit64Error;
-use cubacle::api::{
-    parse_cube, ColourScheme, Facelets, Failure, InputError, Min2PhaseSolver, PocketSolver,
-    PuzzleKind, SolveOptions, Solver,
-};
+use cubacle::engines::three::Min2PhaseSolver;
+use cubacle::engines::two::PocketSolver;
+use cubacle::notation::orbit64::Orbit64Error;
+use cubacle::notation::{parse_cube, ColourScheme, InputError};
+use cubacle::puzzle::{Facelets, Failure, PuzzleKind, SolveOptions, Solver};
 use serde::{Deserialize, Serialize};
 use tokio::sync::Semaphore;
 use tower_http::catch_panic::CatchPanicLayer;

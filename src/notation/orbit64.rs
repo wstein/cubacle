@@ -12,7 +12,7 @@
 
 use std::fmt;
 
-use super::{Face, Facelets, FaceletsError};
+use crate::puzzle::{Face, Facelets, FaceletsError};
 
 const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
@@ -367,7 +367,7 @@ fn apply_frame(full: &[usize; 54], rank: usize) -> Vec<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::api::PuzzleKind;
+    use crate::puzzle::PuzzleKind;
 
     #[test]
     fn solved_tokens_decode_to_solved_cubes() {
