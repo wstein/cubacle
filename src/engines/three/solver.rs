@@ -217,7 +217,7 @@ fn wrong_size(cube: &Facelets, started: Instant) -> Option<SolveResult> {
     (!centres_home).then(|| {
         failed(
             Failure::InvalidInput,
-            "the centres are not in their standard places (a wide or inner-layer move turned them); only cubes with fixed centres can be solved".to_owned(),
+            "the centres have moved; only cubes with fixed centres can be solved, so wide and inner-layer moves are not allowed".to_owned(),
             started,
             None,
         )
