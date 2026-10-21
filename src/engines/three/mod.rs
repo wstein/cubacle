@@ -487,3 +487,65 @@ pub fn random_moves(n_moves: u16) -> String {
     }
     scramble
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::puzzle::{Facelets, MoveSequence, PuzzleKind};
+
+    /// Applies moves with the engine's own cubie model.
+    fn engine_apply(moves: &MoveSequence) -> String {
+        let mut cube = Cubie::new();
+        let mut next = Cubie::new();
+        for mv in moves.moves() {
+            let axis = mv.face.index();
+            let power = match mv.turn {
+                crate::puzzle::Turn::Clockwise => 0,
+                crate::puzzle::Turn::Half => 1,
+                crate::puzzle::Turn::CounterClockwise => 2,
+            };
+            let turn = &global_sctx.movecube[axis * 3 + power];
+            Cubie::corn_mult(&cube, turn, &mut next);
+            Cubie::edge_mult(&cube, turn, &mut next);
+            cube = next;
+        }
+        cube.as_facelet()
+    }
+
+    #[test]
+    fn facelets_apply_agrees_with_the_engine_cubie_model() {
+        let mut seed = 0x2545_F491_4F6C_DD1Du64;
+        let mut next = |bound: u64| {
+            seed = seed
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
+            (seed >> 33) % bound
+        };
+        let letters = ["U", "R", "F", "D", "L", "B"];
+        let suffixes = ["", "2", "'"];
+        for _ in 0..200 {
+            let text: Vec<String> = (0..1 + next(30))
+                .map(|_| {
+                    let face = letters[next(6) as usize];
+                    format!("{face}{}", suffixes[next(3) as usize])
+                })
+                .collect();
+            let moves: MoveSequence = text.join(" ").parse().unwrap();
+            let typed = Facelets::solved(PuzzleKind::Cube3).apply(&moves).unwrap();
+            assert_eq!(typed.to_string(), engine_apply(&moves), "{moves}");
+        }
+    }
+
+    #[test]
+    fn generated_states_are_reachable_and_solve_back() {
+        use crate::engines::three::Min2PhaseSolver;
+        use crate::puzzle::{SolveOptions, Solver};
+        let solver = Min2PhaseSolver::new();
+        for _ in 0..100 {
+            let cube = crate::generate::random_state(PuzzleKind::Cube3).unwrap();
+            let result = solver.solve(&cube, &SolveOptions::default());
+            let solution = result.solution().expect("a generated state is reachable");
+            assert!(cube.apply(solution).unwrap().is_solved());
+        }
+    }
+}
