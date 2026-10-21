@@ -4,7 +4,9 @@ extern crate lazy_static;
 mod pool;
 
 use rand::Rng;
+use std::sync::atomic::{AtomicI8, Ordering};
 use std::sync::mpsc;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 #[derive(Clone, Copy)]
@@ -253,6 +255,8 @@ struct IdaContext {
     valid1: i8,
     urf_idx: u8,
     root_only_axis: i8,
+    shared_best: Option<Arc<AtomicI8>>,
+    improve: bool,
     p1_cubies: [Cubie; 20],
     urf_cubies: [Cubie; 6],
     premv: [u8; 15],
@@ -1237,6 +1241,8 @@ impl IdaContext {
             valid1: 0,
             urf_idx: 0,
             root_only_axis: -1,
+            shared_best: None,
+            improve: false,
             p1_cubies: [Cubie::new(); 20],
             urf_cubies: [Cubie::new(); 6],
             premv: [0; 15],
@@ -1288,7 +1294,7 @@ impl IdaContext {
 
     fn time_limit(&mut self) -> TimeLimit {
         let Some(maximum_deadline) = self.deadline else {
-            return if self.has_solution {
+            return if self.has_solution && !self.improve {
                 TimeLimit::ReturnSolution
             } else {
                 TimeLimit::Continue
@@ -1408,6 +1414,12 @@ impl IdaContext {
                 TimeLimit::TimedOut => return String::from("Error 8"),
             }
             self.length1 = length1;
+            if let Some(best) = &self.shared_best {
+                self.target_length = self.target_length.min(best.load(Ordering::Relaxed));
+                if self.length1 >= self.target_length {
+                    break;
+                }
+            }
             self.max_depth2 = std::cmp::min(MAX_DEPTH2 as i8, self.target_length - length1 - 1);
             self.depth1 = self.length1 - self.premv_len;
             self.allow_shorter = false;
@@ -1571,6 +1583,11 @@ impl IdaContext {
             TimeLimit::ReturnSolution => return SEARCH_COMPLETE,
             TimeLimit::TimedOut => return SEARCH_TIMEOUT,
         }
+        if let Some(best) = &self.shared_best {
+            self.target_length = self.target_length.min(best.load(Ordering::Relaxed));
+            self.max_depth2 =
+                std::cmp::min(MAX_DEPTH2 as i8, self.target_length - self.length1 - 1);
+        }
         self.probes += 1;
         let mut cc = if self.depth1 == 0 {
             self.p1_cubies[0]
@@ -1644,6 +1661,9 @@ impl IdaContext {
                 self.solution.append_move(self.premv[i as usize]);
             }
             self.target_length = self.solution.length;
+            if let Some(best) = &self.shared_best {
+                best.fetch_min(self.solution.length, Ordering::Relaxed);
+            }
             self.has_solution = true;
             depth2 -= 1;
         }
@@ -2098,13 +2118,17 @@ fn solve_parallel_cubie_entry(
         .map(|maximum| minimum_search_time.min(maximum))
         .and_then(|minimum| started.checked_add(minimum));
     let urf_cubies = make_urf_cubies(&cc);
+    let best_len = Arc::new(AtomicI8::new(std::cmp::min(25, maxl) as i8 + 1));
     let task_count = urf_cubies.len();
     let (sender, receiver) = mpsc::channel();
 
     for (urf_idx, urf_cubie) in urf_cubies.into_iter().enumerate() {
         let sender = sender.clone();
+        let best_len = Arc::clone(&best_len);
         pool::global().execute(move || {
             let mut ctx = IdaContext::new();
+            ctx.improve = true;
+            ctx.shared_best = Some(best_len);
             ctx.set_deadlines(deadline, minimum_deadline);
             let solution = ctx.solve_one_urf(
                 &global_sctx,
