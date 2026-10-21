@@ -6,7 +6,7 @@ title: Contributing
 
 ## Workflow
 
-- Work on a branch and open a pull request against `develop`.
+- Work on a branch, not directly on `main`.
 - Write commit messages in the [Conventional Commits](https://www.conventionalcommits.org/) format, for example `fix(server): bound shutdown` or `docs: add CLI guide`.
 - Keep each commit atomic: one logical change per commit.
 
