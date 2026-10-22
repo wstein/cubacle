@@ -6,7 +6,7 @@ weight: 4
 
 # Move icons
 
-`cubacle icon` draws a move on a cube as a small picture, and `cubacle solve --icons` shows every step of a solution that way. The same code is available as the `cubacle::render` module, which returns SVG, RGBA pixels or Kitty graphics escapes for a frontend or a PDF export.
+A move icon (a "minicube": a small cube picture with an arrow, also called an arrow diagram) shows one move on the cube. `cubacle icon` draws a move as such a picture, and `cubacle solve --icons` shows every step of a solution that way. The same code is available as the `cubacle::render` module, which returns SVG, RGBA pixels or Kitty graphics escapes for a frontend or a PDF export.
 
 ## What an icon shows
 
