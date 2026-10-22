@@ -35,8 +35,7 @@ use cubacle::engines::five::FiveSolver;
 use cubacle::engines::three::Min2PhaseSolver;
 use cubacle::engines::two::PocketSolver;
 use cubacle::generate;
-use cubacle::notation::orbit64::Orbit64Error;
-use cubacle::notation::{parse_cube, ColourScheme, InputError};
+use cubacle::notation::{parse_cube, ColourScheme};
 use cubacle::puzzle::{Facelets, Failure, PuzzleKind, SolveOptions, Solver};
 use serde::{Deserialize, Serialize};
 use tokio::sync::Semaphore;
@@ -203,16 +202,6 @@ impl ApiError {
             "no_engine",
             format!(
                 "no engine for the {size}x{size}x{size} yet; only 2x2x2, 3x3x3 and 5x5x5 exist"
-            ),
-        )
-    }
-
-    fn token_unsupported(size: usize) -> ApiError {
-        ApiError::new(
-            StatusCode::NOT_IMPLEMENTED,
-            "token_unsupported",
-            format!(
-                "orbit64 decoding of the {size}x{size}x{size} is not implemented; send facelets"
             ),
         )
     }
@@ -396,11 +385,7 @@ fn read_cube(cube: &str, scheme: Option<&str>) -> Result<Facelets, ApiError> {
         .map(str::parse::<ColourScheme>)
         .transpose()
         .map_err(|e| ApiError::bad_input(e.to_string()))?;
-    parse_cube(cube, scheme).map_err(|e| match e {
-        InputError::Orbit64(Orbit64Error::Unsupported(5)) => ApiError::token_unsupported(5),
-        InputError::Orbit64(Orbit64Error::Unsupported(size)) => ApiError::no_engine(size),
-        other => ApiError::bad_input(other.to_string()),
-    })
+    parse_cube(cube, scheme).map_err(|e| ApiError::bad_input(e.to_string()))
 }
 
 async fn convert(headers: HeaderMap, body: Result<Bytes, BytesRejection>) -> ApiResult<CubeBody> {

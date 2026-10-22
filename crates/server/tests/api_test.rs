@@ -375,11 +375,19 @@ async fn size_validation_distinguishes_400_and_501() {
 }
 
 #[tokio::test]
-async fn orbit64_tokens_of_unsupported_sizes_are_501() {
-    // 27 characters is the width of a 4x4x4 token.
-    for uri in ["/v1/solve", "/v1/convert"] {
-        let (status, _, body) = call(app(), post_json(uri, json!({"cube": "A".repeat(27)}))).await;
-        assert_eq!(status, StatusCode::NOT_IMPLEMENTED, "{uri}: {body}");
+async fn orbit64_tokens_of_sizes_without_an_engine_convert_but_do_not_solve() {
+    // 27, 66 and 90 characters are the widths of the 4x4x4, 6x6x6 and 7x7x7.
+    for (width, size) in [(27, 4), (66, 6), (90, 7)] {
+        let cube = "A".repeat(width);
+        let (status, _, body) = call(app(), post_json("/v1/convert", json!({"cube": cube}))).await;
+        assert_eq!(status, StatusCode::OK, "{size}: {body}");
+        assert_eq!(body["kind"], format!("{size}x{size}x{size}"));
+        assert_eq!(
+            body["facelets"].as_str().unwrap(),
+            Facelets::solved(PuzzleKind::of_size(size).unwrap()).to_string()
+        );
+        let (status, _, body) = call(app(), post_json("/v1/solve", json!({"cube": cube}))).await;
+        assert_eq!(status, StatusCode::NOT_IMPLEMENTED, "{size}: {body}");
         assert_eq!(code(&body), "no_engine");
     }
 }
@@ -604,12 +612,15 @@ async fn a_5x5_move_limit_and_bad_cubes_are_reported() {
 }
 
 #[tokio::test]
-async fn a_5x5_orbit64_token_is_not_decoded_yet() {
-    for uri in ["/v1/solve", "/v1/convert"] {
-        let (status, _, body) = call(app(), post_json(uri, json!({"cube": "A".repeat(43)}))).await;
-        assert_eq!(status, StatusCode::NOT_IMPLEMENTED, "{uri}: {body}");
-        assert_eq!(code(&body), "token_unsupported");
-    }
+async fn a_5x5_orbit64_token_converts() {
+    let cube = "A".repeat(43);
+    let (status, _, body) = call(app(), post_json("/v1/convert", json!({"cube": cube}))).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(body["kind"], "5x5x5");
+    assert_eq!(
+        body["facelets"].as_str().unwrap(),
+        Facelets::solved(PuzzleKind::Cube5).to_string()
+    );
 }
 
 #[tokio::test]
