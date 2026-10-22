@@ -31,6 +31,7 @@ use axum::middleware::{self, Next};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
+use cubacle::engines::five::FiveSolver;
 use cubacle::engines::three::Min2PhaseSolver;
 use cubacle::engines::two::PocketSolver;
 use cubacle::generate;
@@ -48,6 +49,8 @@ pub const MAX_TIMEOUT_MS: u64 = 600_000;
 pub const MAX_CONCURRENCY: usize = 256;
 /// Largest `maxMoves` the 3x3 engine honours (it silently clamps above this).
 pub const MAX_MOVES: u8 = 25;
+/// Largest `maxMoves` for the 5x5x5, whose solutions run to hundreds of moves.
+pub const MAX_MOVES_5X5: u8 = u8::MAX;
 
 /// Runtime limits of the server.
 #[derive(Debug, Clone)]
@@ -84,10 +87,12 @@ pub struct AppState {
     config: Arc<Config>,
     /// The 3x3x3 engine; clones share its tables.
     three: Min2PhaseSolver,
+    /// The 5x5x5 engine, finishing with a clone of `three`.
+    five: FiveSolver,
 }
 
 impl AppState {
-    /// Builds the state and prepares both engines (distance tables), so a
+    /// Builds the state and prepares all engines (tables), so a
     /// router made from it is ready to answer the moment it exists. The 3x3x3
     /// engine is the process-wide default instance.
     pub fn new(config: Config) -> AppState {
@@ -97,8 +102,10 @@ impl AppState {
     /// Like [`AppState::new`], with the 3x3x3 engine injected.
     pub fn with_solver(config: Config, three: Min2PhaseSolver) -> AppState {
         PocketSolver::new().prepare();
-        three.prepare();
-        AppState::assemble(config, three)
+        let state = AppState::assemble(config, three);
+        state.three.prepare();
+        state.five.prepare();
+        state
     }
 
     /// The state without table construction (tests that do not solve).
@@ -110,6 +117,7 @@ impl AppState {
         AppState {
             permits: Arc::new(Semaphore::new(config.max_concurrency.max(1))),
             config: Arc::new(config),
+            five: FiveSolver::new(Arc::new(three.clone())),
             three,
         }
     }
@@ -193,7 +201,19 @@ impl ApiError {
         ApiError::new(
             StatusCode::NOT_IMPLEMENTED,
             "no_engine",
-            format!("no engine for the {size}x{size}x{size} yet; only 2x2x2 and 3x3x3 exist"),
+            format!(
+                "no engine for the {size}x{size}x{size} yet; only 2x2x2, 3x3x3 and 5x5x5 exist"
+            ),
+        )
+    }
+
+    fn token_unsupported(size: usize) -> ApiError {
+        ApiError::new(
+            StatusCode::NOT_IMPLEMENTED,
+            "token_unsupported",
+            format!(
+                "orbit64 decoding of the {size}x{size}x{size} is not implemented; send facelets"
+            ),
         )
     }
 }
@@ -260,6 +280,7 @@ async fn health() -> Json<Health> {
 #[serde(deny_unknown_fields)]
 struct ScrambleParams {
     moves: Option<u16>,
+    size: Option<usize>,
 }
 
 #[derive(Serialize)]
@@ -275,9 +296,19 @@ async fn scramble(
     if !(1..=200).contains(&moves) {
         return Err(ApiError::bad_input("moves must be between 1 and 200"));
     }
+    let kind = engine_kind(params.size.unwrap_or(3))?;
     Ok(Json(ScrambleBody {
-        scramble: generate::scramble(PuzzleKind::Cube3, usize::from(moves)).to_string(),
+        scramble: generate::scramble(kind, usize::from(moves)).to_string(),
     }))
+}
+
+/// The cube size of a request, if an engine (and so a generator) exists for it.
+fn engine_kind(size: usize) -> Result<PuzzleKind, ApiError> {
+    match size {
+        2 | 3 | 5 => Ok(PuzzleKind::of_size(size).expect("2, 3 and 5 are sizes")),
+        4 | 6 | 7 => Err(ApiError::no_engine(size)),
+        _ => Err(ApiError::bad_input("size must be between 2 and 7")),
+    }
 }
 
 #[derive(Deserialize)]
@@ -294,13 +325,9 @@ struct CubeBody {
 
 async fn random(params: Result<Query<RandomParams>, QueryRejection>) -> ApiResult<CubeBody> {
     let Query(params) = params.map_err(|e| ApiError::bad_input(e.body_text()))?;
-    let size = params.size.unwrap_or(3);
-    let kind = match size {
-        2 | 3 => PuzzleKind::of_size(size).expect("2 and 3 are sizes"),
-        4..=7 => return Err(ApiError::no_engine(size)),
-        _ => return Err(ApiError::bad_input("size must be between 2 and 7")),
-    };
-    let facelets = generate::random_state(kind).expect("the 2x2x2 and 3x3x3 have generators");
+    let kind = engine_kind(params.size.unwrap_or(3))?;
+    let facelets =
+        generate::random_state(kind).expect("the 2x2x2, 3x3x3 and 5x5x5 have generators");
     Ok(Json(CubeBody {
         kind: kind_name(kind),
         facelets: facelets.to_string(),
@@ -319,7 +346,7 @@ struct ConvertRequest {
 struct SolveRequest {
     cube: String,
     scheme: Option<String>,
-    /// 1..=25.
+    /// 1..=25, or 1..=255 for the 5x5x5.
     max_moves: Option<u8>,
     /// 1..=600000, further capped by the server's request timeout.
     budget_ms: Option<u64>,
@@ -370,6 +397,7 @@ fn read_cube(cube: &str, scheme: Option<&str>) -> Result<Facelets, ApiError> {
         .transpose()
         .map_err(|e| ApiError::bad_input(e.to_string()))?;
     parse_cube(cube, scheme).map_err(|e| match e {
+        InputError::Orbit64(Orbit64Error::Unsupported(5)) => ApiError::token_unsupported(5),
         InputError::Orbit64(Orbit64Error::Unsupported(size)) => ApiError::no_engine(size),
         other => ApiError::bad_input(other.to_string()),
     })
@@ -411,15 +439,18 @@ async fn solve(
     let request: SolveRequest = read_body(&headers, body)?;
     let facelets = read_cube(&request.cube, request.scheme.as_deref())?;
     let kind = facelets.kind();
-    if !matches!(kind, PuzzleKind::Cube2 | PuzzleKind::Cube3) {
-        return Err(ApiError::no_engine(kind.size()));
-    }
+    engine_kind(kind.size())?;
 
     let mut options = SolveOptions::default();
     if let Some(moves) = request.max_moves {
-        if !(1..=MAX_MOVES).contains(&moves) {
+        let most = if kind == PuzzleKind::Cube5 {
+            MAX_MOVES_5X5
+        } else {
+            MAX_MOVES
+        };
+        if !(1..=most).contains(&moves) {
             return Err(ApiError::bad_input(format!(
-                "maxMoves must be between 1 and {MAX_MOVES}"
+                "maxMoves must be between 1 and {most}"
             )));
         }
         options = options.with_max_moves(moves);
@@ -447,11 +478,18 @@ async fn solve(
         error
     })?;
 
-    let three = state.three.clone();
+    let (three, five) = (state.three.clone(), state.five.clone());
     let result = tokio::task::spawn_blocking(move || {
         let _permit = permit; // released when the solve finishes
         match kind {
             PuzzleKind::Cube2 => PocketSolver::new().solve(&facelets, &options),
+            PuzzleKind::Cube5 => {
+                let result = five.solve(&facelets, &options);
+                debug_assert!(result
+                    .solution()
+                    .is_none_or(|s| facelets.apply(s).is_ok_and(|end| end.is_solved())));
+                result
+            }
             _ => {
                 let result = three.solve(&facelets, &options);
                 debug_assert!(result

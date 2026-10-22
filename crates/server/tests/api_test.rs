@@ -367,7 +367,7 @@ async fn size_validation_distinguishes_400_and_501() {
         assert_eq!(status, StatusCode::BAD_REQUEST, "{size}");
         assert_eq!(code(&body), "bad_input");
     }
-    for size in ["4", "7"] {
+    for size in ["4", "6", "7"] {
         let (status, _, body) = call(app(), get(&format!("/v1/random?size={size}"))).await;
         assert_eq!(status, StatusCode::NOT_IMPLEMENTED, "{size}");
         assert_eq!(code(&body), "no_engine");
@@ -528,4 +528,86 @@ async fn an_injected_solver_is_prepared_and_used() {
     .await;
     assert_eq!(status, StatusCode::OK, "{body}");
     assert_eq!(body["kind"], "3x3x3");
+}
+
+fn scrambled_5x5(moves: &str) -> Facelets {
+    Facelets::solved(PuzzleKind::Cube5)
+        .apply(&moves.parse().unwrap())
+        .unwrap()
+}
+
+#[tokio::test]
+async fn a_5x5_is_solved_and_the_solution_replays() {
+    let cube = scrambled_5x5("R U 2R 2U' F 2L' B2 D 2D' R' U2 2F");
+    let (status, _, body) = call(
+        app(),
+        post_json(
+            "/v1/solve",
+            json!({"cube": cube.to_string(), "budgetMs": 20000}),
+        ),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(body["kind"], "5x5x5");
+    let solution = body["solution"].as_str().unwrap();
+    assert_eq!(
+        body["length"].as_u64().unwrap() as usize,
+        solution.split(' ').count()
+    );
+    let moves = solution.parse().unwrap();
+    assert!(cube.apply(&moves).unwrap().is_solved());
+}
+
+#[tokio::test]
+async fn a_random_5x5_and_a_5x5_scramble_are_served_and_solvable() {
+    let (status, _, body) = call(app(), get("/v1/random?size=5")).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(body["kind"], "5x5x5");
+    let facelets = body["facelets"].as_str().unwrap().to_owned();
+    assert_eq!(facelets.len(), 150);
+    let (status, _, body) = call(app(), post_json("/v1/solve", json!({"cube": facelets}))).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+
+    let (status, _, body) = call(app(), get("/v1/scramble?size=5&moves=30")).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    let moves: cubacle::puzzle::MoveSequence = body["scramble"].as_str().unwrap().parse().unwrap();
+    assert_eq!(moves.len(), 30);
+    assert!(moves.moves().iter().all(|m| m.fits(PuzzleKind::Cube5)));
+}
+
+#[tokio::test]
+async fn a_5x5_move_limit_and_bad_cubes_are_reported() {
+    let cube = scrambled_5x5("2R U 2F' R").to_string();
+    let (status, _, body) = call(
+        app(),
+        post_json("/v1/solve", json!({"cube": cube, "maxMoves": 10})),
+    )
+    .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{body}");
+    assert_eq!(code(&body), "no_solution_within_limit");
+
+    // maxMoves is a byte: 256 is not a number the request can carry.
+    let (status, _, _) = call(
+        app(),
+        post_json("/v1/solve", json!({"cube": cube, "maxMoves": 256})),
+    )
+    .await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+
+    // Face centres that have moved are an impossible 5x5, not a wrong answer.
+    let mut moved: Vec<char> = cube.chars().collect();
+    moved.swap(12, 25 + 12);
+    let moved: String = moved.into_iter().collect();
+    let (status, _, body) = call(app(), post_json("/v1/solve", json!({"cube": moved}))).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{body}");
+    assert_eq!(code(&body), "impossible_cube");
+}
+
+#[tokio::test]
+async fn a_5x5_orbit64_token_is_not_decoded_yet() {
+    for uri in ["/v1/solve", "/v1/convert"] {
+        let (status, _, body) = call(app(), post_json(uri, json!({"cube": "A".repeat(43)}))).await;
+        assert_eq!(status, StatusCode::NOT_IMPLEMENTED, "{uri}: {body}");
+        assert_eq!(code(&body), "token_unsupported");
+    }
 }
