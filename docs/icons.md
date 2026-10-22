@@ -38,7 +38,7 @@ The caption is the canonical notation of the move. `Rw` and `Rw2` turn the two o
 cubacle icon R "U'" Rw2 --cube 4
 ```
 
-Each move is drawn on the cube state left by the moves before it. On a terminal without graphics, the output is text; on a pipe it is plain text without escape sequences:
+Each move is drawn on its own start cube, the solved cube or the cube from `--from`, as in a move sheet. With `--cumulative`, each move is drawn on the cube left by the moves before it. On a terminal without graphics, the output is text; on a pipe it is plain text without escape sequences:
 
 ```text
 R ↑
@@ -60,6 +60,7 @@ Moving stickers are uppercase and the others lowercase.
 | `--out FILE` | Write to a file instead of standard output. |
 | `--scheme boy\|jp` | Colour scheme, `boy` by default; six letters in `URFDLB` order also work. |
 | `--from SCRAMBLE` | Start from the cube that this scramble produces. |
+| `--cumulative` | Draw each move on the cube left by the moves before it. |
 | `--grey` | Grey the moving layers instead of darkening the rest. |
 
 `svg` and `rgba` hold one icon, so they take one move. `rgba` writes `width × height × 4` bytes of straight (not premultiplied) RGBA. Graphics escapes are never written to a standard output that is not a terminal, and raw pixels are never written to a terminal; use `--out FILE` in those cases.

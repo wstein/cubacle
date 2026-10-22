@@ -428,3 +428,20 @@ fn an_impossible_token_is_an_error() {
     assert!(!ok);
     assert!(error.contains("out of range"), "{error}");
 }
+
+#[test]
+fn icon_draws_each_move_on_its_own_start_cube_unless_cumulative() {
+    let (_, both, _) = cubacle(&["icon", "R", "U", "--format", "text"]);
+    let (_, second, _) = cubacle(&["icon", "U", "--format", "text"]);
+    assert!(
+        both.ends_with(&second),
+        "U must be drawn on the solved cube"
+    );
+    let (_, chained, _) = cubacle(&["icon", "R", "U", "--format", "text", "--cumulative"]);
+    assert_ne!(chained, both);
+    assert!(!chained.ends_with(&second));
+    // --from sets the start cube of every icon.
+    let (_, from, _) = cubacle(&["icon", "U", "U", "--from", "R", "--format", "text"]);
+    let (_, one, _) = cubacle(&["icon", "U", "--from", "R", "--format", "text"]);
+    assert_eq!(from, format!("{one}\n\n{one}"));
+}

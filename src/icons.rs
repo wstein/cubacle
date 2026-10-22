@@ -51,6 +51,10 @@ pub struct IconArgs {
     /// Show the moving layer grey instead of darkening the rest
     #[arg(long)]
     grey: bool,
+    /// Draw each move on the cube left by the moves before it (default: each
+    /// move on its own start cube, solved or from --from)
+    #[arg(long)]
+    cumulative: bool,
 }
 
 /// How standard output can show an icon.
@@ -117,13 +121,14 @@ fn show(icon: &Icon, graphics: Graphics, size: u32) -> String {
 pub fn run(args: IconArgs) -> Result<(), String> {
     let kind = PuzzleKind::of_size(args.cube)
         .ok_or_else(|| format!("cube size {} is not between 2 and 7", args.cube))?;
-    let mut state = Facelets::solved(kind);
+    let mut start = Facelets::solved(kind);
     if let Some(from) = &args.from {
         let moves: MoveSequence = from
             .parse()
             .map_err(|error| format!("--from is not valid move notation ({error})"))?;
-        state = state.apply(&moves).map_err(|error| error.to_string())?;
+        start = start.apply(&moves).map_err(|error| error.to_string())?;
     }
+    let mut state = start.clone();
     let actions: Vec<Action> = args
         .moves
         .iter()
@@ -178,7 +183,9 @@ pub fn run(args: IconArgs) -> Result<(), String> {
                 bytes.push(b'\n');
             }
         }
-        state = action.apply(&state).map_err(|error| error.to_string())?;
+        if args.cumulative {
+            state = action.apply(&state).map_err(|error| error.to_string())?;
+        }
     }
     match &args.out {
         Some(path) => {
