@@ -23,4 +23,4 @@ mod solver;
 mod stage;
 mod wings;
 
-pub use solver::{Account, DwaltonSolver};
+pub use solver::{DwaltonSolver, StageTally};

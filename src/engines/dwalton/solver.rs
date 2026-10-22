@@ -15,9 +15,9 @@ use crate::reduction::par;
 
 type Engine = Arc<dyn Solver + Send + Sync>;
 
-/// The stage-by-stage account of one solve, for measuring.
+/// The stage-by-stage tally of one solve, for measuring.
 #[derive(Debug, Clone, Default)]
-pub struct Account {
+pub struct StageTally {
     /// Stage name and number of moves, in order.
     pub stages: Vec<(String, usize)>,
 }
@@ -73,10 +73,10 @@ impl DwaltonSolver {
     }
 
     /// Solves and reports the moves of each stage.
-    pub fn solve_tallied(&self, cube: &Facelets) -> (SolveResult, Account) {
+    pub fn solve_tallied(&self, cube: &Facelets) -> (SolveResult, StageTally) {
         let started = Instant::now();
-        let mut account = Account::default();
-        let fail = |failure: Failure, message: String, account: &Account| {
+        let mut tally = StageTally::default();
+        let fail = |failure: Failure, message: String, tally: &StageTally| {
             (
                 SolveResult {
                     outcome: Err(failure),
@@ -86,20 +86,20 @@ impl DwaltonSolver {
                         probes: None,
                     },
                 },
-                account.clone(),
+                tally.clone(),
             )
         };
         if cube.kind() != self.kind || !matches!(self.kind, PuzzleKind::Cube6 | PuzzleKind::Cube7) {
             return fail(
                 Failure::InvalidInput,
                 format!("this solver handles the {:?} only", self.kind),
-                &account,
+                &tally,
             );
         }
         let mut all: Vec<Move> = Vec::new();
         let mut cur = cube.clone();
-        let note = |account: &mut Account, name: &str, moves: &[Move]| {
-            account.stages.push((name.to_owned(), moves.len()));
+        let note = |tally: &mut StageTally, name: &str, moves: &[Move]| {
+            tally.stages.push((name.to_owned(), moves.len()));
         };
         let centres = if self.kind == PuzzleKind::Cube6 {
             self.six().centres(&cur, 40)
@@ -110,15 +110,15 @@ impl DwaltonSolver {
             return fail(
                 Failure::Internal,
                 "the centre stages found nothing".into(),
-                &account,
+                &tally,
             );
         };
         if !ok {
-            return fail(Failure::Internal, "step 60 found nothing".into(), &account);
+            return fail(Failure::Internal, "step 60 found nothing".into(), &tally);
         }
         for (name, names) in &done {
             let seq: MoveSequence = names.join(" ").parse().expect("catalogue moves");
-            note(&mut account, name, seq.moves());
+            note(&mut tally, name, seq.moves());
             all.extend_from_slice(seq.moves());
         }
         cur = after;
@@ -152,14 +152,14 @@ impl DwaltonSolver {
             match run(&cur) {
                 Ok(moves) => {
                     cur = cur.apply(&MoveSequence::new(moves.clone())).expect("fits");
-                    note(&mut account, name, &moves);
+                    note(&mut tally, name, &moves);
                     all.extend(moves);
                 }
                 Err(r) => {
                     return fail(
                         r.failure,
                         format!("{}: {}", r.stage, r.message.unwrap_or_default()),
-                        &account,
+                        &tally,
                     )
                 }
             }
@@ -187,7 +187,7 @@ impl DwaltonSolver {
                         if cur.is_solved() { "" } else { "un" }
                     )
                 },
-                &account,
+                &tally,
             );
         }
         (
@@ -199,7 +199,7 @@ impl DwaltonSolver {
                     probes: None,
                 },
             },
-            account,
+            tally,
         )
     }
 }
