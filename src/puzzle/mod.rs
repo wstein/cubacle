@@ -9,6 +9,7 @@ mod cubies;
 mod facelets;
 mod kind;
 mod moves;
+mod orbits;
 mod solver;
 
 pub(crate) use apply::locate;
@@ -18,4 +19,5 @@ pub(crate) use cubies::five_orbits;
 pub use facelets::{Face, Facelets, FaceletsError};
 pub use kind::PuzzleKind;
 pub use moves::{Move, MoveSequence, NotationError, Turn};
+pub(crate) use orbits::{centre_orbits, wing_orbits};
 pub use solver::{Failure, SolveMetrics, SolveOptions, SolveResult, Solver};
