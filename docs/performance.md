@@ -19,13 +19,21 @@ All numbers are from the measurement of 2026-10-22 on one Apple M2 Pro with 12 c
 - Cubes: 2x2 and 3x3 1000 random states; 4x4 1000 cubes of the TPR generator (seed 1); 5x5 300 random states (subsets of 100 and 30).
 - The Java solvers run one warm JVM each (3x3: 3 passes over 1000 cubes, the third reported; 4x4: 50 warm-up solves; 5x5: 5). They are single-threaded: no `Thread` or `Executor` appears in the three sources, and the measured cores busy were 1.00 to 1.01. Node counters were added at the same place as in Rust, so "same work" can be checked.
 
+## Move metric
+
+A solution's length is the number of moves in it. Every move counts one: a quarter turn, a half turn (`R2`), an outer layer (`R`), an inner layer (`2R`, a slice) and a two-layer turn (`Rw`) alike. Whole-cube rotations (`x`, `y`, `z`) are not moves and never appear in an answer; the 4x4x4 reaches the standard orientation with wide turns (`Rw Lw'`), which count as the two moves they are. All figures on this page use this metric.
+
+Answers are normalised per axis: all turns about one axis commute, so a run of them is rewritten with the fewest moves that turn each layer by the same net angle (`R Rw'` stays two moves, `R L R' L'` vanishes, and merges happen across runs that cancel). The 4x4x4 and 5x5x5 write only outer layers, two-layer turns and (5x5x5) second layers unless `--slices` (API `slices`) is given, which also allows any single inner layer, so that `R Rw'` becomes `2R'`.
+
+Measured (1 thread, 2026-10-22, another process on the machine; every answer replayed): the pass costs 14 us (4x4x4) and 34 us (5x5x5) per call on a 45-move answer, twice per solve, so it is lost in the noise. On the 1000 4x4x4 cubes it changes nothing by default (44.39 moves before and after: the wide-turn swaps already leave no run to merge), and `--slices` gives 43.99. On the first 100 5x5x5 cubes it gives 70.99 to 69.95 moves by default, and `--slices` the same 69.95.
+
 ## All engines in one table [M unless marked]
 
 Milliseconds per cube. 4x4 moves include the closing rotation; 5x5 includes the 3x3x3 tail.
 
 | | 2x2x2 | 3x3x3 | 4x4x4 | 5x5x5 |
 | --- | --- | --- | --- | --- |
-| Moves, mean / median / p90 / max | 8.76 / 9 / 10 / 10 (optimal) | 20.81 / 21 / 21 / 21 | 47.47 / 48 / 49 / 51 (44.30 without rotation) | 72.90 / 73 / 75 / 77 |
+| Moves, mean / median / p90 / max | 8.76 / 9 / 10 / 10 (optimal) | 20.81 / 21 / 21 / 21 | 44.39 / 45 / 46 / 49 (47.47 before the wide-turn swaps; closing rotation 0.05 moves instead of 3.12) | 72.90 / 73 / 75 / 77 |
 | Time, 1 thread, mean / median / p90 | 0.002 / 0.002 / 0.003 | 0.482 / 0.290 / 1.011 (0.845 / 0.433 / 1.82 before twist-flip pruning) | 72.2 / 62.6 / 116.8 | 408.4 / 362.5 / 666.5 |
 | 2 threads, one solve, mean (cores busy, utilisation) | n/a | n/a | 52.1 (1.53, 77 %) | 239.5 (1.97, 99 %) |
 | 4 threads | n/a | n/a | 41.7 (2.22, 56 %) | 142.4 (3.84, 96 %) |
