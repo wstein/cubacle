@@ -111,3 +111,30 @@ fn probes_and_improve_work_on_the_4x4x4_and_5x5x5() {
         assert!(improved <= plain, "{size}: {improved} against {plain}");
     }
 }
+
+/// A 5x5x5 whose plain answer has 69 moves; `-m 67` finds 66. A high probe
+/// minimum finds 66 without a limit, for any thread count.
+#[test]
+fn a_high_probe_minimum_finds_the_short_answer_of_a_5x5x5() {
+    let token = "Am9suG17g2aJzonSCHWNZHX9CPO6oqgWCGgVoOTI_bQ";
+    let cube = cubacle::notation::parse_cube(token, None).expect("a token");
+    let mut answers = Vec::new();
+    for threads in ["1", "4"] {
+        let output = Command::new(env!("CARGO_BIN_EXE_cubacle"))
+            .args(["solve", token, "--probes", "10000"])
+            .env("CUBACLE_THREADS", threads)
+            .env(
+                "CUBACLE_CACHE_DIR",
+                concat!(env!("CARGO_TARGET_TMPDIR"), "/five-tables"),
+            )
+            .output()
+            .expect("cubacle runs");
+        assert!(output.status.success());
+        let text = String::from_utf8_lossy(&output.stdout).trim().to_owned();
+        let moves: MoveSequence = text.parse().expect("moves");
+        assert!(cube.apply(&moves).unwrap().is_solved());
+        assert_eq!(moves.len(), 66);
+        answers.push(text);
+    }
+    assert_eq!(answers[0], answers[1]);
+}
