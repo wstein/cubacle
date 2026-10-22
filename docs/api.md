@@ -44,7 +44,7 @@ For `POST` requests, send the header `Content-Type: application/json`.
 | --- | --- |
 | `cube` | The cube as an Orbit64 token, URFDLB facelets (spaced or compact) or W/R/G/Y/O/B colours. See [Input notations](cli.md#input-notations). |
 | `scheme` | Optional. `boy`, `jp` or six letters in URFDLB order. |
-| `maxMoves` | Optional. Longest accepted solution, 1 to 25 (1 to 255 for a 5x5x5, whose solutions have about 73 moves). |
+| `maxMoves` | Optional. Longest accepted solution, 1 to 25 (1 to 255 for a 4x4x4 or 5x5x5, whose solutions have about 48 and 73 moves). |
 | `budgetMs` | Optional. Time limit in milliseconds, 1 to 600000. Defaults to, and is capped by, `--request-timeout-ms`. |
 
 Unknown fields are rejected with a 400 error.
@@ -72,7 +72,7 @@ The solve request returns:
 
 The `elapsedMicros` value varies between runs.
 
-`convert` also answers the Orbit64 token of the cube (`token`), left out when the stickers are not a cube. Tokens of every size from 2x2x2 to 7x7x7 are accepted. A 4x4x4 token converts, and `solve` of it answers 501 `no_engine`:
+`convert` also answers the Orbit64 token of the cube (`token`), left out when the stickers are not a cube. Tokens of every size from 2x2x2 to 7x7x7 are accepted. A 4x4x4 token converts and solves. A 6x6x6 or 7x7x7 token converts, and `solve` of it answers 501 `no_engine`:
 
 ```sh
 curl -s -XPOST localhost:8080/v1/convert \
@@ -83,8 +83,12 @@ curl -s -XPOST localhost:8080/v1/solve \
 
 ```json
 {"kind":"4x4x4","facelets":"DLLDLLDLBFLFLRBRDRDLFBRLUURUUDDUFUUFLDFDRBUFURRLLBDFFFDFFFBRFBFRRDDDBLUUBURBRULBBFBBUDRURBLLBRDU","token":"BJStkD4cayBhsWj6eHgDZLTP1th"}
-{"error":{"code":"no_engine","message":"no engine for the 4x4x4 yet; only 2x2x2, 3x3x3 and 5x5x5 exist"}}
+{"kind":"4x4x4","solution":"D' Uw Rw' Fw' U' F' Rw' L' D' R Uw' R2 U F' B U2 R' Uw2 F Rw2 B' Fw2 D2 Uw2 R Uw2 D' R' L B L2 U2 F D' B' R2 U' B2 D2 L2 D2 R2 F2 U2 R' Rw Lw' Fw' Bw","length":49,"elapsedMicros":71955}
 ```
+
+A 4x4x4 solution has about 48 moves. Its last wide turns (`Rw Lw'` and the like, at most four) turn the whole cube back to the standard orientation, because a 4x4x4 has no fixed centres; the cube is solved exactly after them. The tables (12 MB) are built at startup, and each solve uses one thread, so concurrent requests do not compete for cores.
+
+A 6x6x6 or 7x7x7 is converted, but `solve` of it answers 501 `no_engine`.
 
 A 5x5x5 is sent as its 150 facelets or its 43-character token. This request solves the cube of a scramble:
 
@@ -120,13 +124,13 @@ Errors have this shape:
 | 422 | `no_solution_within_limit` | No solution within `maxMoves`. |
 | 429 | `busy` | All solver slots are in use. The response has `Retry-After: 1`. |
 | 500 | `internal` | A handler or solver thread panicked, or an engine reached a state it cannot explain. |
-| 501 | `no_engine` | `solve` of a valid cube size (4, 6 or 7) that has no engine yet, whether sent as facelets or as an Orbit64 token. `convert` works for those sizes. |
+| 501 | `no_engine` | `solve` of a valid cube size (6 or 7) that has no engine yet, whether sent as facelets or as an Orbit64 token. `convert` works for those sizes. |
 | 504 | `budget_exhausted` | The time budget ran out. |
 
 Some details:
 
-- `GET /v1/random?size=4` returns 501, and `size=9` returns 400, because `size` accepts 2 to 7 but only 2, 3 and 5 have engines. `GET /v1/scramble` takes the same sizes.
-- A 5x5x5 solve request can be sent with the cube as 150 facelets. The server builds the 5x5x5 tables at startup, so the first request is not slower.
+- `GET /v1/random?size=6` returns 501, and `size=9` returns 400, because `size` accepts 2 to 7 but only 2 to 5 have engines. `GET /v1/scramble` takes the same sizes.
+- A 5x5x5 solve request can be sent with the cube as 150 facelets. The server builds the 5x5x5 and 4x4x4 tables at startup, so the first request is not slower.
 - The server answers 504 rather than 408, because the client was not slow; the server was. Do not retry the same request. Retry with a larger `budgetMs` or an easier cube.
 - On 429, wait and retry. The limit is `--max-concurrency` solves at once.
 

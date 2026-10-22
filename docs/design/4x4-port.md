@@ -6,8 +6,9 @@ weight: 90
 
 # 4x4x4 port plan
 
-Status: design only, no engine code. This page is for contributors. It is the
-plan for the 4x4x4 engine and needs the owner's approval before any code lands.
+Status: implemented (`src/engines/four`). This page is for contributors. Sections
+1 to 12 are the plan as it was approved; the section "Result" at the end records
+what was built, what was measured and what differs from the plan.
 
 Numbers are labelled. **Claim** is what the reference README says. **Measured**
 is a run on 2026-10-22 on an Apple M2 Pro (12 cores, 16 GB), Java 21, one JVM
@@ -479,3 +480,52 @@ replay shows (to be confirmed when the file is ported); Orbit64 slot order for
 the 4x4x4; behaviour of the reference on invalid or non-standard input (read
 from the code, not run); the README claim of about 20 MB of tables (the data
 files total 10.96 MB); the md5 in the README.
+
+## Result
+
+Measured on 2026-10-22, Apple M2 Pro (12 cores), release build, the same 1000
+cubes for both solvers (the reference's `Tools.randomCube(Random(1))`), every
+answer replayed with `Facelets::apply`. The harness is `tools/bench/run_four.sh`.
+
+| Criterion (section 8) | Aim | Java | Rust |
+| --- | --- | --- | --- |
+| Moves without the rotation, mean | at most 44.7 | 44.59 | 44.34 |
+| p90 / max | at most 46 / 48 | 46 / 47 | 46 / 47 |
+| Moves with the rotation, mean | reported | 47.71 | 47.47 |
+| Phases 1 to 3 identical to Java | 40 cubes | | 1000 of 1000 |
+| Whole answer without rotation identical | not required | | 665 of 1000 |
+| Single thread, median / p90 | at most 1.5 x Java (168 / 334 ms with the plan's Java figures) | 99 / 197 ms | 60 / 115 ms (0.61 / 0.58 x) |
+| 4 threads, mean latency | at most 0.5 x single thread | | 44.6 ms against 70.0 ms (0.64 x): **missed** |
+| Table build, one thread | at most 1.5 s | 0.8 s (3x3x3 included) | 0.37 s |
+| Memory | sensible | | tables 12.1 MB, peak resident 65 MB |
+| Answers with 1, 2, 4, 8, 12 threads | identical | | identical on 1000 of 1000 |
+
+Notes on the differences from the plan.
+
+- **Thread scaling.** On average 73 ms of a solve split into phase 1 2 ms,
+  phase 2 21 ms, phase 3 29 ms and the 3x3x3 hand-off 21 ms. Phases 2 and 3 scale
+  by 2.0 and 2.3 on four threads, phase 1 and the hand-off are sequential, so four
+  threads cannot give less than 0.49 of the single-thread time even if phases 2 and
+  3 scaled perfectly. Searching all (length, candidate) pairs of phase 2 at once,
+  instead of one length at a time, was tried and was slower (speculative work past
+  the 100th result); phase 3, which needs only the first success, does it that way.
+  To go further the hand-off would have to run on several threads, which the
+  deterministic `Solver::solve` does not offer.
+- **Phase 1 stays sequential** (about 2 ms, one thread): the plan's estimate of 0.33
+  assumed it took longer.
+- **Java comparison.** The plan's Java figures (112 / 223 ms) came from an earlier
+  run; the run above gives 99 / 197 ms. The Java driver solves the first cube once
+  unmeasured, because the first `Edge3.getsym` after `new Search()` reads a buffer
+  that is not set up yet; the port does not reproduce that quirk.
+- **Loop bounds.** The reference has an unbounded `do..while` in phase 1 and a
+  fixed 15-entry move array; the port bounds them (`MAX_LENGTH1` 20, phase 2 and 3
+  length limits 20, total 100) and returns `Exhausted` instead of looping.
+- **Rotation.** Strict contract as planned: at most four wide turns, 3.1 moves on
+  average (47.47 against 44.34).
+- **Hand-off.** `SolveOptions::min_probes` (breaking for code that builds the
+  struct by field), default 500 for the 4x4x4. Without it the tail was 1.3 moves
+  longer, as predicted.
+- **Not done.** No Orbit64 change was needed (4x4x4 tokens already worked), no
+  on-disk table cache, no shared pruning-table builder with the 5x5x5: the wing
+  table is a 2-bit table with its own frontier builder (`edge3_prune.rs`), which
+  is thread-count independent and takes 67 ms with 4 threads.

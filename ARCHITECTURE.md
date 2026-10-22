@@ -12,15 +12,18 @@ src/
   notation/       Orbit64, colour schemes, input detection and parsing
   generate/       random states and scrambles
   render/         move icons (SVG, RGBA, Kitty graphics, text) from puzzle types
-  reduction/      crate-private parts shared by reduction engines (5x5x5, later
-                  4x4x4): combinatorics, 4-bit pruning tables with a parallel
+  reduction/      crate-private parts shared by reduction engines (4x4x4,
+                  5x5x5): combinatorics, 4-bit pruning tables with a parallel
                   builder and an on-disk cache, thread helpers, the ordered
-                  parallel iterative-deepening search
+                  parallel iterative-deepening search, the first-results
+                  helper for deterministic parallel searches
   engines/
     three/        the 3x3x3 two-phase engine (Min2PhaseSolver), with its
                   private worker pool in pool.rs
     two/          the optimal 2x2x2 engine (PocketSolver)
     five/         the 5x5x5 reduction engine (FiveSolver), finishing with an
+                  injected 3x3x3 Solver
+    four/         the 4x4x4 reduction engine (FourSolver), finishing with an
                   injected 3x3x3 Solver
   main.rs         the cubacle command line
 crates/server/    the cubacle-server HTTP backend
@@ -41,8 +44,8 @@ puzzle  <-  notation  <-  engines  <-  apps (CLI, server)
   (no I/O, no global state) and never names `notation`: the CLI maps a colour
   scheme to a `render::Palette`. Terminal detection lives in the CLI.
 - `reduction` depends only on `puzzle`, knows no cube, and is crate-private.
-- The 5x5x5 engine depends on `puzzle` and `reduction`; the 3x3x3 solver it finishes with
-  is injected as an `Arc<dyn Solver + Send + Sync>`.
+- The 4x4x4 and 5x5x5 engines depend on `puzzle` and `reduction`; the 3x3x3 solver they
+  finish with is injected as an `Arc<dyn Solver + Send + Sync>`.
 - An engine depends on `puzzle` (and, for the 2x2x2, on the Orbit64 corner
   tables in `notation`). Engines never use each other's internals: they meet
   the world only through the `Solver` trait and `puzzle` types.
@@ -77,7 +80,7 @@ its 3x3x3 solver.
 
 ## Reduction engines
 
-`engines::five` is the first. A reduction engine solves a big cube by reducing it to a 3x3x3 and handing
+`engines::five` is the first, `engines::four` the second. A reduction engine solves a big cube by reducing it to a 3x3x3 and handing
 that to a 3x3x3 solver. It must receive that solver, never reach for one:
 
 ```rust
@@ -89,3 +92,8 @@ pub struct FiveSolver {
 It depends on the 3x3x3 engine only through the `Solver` trait and `puzzle`
 types, and never through a global, so the engine can be tested with a stub
 solver and moved to its own crate without a dependency on `engines::three`.
+
+`FourSolver` also takes the number of probes it asks the 3x3x3 solver for (`SolveOptions::min_probes`, 500 by
+default, counted rather than timed so the answer stays reproducible). Its searches run on several threads and
+depend on neither the thread count nor the schedule: `reduction::par::first_results` joins the results of
+the tasks in the order a single thread would find them.

@@ -12,8 +12,9 @@ An engine solves one cube size. cubacle picks the engine from the size of the cu
 | --- | --- | --- |
 | 2x2x2 | Optimal table solver | Supported |
 | 3x3x3 | Kociemba two-phase | Supported |
+| 4x4x4 | Reduction (centres and wings, then the 3x3x3 solver) | Supported, about 47 moves |
 | 5x5x5 | Reduction (centres and wings, then the 3x3x3 solver) | Supported, about 73 moves |
-| 4x4x4, 6x6x6, 7x7x7 | Reduction | Planned, not yet supported |
+| 6x6x6, 7x7x7 | Reduction | Planned, not yet supported |
 
 ## 2x2x2: optimal table solver
 
@@ -35,6 +36,31 @@ The 3x3x3 solver uses an optimized implementation of the two-phase algorithm, de
 - The parallel searches (`solve_parallel*`) share a best-length bound between workers, so they are not guaranteed to return the same solution on every run; the result is always a valid solution within the move limit.
 - A search with a time budget is not deterministic. CPU scheduling and the moment the search sees the time limit can change the best result.
 - The command-line tool checks each 3x3x3 solution by replaying it on the cube.
+
+## 4x4x4: reduction
+
+`FourSolver` solves any 4x4x4. A 4x4x4 has no fixed centres, so the solver treats the cube as solved when every face shows one colour in the standard scheme (U white, R red, F green, D yellow, L orange, B blue in the default notation), and the answer ends with the whole-cube rotation that gets there. The rotation is written as wide turns: `Rw Lw'` is the rotation about the R axis, and at most four such turns bring any cube to the standard orientation. The solution therefore solves the cube exactly as `Facelets::apply` replays it, with layer turns only (`R`, `Rw`, never a slice turn).
+
+1. A port of [TPR-4x4x4-Solver](https://github.com/cs0x7f/TPR-4x4x4-Solver) (Chen Shuang, MIT option, see `NOTICE.md`), Tsai's three-phase reduction. Phase 1 brings the centres into a state where every colour pair sits on one axis; it enumerates up to 10,000 solutions and keeps the best 500 in the same priority queue as the original. Phase 2 finishes the centres without breaking the pairing of the wings, until 100 results exist; phase 3 pairs the wings and solves the centres (the original's third and fourth steps in one). The tables (about 12 MB: centre moves and pruning, and a 2-bit wing pruning table of 31 million states) are built on first use or in `prepare()`, in about 0.2 s on 12 cores and 0.4 s on one; they have no cache file.
+2. The corners, wings and centres then form a 3x3x3. `FourSolver` hands it to the 3x3x3 solver it was built with, through the `Solver` trait (a solver of another kind is an internal error). It asks that solver for at least 500 probes (`SolveOptions::min_probes`, counted, not timed; the original does the same), which gives shorter tails and the same answer on every run.
+3. It maps the model's moves back to real moves, appends the rotation, and replays the whole solution on the 4x4x4 before returning it; a mismatch is `Failure::Internal`, never a wrong answer. A cube that is not a 4x4x4, uses a colour scheme other than the standard one, repeats or lacks a wing, or has a twisted corner or an odd permutation is `InvalidInput`.
+4. The searches use `CUBACLE_THREADS` threads (default all cores). Phase 1 is sequential (it takes about 2 ms); phases 2 and 3 search several candidates at once and join the results in the order a single thread would find them, so without a time budget the solution does not depend on the number of threads. The server uses one thread per solve.
+
+What it does not do: it does not look for shorter answers than the original does, and `maxMoves` bounds the whole solution including the rotation. If the time budget runs out the solve fails with `BudgetExhausted`; the message says so when the tables were still being built. Without a budget the 3x3x3 stage is limited to 10 s.
+
+Measured on one 12-core macOS machine (Apple M2 Pro), release build, the same 1000 random cubes for both solvers (drawn by the original's generator), every answer replayed on the cube:
+
+| | TPR-4x4x4-Solver (Java) | `FourSolver` 1 thread | `FourSolver` 4 threads | `FourSolver` 12 threads |
+| --- | --- | --- | --- | --- |
+| Moves without the rotation, mean / median / p90 / max | 44.59 / 45 / 46 / 47 | 44.34 / 44 / 46 / 47 | 44.34 / 44 / 46 / 47 | 44.34 / 44 / 46 / 47 |
+| Moves with the rotation, mean / median / p90 / max | 47.71 / 48 / 50 / 51 | 47.47 / 48 / 49 / 51 | 47.47 / 48 / 49 / 51 | 47.47 / 48 / 49 / 51 |
+| Solve time, mean / median / p90 | 115 / 99 / 197 ms | 70 / 60 / 115 ms | 44.6 / 40.8 / 66.7 ms | 43.7 / 40.0 / 65.4 ms |
+| Table build | 0.8 s (3x3x3 included) | 0.37 s | 0.19 s | 0.17 s |
+| Peak memory | not measured | 65 MB | 71 MB | 66 MB |
+
+The Java time is one warm JVM thread. The answers of 1, 2, 4, 8 and 12 threads were identical for all 1000 cubes. The first three phases (the part of the solution before the 3x3x3 tail) are identical to the original's on all 1000 cubes; the whole answer without the rotation is identical on 665, because the 3x3x3 tails come from different solvers (ours is `Min2PhaseSolver`).
+
+Four threads cut the mean time to 0.64 of the single-thread time, not to the 0.5 that was the aim. The 3x3x3 stage (21 ms of the 73 ms on average) runs on one thread, and phase 1 (2 ms) too; with those fixed, four threads cannot go below 0.49 even if phases 2 and 3 scaled perfectly, and they scale by 2.0 to 2.3.
 
 ## 5x5x5: reduction
 
@@ -59,21 +85,21 @@ Measured on one 12-core macOS machine, release build, 100 random cubes, against 
 
 The peak memory is above the 300 MB aim: 237 MB are pruning tables, about 70 MB the move and symmetry tables built next to them (measured with `vmmap`), and the rest the process and its libraries. Reading the cache streams the files, which avoids a second copy of the largest table.
 
-## 4x4x4, 6x6x6, 7x7x7: planned
+## 6x6x6, 7x7x7: planned
 
 The input notations and the API already accept cubes of these sizes. No engine exists, so a solve request fails:
 
 - The command-line tool exits with a non-zero status.
 - The REST API answers 501 with the code `no_engine`.
 
-The planned approach is reduction, as for the 5x5x5. The even cubes also need parity handling and have no fixed centres. See [Architecture](architecture.md).
+The planned approach is reduction, as for the 4x4x4 and 5x5x5. The 6x6x6 also has no fixed centres and needs parity handling. See [Architecture](architecture.md).
 
 ## Limits
 
 | Limit | Value |
 | --- | --- |
-| Supported sizes | 2x2x2, 3x3x3 and 5x5x5 |
-| Default move limit | 21 for the 2x2x2 and 3x3x3 (CLI), none for the 5x5x5 |
-| REST `maxMoves` | 1 to 25, or 1 to 255 for the 5x5x5 |
+| Supported sizes | 2x2x2, 3x3x3, 4x4x4 and 5x5x5 |
+| Default move limit | 21 for the 2x2x2 and 3x3x3 (CLI), none for the 4x4x4 and 5x5x5 |
+| REST `maxMoves` | 1 to 25, or 1 to 255 for the 4x4x4 and 5x5x5 |
 | REST `budgetMs` | 1 to 600000 |
 | REST scramble length | 1 to 200 moves |

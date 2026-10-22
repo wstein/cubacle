@@ -38,7 +38,7 @@ The first line goes to standard error. The solution goes to standard output. The
 | `-s`, `--scramble <MOVES>` | Solve the cube produced by this scramble instead of reading one. |
 | `--size <N>` | Cube size for `--scramble`: 2 to 7, default 3. A cube given as text has its size already. |
 | `--scheme <SCHEME>` | Colour scheme for colour input. See [Colour schemes](#colour-schemes). |
-| `-m`, `--max-moves <N>` | Longest solution to accept. Default: 21 for the 2x2x2 and 3x3x3, none for the 5x5x5. |
+| `-m`, `--max-moves <N>` | Longest solution to accept. Default: 21 for the 2x2x2 and 3x3x3, none for the 4x4x4 and 5x5x5. |
 | `-b`, `--budget-ms <MS>` | Hard time limit in milliseconds. |
 | `-v`, `--verbose` | Print timing and search statistics to standard error. |
 
@@ -60,7 +60,31 @@ cubacle solve -s "R U F B L D R U" --max-moves 2
 error: no solution within the move limit (the search ended without a solution (time budget or move limit reached))
 ```
 
-The 4x4x4, 6x6x6 and 7x7x7 have no engine yet. See [Engines and limits](engines.md).
+The 6x6x6 and 7x7x7 have no engine yet. See [Engines and limits](engines.md).
+
+## Solve a 4x4x4
+
+Give `solve` a 96-sticker cube, or a scramble with `--size 4`. A 4x4x4 scramble may turn the first two layers of a face (`R`, `2R`) and use wide turns (`Rw`); the 4x4x4 has no fixed centres, so the solver brings the cube to the standard colour scheme and the solution may end with whole-cube rotations.
+
+```sh
+cubacle solve --size 4 --scramble "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F Uw Rw' F2 Lw"
+```
+
+```text
+Uw' Rw' Uw L' Fw U' B2 Rw' D B Uw2 Rw' Fw2 R2 Rw2 U F Fw2 L2 U' D' Rw2 F' Uw2 L U L' D' B L U2 L' D' F2 B2 U' L2 F2 U2 F2 D' L2 B Rw' Lw Fw Bw'
+```
+
+The solution has 47 moves. The last four, `Rw' Lw Fw Bw'`, are the rotation: each pair of opposite wide turns, such as `Rw' Lw`, turns the whole cube, and at most four turns bring any cube to the standard orientation. The solutions of 1000 random cubes have 47.5 moves on average (44.3 without the rotation). The tool replays every 4x4x4 solution on the cube and exits with an error if it does not solve it. With a move limit the solution cannot meet, `solve` fails:
+
+```sh
+cubacle solve --size 4 -s "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F Uw Rw' F2 Lw" -m 30
+```
+
+```text
+error: no solution within the move limit (3x3x3 stage: the search ended without a solution (time budget or move limit reached))
+```
+
+The first 4x4x4 solve prints `preparing the 4x4x4 tables (built now, about 12 MB)` on stderr and builds the tables, which takes about 0.2 s on 12 cores and 0.4 s on one; there is no cache directory. The preparation happens before the time budget starts, so `-b 1` fails with `the time budget ran out (the reduction ran out of time before the 3x3x3 stage)`. `CUBACLE_THREADS` sets the number of threads (at most 256); the solution does not depend on it unless a time budget cuts the search short. `-v` prints the time and the number of probes of the 3x3x3 stage (500: that stage is asked for at least 500 probes, as in the original solver).
 
 ## Solve a 5x5x5
 
@@ -126,7 +150,7 @@ ASj79
 A3DZCufPmdSpgSdAXL5x0iJAczTlcP4refzTMJv_VgBoTFSReBHZMvFpjDdnSJzhHA
 ```
 
-Tokens exist for every size from 2x2x2 to 7x7x7. `solve` reads all of them and then answers `no engine` for the sizes without a solver (4x4x4, 6x6x6, 7x7x7); `convert` works for all.
+Tokens exist for every size from 2x2x2 to 7x7x7. `solve` reads all of them and then answers `no engine` for the sizes without a solver (6x6x6, 7x7x7); `convert` works for all.
 
 | Cube | Token length | Checked against |
 | --- | ---: | --- |
@@ -210,7 +234,7 @@ FUFUUFFFFUUUURRURURRRFFRRFRBDBBDDBBBDLDDLLDDDLBLBBLLLL
 
 ## Generate scrambles and cubes
 
-`scramble` prints a random scramble. `-n` sets the number of moves (default: 25) and `--size` the cube size (default: 3). On a 5x5x5 the scramble also turns second layers.
+`scramble` prints a random scramble. `-n` sets the number of moves (default: 25) and `--size` the cube size (default: 3). On a 4x4x4 or 5x5x5 the scramble also turns second layers.
 
 ```sh
 cubacle scramble -n 8
@@ -220,7 +244,7 @@ cubacle scramble -n 8
 L' U F' R2 F L2 F' D2
 ```
 
-The output is random; moves are separated by single spaces. `random` prints a random state as facelets, uniform for the 2x2x2 and 3x3x3. `--size` takes 2, 3 or 5 (default: 3):
+The output is random; moves are separated by single spaces. `random` prints a random state as facelets, uniform for the 2x2x2 and 3x3x3. `--size` takes 2, 3, 4 or 5 (default: 3); the 4x4x4 and 5x5x5 states are uniform shuffles of corners, wings and centres:
 
 ```sh
 cubacle random
@@ -228,6 +252,12 @@ cubacle random --size 5 | cubacle solve - | wc -w
 ```
 
 The second command prints the length of the solution of a random 5x5x5, between 69 and 77 in the 300 cubes measured.
+
+```sh
+cubacle random --size 4 | cubacle solve - | wc -w
+```
+
+This prints the length of the solution of a random 4x4x4 (rotation included), between 43 and 50 in 100 cubes measured (47.5 on average); the 1000 cubes drawn by the original solver's generator gave 42 to 51 (see [Engines and limits](engines.md)).
 
 ## Apply a scramble
 
