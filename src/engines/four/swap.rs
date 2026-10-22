@@ -170,6 +170,18 @@ impl Swaps {
         cube: &Facelets,
         moves: &[Move],
     ) -> Option<Vec<Move>> {
+        self.finish_with(rotations, cube, moves, Facelets::is_solved)
+    }
+
+    /// As [`Swaps::finish`], for any end condition `goal` that a rotation of
+    /// the end state can satisfy (the reduction wants the centres home).
+    pub(super) fn finish_with(
+        &self,
+        rotations: &Rotations,
+        cube: &Facelets,
+        moves: &[Move],
+        goal: impl Fn(&Facelets) -> bool,
+    ) -> Option<Vec<Move>> {
         let mut states: Vec<Option<Vec<Move>>> = vec![None; 24];
         states[0] = Some(Vec::new());
         for m in moves {
@@ -200,7 +212,7 @@ impl Swaps {
         let mut best: Option<Vec<Move>> = None;
         for done in states.into_iter().flatten() {
             let end = cube.apply(&sequence(&done)).ok()?;
-            let Some(closing) = rotations.find(&end, Facelets::is_solved) else {
+            let Some(closing) = rotations.find(&end, &goal) else {
                 continue;
             };
             if best

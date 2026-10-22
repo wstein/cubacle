@@ -222,8 +222,19 @@ impl Solver for FourSolver {
         let head = to_real(&t.syms, &model_moves, length1, add1, sym);
         let head_moves: Vec<Move> = head.iter().map(|&c| to_move(c)).collect();
         if options.reduce_only {
+            // Keep the cube's frame: the big cubes lift these moves.
             let head = normalise(4, &head_moves, false);
-            return done(Ok(MoveSequence::new(head)), None, None);
+            let Some(head) = self
+                .swaps
+                .finish_with(&self.rotations, facelets, &head, centres_home)
+            else {
+                return fail(Failure::Internal, "the reduced centres are not home");
+            };
+            return done(
+                Ok(MoveSequence::new(normalise(4, &head, false))),
+                None,
+                None,
+            );
         }
         let Ok(reduced) = facelets.apply(&MoveSequence::new(head_moves.clone())) else {
             return fail(Failure::Internal, "the reduction moves do not fit the cube");
