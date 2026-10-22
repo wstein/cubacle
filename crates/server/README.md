@@ -28,7 +28,7 @@ The server logs method, path, status and latency of every request (never bodies)
 | `POST /v1/convert` | `{"cube","scheme"?}` | `{"kind","facelets"}` |
 | `POST /v1/solve` | `{"cube","scheme"?,"maxMoves"? (1..=25),"budgetMs"? (1..=600000)}` | `{"kind","solution","length","elapsedMicros"}` |
 
-`cube` accepts Orbit64 tokens, URFDLB facelets (spaced or compact) or W/R/G/Y/O/B colours; `scheme` is `western`, `japanese` or six letters.
+`cube` accepts Orbit64 tokens, URFDLB facelets (spaced or compact) or W/R/G/Y/O/B colours; `scheme` is `boy`, `jp` or six letters.
 
 Errors are `{"error":{"code","message"}}`:
 

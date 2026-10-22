@@ -48,8 +48,8 @@ struct InputArgs {
     /// Solve the cube produced by this scramble instead
     #[arg(short, long)]
     scramble: Option<String>,
-    /// Colour scheme: western, japanese or six letters in URFDLB order
-    /// (default: read from the centres, western without centres)
+    /// Colour scheme: boy, jp or six letters in URFDLB order
+    /// (default: read from the centres, boy without centres)
     #[arg(long)]
     scheme: Option<ColourScheme>,
 }
