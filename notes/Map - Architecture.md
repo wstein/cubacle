@@ -8,3 +8,4 @@ Raw-material notes, category architecture.
 - [[Crate roles and dependency direction]]
 - [[Reduction engines and the 3x3 solver]]
 - [[Workspace split timing]]
+- [[Render design]]

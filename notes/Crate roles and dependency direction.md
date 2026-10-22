@@ -3,7 +3,7 @@ id: 20261022120017
 aliases: []
 tags: ["type/decision", "status/decided", "category/architecture"]
 ---
-Roles are puzzle (types and Solver trait), notation, generate, engines (three, two, later reduction) and apps (CLI, server). Dependencies point downward only and engines talk only through the Solver trait. The old string API (`solve(&str)` etc.) is removed; no compatibility with the original code is required.
+Roles are puzzle (types and Solver trait), notation, generate, render (icons), engines (three, two, later reduction) and apps (CLI, server). Dependencies point downward only and engines talk only through the Solver trait. The old string API (`solve(&str)` etc.) is removed; no compatibility with the original code is required.
 
 ## Links
 
