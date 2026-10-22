@@ -10,7 +10,7 @@ weight: 8
 
 - **Werner Stein** is the author of cubacle.
 - **Chen Shuang** is the author of [min2phase](https://github.com/cs0x7f/min2phase) and of its original Rust port, [min2phase_rust](https://github.com/cs0x7f/min2phase_rust). The 3x3x3 solver core of cubacle is derived from that port.
-- **[flix-orbit64](https://github.com/wstein/flix-orbit64)** defines the Orbit64 format that cubacle reads.
+- **[flix-orbit64](https://github.com/wstein/flix-orbit64)** defines the Orbit64 format that cubacle reads and writes. The codec is a Rust re-implementation of that Apache-2.0 project by the same author (see `NOTICE.md`).
 
 ## Licence
 

@@ -98,7 +98,7 @@ Wherever a command takes a cube (`solve`, `convert`), you can write it in one of
 
 ### Orbit64 tokens
 
-An [Orbit64](https://github.com/wstein/flix-orbit64) token is a short string that encodes a cube state. This command solves a 3x3x3 token:
+An [Orbit64](https://github.com/wstein/flix-orbit64) token is a short string that encodes a cube state. Its length tells the cube size, so no flag is needed. This command solves a 3x3x3 token:
 
 ```sh
 cubacle solve A4ib8aejxj4Y
@@ -113,6 +113,31 @@ cubacle convert CFJnI
 ```text
 UUUUBFRRFRFFDDDDLLLLRBBB
 ```
+
+`convert --to token` writes a token instead. It accepts facelets, colours or a token:
+
+```sh
+cubacle convert --to token LFDRFLDBFURLBBLUURUDDFRB
+cubacle convert --to token "$(cubacle facelets "R U 2R 2U' F" --size 6)"
+```
+
+```text
+ASj79
+A3DZCufPmdSpgSdAXL5x0iJAczTlcP4refzTMJv_VgBoTFSReBHZMvFpjDdnSJzhHA
+```
+
+Tokens exist for every size from 2x2x2 to 7x7x7. `solve` reads all of them and then answers `no engine` for the sizes without a solver (4x4x4, 6x6x6, 7x7x7); `convert` works for all.
+
+| Cube | Token length | Checked against |
+| --- | ---: | --- |
+| 2x2x2 | 5 | 20 official examples |
+| 3x3x3 | 12 | 20 official examples, the format's compatibility vectors |
+| 4x4x4 | 27 | 20 official examples |
+| 5x5x5 | 43 | 20 official examples |
+| 6x6x6 | 66 | the official solved cube, and round trips only |
+| 7x7x7 | 90 | the official solved cube, and round trips only |
+
+"Round trips only" means the 6x6x6 and 7x7x7 slot numbering follows the rules of the format but has no official scrambled vector to compare with: tests scramble cubes with outer, wide and inner moves, and decode random points of the state space, and each time `encode` and `decode` agree and the token has the length above. A token made by another program for these sizes may use a different slot numbering; see the format's own caveat. A token with a wrong length, a character outside the base64url alphabet, a number above the state count, or (when encoding) pieces that no cube has, is refused with a one-sentence error.
 
 ### Facelets (URFDLB)
 
@@ -213,8 +238,6 @@ A scramble is standard move notation with the moves separated by whitespace. Bes
 | `R1` | `R` |
 | `R3` | `R'` |
 | `R2'`, `R'2` | `R2` |
-
-Orbit64 tokens of the 5x5x5 are not decoded yet; write the cube as facelets or colours.
 
 Moves must be separated: a run such as `RUR'` and a lone `-` are rejected. A 3x3x3 whose centres a wide or inner-layer move has displaced cannot be solved; `solve` reports that instead of a wrong solution.
 

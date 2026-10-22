@@ -45,7 +45,7 @@ The 3x3x3 solver uses an optimized implementation of the two-phase algorithm, de
 3. The corners, middle edges and centres then form a 3x3x3 (stickers in rows and columns 0, 2 and 4). `FiveSolver` hands it to the 3x3x3 solver it was built with, through the `Solver` trait, and appends that solution.
 4. It replays the answer of the 3x3x3 stage on the 3x3x3 it sent, then the whole solution on the 5x5x5, before returning it.
 
-What it does not do: it does not look for short solutions. Over 1000 random cubes, the solutions had 348 to 477 moves (median 412), of which the 3x3x3 stage adds at most 25. It does not accept cubes whose face centres have moved. Orbit64 tokens of the 5x5x5 are not decoded.
+What it does not do: it does not look for short solutions. Over 1000 random cubes, the solutions had 348 to 477 moves (median 412), of which the 3x3x3 stage adds at most 25. It does not accept cubes whose face centres have moved.
 
 Measured in a release build on an Apple M-series laptop: the 3-cycle library has about 11,650 entries (4,042 x-centre, 3,564 t-centre and 4,044 wing cycles out of 4,048 possible each); it is built on first use or by `prepare()` in about 0.22 s, and a cold `cubacle solve` of a 5x5x5 peaks near 5 MB. With the library ready a solve takes about 1 ms (median 1.1 ms, maximum 4.6 ms over the 1000 cubes). The 3x3x3 solver is injected, so a 5x5x5 build always includes its tables.
 

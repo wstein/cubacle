@@ -32,8 +32,8 @@ The server binds to the local machine by default. It has no authentication, so d
 | --- | --- | --- |
 | `GET /health` | None | `{"status":"ok"}` |
 | `GET /v1/scramble?moves=25&size=3` | `moves`: 1 to 200; `size`: 2, 3 or 5 | `{"scramble":"U' L2 F2 D U2"}` |
-| `GET /v1/random?size=3` | `size`: 2 to 7 (only 2, 3 and 5 have engines) | `{"kind":"2x2x2","facelets":"..."}` |
-| `POST /v1/convert` | `{"cube","scheme"?}` | `{"kind","facelets"}` |
+| `GET /v1/random?size=3` | `size`: 2 to 7 (only 2, 3 and 5 have engines) | `{"kind":"2x2x2","facelets":"...","token":"..."}` |
+| `POST /v1/convert` | `{"cube","scheme"?}` | `{"kind","facelets","token"?}` |
 | `POST /v1/solve` | `{"cube","scheme"?,"maxMoves"?,"budgetMs"?}` | `{"kind","solution","length","elapsedMicros"}` |
 
 For `POST` requests, send the header `Content-Type: application/json`.
@@ -72,7 +72,21 @@ The solve request returns:
 
 The `elapsedMicros` value varies between runs.
 
-A 5x5x5 is sent as its 150 facelets. This request solves the cube of a scramble:
+`convert` also answers the Orbit64 token of the cube (`token`), left out when the stickers are not a cube. Tokens of every size from 2x2x2 to 7x7x7 are accepted. A 4x4x4 token converts, and `solve` of it answers 501 `no_engine`:
+
+```sh
+curl -s -XPOST localhost:8080/v1/convert \
+  -H 'Content-Type: application/json' -d '{"cube":"BJStkD4cayBhsWj6eHgDZLTP1th"}'
+curl -s -XPOST localhost:8080/v1/solve \
+  -H 'Content-Type: application/json' -d '{"cube":"BJStkD4cayBhsWj6eHgDZLTP1th"}'
+```
+
+```json
+{"kind":"4x4x4","facelets":"DLLDLLDLBFLFLRBRDRDLFBRLUURUUDDUFUUFLDFDRBUFURRLLBDFFFDFFFBRFBFRRDDDBLUUBURBRULBBFBBUDRURBLLBRDU","token":"BJStkD4cayBhsWj6eHgDZLTP1th"}
+{"error":{"code":"no_engine","message":"no engine for the 4x4x4 yet; only 2x2x2, 3x3x3 and 5x5x5 exist"}}
+```
+
+A 5x5x5 is sent as its 150 facelets or its 43-character token. This request solves the cube of a scramble:
 
 ```sh
 CUBE=$(cubacle facelets "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F" --size 5)
@@ -106,8 +120,7 @@ Errors have this shape:
 | 422 | `no_solution_within_limit` | No solution within `maxMoves`. |
 | 429 | `busy` | All solver slots are in use. The response has `Retry-After: 1`. |
 | 500 | `internal` | A handler or solver thread panicked. |
-| 501 | `no_engine` | A valid cube size (4, 6 or 7) that has no engine yet, including Orbit64 tokens of those sizes. |
-| 501 | `token_unsupported` | An Orbit64 token of the 5x5x5: the engine exists, the token decoder does not. Send facelets. |
+| 501 | `no_engine` | `solve` of a valid cube size (4, 6 or 7) that has no engine yet, whether sent as facelets or as an Orbit64 token. `convert` works for those sizes. |
 | 504 | `budget_exhausted` | The time budget ran out. |
 
 Some details:
