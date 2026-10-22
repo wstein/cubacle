@@ -32,7 +32,7 @@ The server binds to the local machine by default. It has no authentication, so d
 | --- | --- | --- |
 | `GET /health` | None | `{"status":"ok"}` |
 | `GET /v1/scramble?moves=25&size=3` | `moves`: 1 to 200; `size`: 2, 3 or 5 | `{"scramble":"U' L2 F2 D U2"}` |
-| `GET /v1/random?size=3` | `size`: 2 to 7 (only 2, 3 and 5 have engines) | `{"kind":"2x2x2","facelets":"...","token":"..."}` |
+| `GET /v1/random?size=3` | `size`: 2 to 7 (only 2 to 5 have engines) | `{"kind":"2x2x2","facelets":"...","token":"..."}` |
 | `POST /v1/convert` | `{"cube","scheme"?}` | `{"kind","facelets","token"?}` |
 | `POST /v1/solve` | `{"cube","scheme"?,"maxMoves"?,"budgetMs"?}` | `{"kind","solution","length","elapsedMicros"}` |
 
@@ -131,7 +131,7 @@ Some details:
 
 - `GET /v1/random?size=6` returns 501, and `size=9` returns 400, because `size` accepts 2 to 7 but only 2 to 5 have engines. `GET /v1/scramble` takes the same sizes.
 - A 4x4x4 solve with `maxMoves` runs the 3x3x3 stage for at most one second, whatever `budgetMs` is: the reduction is fixed, so a limit that no tail can meet answers 422 `no_solution_within_limit` after about a second, not 504 after the whole budget.
-- A 5x5x5 solve request can be sent with the cube as 150 facelets. The server builds the 5x5x5 and 4x4x4 tables at startup, so the first request is not slower.
+- A 5x5x5 solve request can be sent with the cube as 150 facelets. The server builds the 5x5x5 and 4x4x4 tables at startup, so the first request is not slower. Throughput and latency under load, and the thread defaults of the server (one thread per 4x4x4 solve, all cores per 5x5x5 solve), are measured on [Performance](performance.md#server-under-load).
 - The server answers 504 rather than 408, because the client was not slow; the server was. Do not retry the same request. Retry with a larger `budgetMs` or an easier cube.
 - On 429, wait and retry. The limit is `--max-concurrency` solves at once.
 
