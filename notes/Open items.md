@@ -12,7 +12,4 @@ Raw-material notes, category open-items.
 - [[5x5 memory above target]]
 - [[Validate in CI]]
 - [[Contribution branch]]
-- [[4x4 final rotation]]
-- [[4x4 3x3 hand-off needs a probe minimum]]
-- [[Shared reduction module]]
-- [[4x4 Orbit64 tokens]]
+- [[4x4 thread scaling is capped by the hand-off]]

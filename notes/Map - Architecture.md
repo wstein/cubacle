@@ -9,3 +9,4 @@ Raw-material notes, category architecture.
 - [[Reduction engines and the 3x3 solver]]
 - [[Workspace split timing]]
 - [[Render design]]
+- [[Shared reduction module]]

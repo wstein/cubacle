@@ -1,9 +1,9 @@
 ---
 id: 20261022140007
 aliases: []
-tags: ["type/question", "status/open", "category/open-items"]
+tags: ["type/decision", "status/decided", "category/architecture"]
 ---
-A module engines/reduction would hold code written once for the 4x4 and the 5x5 ports: combinatorics, prune-table builders, a bounded candidate list, ordered parallel helpers and the 3x3x3 hand-off now only in five. It holds no ported code, so it needs no third-party notice. The 5x5 move vocabulary and 3-cycle library are not extracted any more, because the port does not use 3-cycle libraries. To be aligned with the author of the 5x5 port through the coordinator.
+The code written once for the 4x4 and the 5x5 lives in src/reduction (crate-private): combinatorics, prune-table builders and the ordered parallel helpers, now with par::first_results, which returns the first results of tasks in the order a serial run finds them. The 4x4 uses the combinatorics and first_results but has its own 2-bit wing table builder. src/reduction keeps no global state and holds no ported code, so it needs no third-party notice.
 
 ## Links
 
@@ -13,3 +13,4 @@ A module engines/reduction would hold code written once for the 4x4 and the 5x5 
 
 Source: docs/design/4x4-port.md, lines 327-358
 Source: ARCHITECTURE.md, lines 67-79
+Source: src/reduction/par.rs, lines 67-118

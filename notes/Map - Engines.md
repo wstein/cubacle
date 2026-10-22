@@ -22,3 +22,7 @@ Raw-material notes, category engines.
 - [[4x4 phases and tables]]
 - [[4x4 parity is in the coordinates]]
 - [[4x4 multi-core plan]]
+- [[4x4 final rotation]]
+- [[4x4 3x3 hand-off needs a probe minimum]]
+- [[4x4 Orbit64 tokens]]
+- [[4x4 phases 1 to 3 equal the Java ones]]
