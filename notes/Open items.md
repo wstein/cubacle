@@ -7,6 +7,7 @@ Raw-material notes, category open-items.
 
 - [[Flaky parallel_solve_is_repeatable test]]
 - [[Orbit64 example mismatch]]
+- [[Orbit64 sizes 6 and 7 unverified]]
 - [[2x2 embedded table idea]]
 - [[Validate in CI]]
 - [[Contribution branch]]

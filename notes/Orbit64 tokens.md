@@ -3,12 +3,14 @@ id: 20261022120006
 aliases: []
 tags: ["type/design", "status/reference", "category/notation"]
 ---
-Orbit64 tokens (flix-orbit64 format) are decoded for 2x2 and 3x3. 4x4 to 7x7 are not decoded yet.
+Orbit64 tokens (flix-orbit64 format) are decoded and encoded for 2x2 to 7x7 by one generic codec; the token length gives the size.
 
 ## Links
 
 - [[Input notations]]
 - [[Orbit64 slot numbering caveat]]
+- [[Orbit64 verification by size]]
+- [[Orbit64 state as mixed-radix digits]]
 
-Source: src/notation/orbit64.rs, lines 7-8
-Source: src/notation/orbit64.rs, lines 83-83
+Source: src/notation/orbit64/mod.rs, lines 1-17
+Source: src/notation/orbit64/mod.rs, lines 105-115

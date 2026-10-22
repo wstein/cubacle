@@ -9,3 +9,6 @@ Raw-material notes, category notation.
 - [[Orbit64 tokens]]
 - [[Colour schemes]]
 - [[Orbit64 slot numbering caveat]]
+- [[Orbit64 verification by size]]
+- [[Orbit64 state as mixed-radix digits]]
+- [[Orbit64 slot tables from the size]]

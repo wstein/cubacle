@@ -3,7 +3,7 @@ id: 20261022120004
 aliases: []
 tags: ["type/idea", "status/reference", "category/project"]
 ---
-Supported: 2x2, 3x3 and 5x5 (by reduction). Planned by reduction: 4x4, 6x6 and 7x7. Orbit64 decoding covers only 2x2 and 3x3 so far.
+Supported: 2x2, 3x3 and 5x5 (by reduction). Planned by reduction: 4x4, 6x6 and 7x7. Orbit64 tokens are read and written for 2x2 to 7x7.
 
 ## Links
 
@@ -11,4 +11,4 @@ Supported: 2x2, 3x3 and 5x5 (by reduction). Planned by reduction: 4x4, 6x6 and 7
 - [[Orbit64 tokens]]
 
 Source: docs/engines.md, lines 11-16
-Source: src/notation/orbit64.rs, lines 7-8
+Source: src/notation/orbit64/mod.rs, lines 5-17
