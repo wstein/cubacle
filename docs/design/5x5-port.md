@@ -1,0 +1,304 @@
+---
+title: "5x5x5 port plan"
+description: "Plan to replace the greedy 5x5x5 engine with a Rust port of the five-phase solver cs0x7f/cube555."
+weight: 20
+---
+
+# 5x5x5 port plan
+
+Status: proposal, no engine code written. The owner decided to port
+`cs0x7f/cube555` (Java, five-phase reduction) instead of designing a search
+from scratch. This page is the plan to be approved before the first line of
+engine code.
+
+## 1. Baseline (measured)
+
+100 identical random cubes, both solvers replayed with `Facelets::apply`, Mac14,10
+with 12 cores, Java 21, release build of ours. Harness: `tools/bench/`. The
+Java solver returns the reduction only, so both columns end with our `Min2PhaseSolver`.
+
+| | cube555 (Java) | claimed by its README | our greedy engine |
+| --- | --- | --- | --- |
+| reduction moves, mean (min to max) | 51.5 (48 to 54) | 51 to 52 | not separable |
+| 3x3x3 moves, mean | 21.6 (20 to 23) | about 20 (task brief) | at most 25 |
+| total, mean / median / p90 | 73.1 / 73 / 75 | none | 412.4 / 414 / 441 |
+| solve time, mean / median / max | 865 ms / 656 ms / 5.6 s | 1 to 2 s | 1.3 ms / 1.2 ms / 3.2 ms |
+| cold start (tables built and written) | 50.3 s | none | 0.25 s |
+| warm start (tables read) | 1.8 s | none | 0.25 s |
+| tables on disk | 237 MB, 12 files | about 240 MB | none |
+| peak resident memory | 1.6 GB cold, 0.76 GB warm | at most 500 MB | 5 MB |
+
+The memory claim is not met by the Java process (the JVM heap holds the tables
+as `int[]` plus move tables). Phase shares of the 865 ms (mean of 100):
+phase 1 286 ms, phase 2 35, phase 3 109, phase 4 242, phase 5 190.
+
+Acceptance rule for the port: same reduction lengths as the Java run on the same
+cubes (identical algorithm and identical move order give identical lengths),
+time and memory not worse in order of magnitude.
+
+## 2. Licence handling
+
+The README offers GPLv3 and MIT, both by Chen Shuang (the MIT notice is dated
+2023; `LICENSE-MIT` holds the 2024 notice of min2phase_rust). We take MIT.
+
+1. Already done (commit `docs(notice)`): a NOTICE.md row marks the port as
+   planned, and the older statement that the 5x5 engine is written from scratch
+   now covers only the greedy engine.
+2. Before the first port commit: add the cube555 MIT notice (copyright line and
+   permission text, verbatim) to `LICENSE-MIT` as a second block, and change the
+   NOTICE row from "planned" to "landed".
+3. Every ported file starts with a header naming the Java origin
+   (`Ported from cs0x7f/cube555 src/Phase3Search.java, MIT, Copyright (c) 2023
+   Chen Shuang`) and states the AGPL-3.0-or-later terms of the Rust file.
+4. Files written new (cache format, parallel runner, tests) carry no origin line.
+
+The greedy engine stays "original work" in NOTICE as long as it exists.
+
+## 3. What the Java solver is
+
+Five phases over a facelet-free cubie model (`CubieCube`: 24 x-centres,
+24 t-centres, 24 wings, 12 middle edges, corners). Each phase is a table-driven
+IDA* with a restricted move set, followed by a best-first beam:
+
+| Phase | Goal | Moves | Coordinates | Prune tables (states, file) |
+| --- | --- | --- | --- | --- |
+| 1 | two opposite face colours of both centre types onto their two faces | 36 (18 face, 18 two-layer) | t and x centre C(24,8) = 735,471 each, 16-fold symmetry (46,935 and 46,371 classes) | t-sym, x-sym (23 KB each), joint x-sym by t-raw, depth-limited and hashed (2^26 entries, 33.5 MB) |
+| 2 | remaining centres of the two colours onto UD, edge parity fixed | 22 | t and x centre C(16,8) = 12,870 each, plus wing parity | two tables of 25,740 states (13 KB each) |
+| 3 | wings into four slots per layer, middle edges placed, centres into L/R-F/B halves | 24 | centre 1,225, middle edge 2,048, wing 2,704,156 raw / 86,048 sym classes, 32 symmetries | centre by middle edge 2.5 M states (1.25 MB); wing by middle edge 176 M states (88.1 MB) |
+| 4 | pair the high and low wings, finish UD centres | 16 | middle-low edge, UD and RL centre, high edge 70 x 1,680 | edge-sym 49.8 M states (24.9 MB); mid-low-edge by UD centre 145 M states (72.6 MB); by RL centre 6.4 M (3.2 MB); centre 1.06 M (0.5 MB) |
+| 5 | complete centres and pairing, leaving a 3x3x3 | 14 | centre, low edge | centre 176 k (88 KB); low-edge-sym by centre 25.9 M states (13 MB) |
+
+(Table sizes are the measured file sizes; the sum is 237 MB. The goal column
+is my reading of the code and the first four rows should be confirmed while
+porting phase by phase, by checking each intermediate state.)
+
+Search driver (`PhaseSearch`, `Search.solveReduction`): the input cube, in
+three axis conjugations, enters phase 1, which collects up to 200 solutions;
+each is the start of phase 2 (up to 500), then phase 3 (500, filtered by a
+bit-mask test), phase 4 (500), phase 5 (1). In every phase the start nodes are
+ordered by `cost so far + pruning value` (ties keep insertion order) and
+searched with IDA* at rising total length; the first node reaching the goal at
+the current length yields a solution, and the search continues until the phase
+has its quota. The beam is what makes the result about 52 moves: later phases
+see many candidates, and the cheapest total wins. The Java code is single
+threaded and has no cancellation.
+
+## 4. Mapping to Rust
+
+Under `src/engines/five/` (the greedy engine moves to `five/greedy/` with
+`git mv`, unchanged, in its own commit):
+
+| Module | Content | Java origin | est. lines |
+| --- | --- | --- | --- |
+| `cubie.rs`, `cubie_moves.rs`, `cubie_sym.rs` | cubie cube, move and symmetry tables, facelet conversion to our `Facelets` | CubieCube, SolvingCube | 650 in three files |
+| `coord.rs` | `Coord`/`SymCoord`/`RawCoord` as traits or plain structs of move tables | Util | 200 |
+| `prun.rs`, `prun_build.rs` | 4-bit pruning table, BFS builder (full, symmetric, depth-limited), parallel layers | Util.PruningTable | 450 in two files |
+| `p1.rs` to `p5.rs` plus `p3_edge.rs`, `p4_edge.rs`, `p4_center.rs` | per phase: coordinates, moves, prune lookups, search node | Phase1..5 (Center, Edge, Search) | about 1,800 in about 10 files |
+| `beam.rs` | the best-first beam and IDA* (generic over a phase trait) | PhaseSearch, Search | 350 |
+| `tables.rs` | owner of all tables, `Arc<OnceLock<Tables>>`, build order, cache | Search.init | 200 |
+| `cache.rs` | on-disk format and I/O | Tools | 150 |
+| `solver.rs` | `FiveSolver::new(Arc<dyn Solver + Send + Sync>)`, hand-off to the 3x3 | Search, example | 250 |
+
+Java total is 4,378 lines; I expect 4,500 to 5,500 lines of Rust, every file
+under 500 lines, `pub(crate)` except `FiveSolver`. The bundled `twophase.jar`
+is replaced by the injected `Solver`; the input is `three_by_three` (as today).
+Table state is owned by the solver instance behind `Arc<OnceLock<Tables>>`
+exactly as `FiveSolver` does now; no statics. `prepare()` builds or loads the
+tables and the 3x3 tables.
+
+Representation: tables are `Vec<u32>` with 8 entries of 4 bits per word like
+Java (an `u64` variant is possible later). Move tables as flat `Vec<u16>` or
+`Vec<u32>` indexed `state * moves + move` instead of arrays of arrays. Memory
+estimate: about 237 MB prune tables, 25 to 35 MB move/sym tables, so 270 MB in
+total at rest, with no heap overhead of a runtime. This is an estimate, not a
+measurement.
+
+## 5. Tables: building, sharing, persistence
+
+Options:
+
+| Option | Cold start | Warm start | Verdict |
+| --- | --- | --- | --- |
+| Build at every start | 10 to 30 s (estimate: Java 50 s, of which most is the BFS of the two 150 M-state tables; Rust with parallel build should be several times faster; must be measured) | same | not acceptable for the CLI as the only way |
+| Disk cache (`CUBACLE_CACHE_DIR`, default the platform cache directory) | as above, once | 0.3 to 1 s to read 237 MB (Java 1.8 s) | recommended |
+| `build.rs` | adds the build time to every compile and 237 MB to the binary or `OUT_DIR` | | rejected |
+| Download at first use | needs a network and a trust anchor | | rejected |
+
+Recommendation: build on demand and cache. `prepare()` loads the cache if all
+files pass validation, otherwise builds (in parallel, section 6) and writes the
+files atomically (write to a temporary name, rename). Cache file: magic,
+format version, table id, state count, FNV-1a or CRC of the payload, little
+endian words. A corrupt or foreign file is rebuilt, never trusted. A failure
+to write the cache is not an error (read-only home, container): the tables stay
+in memory.
+
+The server (stateless, long-running) calls `prepare()` at start, as it does
+now (`crates/server/src/lib.rs` lines 95-106); the 5x5 tables then live for the
+process. With a cold cache the server start is delayed by the build; a
+deployment should provide a writable cache volume or accept one slow start.
+The CLI pays the cold cost once per machine; it must print one line to standard
+error before a long build ("building 5x5x5 tables, once, about N s") so it does
+not look hung.
+
+Fallback: keep the greedy engine (section 8) so a 5x5 request is answerable
+while tables are not ready (server health or very small time budgets).
+
+## 6. Multi-core
+
+The Java code uses one core. Opportunities, by value:
+
+1. Table construction. The 12 tables are independent. Java cold times
+   (cumulative, from the build log) were about 19 s for the 176 M-state
+   wing table, 11 s for the 145 M-state table, 6 s and 5 s for two more, the
+   rest small. With one task per table the critical path is the largest table
+   (about 19 s in Java), the sum about 50 s; layer-parallel BFS inside the
+   large tables (split the state range among workers, with disjoint nibble
+   writes per chunk, merge by depth layer) lowers the path further. Expected
+   (estimate, unmeasured for Rust): 3x to 6x on 12 cores for the full build.
+2. The search. The phases 2 to 5 start from up to 200 to 500 independent nodes.
+   At a given total length, entries are independent: run them in parallel and
+   merge the found solutions in entry order, then cut at the quota. This yields
+   exactly the serial result (same solutions, same order) at the price of some
+   extra work when the quota fills early. Phase 1 has one root; partition by
+   the first move (36 roots) the same way. Phases 1, 4 and 5 are 83% of the
+   measured time, so the ceiling by Amdahl is about 5 to 8 times on 12 cores
+   (estimate: the time per solve could fall from 0.87 s to 0.15 to 0.25 s).
+3. Pipelining phases (start phase 3 on phase 2 solutions as they appear) is
+   less deterministic and adds little; not planned.
+
+Determinism: results are identical to the serial run for any thread count,
+because merging is ordered by (length, entry index) and quotas are applied
+after the merge. If a time budget stops the search, the result depends on timing
+and is documented as such (the 3x3 does the same).
+
+Threads: reuse the worker pool concept and `CUBACLE_THREADS`. The pool
+(`src/engines/three/pool.rs`) is private to the 3x3 engine and holds a
+process-wide static, and engines may not import each other; therefore a
+first commit moves it (`git mv`) to a neutral module that both may use
+(section 7) and passes the thread count in through a small `Threads` value in
+`SolveOptions`-independent configuration of `FiveSolver` (`with_threads(n)`),
+defaulting to `CUBACLE_THREADS` or the available parallelism. The global pool
+is an existing exception to "no globals"; the plan keeps it, because workers
+are a process resource and not solver state.
+
+The speedup on this machine cannot be measured before the port exists. The
+bench harness gets a `--threads` column when it does.
+
+## 7. Shared framework with the 4x4
+
+The owner plans to port `cs0x7f/TPR-4x4x4-Solver` (README: 44.39 moves, 250 ms,
+at most 30 MB, MIT). I looked at its file list and class names only. It is a
+min2phase-style three-phase solver with symmetry-reduced centre and edge
+coordinates (Center1/2/3, Edge3) and one IDA search, not the beam of
+`PhaseSearch`. So the two code bases share primitives and not the driver:
+
+- symmetry coordinate tables (raw to sym, sym move table, self-symmetry masks),
+- 4-bit pruning tables with the BFS builder and the on-disk cache,
+- the worker pool and a parallel-for with ordered merge,
+- the generic IDA* node loop (a trait with `do_move_prune`, move-skip masks).
+
+Proposal: a neutral module `src/reduction/` (crate-private, `pub(crate)`)
+holding exactly those four, written once for the 5x5 port and reused by the
+4x4. Dependency rule: `puzzle <- notation <- reduction <- engines`; the
+architecture test (`tests/architecture_test.rs`) needs one added rule. The beam
+driver stays in `five/` and moves to `reduction/` only if the 4x4 port needs it.
+This claim rests on file names and class names and must be confirmed by the 4x4
+author.
+
+## 8. Greedy engine: keep or delete
+
+Keep as `five/greedy/`, used when (a) the tables are not available (build
+failed, memory limit, `FiveSolver::fast()`), (b) a caller sets a time budget
+below the cold-start time. Reasons: 1.3 ms and 5 MB make it the only option on
+small machines; it costs 1,236 lines already tested and golden-recorded. Reason
+to delete: two engines to maintain and a golden fixture to keep. Recommendation:
+keep it for one release after the port lands, then decide on field use. The
+golden fixture `tests/fixtures/five.txt` must not be edited; the port adds a new
+fixture and the default solver changes only when the owner approves.
+
+## 9. Correctness and tests
+
+1. Each phase checks its goal on the cubie state it reached (debug assertion
+   plus a test) and the final answer is replayed with `Facelets::apply`
+   against the input before it is returned, as the engine does today.
+2. Golden transfer: the Java solver is deterministic. The first 20 to 30 cubes
+   of the benchmark with the Java reduction moves are stored as a fixture
+   (data only: facelets and move strings). The single-threaded Rust port must
+   reproduce the move strings exactly; this proves the port, not just that the
+   output is valid. The multi-threaded run must reproduce them too.
+3. Unit tests per phase on small fixtures: coordinate round trips, move table
+   vs cubie move, symmetry conjugation consistency, on the small tables only.
+4. Heavy tests. The full tables are about 240 MB and 10 to 30 s to build; the
+   GitHub runner (ubuntu-latest: 4 cores, 16 GB for public repositories, 7 GB
+   otherwise; jobs have 30 min timeouts in `ci.yml`) can afford it but
+   `cargo test --workspace --release` runs many binaries in parallel and
+   should stay fast. Plan:
+   - tables accept a depth cap (`TableDepth::Capped(n)`): an unknown entry is
+     treated as `n + 1`, still admissible, so search is correct but slower. Unit
+     and end-to-end tests use capped tables (a few MB, under a second) on cubes
+     scrambled with few moves per phase.
+   - one test with the real tables, `#[ignore]` by default, run by a separate CI
+     job (`cargo test --release -- --ignored five_full`) that caches the table
+     directory with `actions/cache` keyed by the format version. No timing
+     assertions anywhere.
+   - the golden-transfer test of point 2 is part of the ignored suite and of the
+     release checklist.
+5. Memory: the ignored test records the peak table size in bytes (computed, not
+   measured by the OS) and asserts it stays below a limit (300 MB).
+
+## 10. Time budget and cancellation
+
+`SolveOptions::time_budget` and `max_moves` stay. The beam checks a deadline
+every few thousand nodes (an `Instant` compare behind a counter). On expiry the
+current phase stops and the best complete candidate found so far continues
+through the later phases with narrowed quotas (quota 1 phases finish quickly);
+if no complete reduction exists, return `Failure::BudgetExhausted`. With a budget
+the solution is not deterministic, without it the result is. The 3x3 hand-off
+gets the remaining time, as now. A shorter 3x3 tail needs a minimum search time
+for the hand-off; measured tail 21.6 against about 20 claimed, so the potential
+is one to two moves, not measured.
+
+## 11. Commit plan (atomic, tests green)
+
+1. `docs`: this plan and notes (done with this commit).
+2. `build`: move the worker pool to the neutral module (`git mv`, no change),
+   architecture rule added.
+3. `refactor`: `git mv` the greedy engine to `five/greedy/`; paths only.
+4. `docs(notice)`: MIT notice of cube555 into `LICENSE-MIT`, NOTICE row to "landed"
+   together with the first ported file.
+5. `feat`: cubie model, move and symmetry tables, with round trip tests.
+6. `feat`: 4-bit pruning table, builder (serial, then parallel), cache, tests on
+   capped tables.
+7. `feat`: phase 1 with its tables; phase 2; phase 3; phase 4; phase 5, one
+   commit each, each with the unit tests.
+8. `feat`: beam and `FiveSolver` wiring behind a constructor flag; golden transfer
+   fixture; ignored full test and the CI job.
+9. `feat`: parallel search; thread count; deterministic-merge test.
+10. `feat`: switch the default, docs and README numbers, keep the greedy engine as
+    fallback; `docs` update of `docs/engines.md`, notes, and the bench note with
+    the Rust numbers.
+
+Two authors in parallel: author A takes steps 2, 3, 6 and 9 (infrastructure:
+pool, tables, cache, parallel runner; the same code the 4x4 needs); author B
+takes 5, 7 and 8 (cube model, phases, beam). They meet at the `Coord` and
+`PruningTable` interfaces, which step 6 must publish first (a stub commit with
+the traits and an in-memory test table is enough). Phases 3 to 5 can be split
+between two further authors once the cubie model exists.
+
+## 12. Risks and open questions
+
+- The Java run is the only oracle. Its claims (memory 500 MB, 51 to 52 moves)
+  were measured only partly: moves yes, memory no.
+- The port must keep Java's tie-breaking (stable order of equal estimates) for
+  golden equality; Java's `TreeSet` returns "greater" on ties, which equals
+  insertion order.
+- Table build time in Rust is an estimate; if it exceeds 30 s on one core, ship
+  a pre-built cache as a release asset (SHA-256 pinned) as an option.
+- A 270 MB resident set is large for the server container; the owner should
+  state the memory limit. Option: memory-map the cache file (needs a dependency
+  or `unsafe`; not planned).
+- Open for the owner: default cache directory and its name; whether the
+  greedy fallback stays; whether `CUBACLE_THREADS` also governs table builds;
+  4x4 author agreement on `src/reduction/`.
+- Not verified: the phase goals in section 3 (read quickly); Rust build time;
+  multi-core speedups; the 3x3 tail with a minimum search time.
