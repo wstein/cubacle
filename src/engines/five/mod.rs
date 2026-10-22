@@ -15,7 +15,14 @@ mod solver;
 
 pub use solver::FiveSolver;
 #[allow(dead_code)]
+mod build;
+#[allow(dead_code)]
 mod cubie;
 #[allow(dead_code)]
 mod cubie_sym;
 mod mv;
+#[allow(dead_code)]
+mod spaces;
+#[cfg(test)]
+#[allow(dead_code)]
+mod testing;
