@@ -10,4 +10,5 @@ Accepted inputs are Orbit64 tokens (flix-orbit64 format), compact or spaced URFD
 - [[Orbit64 tokens]]
 - [[Colour schemes]]
 
-Source: project history of cubacle, lines 1-1
+Source: README.md, lines 26-26
+Source: docs/cli.md, lines 64-119

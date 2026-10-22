@@ -10,4 +10,4 @@ An Orbit64 token cannot prove that its producer used the same slot numbering as 
 - [[Orbit64 tokens]]
 - [[Orbit64 example mismatch]]
 
-Source: project history of cubacle, lines 1-1
+Source: src/notation/orbit64.rs, lines 7-11

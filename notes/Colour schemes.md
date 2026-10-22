@@ -9,4 +9,5 @@ Two schemes exist: `western-boy` is WRGYOB and `japanese-bl-wt` is WRGBOY. On od
 
 - [[Input notations]]
 
-Source: project history of cubacle, lines 1-1
+Source: docs/cli.md, lines 125-128
+Source: src/notation/input.rs, lines 72-74
