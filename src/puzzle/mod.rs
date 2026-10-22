@@ -12,8 +12,8 @@ mod moves;
 mod orbits;
 mod solver;
 
-pub(crate) use apply::locate;
 pub use apply::ApplyError;
+pub(crate) use apply::{destinations, locate};
 pub(crate) use axis::normalise;
 pub(crate) use cubies::five_orbits;
 pub use facelets::{Face, Facelets, FaceletsError};
