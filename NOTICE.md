@@ -20,6 +20,7 @@ while the original portions remain available under their MIT terms.
 | Worker pool (`src/engines/three/pool.rs`), batch/parallel/pattern APIs | original work | — | AGPL-3.0-or-later |
 | 5x5 greedy 3-cycle reduction (`src/engines/five/`, today) | original work, written from scratch | — | AGPL-3.0-or-later |
 | 5x5 five-phase search (`src/engines/five/`, planned port, not yet landed) | cs0x7f/cube555 (Chen Shuang) | GPL-3.0 or MIT, MIT taken | AGPL-3.0-or-later, MIT notice retained |
+| Orbit64 state codec (`src/notation/orbit64/`) | wstein/flix-orbit64 (Flix) | Apache-2.0, Copyright 2026 Werner Stein | AGPL-3.0-or-later; Rust re-implementation of the format and of the slot tables in `Orbit64.Net`, same author as cubacle; each file names its origin |
 
 The greedy 5x5 engine in the tree today contains no third-party code and was written
 without reading other solvers' sources (commutator 3-cycles conjugated by setup moves are
