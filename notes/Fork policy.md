@@ -10,4 +10,7 @@ Branch `main` mirrors the original repository (cs0x7f/min2phase_rust) and stays 
 - [[Cubacle project]]
 - [[Notes policy]]
 
-Source: project history of cubacle, lines 1-1
+Source: AGENTS.md, lines 15-17
+Source: .github/workflows/pages.yml, lines 1-8
+Source: docs/contributing.md, lines 11-11
+Source: owner decision of 2026-10-21, lines 1-1

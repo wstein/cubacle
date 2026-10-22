@@ -9,4 +9,6 @@ Cubacle is licensed AGPL-3.0-or-later. The original MIT grant of Chen Shuang is 
 
 - [[Cubacle project]]
 
-Source: project history of cubacle, lines 1-1
+Source: NOTICE.md, lines 3-5
+Source: NOTICE.md, lines 12-15
+Source: AGENTS.md, lines 54-57
