@@ -12,3 +12,4 @@ Raw-material notes, category notation.
 - [[Orbit64 verification by size]]
 - [[Orbit64 state as mixed-radix digits]]
 - [[Orbit64 slot tables from the size]]
+- [[Orbit64 sizes 6 and 7 verified]]
