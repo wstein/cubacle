@@ -8,4 +8,6 @@ A future goal: a learning solver that solves a cube the way a person does, in na
 
 ## Links
 
-Source:
+- [[Open items]]
+
+Source: owner decision of 2026-10-22, lines 1-1
