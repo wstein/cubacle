@@ -14,3 +14,8 @@ mod reduce;
 mod solver;
 
 pub use solver::FiveSolver;
+#[allow(dead_code)]
+mod cubie;
+#[allow(dead_code)]
+mod cubie_sym;
+mod mv;
