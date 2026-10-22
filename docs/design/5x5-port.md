@@ -291,3 +291,38 @@ budget the result is not deterministic, without it the result is.
   `src/reduction/`.
 - Not verified: the phase goals in section 3 (read quickly); Rust build time;
   multi-core speedups; the 3x3 tail with a minimum search time.
+
+## Result
+
+Measured on 2026-10-22, Apple M2 Pro (12 cores), release build, the same 100
+random cubes for both solvers, every answer replayed with `Facelets::apply`. The
+harness is `tools/bench/run.sh`. The sections above are the plan; this section is
+what was built and measured, and it replaces the estimates in sections 5, 6 and 12.
+
+| Criterion | Aim | Java (cube555) | Rust |
+| --- | --- | --- | --- |
+| Total moves, mean / median / p90 | about 73 | 73.1 / 73 / 75 | 73.1 / 73 / 75 |
+| Reduction moves, mean | 51.5 | 51.5 | identical (the Java reduction is a prefix of every answer on the golden cubes) |
+| Solve time, mean / median / p90, 12 threads | | 865 / 656 / 1776 ms | 92 / 77 / 187 ms |
+| Solve time, mean / median / p90, one thread | | 865 / 656 / 1776 ms | 444 / 404 / 723 ms |
+| Cold table build | | about 50 s | 3.3 s on 12 threads, 18.3 s on one |
+| Warm table load | | 1.8 s | about 1.0 s |
+| Memory, warm | at most 300 MB | 0.76 GB | 328 MB (one thread), 335 MB (12 threads): **missed** |
+| Answers with 1, 4, 12 threads | identical | | identical on 300 cubes |
+| Pruning tables | | 237 MB | 237 MB, byte-identical to Java's |
+
+Notes on the differences from the plan.
+
+- **Memory.** 237 MB are pruning tables and about 70 MB are move and symmetry tables.
+  Storing small tables as 16-bit values saves about 3 MB; dropping the 10 MB
+  wing table and recomputing it made solving about five times slower and was
+  reverted. Going below 300 MB needs a smaller pruning-table format (see the note
+  `5x5 memory above target`).
+- **No greedy fallback.** The greedy engine was deleted; `solve` builds the tables
+  first when they are missing, and the budget message says so.
+- **Java's skip-mask shift bug** is reproduced on purpose, because without it the
+  answers differ from Java's (note `5x5 skip masks keep a Java shift bug`).
+- **Worker pool.** The search uses scoped threads in `reduction::par`; the pool
+  of the 3x3x3 engine was not moved.
+- **Move limit.** A tight `-m` gives the 3x3x3 hand-off a 10 s default budget and
+  ends in `Exhausted` instead of running on.
