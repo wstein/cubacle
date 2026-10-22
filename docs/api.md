@@ -77,7 +77,7 @@ The solve request returns:
 
 The `elapsedMicros` value varies between runs.
 
-`convert` also answers the Orbit64 token of the cube (`token`), left out when the stickers are not a cube. Tokens of every size from 2x2x2 to 7x7x7 are accepted. A 4x4x4 token converts and solves. A 6x6x6 token converts and solves; a 7x7x7 token converts, and `solve` of it answers 501 `no_engine`:
+`convert` also answers the Orbit64 token of the cube (`token`), left out when the stickers are not a cube. Tokens of every size from 2x2x2 to 7x7x7 are accepted. A 4x4x4 token converts and solves. A 6x6x6 or 7x7x7 token converts and solves:
 
 ```sh
 curl -s -XPOST localhost:8080/v1/convert \
@@ -93,7 +93,7 @@ curl -s -XPOST localhost:8080/v1/solve \
 
 A 4x4x4 solution has about 48 moves. Its last wide turns (`Rw Lw'` and the like, at most four) turn the whole cube back to the standard orientation, because a 4x4x4 has no fixed centres; the cube is solved exactly after them. The tables (12 MB) are built at startup, and each solve uses one thread, so concurrent requests do not compete for cores.
 
-A 7x7x7 is converted, but `solve` of it answers 501 `no_engine`.
+The 6x6x6 and 7x7x7 are solved by reduction through the 4x4x4, 5x5x5 and 3x3x3 engines (see [the dwalton port](design/dwalton-port.md)). They ignore `maxMoves` limits below the reduction's length: the engine does not search for shorter answers, and `budgetMs` does not interrupt a solve in progress.
 
 A 5x5x5 is sent as its 150 facelets or its 43-character token. This request solves the cube of a scramble:
 
@@ -129,12 +129,11 @@ Errors have this shape:
 | 422 | `no_solution_within_limit` | No solution within `maxMoves`. |
 | 429 | `busy` | All solver slots are in use. The response has `Retry-After: 1`. |
 | 500 | `internal` | A handler or solver thread panicked, or an engine reached a state it cannot explain. |
-| 501 | `no_engine` | `solve` of a valid cube size (7) that has no engine yet, whether sent as facelets or as an Orbit64 token. `convert` works for those sizes. |
 | 504 | `budget_exhausted` | The time budget ran out. |
 
 Some details:
 
-- `GET /v1/random?size=6` returns 501, and `size=9` returns 400, because `size` accepts 2 to 7 but only 2 to 5 have engines. `GET /v1/scramble` takes the same sizes.
+- `size=9` returns 400, because `size` accepts 2 to 7. `GET /v1/scramble` takes the same sizes.
 - A 4x4x4 solve with `maxMoves` runs the 3x3x3 stage for at most one second, whatever `budgetMs` is: the reduction is fixed, so a limit that no tail can meet answers 422 `no_solution_within_limit` after about a second, not 504 after the whole budget.
 - A 5x5x5 solve request can be sent with the cube as 150 facelets. The server builds the 5x5x5 and 4x4x4 tables at startup, so the first request is not slower. Throughput and latency under load, and the thread defaults of the server (one thread per 4x4x4 solve, all cores per 5x5x5 solve), are measured on [Performance](performance.md#server-under-load).
 - The server answers 504 rather than 408, because the client was not slow; the server was. Do not retry the same request. Retry with a larger `budgetMs` or an easier cube.

@@ -288,19 +288,6 @@ async fn move_limit_too_small_is_422() {
 }
 
 #[tokio::test]
-async fn unsupported_size_is_501() {
-    let cube = "U".repeat(49)
-        + &"R".repeat(49)
-        + &"F".repeat(49)
-        + &"D".repeat(49)
-        + &"L".repeat(49)
-        + &"B".repeat(49);
-    let (status, _, body) = call(app(), post_json("/v1/solve", json!({"cube": cube}))).await;
-    assert_eq!(status, StatusCode::NOT_IMPLEMENTED, "{body}");
-    assert_eq!(code(&body), "no_engine");
-}
-
-#[tokio::test]
 async fn oversize_body_is_413() {
     let config = Config {
         max_body_bytes: 64,
@@ -401,7 +388,7 @@ async fn wrong_methods_get_json_405() {
 }
 
 #[tokio::test]
-async fn size_validation_distinguishes_400_and_501() {
+async fn size_validation_is_400_outside_2_to_7() {
     for size in ["0", "1", "8", "18446744073709551615"] {
         let (status, _, body) = call(app(), get(&format!("/v1/random?size={size}"))).await;
         assert_eq!(status, StatusCode::BAD_REQUEST, "{size}");
@@ -414,7 +401,7 @@ async fn size_validation_distinguishes_400_and_501() {
 }
 
 #[tokio::test]
-async fn orbit64_tokens_of_sizes_without_an_engine_convert_but_do_not_solve() {
+async fn orbit64_tokens_of_the_big_sizes_convert() {
     // 66 and 90 characters are the widths of the 6x6x6 and 7x7x7.
     for (width, size) in [(66, 6), (90, 7)] {
         let cube = "A".repeat(width);
@@ -425,29 +412,25 @@ async fn orbit64_tokens_of_sizes_without_an_engine_convert_but_do_not_solve() {
             body["facelets"].as_str().unwrap(),
             Facelets::solved(PuzzleKind::of_size(size).unwrap()).to_string()
         );
-        if size == 7 {
-            let (status, _, body) =
-                call(app(), post_json("/v1/solve", json!({"cube": cube}))).await;
-            assert_eq!(status, StatusCode::NOT_IMPLEMENTED, "{size}: {body}");
-            assert_eq!(code(&body), "no_engine");
-        }
     }
 }
 
 #[tokio::test]
-async fn a_6x6_is_solved_and_the_solution_replays() {
-    let cube = Facelets::solved(PuzzleKind::Cube6)
-        .apply(&cubacle::generate::scramble(PuzzleKind::Cube6, 60))
-        .unwrap();
-    let (status, _, body) = call(
-        app(),
-        post_json("/v1/solve", json!({"cube": cube.to_string()})),
-    )
-    .await;
-    assert_eq!(status, StatusCode::OK, "{body}");
-    assert_eq!(body["kind"], "6x6x6");
-    let moves = body["solution"].as_str().unwrap().parse().unwrap();
-    assert!(cube.apply(&moves).unwrap().is_solved());
+async fn a_6x6_and_a_7x7_are_solved_and_the_solutions_replay() {
+    for (kind, name) in [(PuzzleKind::Cube6, "6x6x6"), (PuzzleKind::Cube7, "7x7x7")] {
+        let cube = Facelets::solved(kind)
+            .apply(&cubacle::generate::scramble(kind, 60))
+            .unwrap();
+        let (status, _, body) = call(
+            app(),
+            post_json("/v1/solve", json!({"cube": cube.to_string()})),
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK, "{body}");
+        assert_eq!(body["kind"], name);
+        let moves = body["solution"].as_str().unwrap().parse().unwrap();
+        assert!(cube.apply(&moves).unwrap().is_solved());
+    }
 }
 
 #[tokio::test]

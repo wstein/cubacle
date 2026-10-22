@@ -226,25 +226,21 @@ fn solve(args: SolveArgs) -> Result<(), String> {
             }
             Box::new(five)
         }
-        PuzzleKind::Cube6 => {
+        kind @ (PuzzleKind::Cube6 | PuzzleKind::Cube7) => {
             let three = Arc::new(Min2PhaseSolver::new());
             let four = FourSolver::new(three.clone());
             let five = FiveSolver::new(three.clone());
-            eprintln!("preparing the 4x4x4, 5x5x5 and 6x6x6 tables (built now on first use)");
+            eprintln!(
+                "preparing the 4x4x4 and 5x5x5 tables (the centre tables are built on first use)"
+            );
             four.prepare();
             five.prepare();
             Box::new(DwaltonSolver::new(
-                PuzzleKind::Cube6,
+                kind,
                 three,
                 Arc::new(four),
                 Arc::new(five),
             ))
-        }
-        kind => {
-            let size = kind.size();
-            return Err(format!(
-                "no engine for the {size}x{size}x{size} yet; only the 2x2x2 to 6x6x6 are solvable"
-            ));
         }
     };
 

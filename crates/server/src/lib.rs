@@ -100,12 +100,19 @@ pub struct AppState {
     four: FourSolver,
     /// The 6x6x6 engine, built on clones of the others.
     six: Arc<DwaltonSolver>,
+    /// The 7x7x7 engine, likewise.
+    seven: Arc<DwaltonSolver>,
 }
 
-/// The 6x6x6 engine over clones of the engines it finishes with.
-fn six_of(three: &Min2PhaseSolver, four: &FourSolver, five: &FiveSolver) -> Arc<DwaltonSolver> {
+/// The engine for a big cube over clones of the engines it finishes with.
+fn big_of(
+    kind: PuzzleKind,
+    three: &Min2PhaseSolver,
+    four: &FourSolver,
+    five: &FiveSolver,
+) -> Arc<DwaltonSolver> {
     Arc::new(DwaltonSolver::new(
-        PuzzleKind::Cube6,
+        kind,
         Arc::new(three.clone()),
         Arc::new(four.clone()),
         Arc::new(five.clone()),
@@ -140,7 +147,8 @@ impl AppState {
         let state = AppState {
             permits: Arc::new(Semaphore::new(config.max_concurrency.max(1))),
             config: Arc::new(config),
-            six: six_of(&three, &four, &five),
+            six: big_of(PuzzleKind::Cube6, &three, &four, &five),
+            seven: big_of(PuzzleKind::Cube7, &three, &four, &five),
             four,
             five,
             three,
@@ -162,7 +170,8 @@ impl AppState {
         AppState {
             permits: Arc::new(Semaphore::new(config.max_concurrency.max(1))),
             config: Arc::new(config),
-            six: six_of(&three, &four, &five),
+            six: big_of(PuzzleKind::Cube6, &three, &four, &five),
+            seven: big_of(PuzzleKind::Cube7, &three, &four, &five),
             five,
             four,
             three,
@@ -242,16 +251,6 @@ impl ApiError {
 
     fn bad_input(message: impl Into<String>) -> ApiError {
         ApiError::new(StatusCode::BAD_REQUEST, "bad_input", message)
-    }
-
-    fn no_engine(size: usize) -> ApiError {
-        ApiError::new(
-            StatusCode::NOT_IMPLEMENTED,
-            "no_engine",
-            format!(
-                "no engine for the {size}x{size}x{size} yet; only 2x2x2 to 6x6x6 can be solved"
-            ),
-        )
     }
 }
 
@@ -339,8 +338,7 @@ async fn scramble(
     }))
 }
 
-/// The cube size of a request, if a generator exists for it (the 7x7x7 has
-/// no solver yet; `solve` answers 501 for it).
+/// The cube size of a request, if an engine (and so a generator) exists for it.
 fn engine_kind(size: usize) -> Result<PuzzleKind, ApiError> {
     match size {
         2..=7 => Ok(PuzzleKind::of_size(size).expect("2 to 7 are sizes")),
@@ -486,22 +484,11 @@ async fn solve(
     let facelets = read_cube(&request.cube, request.scheme.as_deref())?;
     let kind = facelets.kind();
     engine_kind(kind.size())?;
-    if !matches!(
-        kind,
-        PuzzleKind::Cube2
-            | PuzzleKind::Cube3
-            | PuzzleKind::Cube4
-            | PuzzleKind::Cube5
-            | PuzzleKind::Cube6
-    ) {
-        return Err(ApiError::no_engine(kind.size()));
-    }
-
     let mut options = SolveOptions::default();
     if let Some(moves) = request.max_moves {
         let most = match kind {
             PuzzleKind::Cube4 => MAX_MOVES_4X4,
-            PuzzleKind::Cube5 | PuzzleKind::Cube6 => MAX_MOVES_5X5,
+            PuzzleKind::Cube5 | PuzzleKind::Cube6 | PuzzleKind::Cube7 => MAX_MOVES_5X5,
             _ => MAX_MOVES,
         };
         if !(1..=most).contains(&moves) {
@@ -558,7 +545,7 @@ async fn solve(
     })?;
 
     let (three, four, five) = (state.three.clone(), state.four.clone(), state.five.clone());
-    let six = state.six.clone();
+    let (six, seven) = (state.six.clone(), state.seven.clone());
     let result = tokio::task::spawn_blocking(move || {
         let _permit = permit; // released when the solve finishes
         let result = match kind {
@@ -566,6 +553,7 @@ async fn solve(
             PuzzleKind::Cube4 => four.solve(&facelets, &options),
             PuzzleKind::Cube5 => five.solve(&facelets, &options),
             PuzzleKind::Cube6 => six.solve(&facelets, &options),
+            PuzzleKind::Cube7 => seven.solve(&facelets, &options),
             _ if improve => three.solve_with_minimum_time(&facelets, &options, budget),
             _ => three.solve(&facelets, &options),
         };

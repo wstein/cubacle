@@ -64,22 +64,16 @@ fn convert_reads_the_japanese_scheme() {
 }
 
 #[test]
-fn unsupported_sizes_say_so() {
-    let solved_7x7: String = "URFDLB".chars().flat_map(|c| [c; 49]).collect();
-    let (ok, _, error) = cubacle(&["solve", &solved_7x7]);
-    assert!(!ok);
-    assert!(error.contains("no engine for the 7x7x7"), "{error}");
-}
-
-#[test]
-fn a_random_6x6_is_generated_and_solved() {
-    let (ok, facelets, error) = cubacle(&["random", "--size", "6"]);
-    assert!(ok, "{error}");
-    let cube = Facelets::parse(&facelets).unwrap();
-    assert_eq!(cube.kind(), PuzzleKind::Cube6);
-    let (ok, solution, error) = cubacle(&["solve", &facelets]);
-    assert!(ok, "{error}");
-    assert!(solved_by(&cube, &solution), "{solution}");
+fn a_random_6x6_and_7x7_are_generated_and_solved() {
+    for (size, kind) in [("6", PuzzleKind::Cube6), ("7", PuzzleKind::Cube7)] {
+        let (ok, facelets, error) = cubacle(&["random", "--size", size]);
+        assert!(ok, "{error}");
+        let cube = Facelets::parse(&facelets).unwrap();
+        assert_eq!(cube.kind(), kind);
+        let (ok, solution, error) = cubacle(&["solve", &facelets]);
+        assert!(ok, "{error}");
+        assert!(solved_by(&cube, &solution), "{solution}");
+    }
 }
 
 #[test]
@@ -447,12 +441,12 @@ fn convert_writes_orbit64_tokens_for_every_size() {
 }
 
 #[test]
-fn a_token_without_an_engine_is_read_and_then_refused_by_solve() {
+fn a_solved_7x7_token_is_read_and_solved() {
     let token = "A".repeat(90);
     assert!(cubacle(&["convert", &token]).0);
-    let (ok, _, error) = cubacle(&["solve", &token]);
-    assert!(!ok);
-    assert!(error.contains("no engine for the 7x7x7"), "{error}");
+    let (ok, solution, error) = cubacle(&["solve", &token]);
+    assert!(ok, "{error}");
+    assert!(solution.trim().is_empty(), "{solution}");
 }
 
 #[test]

@@ -16,7 +16,7 @@ cubacle is a Rubik's cube solver and generator written in Rust. It comes as a co
 | 3x3x3 | Supported. Solved with the Kociemba two-phase algorithm. |
 | 4x4x4 | Supported by a three-phase reduction. Solutions have about 47 moves, the last few being the rotation to the standard orientation; the tables take 12 MB and are built in a fraction of a second. |
 | 5x5x5 | Supported by a five-phase reduction. Solutions have about 73 moves; the first solve needs 237 MB of tables. |
-| 6x6x6, 7x7x7 | Planned. The notations and the API accept these sizes, but no engine exists yet. |
+| 6x6x6, 7x7x7 | Supported by a reduction after the 6x6x6 and 7x7x7 stages of dwalton76's NxNxN solver; solutions have about 134 (6x6x6) and 189 (7x7x7) moves. |
 
 For details, see [Engines and limits](engines/_index.md).
 

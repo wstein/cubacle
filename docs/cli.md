@@ -79,7 +79,7 @@ cubacle solve -s "R U F B L D R U" --max-moves 2
 error: no solution within the move limit (the search ended without a solution (time budget or move limit reached))
 ```
 
-The 6x6x6 solves by reduction (see [Engines and limits](engines/_index.md)); the 7x7x7 has no engine yet. See [Engines and limits](engines/_index.md).
+The 6x6x6 and 7x7x7 solve by reduction; see [Engines and limits](engines/_index.md).
 
 ## Solve a 4x4x4
 
@@ -169,7 +169,7 @@ ASj79
 A3DZCufPmdSpgSdAXL5x0iJAczTlcP4refzTMJv_VgBoTFSReBHZMvFpjDdnSJzhHA
 ```
 
-Tokens exist for every size from 2x2x2 to 7x7x7. `solve` reads all of them and then answers `no engine` for the 7x7x7; `convert` works for all.
+Tokens exist for every size from 2x2x2 to 7x7x7. `solve` and `convert` read all of them.
 
 | Cube | Token length | Checked against |
 | --- | ---: | --- |
