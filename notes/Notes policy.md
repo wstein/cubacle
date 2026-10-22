@@ -10,4 +10,6 @@ Notes are raw material and do not replace documentation. Milestones and official
 - [[Feature workflow]]
 - [[Validate in CI]]
 
-Source: project history of cubacle, lines 1-1
+Source: AGENTS.md, lines 9-11
+Source: AGENTS.md, lines 51-52
+Source: owner decision of 2026-10-21, lines 1-1

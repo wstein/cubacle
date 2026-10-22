@@ -10,4 +10,6 @@ A Sonnet author builds each feature in a separate git worktree, an Opus review f
 - [[Workspace split timing]]
 - [[Notes policy]]
 
-Source: project history of cubacle, lines 1-1
+Source: AGENTS.md, lines 18-20
+Source: docs/architecture.md, lines 34-36
+Source: owner decision of 2026-10-21, lines 1-1
