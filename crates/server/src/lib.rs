@@ -49,7 +49,7 @@ pub const MAX_TIMEOUT_MS: u64 = 600_000;
 pub const MAX_CONCURRENCY: usize = 256;
 /// Largest `maxMoves` the 3x3 engine honours (it silently clamps above this).
 pub const MAX_MOVES: u8 = 25;
-/// Largest `maxMoves` for the 5x5x5, whose solutions run to hundreds of moves.
+/// Largest `maxMoves` for the 5x5x5 (a byte; its solutions have about 73 moves).
 pub const MAX_MOVES_5X5: u8 = u8::MAX;
 
 /// Runtime limits of the server.
@@ -101,8 +101,21 @@ impl AppState {
 
     /// Like [`AppState::new`], with the 3x3x3 engine injected.
     pub fn with_solver(config: Config, three: Min2PhaseSolver) -> AppState {
+        let five = FiveSolver::new(Arc::new(three.clone()));
+        AppState::with_engines(config, three, five)
+    }
+
+    /// Like [`AppState::with_solver`], with the 5x5x5 engine injected too (a
+    /// clone shares its tables, so tests can build them once and keep their
+    /// cache directory private).
+    pub fn with_engines(config: Config, three: Min2PhaseSolver, five: FiveSolver) -> AppState {
         PocketSolver::new().prepare();
-        let state = AppState::assemble(config, three);
+        let state = AppState {
+            permits: Arc::new(Semaphore::new(config.max_concurrency.max(1))),
+            config: Arc::new(config),
+            five,
+            three,
+        };
         state.three.prepare();
         state.five.prepare();
         state

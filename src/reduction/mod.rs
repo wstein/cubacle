@@ -8,9 +8,6 @@
 //!
 //! Dependency rule: `puzzle <- notation <- reduction <- engines`.
 
-// Parts are used only by later commits of the five-phase engine.
-#![allow(dead_code)]
-
 pub(crate) mod bfs;
 pub(crate) mod cache;
 pub(crate) mod comb;

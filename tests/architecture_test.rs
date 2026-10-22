@@ -435,6 +435,10 @@ fn the_5x5_engine_reaches_the_3x3_solver_only_through_the_trait() {
     rust_files(&root.join("src/engines/five"), &mut files);
     assert!(!files.is_empty());
     for file in files {
+        // `solver/tests.rs` is a `#[cfg(test)]` module that stubs the hand-off.
+        if file.ends_with("solver/tests.rs") {
+            continue;
+        }
         let source = strip_test_items(&strip_comments_and_strings(
             &fs::read_to_string(&file).unwrap(),
         ));

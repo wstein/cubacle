@@ -1,48 +1,32 @@
-//! The 5x5x5 reduction engine.
+//! The 5x5x5 reduction engine: a port of the five-phase solver cs0x7f/cube555.
 //!
-//! Files, from the bottom up: `model` (the cube as sticker permutations of
-//! the layer turns that keep the centres fixed), `library` (pure 3-cycles of
-//! centre and wing pieces), `orbit` (ordering one orbit with them), `reduce`
-//! (centres, then wings, and the parity of the wings) and `solver` (the
-//! [`crate::puzzle::Solver`] adapter, the only public item, which finishes
-//! with an injected 3x3x3 solver).
+//! Five table-driven searches bring the centres and wings into place, leaving
+//! a 3x3x3 that an injected solver finishes. Files, from the bottom up:
+//! `mv` (move numbers), `cubie` and `cubie_sym` (the pieces and the 48
+//! symmetries), `p1` to `p5` (one phase each: coordinates, tables, search
+//! node; `p4_model` and `p5_model` hold their piece models), `spaces` (search
+//! spaces shared by tables), `build` and `tables` (making the pruning tables,
+//! or reading them from the cache), `solving` and `reduction` (the phases in a
+//! row) and `solver` (the [`crate::puzzle::Solver`] adapter, the only public
+//! item). The searches themselves are the generic ones of `crate::reduction`.
 
-mod library;
-mod model;
-mod orbit;
-mod reduce;
-mod solver;
-
-pub use solver::FiveSolver;
-#[allow(dead_code)]
 mod build;
-#[allow(dead_code)]
 mod cubie;
-#[allow(dead_code)]
 mod cubie_sym;
 mod mv;
-#[allow(dead_code)]
 mod p1;
-#[allow(dead_code)]
 mod p2;
-#[allow(dead_code)]
 mod p3;
-#[allow(dead_code)]
 mod p4;
-#[allow(dead_code)]
 mod p4_model;
-#[allow(dead_code)]
 mod p5;
-#[allow(dead_code)]
 mod p5_model;
-#[allow(dead_code)]
 mod reduction;
-#[allow(dead_code)]
+mod solver;
 mod solving;
-#[allow(dead_code)]
 mod spaces;
-#[allow(dead_code)]
 mod tables;
 #[cfg(test)]
-#[allow(dead_code)]
 mod testing;
+
+pub use solver::FiveSolver;

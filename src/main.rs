@@ -96,7 +96,7 @@ struct ConvertArgs {
 struct SolveArgs {
     #[command(flatten)]
     input: InputArgs,
-    /// Longest solution to accept (default: 21; none for the 5x5x5)
+    /// Longest solution to accept (default: 21; none for the 5x5x5; a limit applies to the whole solution)
     #[arg(short = 'm', long)]
     max_moves: Option<u8>,
     /// Hard time limit in milliseconds
@@ -186,7 +186,21 @@ fn solve(args: SolveArgs) -> Result<(), String> {
     let solver: Box<dyn Solver> = match facelets.kind() {
         PuzzleKind::Cube2 => Box::new(PocketSolver::new()),
         PuzzleKind::Cube3 => Box::new(Min2PhaseSolver::new()),
-        PuzzleKind::Cube5 => Box::new(FiveSolver::new(Arc::new(Min2PhaseSolver::new()))),
+        PuzzleKind::Cube5 => {
+            let five = FiveSolver::new(Arc::new(Min2PhaseSolver::new()));
+            match five.cache_dir() {
+                Some(dir) => eprintln!(
+                    "preparing the 5x5x5 tables (cache directory {})",
+                    dir.display()
+                ),
+                None => eprintln!("preparing the 5x5x5 tables (no cache directory: built now)"),
+            }
+            five.prepare();
+            if five.cache_write_failed() == Some(true) {
+                eprintln!("warning: the tables could not be saved; they are built again next time");
+            }
+            Box::new(five)
+        }
         kind => {
             let size = kind.size();
             return Err(format!(

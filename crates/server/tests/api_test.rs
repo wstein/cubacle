@@ -1,14 +1,31 @@
+use std::path::PathBuf;
+use std::sync::{Arc, OnceLock};
+
 use axum::body::Body;
 use axum::http::{header, Request, StatusCode};
 use axum::Router;
+use cubacle::engines::five::FiveSolver;
+use cubacle::engines::three::Min2PhaseSolver;
 use cubacle::puzzle::{Facelets, PuzzleKind};
 use cubacle_server::{router, AppState, Config};
 use http_body_util::BodyExt;
 use serde_json::{json, Value};
 use tower::ServiceExt;
 
+/// One 5x5x5 solver for all tests of this binary: its tables are read once,
+/// from a directory under the build directory (shared with the other test
+/// binaries), never from the user's cache.
+fn five() -> FiveSolver {
+    static FIVE: OnceLock<FiveSolver> = OnceLock::new();
+    FIVE.get_or_init(|| {
+        let dir = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join("five-tables");
+        FiveSolver::new(Arc::new(Min2PhaseSolver::shared())).with_cache_dir(Some(dir))
+    })
+    .clone()
+}
+
 fn app_with(config: Config) -> (Router, AppState) {
-    let state = AppState::new(config);
+    let state = AppState::with_engines(config, Min2PhaseSolver::shared(), five());
     (router(state.clone()), state)
 }
 
@@ -571,11 +588,9 @@ async fn unprepared_state_serves_non_solving_endpoints() {
 
 #[tokio::test]
 async fn an_injected_solver_is_prepared_and_used() {
-    use cubacle::engines::three::Min2PhaseSolver;
-
     let solver = Min2PhaseSolver::new();
     assert!(format!("{solver:?}").contains("tables_built: false"));
-    let state = AppState::with_solver(Config::default(), solver.clone());
+    let state = AppState::with_engines(Config::default(), solver.clone(), five());
     assert!(
         format!("{solver:?}").contains("tables_built: true"),
         "with_solver must prepare the injected solver"
@@ -640,7 +655,7 @@ async fn a_5x5_move_limit_and_bad_cubes_are_reported() {
     let cube = scrambled_5x5("2R U 2F' R").to_string();
     let (status, _, body) = call(
         app(),
-        post_json("/v1/solve", json!({"cube": cube, "maxMoves": 10})),
+        post_json("/v1/solve", json!({"cube": cube, "maxMoves": 3})),
     )
     .await;
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{body}");
