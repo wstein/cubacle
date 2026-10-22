@@ -5,11 +5,12 @@ use std::process::ExitCode;
 use std::sync::Arc;
 use std::time::Duration;
 
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, Parser, Subcommand, ValueEnum};
 use cubacle::engines::five::FiveSolver;
 use cubacle::engines::three::Min2PhaseSolver;
 use cubacle::engines::two::PocketSolver;
 use cubacle::generate;
+use cubacle::notation::orbit64;
 use cubacle::notation::{parse_cube, ColourScheme};
 use cubacle::puzzle::{Facelets, Failure, MoveSequence, PuzzleKind, SolveOptions, Solver};
 
@@ -42,8 +43,8 @@ enum Command {
         #[arg(long, default_value_t = 3)]
         size: usize,
     },
-    /// Translate any supported notation into canonical URFDLB facelets
-    Convert(InputArgs),
+    /// Translate any supported notation into URFDLB facelets or an Orbit64 token
+    Convert(ConvertArgs),
     /// Print the facelets reached by applying a scramble to a solved cube
     Facelets {
         /// Moves in standard notation, e.g. "R U R' U'"
@@ -71,6 +72,24 @@ struct InputArgs {
     /// (default: read from the centres, boy without centres)
     #[arg(long)]
     scheme: Option<ColourScheme>,
+}
+
+/// What `convert` writes.
+#[derive(Clone, Copy, ValueEnum)]
+enum Output {
+    /// Canonical URFDLB facelets
+    Facelets,
+    /// An Orbit64 state token
+    Token,
+}
+
+#[derive(Args)]
+struct ConvertArgs {
+    #[command(flatten)]
+    input: InputArgs,
+    /// What to print
+    #[arg(long, value_enum, default_value_t = Output::Facelets)]
+    to: Output,
 }
 
 #[derive(Args)]
@@ -105,8 +124,12 @@ fn run(cli: Cli) -> Result<(), String> {
     match cli.command {
         Command::Solve(args) => solve(args),
         Command::Icon(args) => icons::run(args),
-        Command::Convert(input) => {
-            println!("{}", read_cube(&input)?);
+        Command::Convert(args) => {
+            let cube = read_cube(&args.input)?;
+            match args.to {
+                Output::Facelets => println!("{cube}"),
+                Output::Token => println!("{}", orbit64::encode(&cube).map_err(|e| e.to_string())?),
+            }
             Ok(())
         }
         Command::Scramble { moves, size } => {

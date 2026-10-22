@@ -346,3 +346,38 @@ fn solve_icons_on_a_pipe_is_plain_text_and_plain_solve_is_unchanged() {
     assert!(icons.contains("step 1 of "));
     assert!(icons.trim_end().ends_with(&plain));
 }
+
+#[test]
+fn convert_writes_orbit64_tokens_for_every_size() {
+    for (size, width) in [(2, 5), (3, 12), (4, 27), (5, 43), (6, 66), (7, 90)] {
+        let scramble = if size < 4 {
+            "R U F' R2 U'"
+        } else {
+            "R U 2R 2U' F"
+        };
+        let size = size.to_string();
+        let (ok, facelets, error) = cubacle(&["facelets", scramble, "--size", &size]);
+        assert!(ok, "{error}");
+        let (ok, token, error) = cubacle(&["convert", "--to", "token", &facelets]);
+        assert!(ok, "{size}: {error}");
+        assert_eq!(token.trim().len(), width, "{size}");
+        // The token is read back by its length alone.
+        assert_eq!(cubacle(&["convert", token.trim()]).1, facelets, "{size}");
+    }
+}
+
+#[test]
+fn a_token_without_an_engine_is_read_and_then_refused_by_solve() {
+    let token = "A".repeat(90);
+    assert!(cubacle(&["convert", &token]).0);
+    let (ok, _, error) = cubacle(&["solve", &token]);
+    assert!(!ok);
+    assert!(error.contains("no engine for the 7x7x7"), "{error}");
+}
+
+#[test]
+fn an_impossible_token_is_an_error() {
+    let (ok, _, error) = cubacle(&["convert", &"_".repeat(43)]);
+    assert!(!ok);
+    assert!(error.contains("out of range"), "{error}");
+}
