@@ -33,6 +33,25 @@ jobs:
         run: cargo clippy --workspace --all-targets -- -D warnings
       - name: Test
         run: cargo test --workspace --release
+  five-full:
+    name: five-full
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CUBACLE_CACHE_DIR: ${{ github.workspace }}/target/tmp/five-full
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Cache the 5x5x5 tables
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: target/tmp/five-full
+          # any change to the engine or to the shared reduction code may change
+          # the tables (tables.rs also holds the format version)
+          key: five-tables-${{ hashFiles('src/engines/five/**', 'src/reduction/**') }}
+      - name: Full-table tests
+        run: cargo test --release -- --ignored five_full
   msrv:
     name: msrv
     runs-on: ubuntu-latest
