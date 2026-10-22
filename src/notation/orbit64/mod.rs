@@ -11,8 +11,9 @@
 //! DRB) and midges (UR UF UL UB DR DF DL DB FR FL BL BR), wings and centres by
 //! facelet index. A token carries ordinals only, so it cannot prove its
 //! producer used the same numbering; the reference vectors of the format are
-//! the evidence it matches, and they exist for the 2x2x2 to 5x5x5 (the 6x6x6
-//! and 7x7x7 only for the solved cube).
+//! the evidence it matches: facelet vectors for the 2x2x2 to 5x5x5, and for
+//! every size orbit-coordinate vectors (two scrambled cubes each for the 6x6x6
+//! and 7x7x7).
 //!
 //! Origin: Rust re-implementation of flix-orbit64 (Apache-2.0, Werner Stein).
 

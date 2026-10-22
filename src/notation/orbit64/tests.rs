@@ -245,3 +245,79 @@ fn detection_uses_width_and_alphabet() {
         Some(PuzzleKind::Cube2)
     );
 }
+
+const ORBIT_VECTORS: &str = include_str!("../../../tests/fixtures/orbit64_orbits.txt");
+
+fn numbers(text: &str) -> Vec<usize> {
+    text.split(',').map(|n| n.parse().unwrap()).collect()
+}
+
+/// The orbit coordinates of the official vectors, as the format's reference
+/// implementation lists them.
+fn official_coords(fields: &[&str]) -> Coords {
+    let mut coords = Coords::default();
+    for field in fields {
+        let (kind, rest) = field.split_once(':').unwrap();
+        let mut parts = rest.split(';');
+        let first = numbers(parts.next().unwrap());
+        let second = parts.next().map(numbers);
+        match kind {
+            "C" => {
+                coords.corner_perm = first;
+                coords.corner_twist = second.unwrap();
+            }
+            "M" => {
+                coords.midge_perm = first;
+                coords.midge_flip = second.unwrap();
+            }
+            "W" => coords.wings.push(first),
+            "Z" => coords.centres.push(first),
+            other => panic!("unknown orbit {other}"),
+        }
+    }
+    coords
+}
+
+/// The scrambled vectors of every size, including the 6x6x6 and 7x7x7 (which
+/// have no other official vector than the solved cube), given as orbit
+/// coordinates: placing the official pieces must give a cube whose token is
+/// the official one, and decoding the token must give the same cube and the
+/// same pieces.
+#[test]
+fn official_orbit_coordinates_match_their_tokens() {
+    let mut seen = Vec::new();
+    for line in ORBIT_VECTORS.lines().filter(|l| !l.starts_with('#')) {
+        let fields: Vec<&str> = line.split(' ').collect();
+        let size: usize = fields[0].parse().unwrap();
+        let token = fields[1];
+        let want = official_coords(&fields[2..]);
+        let layout = Layout::new(size);
+
+        let stickers = pieces::place(&layout, &want);
+        let cube =
+            Facelets::from_stickers(stickers.iter().map(|&i| Face::ALL[i]).collect()).unwrap();
+        assert_eq!(encode(&cube).as_deref(), Ok(token), "{size} {token}");
+        assert_eq!(decode(token).unwrap(), cube, "{size} {token}");
+        assert_eq!(pieces::read(&layout, &stickers).unwrap(), want, "{token}");
+        seen.push(size);
+    }
+    assert_eq!(seen, [2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7]);
+}
+
+/// Cubes of the large sizes scrambled by turns of every depth keep their
+/// pieces: a token decodes to the cube, and the cube's pieces re-encode to
+/// the same token after the frame of an odd cube is removed.
+#[test]
+fn scrambled_6x6x6_and_7x7x7_tokens_are_stable_under_more_turns() {
+    for kind in [PuzzleKind::Cube6, PuzzleKind::Cube7] {
+        let size = kind.size();
+        let mut cube = Facelets::solved(kind);
+        let mut tokens = std::collections::HashSet::new();
+        for seed in 100..120 {
+            cube = cube.apply(&scramble_of(size, seed)).unwrap();
+            let token = encode(&cube).unwrap_or_else(|e| panic!("{size} {seed}: {e}"));
+            assert_eq!(decode(&token).unwrap(), cube, "{size} {seed}");
+            assert!(tokens.insert(token), "{size} {seed} repeats a state");
+        }
+    }
+}

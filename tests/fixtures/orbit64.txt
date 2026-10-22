@@ -1,7 +1,8 @@
 # Orbit64 reference vectors: size, token, facelets (URFDLB).
 # Rows 1-100 of ORBIT64-EXAMPLES.md (2x2x2 to 5x5x5) and the vectors of FORMAT.md,
 # from https://github.com/wstein/flix-orbit64 (Apache-2.0, Werner Stein).
-# The 6x6x6 and 7x7x7 have only the solved cube among the official vectors.
+# The 6x6x6 and 7x7x7 have only the solved cube here; their scrambled vectors are in
+# orbit64_orbits.txt.
 3 AAAAAAAAAAAA UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB
 3 AAAABeBQZgAA UDUDUDUDURLRLRLRLRFBFBFBFBFDUDUDUDUDLRLRLRLRLBFBFBFBFB
 3 KJZ7jorgHRfo LLLLULLLLFFFFRFFFFDDDDFDDDDRRRRDRRRRBBBBLBBBBUUUUBUUUU
