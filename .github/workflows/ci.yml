@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Checks for develop and pull requests against develop.
 # The msrv job builds with the rust-version of Cargo.toml (1.85, forced by the edition 2024 of rand 0.10).
-# A notes/cscribe job is intentionally absent until the owner has settled a release of that tool.
+# The notes job validates notes/ with the pinned ChartScribe release (checksum and build attestation verified when pinning).
 name: ci
 on:
   push:
@@ -72,3 +72,22 @@ jobs:
           cp -r docs "$RUNNER_TEMP/site/content"
           HUGO_CACHEDIR="$RUNNER_TEMP/hugo-cache" "$RUNNER_TEMP/hugo/hugo" --source "$RUNNER_TEMP/site" --destination "$RUNNER_TEMP/public" --noBuildLock --quiet
           test -s "$RUNNER_TEMP/public/index.html"
+  notes:
+    name: notes
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install pinned ChartScribe
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/cscribe"
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/cscribe/cscribe.tar.gz" https://github.com/wstein/chartscribe/releases/download/v0.1.0/cscribe_0.1.0_linux_amd64.tar.gz
+          echo 'b8941a418cec616df6d142d1008dd0bef7c8aea98c32911b724620e666a572cf  '"$RUNNER_TEMP/cscribe/cscribe.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/cscribe/cscribe.tar.gz" -C "$RUNNER_TEMP/cscribe"
+          "$RUNNER_TEMP/cscribe/cscribe_0.1.0_linux_amd64/cscribe" version
+      - name: Validate the notes
+        run: '"$RUNNER_TEMP/cscribe/cscribe_0.1.0_linux_amd64/cscribe" validate'
