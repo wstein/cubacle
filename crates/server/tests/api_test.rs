@@ -123,9 +123,11 @@ async fn random_cubes_for_supported_sizes() {
     let (status, _, _) = call(app(), post_json("/v1/solve", json!({"cube": facelets}))).await;
     assert_eq!(status, StatusCode::OK);
 
-    let (status, _, body) = call(app(), get("/v1/random?size=6")).await;
-    assert_eq!(status, StatusCode::NOT_IMPLEMENTED);
-    assert_eq!(code(&body), "no_engine");
+    for size in [6, 7] {
+        let (status, _, body) = call(app(), get(&format!("/v1/random?size={size}"))).await;
+        assert_eq!(status, StatusCode::OK, "{body}");
+        assert_eq!(body["kind"], format!("{size}x{size}x{size}"));
+    }
 }
 
 #[tokio::test]
@@ -287,12 +289,12 @@ async fn move_limit_too_small_is_422() {
 
 #[tokio::test]
 async fn unsupported_size_is_501() {
-    let cube = "U".repeat(36)
-        + &"R".repeat(36)
-        + &"F".repeat(36)
-        + &"D".repeat(36)
-        + &"L".repeat(36)
-        + &"B".repeat(36);
+    let cube = "U".repeat(49)
+        + &"R".repeat(49)
+        + &"F".repeat(49)
+        + &"D".repeat(49)
+        + &"L".repeat(49)
+        + &"B".repeat(49);
     let (status, _, body) = call(app(), post_json("/v1/solve", json!({"cube": cube}))).await;
     assert_eq!(status, StatusCode::NOT_IMPLEMENTED, "{body}");
     assert_eq!(code(&body), "no_engine");
@@ -406,9 +408,8 @@ async fn size_validation_distinguishes_400_and_501() {
         assert_eq!(code(&body), "bad_input");
     }
     for size in ["6", "7"] {
-        let (status, _, body) = call(app(), get(&format!("/v1/random?size={size}"))).await;
-        assert_eq!(status, StatusCode::NOT_IMPLEMENTED, "{size}");
-        assert_eq!(code(&body), "no_engine");
+        let (status, _, _) = call(app(), get(&format!("/v1/random?size={size}"))).await;
+        assert_eq!(status, StatusCode::OK, "{size}");
     }
 }
 
@@ -424,10 +425,29 @@ async fn orbit64_tokens_of_sizes_without_an_engine_convert_but_do_not_solve() {
             body["facelets"].as_str().unwrap(),
             Facelets::solved(PuzzleKind::of_size(size).unwrap()).to_string()
         );
-        let (status, _, body) = call(app(), post_json("/v1/solve", json!({"cube": cube}))).await;
-        assert_eq!(status, StatusCode::NOT_IMPLEMENTED, "{size}: {body}");
-        assert_eq!(code(&body), "no_engine");
+        if size == 7 {
+            let (status, _, body) =
+                call(app(), post_json("/v1/solve", json!({"cube": cube}))).await;
+            assert_eq!(status, StatusCode::NOT_IMPLEMENTED, "{size}: {body}");
+            assert_eq!(code(&body), "no_engine");
+        }
     }
+}
+
+#[tokio::test]
+async fn a_6x6_is_solved_and_the_solution_replays() {
+    let cube = Facelets::solved(PuzzleKind::Cube6)
+        .apply(&cubacle::generate::scramble(PuzzleKind::Cube6, 60))
+        .unwrap();
+    let (status, _, body) = call(
+        app(),
+        post_json("/v1/solve", json!({"cube": cube.to_string()})),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(body["kind"], "6x6x6");
+    let moves = body["solution"].as_str().unwrap().parse().unwrap();
+    assert!(cube.apply(&moves).unwrap().is_solved());
 }
 
 #[tokio::test]

@@ -77,7 +77,7 @@ The solve request returns:
 
 The `elapsedMicros` value varies between runs.
 
-`convert` also answers the Orbit64 token of the cube (`token`), left out when the stickers are not a cube. Tokens of every size from 2x2x2 to 7x7x7 are accepted. A 4x4x4 token converts and solves. A 6x6x6 or 7x7x7 token converts, and `solve` of it answers 501 `no_engine`:
+`convert` also answers the Orbit64 token of the cube (`token`), left out when the stickers are not a cube. Tokens of every size from 2x2x2 to 7x7x7 are accepted. A 4x4x4 token converts and solves. A 6x6x6 token converts and solves; a 7x7x7 token converts, and `solve` of it answers 501 `no_engine`:
 
 ```sh
 curl -s -XPOST localhost:8080/v1/convert \
@@ -93,7 +93,7 @@ curl -s -XPOST localhost:8080/v1/solve \
 
 A 4x4x4 solution has about 48 moves. Its last wide turns (`Rw Lw'` and the like, at most four) turn the whole cube back to the standard orientation, because a 4x4x4 has no fixed centres; the cube is solved exactly after them. The tables (12 MB) are built at startup, and each solve uses one thread, so concurrent requests do not compete for cores.
 
-A 6x6x6 or 7x7x7 is converted, but `solve` of it answers 501 `no_engine`.
+A 7x7x7 is converted, but `solve` of it answers 501 `no_engine`.
 
 A 5x5x5 is sent as its 150 facelets or its 43-character token. This request solves the cube of a scramble:
 
@@ -129,7 +129,7 @@ Errors have this shape:
 | 422 | `no_solution_within_limit` | No solution within `maxMoves`. |
 | 429 | `busy` | All solver slots are in use. The response has `Retry-After: 1`. |
 | 500 | `internal` | A handler or solver thread panicked, or an engine reached a state it cannot explain. |
-| 501 | `no_engine` | `solve` of a valid cube size (6 or 7) that has no engine yet, whether sent as facelets or as an Orbit64 token. `convert` works for those sizes. |
+| 501 | `no_engine` | `solve` of a valid cube size (7) that has no engine yet, whether sent as facelets or as an Orbit64 token. `convert` works for those sizes. |
 | 504 | `budget_exhausted` | The time budget ran out. |
 
 Some details:

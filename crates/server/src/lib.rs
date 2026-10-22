@@ -31,6 +31,7 @@ use axum::middleware::{self, Next};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
+use cubacle::engines::dwalton::DwaltonSolver;
 use cubacle::engines::five::FiveSolver;
 use cubacle::engines::four::FourSolver;
 use cubacle::engines::three::Min2PhaseSolver;
@@ -97,6 +98,18 @@ pub struct AppState {
     /// The 4x4x4 engine, finishing with a clone of `three`; one thread per
     /// solve, so concurrent requests do not compete for cores.
     four: FourSolver,
+    /// The 6x6x6 engine, built on clones of the others.
+    six: Arc<DwaltonSolver>,
+}
+
+/// The 6x6x6 engine over clones of the engines it finishes with.
+fn six_of(three: &Min2PhaseSolver, four: &FourSolver, five: &FiveSolver) -> Arc<DwaltonSolver> {
+    Arc::new(DwaltonSolver::new(
+        PuzzleKind::Cube6,
+        Arc::new(three.clone()),
+        Arc::new(four.clone()),
+        Arc::new(five.clone()),
+    ))
 }
 
 impl AppState {
@@ -127,6 +140,7 @@ impl AppState {
         let state = AppState {
             permits: Arc::new(Semaphore::new(config.max_concurrency.max(1))),
             config: Arc::new(config),
+            six: six_of(&three, &four, &five),
             four,
             five,
             three,
@@ -143,11 +157,14 @@ impl AppState {
     }
 
     fn assemble(config: Config, three: Min2PhaseSolver) -> AppState {
+        let five = FiveSolver::new(Arc::new(three.clone()));
+        let four = FourSolver::new(Arc::new(three.clone())).with_threads(1);
         AppState {
             permits: Arc::new(Semaphore::new(config.max_concurrency.max(1))),
             config: Arc::new(config),
-            five: FiveSolver::new(Arc::new(three.clone())),
-            four: FourSolver::new(Arc::new(three.clone())).with_threads(1),
+            six: six_of(&three, &four, &five),
+            five,
+            four,
             three,
         }
     }
@@ -232,7 +249,7 @@ impl ApiError {
             StatusCode::NOT_IMPLEMENTED,
             "no_engine",
             format!(
-                "no engine for the {size}x{size}x{size} yet; only 2x2x2, 3x3x3, 4x4x4 and 5x5x5 exist"
+                "no engine for the {size}x{size}x{size} yet; only 2x2x2 to 6x6x6 can be solved"
             ),
         )
     }
@@ -322,11 +339,11 @@ async fn scramble(
     }))
 }
 
-/// The cube size of a request, if an engine (and so a generator) exists for it.
+/// The cube size of a request, if a generator exists for it (the 7x7x7 has
+/// no solver yet; `solve` answers 501 for it).
 fn engine_kind(size: usize) -> Result<PuzzleKind, ApiError> {
     match size {
-        2..=5 => Ok(PuzzleKind::of_size(size).expect("2 to 5 are sizes")),
-        6 | 7 => Err(ApiError::no_engine(size)),
+        2..=7 => Ok(PuzzleKind::of_size(size).expect("2 to 7 are sizes")),
         _ => Err(ApiError::bad_input("size must be between 2 and 7")),
     }
 }
@@ -359,7 +376,7 @@ impl CubeBody {
 async fn random(params: Result<Query<RandomParams>, QueryRejection>) -> ApiResult<CubeBody> {
     let Query(params) = params.map_err(|e| ApiError::bad_input(e.body_text()))?;
     let kind = engine_kind(params.size.unwrap_or(3))?;
-    let facelets = generate::random_state(kind).expect("the 2x2x2 to 5x5x5 have generators");
+    let facelets = generate::random_state(kind).expect("the 2x2x2 to 7x7x7 have generators");
     Ok(Json(CubeBody::of(&facelets)))
 }
 
@@ -469,12 +486,22 @@ async fn solve(
     let facelets = read_cube(&request.cube, request.scheme.as_deref())?;
     let kind = facelets.kind();
     engine_kind(kind.size())?;
+    if !matches!(
+        kind,
+        PuzzleKind::Cube2
+            | PuzzleKind::Cube3
+            | PuzzleKind::Cube4
+            | PuzzleKind::Cube5
+            | PuzzleKind::Cube6
+    ) {
+        return Err(ApiError::no_engine(kind.size()));
+    }
 
     let mut options = SolveOptions::default();
     if let Some(moves) = request.max_moves {
         let most = match kind {
             PuzzleKind::Cube4 => MAX_MOVES_4X4,
-            PuzzleKind::Cube5 => MAX_MOVES_5X5,
+            PuzzleKind::Cube5 | PuzzleKind::Cube6 => MAX_MOVES_5X5,
             _ => MAX_MOVES,
         };
         if !(1..=most).contains(&moves) {
@@ -531,12 +558,14 @@ async fn solve(
     })?;
 
     let (three, four, five) = (state.three.clone(), state.four.clone(), state.five.clone());
+    let six = state.six.clone();
     let result = tokio::task::spawn_blocking(move || {
         let _permit = permit; // released when the solve finishes
         let result = match kind {
             PuzzleKind::Cube2 => return Some(PocketSolver::new().solve(&facelets, &options)),
             PuzzleKind::Cube4 => four.solve(&facelets, &options),
             PuzzleKind::Cube5 => five.solve(&facelets, &options),
+            PuzzleKind::Cube6 => six.solve(&facelets, &options),
             _ if improve => three.solve_with_minimum_time(&facelets, &options, budget),
             _ => three.solve(&facelets, &options),
         };
