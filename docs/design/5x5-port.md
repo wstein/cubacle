@@ -311,6 +311,8 @@ what was built and measured, and it replaces the estimates in sections 5, 6 and 
 | Answers with 1, 4, 12 threads | identical | | identical on 300 cubes |
 | Pruning tables | | 237 MB | 237 MB, byte-identical to Java's |
 
+Correction (later measurement, see `docs/performance.md`): the Java figure of 865 ms above is a first-run mean; warm Java measured 575.7 ms (reduction only) on 300 cubes, so the speed-ups are 1.41x at one thread and 5.75x at 12 threads, not 1.9x and 9x.
+
 Notes on the differences from the plan.
 
 - **Memory.** 237 MB are pruning tables and about 70 MB are move and symmetry tables.
