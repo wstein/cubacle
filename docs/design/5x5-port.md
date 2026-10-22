@@ -1,6 +1,6 @@
 ---
 title: "5x5x5 port plan"
-description: "Plan to replace the greedy 5x5x5 engine with a Rust port of the five-phase solver cs0x7f/cube555."
+description: "Plan to replace the greedy 5x5x5 engine (now deleted) with a Rust port of the five-phase solver cs0x7f/cube555."
 weight: 20
 ---
 
@@ -52,7 +52,7 @@ The README offers GPLv3 and MIT, both by Chen Shuang (the MIT notice is dated
    Chen Shuang`) and states the AGPL-3.0-or-later terms of the Rust file.
 4. Files written new (cache format, parallel runner, tests) carry no origin line.
 
-The greedy engine stays "original work" in NOTICE as long as it exists.
+The deleted greedy engine leaves NOTICE with it.
 
 ## 3. What the Java solver is
 
@@ -140,8 +140,8 @@ The CLI pays the cold cost once per machine; it must print one line to standard
 error before a long build ("building 5x5x5 tables, once, about N s") so it does
 not look hung.
 
-Fallback: keep the greedy engine (section 8) so a 5x5 request is answerable
-while tables are not ready (server health or very small time budgets).
+There is no fallback engine (section 8): a request that arrives before the
+tables are ready builds them first.
 
 ## 6. Multi-core
 
@@ -205,16 +205,15 @@ driver stays in `five/` and moves to `reduction/` only if the 4x4 port needs it.
 This claim rests on file names and class names and must be confirmed by the 4x4
 author.
 
-## 8. Greedy engine: keep or delete
+## 8. Greedy engine: dropped
 
-Keep as `five/greedy/`, used when (a) the tables are not available (build
-failed, memory limit, `FiveSolver::fast()`), (b) a caller sets a time budget
-below the cold-start time. Reasons: 1.3 ms and 5 MB make it the only option on
-small machines; it costs 1,236 lines already tested and golden-recorded. Reason
-to delete: two engines to maintain and a golden fixture to keep. Recommendation:
-keep it for one release after the port lands, then decide on field use. The
-golden fixture `tests/fixtures/five.txt` must not be edited; the port adds a new
-fixture and the default solver changes only when the owner approves.
+Owner decision: the greedy engine (1,236 lines, 412 moves) is deleted, with its
+tests, its golden fixture `tests/fixtures/five.txt` and its documentation; there
+is no fallback and no `five/greedy/`. While the tables are missing, `solve()`
+builds them (`prepare()`), so a first request pays the cold start; a time budget
+shorter than the build fails with `BudgetExhausted` and a message that names the
+table build. The golden fixture of the port is the Java transfer record of
+section 9. The public name `FiveSolver` and its constructor stay.
 
 ## 9. Correctness and tests
 
@@ -263,7 +262,7 @@ is one to two moves, not measured.
 1. `docs`: this plan and notes (done with this commit).
 2. `build`: move the worker pool to the neutral module (`git mv`, no change),
    architecture rule added.
-3. `refactor`: `git mv` the greedy engine to `five/greedy/`; paths only.
+3. `refactor`: delete the greedy engine, its tests and fixture (section 8).
 4. `docs(notice)`: MIT notice of cube555 into `LICENSE-MIT`, NOTICE row to "landed"
    together with the first ported file.
 5. `feat`: cubie model, move and symmetry tables, with round trip tests.

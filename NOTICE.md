@@ -19,15 +19,14 @@ while the original portions remain available under their MIT terms.
 | 3x3 two-phase core (`src/engines/three/`) | cs0x7f/min2phase_rust | MIT | AGPL-3.0-or-later, MIT notice retained |
 | Worker pool (`src/engines/three/pool.rs`), batch/parallel/pattern APIs | original work | — | AGPL-3.0-or-later |
 | 5x5 greedy 3-cycle reduction (`src/engines/five/`, today) | original work, written from scratch | — | AGPL-3.0-or-later |
-| 5x5 five-phase search (`src/engines/five/`, planned port, not yet landed) | cs0x7f/cube555 (Chen Shuang) | GPL-3.0 or MIT, MIT taken | AGPL-3.0-or-later, MIT notice retained |
+| 5x5 five-phase search (`src/engines/five/`, ported from `src/*.java`) | cs0x7f/cube555 (Chen Shuang) | GPL-3.0 or MIT, MIT taken | AGPL-3.0-or-later, MIT notice (2023) in `LICENSE-MIT` |
+| Pruning-table builder (`src/reduction/`) | `Util.PruningTable` of cs0x7f/cube555, ported and reorganised; the parallel build, cache and runner are new | MIT, same as above | AGPL-3.0-or-later, MIT notice (2023) in `LICENSE-MIT` |
 | Orbit64 state codec (`src/notation/orbit64/`) | wstein/flix-orbit64 (Flix) | Apache-2.0, Copyright 2026 Werner Stein | AGPL-3.0-or-later; Rust re-implementation of the format and of the slot tables in `Orbit64.Net`, same author as cubacle; each file names its origin |
 
-The greedy 5x5 engine in the tree today contains no third-party code and was written
-without reading other solvers' sources (commutator 3-cycles conjugated by setup moves are
-textbook methods). The planned port of `cs0x7f/cube555` (README: GPLv3 and MIT, both by
-Chen Shuang) takes the MIT option; its files will carry an attribution header naming the
-Java origin, and `LICENSE-MIT` stays with them. `flix-cube-solvers` is GPL-3.0 and
-`cube-solvers` is MIT; neither is used.
+The port of `cs0x7f/cube555` (README: GPLv3 and MIT, both by Chen Shuang) takes the MIT
+option. Each ported file starts with a header naming the Java file it comes from, and the
+MIT notice is in `LICENSE-MIT` beside the one of min2phase_rust. `flix-cube-solvers` is
+GPL-3.0 and `cube-solvers` is MIT; neither is used.
 
 Ports added later (for example 4x4) record their upstream, licence and the option
 taken in this table before they land.
