@@ -10,4 +10,5 @@ CI runs `cscribe validate` with the pinned ChartScribe v0.1.0 release (linux amd
 - [[Notes policy]]
 - [[Open items]]
 
-Source: project history of cubacle, lines 1-1
+Source: .github/workflows/ci.yml, lines 75-93
+Source: owner decision of 2026-10-21, lines 1-1

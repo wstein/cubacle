@@ -10,4 +10,4 @@ One token in an Orbit64 example file does not match its neighbouring scramble an
 - [[Orbit64 slot numbering caveat]]
 - [[Open items]]
 
-Source: project history of cubacle, lines 1-1
+Source: owner decision of 2026-10-21, lines 1-1

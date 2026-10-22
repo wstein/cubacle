@@ -9,4 +9,6 @@ The former test parallel_solve_is_repeatable was occasionally flaky, suspected t
 
 - [[Open items]]
 
-Source: project history of cubacle, lines 1-1
+Source: tests/batch_test.rs, lines 83-99
+Source: README.md, lines 116-116
+Source: owner decision of 2026-10-21, lines 1-1

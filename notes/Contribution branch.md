@@ -10,4 +10,5 @@ Which branch accepts contributions is undecided.
 - [[Fork policy]]
 - [[Open items]]
 
-Source: project history of cubacle, lines 1-1
+Source: docs/contributing.md, lines 11-11
+Source: owner decision of 2026-10-21, lines 1-1

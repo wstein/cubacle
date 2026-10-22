@@ -10,4 +10,4 @@ Embedding the 2x2 depth table through build.rs was suggested to avoid the cold-s
 - [[Cold start and prepare]]
 - [[Open items]]
 
-Source: project history of cubacle, lines 1-1
+Source: owner decision of 2026-10-21, lines 1-1
