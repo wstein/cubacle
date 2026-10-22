@@ -80,9 +80,7 @@ mod tests {
                 .apply(&scramble(PuzzleKind::Cube6, 80))
                 .unwrap();
             let node = stage.node_of(|s| cube.stickers()[s] as u8);
-            let started = std::time::Instant::now();
             let sol = solve(&stage, node, threads).expect("solution");
-            println!("{} moves {:?} in {:?}", sol.len(), sol, started.elapsed());
             let seq: MoveSequence = sol.join(" ").parse().unwrap();
             let after = cube.apply(&seq).unwrap();
             let n2 = stage.node_of(|s| after.stickers()[s] as u8);

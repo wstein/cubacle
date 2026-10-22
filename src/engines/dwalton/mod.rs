@@ -10,10 +10,15 @@
 // Work in progress: the public solver lands with the later milestones.
 #![allow(dead_code)]
 
+mod fake;
 mod geometry;
 mod pattern;
 mod six;
 mod six_stage1;
 mod six_stage2;
 mod six_stage5;
+mod solver;
 mod stage;
+mod wings;
+
+pub use solver::{Account, DwaltonSolver};
