@@ -47,6 +47,11 @@ pub(crate) trait Stage: Sync {
     /// remain (so a search does not walk away from a goal and back).
     fn min_back_depth(&self) -> i32;
 
+    /// The longest total length to try.
+    fn max_length(&self) -> i32 {
+        MAX_LENGTH
+    }
+
     /// The pruning value of a node.
     fn prun(&self, node: &Self::Node) -> i32;
 
@@ -317,7 +322,7 @@ pub(crate) fn search<S: Stage, C: Collector>(
     let timed_out = AtomicBool::new(false);
     let none = stage.move_count();
     let mut all = Vec::new();
-    for length in 0..MAX_LENGTH {
+    for length in 0..stage.max_length() {
         let mut tasks: Vec<Task<S::Node>> = entries
             .iter()
             .take_while(|e| e.est <= length)
