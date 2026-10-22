@@ -1,0 +1,18 @@
+version: 2
+updates:
+  # One workspace lockfile covers the root crate and crates/server.
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      cargo:
+        patterns: ["*"]
+  # Actions are pinned by commit SHA with a version comment; Dependabot keeps both current.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
