@@ -20,6 +20,10 @@ const THREE_MAX_MOVES: u8 = 25;
 /// move limit can make the 3x3x3 search run for minutes; it ends as `Exhausted`.
 const HAND_OFF_BUDGET: Duration = Duration::from_secs(10);
 
+/// Phase 2 probes the 3x3x3 stage makes at least, unless the caller asks for
+/// another number (as the 4x4x4 does).
+const HAND_OFF_PROBES: u64 = 500;
+
 /// The 5x5x5 reduction solver, a port of the five-phase solver cube555.
 ///
 /// Five phases bring the centres and wings into place (about 52 moves), then
@@ -296,7 +300,7 @@ impl Solver for FiveSolver {
                 remaining.map_or(HAND_OFF_BUDGET, |r| r.max(Duration::from_millis(1))),
             ),
             max_moves: Some(tail_limit),
-            ..SolveOptions::default()
+            min_probes: options.min_probes.or(Some(HAND_OFF_PROBES)),
         };
         let finish = self.three.solve(&three_by_three(&reduced), &hand_off);
         let tail = match finish.outcome {
