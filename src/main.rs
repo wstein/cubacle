@@ -116,6 +116,9 @@ struct SolveArgs {
     /// Also print timing and search statistics to stderr
     #[arg(short, long)]
     verbose: bool,
+    /// Allow single inner layers (2R) in 4x4x4 and 5x5x5 answers where they make them shorter
+    #[arg(long)]
+    slices: bool,
     /// Show each step with a picture of the cube (graphics on a capable terminal)
     #[arg(long)]
     icons: bool,
@@ -236,6 +239,7 @@ fn solve(args: SolveArgs) -> Result<(), String> {
     if let Some(millis) = args.budget_ms {
         options = options.with_time_budget(Duration::from_millis(millis));
     }
+    options = options.with_slices(args.slices);
     let result = match improve::mode(&args) {
         Some(mode) => improve::solve(&facelets, options, mode, args.verbose),
         None => solver.solve(&facelets, &options),

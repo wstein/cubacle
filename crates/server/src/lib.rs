@@ -383,6 +383,9 @@ struct SolveRequest {
     min_probes: Option<u64>,
     /// 3x3x3 only: keep improving until `budgetMs` is spent (required).
     improve: Option<bool>,
+    /// Allow single inner layers (`2R`) in 4x4x4 and 5x5x5 answers.
+    #[serde(default)]
+    slices: bool,
 }
 
 /// Requires `Content-Type: application/json`. Without this a web page could
@@ -513,6 +516,7 @@ async fn solve(
         }
         options = options.with_min_probes(probes);
     }
+    options = options.with_time_budget(budget).with_slices(request.slices);
 
     // One semaphore serves both sizes; separate pools per size are a possible
     // later refinement.

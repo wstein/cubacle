@@ -468,3 +468,27 @@ fn icon_draws_each_move_on_its_own_start_cube_unless_cumulative() {
     let (_, one, _) = cubacle(&["icon", "U", "--from", "R", "--format", "text"]);
     assert_eq!(from, format!("{one}\n\n{one}"));
 }
+
+/// The token of a 4x4x4 from a user report; its answer must replay with and
+/// without `--slices`, use no inner layer by default and be no longer with them.
+#[test]
+fn a_4x4_token_is_solved_with_and_without_slices() {
+    let token = "Bs6Qrv1Dp0motqndUv7rAuyA9Kb";
+    let cube = cubacle::notation::orbit64::decode(token).expect("a 4x4x4 token");
+    let run = |extra: &[&str]| {
+        let mut args = vec!["solve", token];
+        args.extend_from_slice(extra);
+        let (ok, out, err) = cubacle(&args);
+        assert!(ok, "{err}");
+        assert!(solved_by(&cube, &out), "{out}");
+        out
+    };
+    let plain = run(&[]);
+    let sliced = run(&["--slices"]);
+    let inner = |text: &str| {
+        text.split_whitespace()
+            .any(|m| m.starts_with(|c: char| c.is_ascii_digit()) && !m.contains('w'))
+    };
+    assert!(!inner(&plain), "{plain}");
+    assert!(sliced.split_whitespace().count() <= plain.split_whitespace().count());
+}
