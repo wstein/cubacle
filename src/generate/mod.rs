@@ -6,19 +6,24 @@
 use std::collections::BTreeMap;
 
 mod five;
+mod four;
 
 use rand::RngExt;
 
 use crate::puzzle::{locate, Face, Facelets, Move, MoveSequence, PuzzleKind, Turn};
 
 /// A random scramble of `length` turns: outer-face turns, plus the second
-/// layer on a 5x5x5 (the layers that leave the face centres in place).
+/// layer on a 4x4x4 or 5x5x5 (the layers that leave the face centres in place).
 ///
 /// No two consecutive turns act on the same face, and turns of opposite faces
 /// always come in the same order, so the sequence has no redundant pairs such
 /// as `R R` or `R L R`.
 pub fn scramble(kind: PuzzleKind, length: usize) -> MoveSequence {
-    let layers = if kind == PuzzleKind::Cube5 { 2 } else { 1 };
+    let layers = if matches!(kind, PuzzleKind::Cube4 | PuzzleKind::Cube5) {
+        2
+    } else {
+        1
+    };
     let mut rng = rand::rng();
     let mut last_axis = 18;
     let mut moves = Vec::with_capacity(length);
@@ -37,7 +42,7 @@ pub fn scramble(kind: PuzzleKind, length: usize) -> MoveSequence {
 }
 
 /// A random reachable state, or `None` for sizes without a generator (the
-/// 2x2x2, 3x3x3 and 5x5x5 have one).
+/// 2x2x2, 3x3x3, 4x4x4 and 5x5x5 have one).
 ///
 /// The 2x2x2 is a uniformly random arrangement of the eight corners with
 /// twists summing to zero. The 3x3x3 adds the edges, with a flip sum of zero
@@ -46,6 +51,9 @@ pub fn scramble(kind: PuzzleKind, length: usize) -> MoveSequence {
 /// wings; see `five.rs` for why every such state is reachable.
 pub fn random_state(kind: PuzzleKind) -> Option<Facelets> {
     let mut rng = rand::rng();
+    if kind == PuzzleKind::Cube4 {
+        return Some(four::random(&mut rng));
+    }
     if kind == PuzzleKind::Cube5 {
         return Some(five::random(&mut rng));
     }
@@ -176,11 +184,12 @@ mod tests {
     }
 
     #[test]
-    fn only_the_2x2_3x3_and_5x5_have_a_state_generator() {
+    fn only_the_2x2_to_5x5_have_a_state_generator() {
         assert!(random_state(PuzzleKind::Cube2).is_some());
         assert!(random_state(PuzzleKind::Cube3).is_some());
         assert!(random_state(PuzzleKind::Cube5).is_some());
-        assert!(random_state(PuzzleKind::Cube4).is_none());
+        assert!(random_state(PuzzleKind::Cube4).is_some());
+        assert!(random_state(PuzzleKind::Cube6).is_none());
     }
 
     #[test]
