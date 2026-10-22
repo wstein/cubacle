@@ -611,3 +611,12 @@ async fn a_5x5_orbit64_token_is_not_decoded_yet() {
         assert_eq!(code(&body), "token_unsupported");
     }
 }
+
+#[tokio::test]
+async fn sticker_swapped_cube_with_unmatched_pieces_is_422() {
+    // Not a cube at all, yet every colour appears nine times.
+    let cube = "ULUDUULRLDFRFRLUBLFBBDFRDBFFLRFDUBUFLRDULBBDRDDBFBLURR";
+    let (status, _, body) = call(app(), post_json("/v1/solve", json!({"cube": cube}))).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{body}");
+    assert_eq!(code(&body), "impossible_cube");
+}

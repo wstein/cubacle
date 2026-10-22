@@ -481,27 +481,28 @@ async fn solve(
     let (three, five) = (state.three.clone(), state.five.clone());
     let result = tokio::task::spawn_blocking(move || {
         let _permit = permit; // released when the solve finishes
-        match kind {
-            PuzzleKind::Cube2 => PocketSolver::new().solve(&facelets, &options),
-            PuzzleKind::Cube5 => {
-                let result = five.solve(&facelets, &options);
-                debug_assert!(result
-                    .solution()
-                    .is_none_or(|s| facelets.apply(s).is_ok_and(|end| end.is_solved())));
-                result
-            }
-            _ => {
-                let result = three.solve(&facelets, &options);
-                debug_assert!(result
-                    .solution()
-                    .is_none_or(|s| facelets.apply(s).is_ok_and(|end| end.is_solved())));
-                result
-            }
-        }
+        let result = match kind {
+            PuzzleKind::Cube2 => return Some(PocketSolver::new().solve(&facelets, &options)),
+            PuzzleKind::Cube5 => five.solve(&facelets, &options),
+            _ => three.solve(&facelets, &options),
+        };
+        // Defence in depth, in release builds too: never serve a wrong answer.
+        let solves = result
+            .solution()
+            .is_none_or(|s| facelets.apply(s).is_ok_and(|end| end.is_solved()));
+        solves.then_some(result)
     })
     .await
     .map_err(|e| {
         tracing::error!("solver task failed: {e}");
+        ApiError::new(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "internal",
+            "the solver failed unexpectedly",
+        )
+    })?
+    .ok_or_else(|| {
+        tracing::error!("the solver returned a solution that does not solve the cube");
         ApiError::new(
             StatusCode::INTERNAL_SERVER_ERROR,
             "internal",
