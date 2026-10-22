@@ -2,8 +2,10 @@
 //!
 //! `tests/fixtures/four_transfer.txt` holds the reduction (phases 1 to 3)
 //! that the Java solver cs0x7f/TPR-4x4x4-Solver made of 24 cubes. The
-//! solution of `FourSolver` must start with exactly those moves; the 3x3x3
-//! tail is another solver's.
+//! solution of `FourSolver` must start with those moves, each wide turn
+//! possibly swapped for the opposite one (which only turns the whole cube;
+//! see `engines/four/swap.rs`), so the head is compared up to a rotation of the
+//! cube. The 3x3x3 tail is another solver's.
 
 use std::sync::Arc;
 
@@ -16,6 +18,26 @@ const TRANSFER: &str = include_str!("fixtures/four_transfer.txt");
 
 fn solver(threads: usize) -> FourSolver {
     FourSolver::new(Arc::new(Min2PhaseSolver::shared())).with_threads(threads)
+}
+
+/// Whether `b` is `a` turned as a whole, by some product of `x`, `y`, `z`.
+fn up_to_rotation(a: &Facelets, b: &Facelets) -> bool {
+    let axes = ["Rw Lw'", "Uw Dw'", "Fw Bw'"];
+    let mut seen = vec![b.clone()];
+    let mut frontier = vec![b.clone()];
+    while let Some(cube) = frontier.pop() {
+        if cube == *a {
+            return true;
+        }
+        for axis in axes {
+            let next = cube.apply(&axis.parse().expect("rotation")).expect("fits");
+            if !seen.contains(&next) {
+                seen.push(next.clone());
+                frontier.push(next);
+            }
+        }
+    }
+    false
 }
 
 #[test]
@@ -36,9 +58,11 @@ fn the_reduction_is_the_one_the_java_solver_makes() {
         let text = solution.to_string();
         let got: Vec<&str> = text.split_whitespace().collect();
         assert!(got.len() >= expected.len(), "{facelets}");
-        assert_eq!(
-            got[..expected.len()],
-            expected[..],
+        let head = got[..expected.len()].join(" ");
+        let want = cube.apply(&moves.parse().expect("moves")).expect("replays");
+        let have = cube.apply(&head.parse().expect("moves")).expect("replays");
+        assert!(
+            up_to_rotation(&want, &have),
             "reduction differs from the Java one for {facelets}"
         );
         cubes += 1;

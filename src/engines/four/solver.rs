@@ -13,6 +13,7 @@ use super::facelets;
 use super::output::{of_face_turn, to_move, to_real};
 use super::reduce::{after, reduce};
 use super::rotation::Rotations;
+use super::swap::Swaps;
 use super::tables::Tables;
 use crate::puzzle::{
     Face, Facelets, Failure, Move, MoveSequence, PuzzleKind, SolveMetrics, SolveOptions,
@@ -51,6 +52,7 @@ pub struct FourSolver {
     three: Arc<dyn Solver + Send + Sync>,
     tables: Arc<OnceLock<Tables>>,
     rotations: Arc<Rotations>,
+    swaps: Arc<Swaps>,
     threads: usize,
     hand_off_probes: u64,
     layers: u32,
@@ -69,10 +71,12 @@ impl fmt::Debug for FourSolver {
 impl FourSolver {
     /// A solver that finishes with `three`, which must handle the 3x3x3.
     pub fn new(three: Arc<dyn Solver + Send + Sync>) -> FourSolver {
+        let rotations = Arc::new(Rotations::new());
         FourSolver {
             three,
             tables: Arc::new(OnceLock::new()),
-            rotations: Arc::new(Rotations::new()),
+            rotations: Arc::clone(&rotations),
+            swaps: Arc::new(Swaps::new(&rotations)),
             threads: par::threads(),
             hand_off_probes: HAND_OFF_PROBES,
             layers: super::edge3_prune::FULL_LAYERS,
@@ -310,17 +314,13 @@ impl Solver for FourSolver {
             all.push(code);
         }
         let real = to_real(&t.syms, &all, length1, add1, sym);
-        let mut moves: Vec<Move> = real.iter().map(|&c| to_move(c)).collect();
-        let Ok(end) = facelets.apply(&MoveSequence::new(moves.clone())) else {
-            return fail(Failure::Internal, "the solution moves do not fit the cube");
-        };
-        let Some(rotation) = self.rotations.find(&end, Facelets::is_solved) else {
+        let moves: Vec<Move> = real.iter().map(|&c| to_move(c)).collect();
+        let Some(moves) = self.swaps.finish(&self.rotations, facelets, &moves) else {
             return fail(
                 Failure::Internal,
                 "the solution does not solve the cube (the 3x3x3 stage was given an unsolvable state?)",
             );
         };
-        moves.extend_from_slice(rotation);
         let solution = MoveSequence::new(moves);
         if limit.is_some_and(|max| solution.len() > max) {
             return fail(

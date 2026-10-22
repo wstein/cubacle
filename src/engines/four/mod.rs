@@ -9,7 +9,8 @@
 //! (the coordinates and tables of the phases), `tables` (all of them in one
 //! value), `candidates` (partial solutions and the reference's queue),
 //! `phase1` to `phase3` (the searches), `reduce` (the phases in a row),
-//! `output` and `rotation` (the answer in real moves, the final rotation) and
+//! `output`, `rotation` and `swap` (the answer in real moves, the final
+//! rotation and the wide-turn swaps that shorten it) and
 //! `solver` (the [`crate::puzzle::Solver`] adapter, the only public item).
 
 mod candidates;
@@ -31,6 +32,7 @@ mod rotation;
 mod solver;
 #[cfg(test)]
 mod solver_tests;
+mod swap;
 mod sym;
 mod tables;
 #[cfg(test)]

@@ -69,6 +69,11 @@ impl Rotations {
         Rotations { list }
     }
 
+    /// All 24 rotations, the identity first.
+    pub(super) fn all(&self) -> &[Vec<Move>] {
+        &self.list
+    }
+
     /// The shortest rotation after which `done` holds for `cube`.
     pub(super) fn find(
         &self,
