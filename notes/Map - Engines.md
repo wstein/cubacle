@@ -13,3 +13,7 @@ Raw-material notes, category engines.
 - [[5x5 parity and limits]]
 - [[5x5 versus cube555]]
 - [[5x5 port plan]]
+- [[5x5 skip masks keep a Java shift bug]]
+- [[5x5 Java tables are the oracle]]
+- [[5x5 search is deterministic across threads]]
+- [[5x5 table cache]]

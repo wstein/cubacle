@@ -1,9 +1,9 @@
 ---
 id: 20261022150000
 aliases: []
-tags: ["type/decision", "status/open", "category/engines"]
+tags: ["type/decision", "status/decided", "category/engines"]
 ---
-The owner chose to port the five-phase solver cs0x7f/cube555 to Rust instead of designing a search from scratch, under its MIT option, with NOTICE.md updated before code lands. The port keeps `FiveSolver::new(Arc<dyn Solver + Send + Sync>)`, owns its tables behind `Arc<OnceLock<..>>`, builds 237 MB of 4-bit pruning tables once and caches them on disk, and searches phases 2 to 5 in parallel with an ordered merge so results do not depend on the thread count. Acceptance is the Java length on the same cubes: 51.5 reduction moves and 73.1 in total, against 412.4 for the greedy engine. Tests use depth-capped tables; one ignored test uses the full tables in a separate CI job.
+The owner chose to port the five-phase solver cs0x7f/cube555 instead of designing a search from scratch, under its MIT option, with NOTICE.md updated before code lands. It landed as FiveSolver::new(Arc<dyn Solver + Send + Sync>) with tables behind Arc<OnceLock<..>>, a disk cache, and a parallel search merged in a fixed order. The greedy engine was dropped, with no fallback. Acceptance was the Java length on the same cubes, and it is met: 73.1 total moves on 100 cubes.
 
 ## Links
 
@@ -12,5 +12,4 @@ The owner chose to port the five-phase solver cs0x7f/cube555 to Rust instead of 
 
 Source: docs/design/5x5-port.md, lines 14-38
 Source: docs/design/5x5-port.md, lines 39-56
-Source: docs/design/5x5-port.md, lines 146-186
 Source: NOTICE.md, lines 17-31
