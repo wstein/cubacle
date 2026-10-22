@@ -18,3 +18,21 @@ else `$XDG_CACHE_HOME/cubacle`, else `~/.cache/cubacle`) and honours `CUBACLE_TH
 `prepare_ms` (table load or build) and then the solve times and total moves.
 Run it once with the cache directory empty for the cold start, again for the
 warm one, and with `CUBACLE_THREADS=1` for the single-thread numbers.
+
+# 4x4x4 comparison harness
+
+`run_four.sh` compares `FourSolver` with the external solver
+`cs0x7f/TPR-4x4x4-Solver` (the Java original of the port) on identical random
+cubes drawn by its generator. This directory holds no code of that solver:
+`FourDriver.java` calls only its public `Search.init()` and `solution()` (and
+reads the phase lengths by reflection); the solver is built from a checkout
+you supply, outside this repository.
+
+    tools/bench/run_four.sh /path/to/TPR-4x4x4-Solver /tmp/bench4 1000 1
+
+Needs Java 8 or newer and BSD `/usr/bin/time -l` (macOS). Every answer of both
+solvers is replayed with `Facelets::apply`; the Java rotation letters (`x`,
+`y`, `z`) are turned into wide turns first. The tool reports the lengths with
+and without the final rotation, the time per cube, and how many cubes have the
+same phases 1 to 3 as Java. Run it with `CUBACLE_THREADS=1` for the
+single-thread numbers; the Java solver is single-threaded.
