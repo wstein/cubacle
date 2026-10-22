@@ -494,8 +494,8 @@ answer replayed with `Facelets::apply`. The harness is `tools/bench/run_four.sh`
 | Moves with the rotation, mean | reported | 47.71 | 47.47 |
 | Phases 1 to 3 identical to Java | 40 cubes | | 1000 of 1000 |
 | Whole answer without rotation identical | not required | | 665 of 1000 |
-| Single thread, median / p90 | at most 1.5 x Java (168 / 334 ms with the plan's Java figures) | 99 / 197 ms | 60 / 115 ms (0.61 / 0.58 x) |
-| 4 threads, mean latency | at most 0.5 x single thread | | 44.6 ms against 70.0 ms (0.64 x): **missed** |
+| Single thread, median / p90 | at most 1.5 x Java (168 / 334 ms with the plan's Java figures) | 99 / 197 ms | 62 / 117 ms (0.63 / 0.60 x) |
+| 4 threads, mean latency | at most 0.5 x single thread | | 40.0 ms against 71.9 ms (0.56 x): **missed** (0.64 x before the first-move split) |
 | Table build, one thread | at most 1.5 s | 0.8 s (3x3x3 included) | 0.37 s |
 | Memory | sensible | | tables 12.1 MB, peak resident 65 MB |
 | Answers with 1, 2, 4, 8, 12 threads | identical | | identical on 1000 of 1000 |
@@ -504,9 +504,11 @@ Notes on the differences from the plan.
 
 - **Thread scaling.** On average 73 ms of a solve split into phase 1 2 ms,
   phase 2 21 ms, phase 3 29 ms and the 3x3x3 hand-off 21 ms. Phases 2 and 3 scale
-  by 2.0 and 2.3 on four threads, phase 1 and the hand-off are sequential, so four
-  threads cannot give less than 0.49 of the single-thread time even if phases 2 and
-  3 scaled perfectly. Searching all (length, candidate) pairs of phase 2 at once,
+  by 2.0 and 2.3 on four threads with one task per candidate (0.64 x); splitting
+  each candidate by its first move, in the serial order, brings phases 2 and 3 to
+  about 2.9 and the total to 0.56 x. Phase 1 and the hand-off are sequential, so
+  four threads cannot give less than 0.49 of the single-thread time even if phases
+  2 and 3 scaled perfectly. Searching all (length, candidate) pairs of phase 2 at once,
   instead of one length at a time, was tried and was slower (speculative work past
   the 100th result); phase 3, which needs only the first success, does it that way.
   To go further the hand-off would have to run on several threads, which the

@@ -130,6 +130,7 @@ Errors have this shape:
 Some details:
 
 - `GET /v1/random?size=6` returns 501, and `size=9` returns 400, because `size` accepts 2 to 7 but only 2 to 5 have engines. `GET /v1/scramble` takes the same sizes.
+- A 4x4x4 solve with `maxMoves` runs the 3x3x3 stage for at most one second, whatever `budgetMs` is: the reduction is fixed, so a limit that no tail can meet answers 422 `no_solution_within_limit` after about a second, not 504 after the whole budget.
 - A 5x5x5 solve request can be sent with the cube as 150 facelets. The server builds the 5x5x5 and 4x4x4 tables at startup, so the first request is not slower.
 - The server answers 504 rather than 408, because the client was not slow; the server was. Do not retry the same request. Retry with a larger `budgetMs` or an easier cube.
 - On 429, wait and retry. The limit is `--max-concurrency` solves at once.
