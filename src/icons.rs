@@ -51,10 +51,10 @@ pub struct IconArgs {
     /// Show the moving layer grey instead of darkening the rest
     #[arg(long)]
     grey: bool,
-    /// Keep the background transparent in Kitty graphics (default: opaque
-    /// dark, so text under the image cannot show through)
+    /// Give Kitty graphics an opaque dark background (default: transparent,
+    /// so the icon takes the colours of the terminal)
     #[arg(long)]
-    transparent: bool,
+    opaque: bool,
     /// Draw each move on the cube left by the moves before it (default: each
     /// move on its own start cube, solved or from --from)
     #[arg(long)]
@@ -95,7 +95,7 @@ fn detect_stdout() -> Graphics {
     })
 }
 
-/// The backdrop of terminal graphics: opaque, so text below cannot show through.
+/// The backdrop of `--opaque` terminal graphics.
 const TERMINAL_BACKGROUND: Rgb = Rgb(0x20, 0x24, 0x2b);
 
 /// The icon height that keeps stickers readable: 32 pixels per cube layer, at least 96.
@@ -175,7 +175,7 @@ pub fn run(args: IconArgs) -> Result<(), String> {
         (Format::Auto, None) => Format::Text,
         (other, _) => other,
     };
-    if format == Format::Kitty && !args.transparent {
+    if format == Format::Kitty && args.opaque {
         style.background = Some(TERMINAL_BACKGROUND);
     }
     if matches!(format, Format::Svg | Format::Rgba) && actions.len() != 1 {
@@ -240,10 +240,7 @@ pub fn print_solution(
 ) -> Result<(), String> {
     let graphics = detect_stdout();
     let height = height.unwrap_or_else(|| default_height(start.kind().size()));
-    let mut style = style(scheme, height, false);
-    if graphics == Graphics::Kitty {
-        style.background = Some(TERMINAL_BACKGROUND);
-    }
+    let style = style(scheme, height, false);
     let mut state = start.clone();
     let total = solution.len();
     let mut out = String::new();

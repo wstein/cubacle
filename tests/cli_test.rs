@@ -373,13 +373,13 @@ fn icon_writes_graphics_to_a_file() {
     );
     assert!(text.contains("\x1b_Gm=0;"));
     assert!(text.ends_with("\x1b\\\x1b[6B\r"));
-    let clear = dir.join("clear.kitty");
+    let clear = dir.join("opaque.kitty");
     let (ok, _, err) = cubacle(&[
         "icon",
         "R",
         "--format",
         "kitty",
-        "--transparent",
+        "--opaque",
         "--out",
         clear.to_str().unwrap(),
     ]);
@@ -387,7 +387,7 @@ fn icon_writes_graphics_to_a_file() {
     assert_ne!(
         std::fs::read_to_string(&clear).unwrap(),
         text,
-        "opaque by default"
+        "--opaque changes the picture"
     );
     let rgba = dir.join("r.rgba");
     let (ok, _, err) = cubacle(&[
