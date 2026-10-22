@@ -10,4 +10,5 @@ A multi-crate workspace split is the target architecture but is executed only af
 - [[Crate roles and dependency direction]]
 - [[Feature workflow]]
 
-Source: project history of cubacle, lines 1-1
+Source: docs/architecture.md, lines 34-36
+Source: ARCHITECTURE.md, lines 3-5
