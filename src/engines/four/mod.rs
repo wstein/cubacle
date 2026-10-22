@@ -13,14 +13,22 @@
 //! `output` and `rotation` (the answer in real moves, the final rotation) and
 //! `solver` (the [`crate::puzzle::Solver`] adapter, the only public item).
 
+mod candidates;
 mod center1;
 mod center2;
 mod center3;
+mod control;
 mod cube;
 mod edge3;
 mod edge3_prune;
 mod facelets;
 mod moves;
+mod output;
+mod phase1;
+mod phase2;
+mod phase3;
+mod reduce;
+mod rotation;
 mod sym;
 mod tables;
 #[cfg(test)]
