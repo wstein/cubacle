@@ -12,6 +12,10 @@ src/
   notation/       Orbit64, colour schemes, input detection and parsing
   generate/       random states and scrambles
   render/         move icons (SVG, RGBA, Kitty graphics, text) from puzzle types
+  reduction/      crate-private parts shared by reduction engines (5x5x5, later
+                  4x4x4): combinatorics, 4-bit pruning tables with a parallel
+                  builder and an on-disk cache, thread helpers, the ordered
+                  parallel iterative-deepening search
   engines/
     three/        the 3x3x3 two-phase engine (Min2PhaseSolver), with its
                   private worker pool in pool.rs
@@ -26,16 +30,18 @@ crates/server/    the cubacle-server HTTP backend
 
 ```
 puzzle  <-  notation  <-  engines  <-  apps (CLI, server)
-   ^            ^
-   +--- generate
-   +--- render
+   ^            ^              ^
+   +--- generate               |
+   +--- render                 |
+   +--- reduction  ------------+   (used by the reduction engines only)
 ```
 
 - `puzzle` depends on nothing else in the crate.
 - `notation`, `generate` and `render` depend only on `puzzle`. `render` is pure
   (no I/O, no global state) and never names `notation`: the CLI maps a colour
   scheme to a `render::Palette`. Terminal detection lives in the CLI.
-- The 5x5x5 engine depends on `puzzle` only; the 3x3x3 solver it finishes with
+- `reduction` depends only on `puzzle`, knows no cube, and is crate-private.
+- The 5x5x5 engine depends on `puzzle` and `reduction`; the 3x3x3 solver it finishes with
   is injected as an `Arc<dyn Solver + Send + Sync>`.
 - An engine depends on `puzzle` (and, for the 2x2x2, on the Orbit64 corner
   tables in `notation`). Engines never use each other's internals: they meet

@@ -30,4 +30,5 @@ pub mod engines;
 pub mod generate;
 pub mod notation;
 pub mod puzzle;
+mod reduction;
 pub mod render;

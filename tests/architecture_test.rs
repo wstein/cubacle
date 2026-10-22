@@ -12,14 +12,18 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 /// (source directory, modules it may name), keyed as `puzzle` or `engines::three`.
-const RULES: [(&str, &[&str]); 7] = [
+const RULES: [(&str, &[&str]); 8] = [
     ("src/puzzle", &["puzzle"]),
     ("src/notation", &["puzzle", "notation"]),
     ("src/generate", &["puzzle", "generate"]),
     ("src/render", &["puzzle", "render"]),
+    ("src/reduction", &["puzzle", "reduction"]),
     ("src/engines/three", &["puzzle", "engines::three"]),
     ("src/engines/two", &["puzzle", "notation", "engines::two"]),
-    ("src/engines/five", &["puzzle", "engines::five"]),
+    (
+        "src/engines/five",
+        &["puzzle", "reduction", "engines::five"],
+    ),
 ];
 
 /// Modules the applications may name through `cubacle::`.
@@ -326,6 +330,11 @@ fn modules_only_use_what_the_dependency_rules_allow() {
         rust_files(&root.join(dir), &mut files);
         assert!(!files.is_empty(), "{dir} has no sources");
         for file in files {
+            // A `#[cfg(test)]` module in its own file (it may use a real 3x3x3
+            // solver where the engine itself takes any `dyn Solver`).
+            if file.ends_with("five/solver/tests.rs") {
+                continue;
+            }
             let source = fs::read_to_string(&file).expect("readable source");
             let module = module_of(&file, &src);
             let bad = violations(&source, &module, allowed);
@@ -383,6 +392,41 @@ fn the_worker_pool_stays_private_to_the_3x3_engine() {
     }
 }
 
+/// The shared reduction code keeps no global state either: tables, caches and
+/// thread counts belong to the instance that uses them.
+#[test]
+fn the_reduction_code_keeps_no_global_state() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let mut files = Vec::new();
+    rust_files(&root.join("src/reduction"), &mut files);
+    assert!(!files.is_empty());
+    for file in files {
+        let source = strip_test_items(&strip_comments_and_strings(
+            &fs::read_to_string(&file).unwrap(),
+        ));
+        assert!(
+            !has_global_state(&source),
+            "{} keeps global state; the caller owns it",
+            file.display()
+        );
+    }
+}
+
+/// `static` items, `thread_local!` and `lazy_static`; `'static` lifetimes are fine.
+fn has_global_state(source: &str) -> bool {
+    source.replace("'static", "").contains("static ")
+        || source.contains("thread_local")
+        || source.contains("lazy_static")
+}
+
+#[test]
+fn the_global_state_check_bites() {
+    assert!(has_global_state("static X: u32 = 1;"));
+    assert!(has_global_state("thread_local! { }"));
+    assert!(has_global_state("lazy_static! { }"));
+    assert!(!has_global_state("fn f(x: &'static str) {}"));
+}
+
 #[test]
 fn the_5x5_engine_reaches_the_3x3_solver_only_through_the_trait() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -400,7 +444,7 @@ fn the_5x5_engine_reaches_the_3x3_solver_only_through_the_trait() {
             file.display()
         );
         assert!(
-            !source.replace("'static", "").contains("static ") && !source.contains("lazy_static"),
+            !has_global_state(&source),
             "{} keeps global state; the solver and its tables belong to an instance",
             file.display()
         );
