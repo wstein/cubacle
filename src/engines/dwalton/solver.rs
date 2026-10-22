@@ -4,6 +4,7 @@
 use std::sync::{Arc, OnceLock};
 use std::time::Instant;
 
+use super::seven::Seven;
 use super::six::Six;
 use super::wings;
 use crate::puzzle::{
@@ -29,6 +30,7 @@ pub struct DwaltonSolver {
     five: Engine,
     threads: usize,
     six: OnceLock<Six>,
+    seven: OnceLock<Seven>,
 }
 
 type WingStage<'a> = Box<dyn Fn(&Facelets) -> Result<Vec<Move>, wings::Refused> + 'a>;
@@ -53,6 +55,7 @@ impl DwaltonSolver {
             five,
             threads: par::threads(),
             six: OnceLock::new(),
+            seven: OnceLock::new(),
         }
     }
 
@@ -63,6 +66,10 @@ impl DwaltonSolver {
 
     fn six(&self) -> &Six {
         self.six.get_or_init(|| Six::new(self.threads))
+    }
+
+    fn seven(&self) -> &Seven {
+        self.seven.get_or_init(|| Seven::new(self.threads))
     }
 
     /// Solves and reports the moves of each stage.
@@ -82,7 +89,7 @@ impl DwaltonSolver {
                 account.clone(),
             )
         };
-        if cube.kind() != self.kind || self.kind != PuzzleKind::Cube6 {
+        if cube.kind() != self.kind || !matches!(self.kind, PuzzleKind::Cube6 | PuzzleKind::Cube7) {
             return fail(
                 Failure::InvalidInput,
                 format!("this solver handles the {:?} only", self.kind),
@@ -94,7 +101,12 @@ impl DwaltonSolver {
         let note = |account: &mut Account, name: &str, moves: &[Move]| {
             account.stages.push((name.to_owned(), moves.len()));
         };
-        let Some((after, done, ok)) = self.six().centres(&cur, 40) else {
+        let centres = if self.kind == PuzzleKind::Cube6 {
+            self.six().centres(&cur, 40)
+        } else {
+            self.seven().centres(&cur).map(|(c, d)| (c, d, true))
+        };
+        let Some((after, done, ok)) = centres else {
             return fail(
                 Failure::Internal,
                 "the centre stages found nothing".into(),
@@ -111,17 +123,31 @@ impl DwaltonSolver {
         }
         cur = after;
 
-        let stages: [(&str, WingStage<'_>); 3] = [
-            (
-                "inner wings (4x4x4)",
-                Box::new(|c| wings::inner_wings(&self.four, c)),
-            ),
-            (
-                "outer wings (5x5x5)",
-                Box::new(|c| wings::orbit_wings(&self.five, c, 0)),
-            ),
-            ("3x3x3", Box::new(|c| wings::finish(&self.three, c))),
-        ];
+        let stages: Vec<(&str, WingStage<'_>)> = if self.kind == PuzzleKind::Cube6 {
+            vec![
+                (
+                    "inner wings (4x4x4)",
+                    Box::new(|c| wings::inner_wings(&self.four, c)),
+                ),
+                (
+                    "outer wings (5x5x5)",
+                    Box::new(|c| wings::orbit_wings(&self.five, c, 0)),
+                ),
+                ("3x3x3", Box::new(|c| wings::finish(&self.three, c))),
+            ]
+        } else {
+            vec![
+                (
+                    "inner wings (5x5x5)",
+                    Box::new(|c| wings::orbit_wings(&self.five, c, 1)),
+                ),
+                (
+                    "outer wings (5x5x5)",
+                    Box::new(|c| wings::orbit_wings(&self.five, c, 0)),
+                ),
+                ("3x3x3", Box::new(|c| wings::finish(&self.three, c))),
+            ]
+        };
         for (name, run) in stages {
             match run(&cur) {
                 Ok(moves) => {
@@ -145,7 +171,22 @@ impl DwaltonSolver {
         if !ok {
             return fail(
                 Failure::Internal,
-                "the answer does not solve the cube".into(),
+                {
+                    let n = self.kind.size();
+                    let st = cur.stickers();
+                    let bad: Vec<_> = (0..6)
+                        .flat_map(|f| {
+                            (1..n - 1).flat_map(move |r| (1..n - 1).map(move |c| (f, r, c)))
+                        })
+                        .filter(|&(f, r, c)| st[f * n * n + r * n + c] as usize != f)
+                        .map(|(f, r, c)| (f, r, c, st[f * n * n + r * n + c] as usize))
+                        .collect();
+                    let bad_centres = format!("{bad:?}");
+                    format!(
+                        "the answer does not solve the cube (stages leave it {}solved, {bad_centres} centre stickers off)",
+                        if cur.is_solved() { "" } else { "un" }
+                    )
+                },
                 &account,
             );
         }
@@ -214,7 +255,7 @@ mod block_tests {
             let m: Move = name.parse().unwrap();
             let l = super::super::fake::lift(&m, 3);
             let a = four.apply(&MoveSequence::new(vec![m])).unwrap();
-            let b = six.apply(&MoveSequence::new(vec![l])).unwrap();
+            let b = six.apply(&MoveSequence::new(l)).unwrap();
             for f in 0..6 {
                 for (fi, fr) in [(5, 14), (6, 15), (9, 20), (10, 21)] {
                     let ci = a.stickers()[f * 16 + fi];

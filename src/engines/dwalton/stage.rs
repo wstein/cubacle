@@ -9,7 +9,7 @@ use super::pattern::Table;
 use crate::puzzle::Face;
 use crate::reduction::ida::{self, Collector, Stage, Start};
 
-pub(super) const MAXG: usize = 12;
+pub(super) const MAXG: usize = 16;
 
 #[derive(Clone, Copy)]
 pub(super) struct Node(pub [u32; MAXG]);

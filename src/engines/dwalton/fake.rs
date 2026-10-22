@@ -7,7 +7,7 @@
 //! fake cubes are handed to the 4x4x4 and 5x5x5 engines, and their moves are
 //! mapped back to the layers of the big cube.
 
-use crate::puzzle::{Face, Facelets, Move, PuzzleKind};
+use crate::puzzle::{Face, Facelets, Move, PuzzleKind, Turn};
 
 /// Picks stickers (1-based cell numbers of the big cube, per face) for the
 /// cells of a fake cube; cells without a source show the colour of their face.
@@ -133,14 +133,32 @@ pub(super) fn five_of(big: &Facelets, orbit: usize) -> Facelets {
     build(big, PuzzleKind::Cube5, map)
 }
 
-/// A move of the fake cube as a move of the big cube: its second layer is
-/// layer `depth` of the big cube (the 4x4x4 wide turn covers `depth` layers).
-pub(super) fn lift(mv: &Move, depth: u8) -> Move {
-    let mut out = *mv;
-    if mv.depth == 2 {
-        out.depth = depth;
+/// A move of the fake cube as moves of the big cube: the second layer of the
+/// fake is `depth` layers of the big cube, from the second one on a layer
+/// block `2..=depth` for a single-layer turn (the wide turn covers `depth`
+/// layers).
+pub(super) fn lift(mv: &Move, depth: u8) -> Vec<Move> {
+    if mv.depth != 2 {
+        return vec![*mv];
     }
-    out
+    if mv.wide || depth == 2 {
+        return vec![Move { depth, ..*mv }];
+    }
+    // The slice of layers 2 to `depth`: the wide turn, then the outer layer
+    // back.
+    let back = match mv.turn {
+        Turn::Clockwise => Turn::CounterClockwise,
+        Turn::Half => Turn::Half,
+        Turn::CounterClockwise => Turn::Clockwise,
+    };
+    vec![
+        Move {
+            depth,
+            wide: true,
+            ..*mv
+        },
+        Move::new(mv.face, 1, false, back),
+    ]
 }
 
 /// The 3x3x3 of a reduced cube.

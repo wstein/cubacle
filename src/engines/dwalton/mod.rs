@@ -10,6 +10,11 @@
 mod fake;
 mod geometry;
 mod pattern;
+mod seven;
+mod seven_final_tables;
+mod seven_lr_tables;
+mod seven_stage;
+mod seven_ud_tables;
 mod six;
 mod six_stage1;
 mod six_stage2;

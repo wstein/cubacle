@@ -45,7 +45,7 @@ pub(super) fn inner_wings(
     let n = cube.kind().size();
     let moves = reduce_with(four, &four_of(cube), "inner wings (4x4x4)")?;
     let depth = (n / 2) as u8;
-    let lifted: Vec<Move> = moves.iter().map(|m| lift(m, depth)).collect();
+    let lifted: Vec<Move> = moves.iter().flat_map(|m| lift(m, depth)).collect();
     // The 4x4x4 turns whole-cube-wide layers as 4Xw; none are expected.
     debug_assert!(lifted.iter().all(|m| m.fits(cube.kind())));
     Ok(lifted)
@@ -58,7 +58,10 @@ pub(super) fn orbit_wings(
     orbit: usize,
 ) -> Result<Vec<Move>, Refused> {
     let moves = reduce_with(five, &five_of(cube, orbit), "outer wings (5x5x5)")?;
-    Ok(moves.iter().map(|m| lift(m, (orbit + 2) as u8)).collect())
+    Ok(moves
+        .iter()
+        .flat_map(|m| lift(m, (orbit + 2) as u8))
+        .collect())
 }
 
 /// Solves the reduced cube as a 3x3x3; returns the moves.
