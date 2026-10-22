@@ -21,4 +21,8 @@ PDF export, animation, a frontend, and curved rotation arrows for inner slices (
 
 - [[Crate roles and dependency direction]]
 
-Source: ARCHITECTURE.md, lines 30-36
+Source: src/render/action.rs, lines 136-147
+Source: src/render/arrow.rs, lines 48-93
+Source: src/render/arrow.rs, lines 297-340
+Source: src/icons.rs, lines 64-82
+Source: docs/icons.md, lines 1-10

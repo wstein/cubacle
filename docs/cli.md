@@ -6,7 +6,7 @@ weight: 3
 
 # Command-line guide
 
-The `cubacle` tool has five subcommands: `solve`, `convert`, `scramble`, `random` and `facelets`. Run `cubacle <command> --help` for the full option list.
+The `cubacle` tool has six subcommands: `solve`, `convert`, `scramble`, `random`, `facelets` and `icon`. Run `cubacle <command> --help` for the full option list.
 
 ## Solve a cube
 
@@ -226,4 +226,12 @@ cubacle facelets "R U R' U'"
 
 ```text
 UULUUFUUFRRUBRRURRFFDFFUFFFDDRDDDDDDBLLLLLLLLBRRBBBBBB
+```
+
+## Draw moves
+
+`icon` draws moves as small pictures, and `solve --icons` shows each step of a solution with one. See [Move icons](icons.md).
+
+```sh
+cubacle icon R "U'" --format text
 ```

@@ -36,6 +36,10 @@ Any six letters in `URFDLB` order also work, e.g. `--scheme WRGYOB`.
 
 The 2×2×2 solver (`PocketSolver`) keeps one corner fixed and searches an exact distance table of all 3,674,160 states, so its solutions are optimal in the half-turn metric (U, R and F turns by 90° or 180°). The table is built on first use in well under a second in a release build. A cube that is solved in any orientation needs no moves. A solve with a ready table takes microseconds and always meets `--budget-ms`; the first solve in a process includes the one-off table build, which a budget cannot interrupt and which counts against it. `Solver::prepare()` does the build ahead of time.
 
+## Move icons
+
+`cubacle icon R "U'" Rw2` draws moves as small pictures (Kitty graphics on a capable terminal, text elsewhere, or SVG with `--format svg --out FILE`), and `cubacle solve --icons` shows each solution step that way. See [docs/icons.md](docs/icons.md).
+
 ## Usage
 
 ```rust
@@ -74,6 +78,7 @@ A limit of 20 or 21 moves is recommended for the 3×3×3 (`SolveOptions::with_ma
 
 - `puzzle`: `PuzzleKind`, `Facelets` (with `apply(&MoveSequence)`), `Move` and `MoveSequence` (parse with `str::parse`), the `Solver` trait, `SolveOptions`, `SolveResult` and `Failure`.
 - `notation`: `parse_cube` (Orbit64 tokens, facelets and colours), `ColourScheme`, the `orbit64` codec.
+- `render`: `icon(&state, &action, &style)` draws a move as SVG, RGBA pixels, Kitty graphics or text; see the [move icons](docs/icons.md) page.
 - `generate`: `random_state(kind)` (a uniform 2×2×2, 3×3×3 or 5×5×5 state) and `scramble(kind, length)`.
 - `engines::three::Min2PhaseSolver`: the 3×3×3 `Solver`, plus
   - `solve_pattern(&from, &to, &options)`: moves that transform one cube state into another.
