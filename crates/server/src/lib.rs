@@ -35,6 +35,7 @@ use cubacle::engines::five::FiveSolver;
 use cubacle::engines::three::Min2PhaseSolver;
 use cubacle::engines::two::PocketSolver;
 use cubacle::generate;
+use cubacle::notation::orbit64;
 use cubacle::notation::{parse_cube, ColourScheme};
 use cubacle::puzzle::{Facelets, Failure, PuzzleKind, SolveOptions, Solver};
 use serde::{Deserialize, Serialize};
@@ -310,6 +311,19 @@ struct RandomParams {
 struct CubeBody {
     kind: String,
     facelets: String,
+    /// The Orbit64 state token; absent when the stickers are not a cube.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    token: Option<String>,
+}
+
+impl CubeBody {
+    fn of(facelets: &Facelets) -> CubeBody {
+        CubeBody {
+            kind: kind_name(facelets.kind()),
+            facelets: facelets.to_string(),
+            token: orbit64::encode(facelets).ok(),
+        }
+    }
 }
 
 async fn random(params: Result<Query<RandomParams>, QueryRejection>) -> ApiResult<CubeBody> {
@@ -317,10 +331,7 @@ async fn random(params: Result<Query<RandomParams>, QueryRejection>) -> ApiResul
     let kind = engine_kind(params.size.unwrap_or(3))?;
     let facelets =
         generate::random_state(kind).expect("the 2x2x2, 3x3x3 and 5x5x5 have generators");
-    Ok(Json(CubeBody {
-        kind: kind_name(kind),
-        facelets: facelets.to_string(),
-    }))
+    Ok(Json(CubeBody::of(&facelets)))
 }
 
 #[derive(Deserialize)]
@@ -391,10 +402,7 @@ fn read_cube(cube: &str, scheme: Option<&str>) -> Result<Facelets, ApiError> {
 async fn convert(headers: HeaderMap, body: Result<Bytes, BytesRejection>) -> ApiResult<CubeBody> {
     let request: ConvertRequest = read_body(&headers, body)?;
     let facelets = read_cube(&request.cube, request.scheme.as_deref())?;
-    Ok(Json(CubeBody {
-        kind: kind_name(facelets.kind()),
-        facelets: facelets.to_string(),
-    }))
+    Ok(Json(CubeBody::of(&facelets)))
 }
 
 #[derive(Serialize)]

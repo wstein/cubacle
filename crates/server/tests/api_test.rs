@@ -393,6 +393,58 @@ async fn orbit64_tokens_of_sizes_without_an_engine_convert_but_do_not_solve() {
 }
 
 #[tokio::test]
+async fn convert_answers_the_orbit64_token_of_every_size() {
+    // Official vectors of the format: a 4x4x4 and a 5x5x5 token and their facelets.
+    let vectors = [
+        (
+            "BJStkD4cayBhsWj6eHgDZLTP1th",
+            "4x4x4",
+            "DLLDLLDLBFLFLRBR DRDLFBRLUURUUDDU FUUFLDFDRBUFURRL LBDFFFDFFFBRFBFR RDDDBLUUBURBRULB BFBBUDRURBLLBRDU",
+        ),
+        (
+            "AQshP-X3WpOUAtv878ZKcZyT5P3So75Lb-WOh2gDJ2w",
+            "5x5x5",
+            "DBRFRFUBLDDBUFFURBDDFUUDL BLDBFULULLLRRUURRDFDRLLFD LFLRURFURRFFFFBUBLUFRLUBU BDBRFDFRUULRDFDULLDDRBRFL LDBFUUFDUFRLLURBRDDBBRFRD DLDUFBBBBLFRBDUBDLBLBLBRU",
+        ),
+    ];
+    for (token, kind, spaced) in vectors {
+        let (status, _, body) = call(app(), post_json("/v1/convert", json!({"cube": token}))).await;
+        assert_eq!(status, StatusCode::OK, "{kind}: {body}");
+        assert_eq!(body["kind"], kind);
+        assert_eq!(body["token"], token);
+        let facelets = body["facelets"].as_str().unwrap().to_owned();
+        assert_eq!(facelets, spaced.replace(' ', ""), "{kind}");
+        // And back: facelets in, the same token out.
+        let (_, _, again) = call(app(), post_json("/v1/convert", json!({"cube": facelets}))).await;
+        assert_eq!(again["token"], token);
+    }
+}
+
+#[tokio::test]
+async fn convert_and_random_carry_a_token() {
+    let (_, _, body) = call(app(), post_json("/v1/convert", json!({"cube": SOLVED3}))).await;
+    assert_eq!(body["token"], "AAAAAAAAAAAA");
+    let (_, _, body) = call(app(), get("/v1/random?size=5")).await;
+    let token = body["token"].as_str().unwrap();
+    assert_eq!(token.len(), 43);
+    let (_, _, back) = call(app(), post_json("/v1/convert", json!({"cube": token}))).await;
+    assert_eq!(back["facelets"], body["facelets"]);
+}
+
+#[tokio::test]
+async fn impossible_orbit64_tokens_are_400() {
+    for width in [5, 12, 27, 43, 66, 90] {
+        let (status, _, body) = call(
+            app(),
+            post_json("/v1/convert", json!({"cube": "_".repeat(width)})),
+        )
+        .await;
+        assert_eq!(status, StatusCode::BAD_REQUEST, "{width}: {body}");
+        assert_eq!(code(&body), "bad_input");
+    }
+}
+
+#[tokio::test]
 async fn unknown_parameters_and_wrong_fields_are_400() {
     for uri in [
         "/v1/scramble?moves=5&x=1",
