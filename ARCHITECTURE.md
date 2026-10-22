@@ -11,6 +11,7 @@ src/
                   SolveOptions/SolveResult/Failure, Facelets::apply
   notation/       Orbit64, colour schemes, input detection and parsing
   generate/       random states and scrambles
+  render/         move icons (SVG, RGBA, Kitty graphics, text) from puzzle types
   engines/
     three/        the 3x3x3 two-phase engine (Min2PhaseSolver), with its
                   private worker pool in pool.rs
@@ -27,10 +28,13 @@ crates/server/    the cubacle-server HTTP backend
 puzzle  <-  notation  <-  engines  <-  apps (CLI, server)
    ^            ^
    +--- generate
+   +--- render
 ```
 
 - `puzzle` depends on nothing else in the crate.
-- `notation` and `generate` depend only on `puzzle`.
+- `notation`, `generate` and `render` depend only on `puzzle`. `render` is pure
+  (no I/O, no global state) and never names `notation`: the CLI maps a colour
+  scheme to a `render::Palette`. Terminal detection lives in the CLI.
 - The 5x5x5 engine depends on `puzzle` only; the 3x3x3 solver it finishes with
   is injected as an `Arc<dyn Solver + Send + Sync>`.
 - An engine depends on `puzzle` (and, for the 2x2x2, on the Orbit64 corner
@@ -47,7 +51,7 @@ cross-check against `generate` or `Facelets::apply`).
 
 Items are private, or `pub(crate)` when a sibling module needs them. Only what
 a future crate would export is `pub`: the `puzzle`, `notation` and `generate`
-APIs, `Min2PhaseSolver`, `PocketSolver` and `FiveSolver`. Inside `engines::three` the
+APIs, the `render` API (`icon`, `Action`, `Style`, `Icon`), `Min2PhaseSolver`, `PocketSolver` and `FiveSolver`. Inside `engines::three` the
 sub-modules (`consts`, `coordinates`, `cubie`, `engine`, `pool`, `search`, `solver`, `stats`, `tables`) are private
 and talk to each other with `pub(super)` items.
 

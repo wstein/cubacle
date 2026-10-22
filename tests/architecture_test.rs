@@ -1,6 +1,6 @@
 //! Enforces the dependency rules in ARCHITECTURE.md by reading the sources:
-//! `puzzle <- notation <- engines <- apps`, and engines never reach into each
-//! other.
+//! `puzzle <- notation <- engines <- apps`, `render` and `generate` use only
+//! `puzzle`, and engines never reach into each other.
 //!
 //! The scan resolves `crate::`, `super::` and `self::` paths (also inside
 //! grouped `use crate::{..}` trees, with any spacing) to absolute module paths
@@ -16,6 +16,7 @@ const RULES: [(&str, &[&str]); 6] = [
     ("src/puzzle", &["puzzle"]),
     ("src/notation", &["puzzle", "notation"]),
     ("src/generate", &["puzzle", "generate"]),
+    ("src/render", &["puzzle", "render"]),
     ("src/engines/three", &["puzzle", "engines::three"]),
     ("src/engines/two", &["puzzle", "notation", "engines::two"]),
     ("src/engines/five", &["puzzle", "engines::five"]),
@@ -26,6 +27,7 @@ const APP_ALLOWED: &[&str] = &[
     "puzzle",
     "notation",
     "generate",
+    "render",
     "engines::three",
     "engines::two",
     "engines::five",
