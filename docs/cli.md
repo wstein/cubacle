@@ -32,7 +32,7 @@ moves 15
 U R U R F2 R F2 R' L D2 R' D2 L' U2 R'
 ```
 
-The first two lines go to standard error. The solution goes to standard output. The elapsed time varies between runs.
+The first two lines go to standard error. `moves N` is always printed there, `elapsed` only with `--verbose`. The solution goes to standard output. The elapsed time varies between runs.
 
 | Option | Meaning |
 | --- | --- |

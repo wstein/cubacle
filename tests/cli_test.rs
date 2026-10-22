@@ -492,3 +492,13 @@ fn a_4x4_token_is_solved_with_and_without_slices() {
     assert!(!inner(&plain), "{plain}");
     assert!(sliced.split_whitespace().count() <= plain.split_whitespace().count());
 }
+
+#[test]
+fn solve_always_reports_the_move_count() {
+    let (ok, solution, stderr) = cubacle(&["solve", "A4ib8aejxj4Y"]);
+    assert!(ok);
+    assert_eq!(
+        stderr,
+        format!("moves {}", solution.split_whitespace().count())
+    );
+}

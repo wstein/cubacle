@@ -264,9 +264,7 @@ fn solve(args: SolveArgs) -> Result<(), String> {
             {
                 return Err("internal error: solution does not solve the cube".into());
             }
-            if args.verbose {
-                eprintln!("moves {}", solution.len());
-            }
+            eprintln!("moves {}", solution.len());
             if args.icons {
                 return icons::print_solution(&facelets, &solution, args.input.scheme);
             }
