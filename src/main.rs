@@ -1,8 +1,10 @@
 use std::io::Read;
 use std::process::ExitCode;
+use std::sync::Arc;
 use std::time::Duration;
 
 use clap::{Args, Parser, Subcommand};
+use cubacle::engines::five::FiveSolver;
 use cubacle::engines::three::Min2PhaseSolver;
 use cubacle::engines::two::PocketSolver;
 use cubacle::generate;
@@ -26,15 +28,25 @@ enum Command {
         /// Number of moves
         #[arg(short = 'n', long, default_value_t = 25)]
         moves: usize,
+        /// Cube size
+        #[arg(long, default_value_t = 3)]
+        size: usize,
     },
-    /// Print a uniformly random cube state as facelets
-    Random,
+    /// Print a random cube state as facelets
+    Random {
+        /// Cube size
+        #[arg(long, default_value_t = 3)]
+        size: usize,
+    },
     /// Translate any supported notation into canonical URFDLB facelets
     Convert(InputArgs),
     /// Print the facelets reached by applying a scramble to a solved cube
     Facelets {
         /// Moves in standard notation, e.g. "R U R' U'"
         scramble: String,
+        /// Cube size
+        #[arg(long, default_value_t = 3)]
+        size: usize,
     },
 }
 
@@ -48,6 +60,9 @@ struct InputArgs {
     /// Solve the cube produced by this scramble instead
     #[arg(short, long)]
     scramble: Option<String>,
+    /// Cube size for --scramble (a cube given as text has its size already)
+    #[arg(long, default_value_t = 3)]
+    size: usize,
     /// Colour scheme: boy, jp or six letters in URFDLB order
     /// (default: read from the centres, boy without centres)
     #[arg(long)]
@@ -58,9 +73,9 @@ struct InputArgs {
 struct SolveArgs {
     #[command(flatten)]
     input: InputArgs,
-    /// Longest solution to accept
-    #[arg(short = 'm', long, default_value_t = 21)]
-    max_moves: u8,
+    /// Longest solution to accept (default: 21; none for the 5x5x5)
+    #[arg(short = 'm', long)]
+    max_moves: Option<u8>,
     /// Hard time limit in milliseconds
     #[arg(short, long)]
     budget_ms: Option<u64>,
@@ -86,36 +101,41 @@ fn run(cli: Cli) -> Result<(), String> {
             println!("{}", read_cube(&input)?);
             Ok(())
         }
-        Command::Scramble { moves } => {
-            println!("{}", generate::scramble(PuzzleKind::Cube3, moves));
+        Command::Scramble { moves, size } => {
+            println!("{}", generate::scramble(kind_of(size)?, moves));
             Ok(())
         }
-        Command::Random => {
-            let cube =
-                generate::random_state(PuzzleKind::Cube3).expect("the 3x3x3 has a generator");
+        Command::Random { size } => {
+            let kind = kind_of(size)?;
+            let cube = generate::random_state(kind)
+                .ok_or_else(|| format!("no random state generator for the {size}x{size}x{size}"))?;
             println!("{cube}");
             Ok(())
         }
-        Command::Facelets { scramble } => {
-            println!("{}", scrambled(&scramble)?);
+        Command::Facelets { scramble, size } => {
+            println!("{}", scrambled(&scramble, kind_of(size)?)?);
             Ok(())
         }
     }
 }
 
-/// The solved 3x3x3 with a scramble applied.
-fn scrambled(text: &str) -> Result<Facelets, String> {
+fn kind_of(size: usize) -> Result<PuzzleKind, String> {
+    PuzzleKind::of_size(size).ok_or_else(|| format!("size must be between 2 and 7, not {size}"))
+}
+
+/// The solved cube of the given kind with a scramble applied.
+fn scrambled(text: &str, kind: PuzzleKind) -> Result<Facelets, String> {
     let moves: MoveSequence = text
         .parse()
         .map_err(|error| format!("scramble is not valid move notation ({error})"))?;
-    Facelets::solved(PuzzleKind::Cube3)
+    Facelets::solved(kind)
         .apply(&moves)
         .map_err(|error| error.to_string())
 }
 
 fn read_cube(input: &InputArgs) -> Result<Facelets, String> {
     if let Some(scramble) = &input.scramble {
-        return scrambled(scramble);
+        return scrambled(scramble, kind_of(input.size)?);
     }
     let text = match input.cube.as_slice() {
         [single] if single == "-" => {
@@ -135,15 +155,21 @@ fn solve(args: SolveArgs) -> Result<(), String> {
     let solver: Box<dyn Solver> = match facelets.kind() {
         PuzzleKind::Cube2 => Box::new(PocketSolver::new()),
         PuzzleKind::Cube3 => Box::new(Min2PhaseSolver::new()),
+        PuzzleKind::Cube5 => Box::new(FiveSolver::new(Arc::new(Min2PhaseSolver::new()))),
         kind => {
             let size = kind.size();
             return Err(format!(
-                "no engine for the {size}x{size}x{size} yet; only the 2x2x2 and 3x3x3 are solvable"
+                "no engine for the {size}x{size}x{size} yet; only the 2x2x2, 3x3x3 and 5x5x5 are solvable"
             ));
         }
     };
 
-    let mut options = SolveOptions::default().with_max_moves(args.max_moves);
+    let mut options = SolveOptions::default();
+    match (args.max_moves, facelets.kind()) {
+        (Some(moves), _) => options = options.with_max_moves(moves),
+        (None, PuzzleKind::Cube2 | PuzzleKind::Cube3) => options = options.with_max_moves(21),
+        (None, _) => {}
+    }
     if let Some(millis) = args.budget_ms {
         options = options.with_time_budget(Duration::from_millis(millis));
     }
@@ -161,7 +187,7 @@ fn solve(args: SolveArgs) -> Result<(), String> {
     }
     match result.outcome {
         Ok(solution) => {
-            if facelets.kind() == PuzzleKind::Cube3
+            if matches!(facelets.kind(), PuzzleKind::Cube3 | PuzzleKind::Cube5)
                 && !facelets.apply(&solution).is_ok_and(|end| end.is_solved())
             {
                 return Err("internal error: solution does not solve the cube".into());

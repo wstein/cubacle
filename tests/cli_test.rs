@@ -220,3 +220,57 @@ fn a_scramble_that_moves_the_centres_is_reported_not_mis_solved() {
     assert!(error.contains("centres"), "{error}");
     assert!(!error.contains("internal error"), "{error}");
 }
+
+fn solved_by(facelets: &Facelets, solution: &str) -> bool {
+    let moves = solution.parse().expect("the solution is move notation");
+    facelets.apply(&moves).is_ok_and(|end| end.is_solved())
+}
+
+#[test]
+fn a_5x5_scramble_is_solved_and_the_solution_replays() {
+    let scramble = "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F";
+    let cube = Facelets::solved(PuzzleKind::Cube5)
+        .apply(&scramble.parse().unwrap())
+        .unwrap();
+    let (ok, solution, error) = cubacle(&["solve", "--size", "5", "--scramble", scramble]);
+    assert!(ok, "{error}");
+    assert!(solved_by(&cube, &solution), "{solution}");
+    // The same cube as typed facelets gets the same solution.
+    let (ok, again, error) = cubacle(&["solve", &cube.to_string()]);
+    assert!(ok, "{error}");
+    assert_eq!(again, solution);
+}
+
+#[test]
+fn a_random_5x5_is_generated_and_solved() {
+    let (ok, facelets, error) = cubacle(&["random", "--size", "5"]);
+    assert!(ok, "{error}");
+    let cube = Facelets::parse(&facelets).unwrap();
+    assert_eq!(cube.kind(), PuzzleKind::Cube5);
+    let (ok, solution, error) = cubacle(&["solve", &facelets]);
+    assert!(ok, "{error}");
+    assert!(solved_by(&cube, &solution));
+}
+
+#[test]
+fn a_5x5_scramble_is_printed_for_the_requested_size() {
+    let (ok, text, error) = cubacle(&["scramble", "--size", "5", "-n", "40"]);
+    assert!(ok, "{error}");
+    let moves: cubacle::puzzle::MoveSequence = text.parse().unwrap();
+    assert_eq!(moves.len(), 40);
+    assert!(moves.moves().iter().all(|m| m.fits(PuzzleKind::Cube5)));
+}
+
+#[test]
+fn a_5x5_failure_is_reported_and_never_replayed_wrongly() {
+    // The middle layer moves the face centres, which no engine solves.
+    let (ok, _, error) = cubacle(&["solve", "--size", "5", "--scramble", "3R U"]);
+    assert!(!ok);
+    assert!(error.contains("centres"), "{error}");
+    let (ok, _, error) = cubacle(&["solve", "--size", "5", "-m", "5", "-s", "2R U 2F' R"]);
+    assert!(!ok);
+    assert!(error.contains("move limit"), "{error}");
+    let (ok, _, error) = cubacle(&["solve", "--size", "9", "-s", "R"]);
+    assert!(!ok);
+    assert!(error.contains("size"), "{error}");
+}
