@@ -12,3 +12,9 @@ solver's tables (about 237 MB) are written into the work directory, never here.
 The external answers are the reduction only (lowercase letters are two-layer
 turns); the tool finishes each reduced cube with our 3x3x3 solver, so both
 solvers share the same final stage, and replays the whole solution.
+
+Our side reads or builds its tables in the cache directory (`CUBACLE_CACHE_DIR`,
+else `$XDG_CACHE_HOME/cubacle`, else `~/.cache/cubacle`) and honours `CUBACLE_THREADS`; the `ours` mode prints
+`prepare_ms` (table load or build) and then the solve times and total moves.
+Run it once with the cache directory empty for the cold start, again for the
+warm one, and with `CUBACLE_THREADS=1` for the single-thread numbers.

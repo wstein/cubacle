@@ -44,7 +44,7 @@ For `POST` requests, send the header `Content-Type: application/json`.
 | --- | --- |
 | `cube` | The cube as an Orbit64 token, URFDLB facelets (spaced or compact) or W/R/G/Y/O/B colours. See [Input notations](cli.md#input-notations). |
 | `scheme` | Optional. `boy`, `jp` or six letters in URFDLB order. |
-| `maxMoves` | Optional. Longest accepted solution, 1 to 25 (1 to 255 for a 5x5x5, whose solutions have hundreds of moves). |
+| `maxMoves` | Optional. Longest accepted solution, 1 to 25 (1 to 255 for a 5x5x5, whose solutions have about 73 moves). |
 | `budgetMs` | Optional. Time limit in milliseconds, 1 to 600000. Defaults to, and is capped by, `--request-timeout-ms`. |
 
 Unknown fields are rejected with a 400 error.
@@ -96,10 +96,10 @@ curl -s -XPOST localhost:8080/v1/solve \
 ```
 
 ```json
-{"kind":"5x5x5","solution":"2R 2D2 2R' 2B2 2R 2D 2R' U 2R 2D' 2R' U' ...","length":327,"elapsedMicros":971}
+{"kind":"5x5x5","solution":"Fw' D F' Rw U B' Uw' Lw' U Bw ...","length":67,"elapsedMicros":28246}
 ```
 
-The solution is shortened here; it has 327 moves.
+The solution is shortened here; it has 67 moves; the time is that of the command-line run of the same cube with warm tables and will differ.
 
 ## Errors
 

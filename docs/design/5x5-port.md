@@ -6,10 +6,11 @@ weight: 20
 
 # 5x5x5 port plan
 
-Status: proposal, no engine code written. The owner decided to port
-`cs0x7f/cube555` (Java, five-phase reduction) instead of designing a search
-from scratch. This page is the plan to be approved before the first line of
-engine code.
+Status: landed. The owner decided to port `cs0x7f/cube555` (Java, five-phase
+reduction) instead of designing a search from scratch; the port replaced the
+greedy engine, which is deleted. This page is the plan; where the build differs,
+a "Status" line in the section says how. Measured results are in
+[Engines and limits](../engines).
 
 ## 1. Baseline (measured)
 
@@ -43,7 +44,7 @@ The README offers GPLv3 and MIT, both by Chen Shuang (the MIT notice is dated
 
 1. Already done (commit `docs(notice)`): a NOTICE.md row marks the port as
    planned, and the older statement that the 5x5 engine is written from scratch
-   now covers only the greedy engine.
+   now covers only the greedy engine (later deleted, and its row with it).
 2. Before the first port commit: add the cube555 MIT notice (copyright line and
    permission text, verbatim) to `LICENSE-MIT` as a second block, and change the
    NOTICE row from "planned" to "landed".
@@ -85,8 +86,13 @@ threaded and has no cancellation.
 
 ## 4. Mapping to Rust
 
-Under `src/engines/five/` (the greedy engine moves to `five/greedy/` with
-`git mv`, unchanged, in its own commit):
+Status: landed with other file names than the table below plans (`mv`, `cubie`,
+`cubie_sym`, `build`, `spaces`, `p1` to `p5` with `p4_model` and `p5_model`,
+`tables`, `solving`, `reduction`, `solver`); the generic table builder, cache,
+parallel runner and IDA* live in `src/reduction/`.
+
+Planned layout under `src/engines/five/` (the greedy engine was deleted instead
+of moved; see the status above):
 
 | Module | Content | Java origin | est. lines |
 | --- | --- | --- | --- |
@@ -171,18 +177,18 @@ because merging is ordered by (length, entry index) and quotas are applied
 after the merge. If a time budget stops the search, the result depends on timing
 and is documented as such (the 3x3 does the same).
 
-Threads: reuse the worker pool concept and `CUBACLE_THREADS`. The pool
-(`src/engines/three/pool.rs`) is private to the 3x3 engine and holds a
-process-wide static, and engines may not import each other; therefore a
-first commit moves it (`git mv`) to a neutral module that both may use
-(section 7) and passes the thread count in through a small `Threads` value in
-`SolveOptions`-independent configuration of `FiveSolver` (`with_threads(n)`),
-defaulting to `CUBACLE_THREADS` or the available parallelism. The global pool
-is an existing exception to "no globals"; the plan keeps it, because workers
-are a process resource and not solver state.
+Status: the worker pool was not moved; `src/reduction/par.rs` uses scoped
+threads, with `CUBACLE_THREADS` for both the table build and the search.
 
-The speedup on this machine cannot be measured before the port exists. The
-bench harness gets a `--threads` column when it does.
+Original plan, not followed: the pool (`src/engines/three/pool.rs`) is private to
+the 3x3 engine and holds a process-wide static, and engines may not import each
+other, so a first commit would move it to a neutral module. Built instead:
+`src/reduction/par.rs` runs scoped threads, the count comes from
+`CUBACLE_THREADS` or `FiveSolver::with_threads(n)`, and there is no global
+(`tests/architecture_test.rs` checks `src/reduction/` for statics).
+
+Measured speedup (100 cubes, 12 cores): mean solve time 444 ms on one thread and
+92 ms on twelve; see [Engines and limits](../engines).
 
 ## 7. Shared framework with the 4x4
 
@@ -227,7 +233,7 @@ section 9. The public name `FiveSolver` and its constructor stay.
    output is valid. The multi-threaded run must reproduce them too.
 3. Unit tests per phase on small fixtures: coordinate round trips, move table
    vs cubie move, symmetry conjugation consistency, on the small tables only.
-4. Heavy tests. The full tables are about 240 MB and 10 to 30 s to build; the
+4. Heavy tests. The full tables are about 237 MB and 10 to 30 s to build; the
    GitHub runner (ubuntu-latest: 4 cores, 16 GB for public repositories, 7 GB
    otherwise; jobs have 30 min timeouts in `ci.yml`) can afford it but
    `cargo test --workspace --release` runs many binaries in parallel and
@@ -247,42 +253,25 @@ section 9. The public name `FiveSolver` and its constructor stay.
 
 ## 10. Time budget and cancellation
 
-`SolveOptions::time_budget` and `max_moves` stay. The beam checks a deadline
-every few thousand nodes (an `Instant` compare behind a counter). On expiry the
-current phase stops and the best complete candidate found so far continues
-through the later phases with narrowed quotas (quota 1 phases finish quickly);
-if no complete reduction exists, return `Failure::BudgetExhausted`. With a budget
-the solution is not deterministic, without it the result is. The 3x3 hand-off
-gets the remaining time, as now. A shorter 3x3 tail needs a minimum search time
-for the hand-off; measured tail 21.6 against about 20 claimed, so the potential
-is one to two moves, not measured.
+`SolveOptions::time_budget` and `max_moves` stay. The search checks a deadline
+every few thousand nodes. As built: on expiry the solve stops and fails with
+`Failure::BudgetExhausted`; there is no "best candidate continues" mode. If the
+tables were still being built, the message says so. `max_moves` bounds the whole
+solution (reduction plus the 3x3 tail, which gets `min(25, max - used)`). With a
+budget the result is not deterministic, without it the result is.
 
-## 11. Commit plan (atomic, tests green)
+## 11. Commit plan (as landed)
 
-1. `docs`: this plan and notes (done with this commit).
-2. `build`: move the worker pool to the neutral module (`git mv`, no change),
-   architecture rule added.
-3. `refactor`: delete the greedy engine, its tests and fixture (section 8).
-4. `docs(notice)`: MIT notice of cube555 into `LICENSE-MIT`, NOTICE row to "landed"
-   together with the first ported file.
-5. `feat`: cubie model, move and symmetry tables, with round trip tests.
-6. `feat`: 4-bit pruning table, builder (serial, then parallel), cache, tests on
-   capped tables.
-7. `feat`: phase 1 with its tables; phase 2; phase 3; phase 4; phase 5, one
-   commit each, each with the unit tests.
-8. `feat`: beam and `FiveSolver` wiring behind a constructor flag; golden transfer
-   fixture; ignored full test and the CI job.
-9. `feat`: parallel search; thread count; deterministic-merge test.
-10. `feat`: switch the default, docs and README numbers, keep the greedy engine as
-    fallback; `docs` update of `docs/engines.md`, notes, and the bench note with
-    the Rust numbers.
-
-Two authors in parallel: author A takes steps 2, 3, 6 and 9 (infrastructure:
-pool, tables, cache, parallel runner; the same code the 4x4 needs); author B
-takes 5, 7 and 8 (cube model, phases, beam). They meet at the `Coord` and
-`PruningTable` interfaces, which step 6 must publish first (a stub commit with
-the traits and an in-memory test table is enough). Phases 3 to 5 can be split
-between two further authors once the cubie model exists.
+1. `docs`: this plan, the NOTICE row and the cube555 MIT notice.
+2. `feat(reduction)`: shared building blocks (tables, BFS, cache, parallel
+   runner, IDA*); then a `refactor` with tagged moves, depth caps and streamed
+   cache loading.
+3. `feat(five)`: piece model and symmetries; table builders; phases 1 to 5, one
+   commit each; the chain of phases with the Java golden.
+4. `feat(puzzle)`: `Failure::Internal`, HTTP 500.
+5. `feat(five)!`: wiring, greedy engine deleted, CLI notice, private cache
+   directories in tests.
+6. `docs`, `ci`: docs, notes, architecture rules and the full-table CI job.
 
 ## 12. Risks and open questions
 
@@ -296,8 +285,9 @@ between two further authors once the cubie model exists.
 - A 270 MB resident set is large for the server container; the owner should
   state the memory limit. Option: memory-map the cache file (needs a dependency
   or `unsafe`; not planned).
-- Open for the owner: default cache directory and its name; whether the
-  greedy fallback stays; whether `CUBACLE_THREADS` also governs table builds;
-  4x4 author agreement on `src/reduction/`.
+- Decided: the default cache directory (`CUBACLE_CACHE_DIR`, else
+  `$XDG_CACHE_HOME/cubacle`, else `~/.cache/cubacle`), no greedy fallback,
+  `CUBACLE_THREADS` governs table builds too. Open: 4x4 author agreement on
+  `src/reduction/`.
 - Not verified: the phase goals in section 3 (read quickly); Rust build time;
   multi-core speedups; the 3x3 tail with a minimum search time.

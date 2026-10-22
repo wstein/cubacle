@@ -12,7 +12,7 @@ An engine solves one cube size. cubacle picks the engine from the size of the cu
 | --- | --- | --- |
 | 2x2x2 | Optimal table solver | Supported |
 | 3x3x3 | Kociemba two-phase | Supported |
-| 5x5x5 | Reduction (centres and wings, then the 3x3x3 solver) | Supported, solutions are long |
+| 5x5x5 | Reduction (centres and wings, then the 3x3x3 solver) | Supported, about 73 moves |
 | 4x4x4, 6x6x6, 7x7x7 | Reduction | Planned, not yet supported |
 
 ## 2x2x2: optimal table solver
@@ -38,16 +38,26 @@ The 3x3x3 solver uses an optimized implementation of the two-phase algorithm, de
 
 ## 5x5x5: reduction
 
-`FiveSolver` solves a 5x5x5 whose six face centres stay in place. It never turns the middle layer or a wide block, so the solved cube is the solved facelet string and no whole-cube rotation is involved.
+`FiveSolver` solves a 5x5x5 whose six face centres stay in place. It turns the two outer layers of a face (`R`, `2R`, and the two-layer turns `Rw`, which appear in its solutions), never the middle layer (`3R`), so the solved cube is the solved facelet string and no whole-cube rotation is involved.
 
-1. It puts the 24 x-centres and the 24 t-centres on their faces, and the 24 wings next to the middle edge they belong with. Each step is a 3-cycle of three pieces: a short commutator found offline, conjugated by a setup of at most four moves. A greedy rule takes the cycle that fixes the most pieces per move.
-2. A 5x5x5 has no flipped-edge parity, because the middle edges give every wing its orientation. Only the permutation parity of the 24 wings can be odd. 3-cycles cannot change it, so one inner quarter turn (`2R`) first repairs it when it is odd.
-3. The corners, middle edges and centres then form a 3x3x3 (stickers in rows and columns 0, 2 and 4). `FiveSolver` hands it to the 3x3x3 solver it was built with, through the `Solver` trait, and appends that solution.
-4. It replays the answer of the 3x3x3 stage on the 3x3x3 it sent, then the whole solution on the 5x5x5, before returning it.
+1. A port of [cube555](https://github.com/cs0x7f/cube555) (Chen Shuang, MIT option, see `NOTICE.md`): five searches in a row bring the centres and then the wing edges into the state of a 3x3x3. Each search is an iterative-deepening search guided by a pruning table, and it keeps several candidates for the next one (200, 500, 500, 500 and 1 for phases 1 to 5, as in the reference). Phase 1 searches from three conjugated copies of the cube, and phase 2 hands three conjugated copies of each of its solutions to phase 3.
+2. The corners, middle edges and centres then form a 3x3x3 (stickers in rows and columns 0, 2 and 4). `FiveSolver` hands it to the 3x3x3 solver it was built with, through the `Solver` trait (a solver of another kind is an internal error), and appends that solution. A turn that ends one part and begins the next on the same face is merged or cancelled.
+3. It checks that the 3x3x3 answer uses only single-layer turns, then replays the whole solution on the 5x5x5 before returning it.
+4. The pruning tables hold 237 MB (12 files). They are built by a parallel breadth-first search (the number of threads is `CUBACLE_THREADS`, default all cores) on the first solve or in `prepare()`, and saved in the cache directory (`CUBACLE_CACHE_DIR`, else `$XDG_CACHE_HOME/cubacle`, else `~/.cache/cubacle`) with a checksum and a format version. A missing, damaged or foreign file is rebuilt. The tables are identical for any thread count, and the search merges its results in a fixed order, so without a time budget the solution does not depend on the thread count.
 
-What it does not do: it does not look for short solutions. Over 1000 random cubes, the solutions had 348 to 477 moves (median 412), of which the 3x3x3 stage adds at most 25. It does not accept cubes whose face centres have moved.
+What it does not do: it does not accept cubes whose face centres have moved, and `maxMoves` bounds the whole solution. If the time budget runs out the solve fails with `BudgetExhausted`; the message says so when the tables were still being built. Without a budget the 3x3x3 stage is limited to 10 s, so a tight `maxMoves` ends as `Exhausted` instead of searching for minutes.
 
-Measured in a release build on an Apple M-series laptop: the 3-cycle library has about 11,650 entries (4,042 x-centre, 3,564 t-centre and 4,044 wing cycles out of 4,048 possible each); it is built on first use or by `prepare()` in about 0.22 s, and a cold `cubacle solve` of a 5x5x5 peaks near 5 MB. With the library ready a solve takes about 1 ms (median 1.1 ms, maximum 4.6 ms over the 1000 cubes). The 3x3x3 solver is injected, so a 5x5x5 build always includes its tables.
+Measured on one 12-core macOS machine, release build, 100 random cubes, against the Java reference (same cubes; both solutions finished by our 3x3x3 solver):
+
+| | cube555 (Java) | `FiveSolver` 12 threads | `FiveSolver` 1 thread |
+| --- | --- | --- | --- |
+| Total moves, mean / median / p90 | 73.1 / 73 / 75 | 73.1 / 73 / 75 | 73.1 / 73 / 75 |
+| Solve time, mean / median / p90 | 865 / 656 / 1776 ms | 92 / 77 / 187 ms | 444 / 404 / 723 ms |
+| Table build, cold | about 50 s | 3.3 s | 18.3 s |
+| Table load, warm | 1.8 s | about 1.0 s | about 1.0 s |
+| Peak memory, warm | 0.76 GB | 335 MB | 327 MB |
+
+The peak memory is above the 300 MB aim: 237 MB are pruning tables, about 70 MB the move and symmetry tables built next to them (measured with `vmmap`), and the rest the process and its libraries. Reading the cache streams the files, which avoids a second copy of the largest table.
 
 ## 4x4x4, 6x6x6, 7x7x7: planned
 

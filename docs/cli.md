@@ -64,33 +64,33 @@ The 4x4x4, 6x6x6 and 7x7x7 have no engine yet. See [Engines and limits](engines.
 
 ## Solve a 5x5x5
 
-Give `solve` a 150-sticker cube, or a scramble with `--size 5`. A 5x5x5 scramble may turn the first two layers of a face (`R`, `2R`); the middle layer (`3R`) and wide moves are not allowed, because they move the face centres, which the solver keeps fixed.
+Give `solve` a 150-sticker cube, or a scramble with `--size 5`. A 5x5x5 scramble may turn the first two layers of a face (`R`, `2R`); the middle layer (`3R`, `3Rw`) is not allowed, because it moves the face centres, which the solver keeps fixed. Two-layer turns (`Rw`) are fine.
 
 ```sh
 cubacle solve --size 5 --scramble "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F" | wc -w
 ```
 
 ```text
-327
+67
 ```
 
-The solution is not short: 348 to 477 moves over 1000 random cubes (see [Engines and limits](engines.md)). It starts like this:
+The solutions have 73 moves on average: 70 to 76 over 100 random cubes and 69 to 77 over 300 others (see [Engines and limits](engines.md)). It starts like this:
 
 ```text
-2R 2D2 2R' 2B2 2R 2D 2R' U 2R 2D' 2R' U'
+Fw' D F' Rw U B' Uw' Lw' U Bw R2 Fw' Uw2 D Fw'
 ```
 
-The tool replays every 5x5x5 solution on the cube and exits with an error if it does not solve it. With a move limit the reduction cannot meet, `solve` fails:
+The tool replays every 5x5x5 solution on the cube and exits with an error if it does not solve it. With a move limit the solution cannot meet, `solve` fails:
 
 ```sh
-cubacle solve --size 5 -s "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F" -m 100
+cubacle solve --size 5 -s "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F" -m 20
 ```
 
 ```text
-error: no solution within the move limit (the reduction alone exceeds the move limit)
+error: no solution within the move limit (the reduction alone is longer than the move limit)
 ```
 
-The first 5x5x5 solve in a process builds a table of centre and wing 3-cycles first, about 0.22 s in a release build. A time budget cannot interrupt that and the build counts against it, so `-b 1` on a cold process fails with `the time budget ran out`.
+The first 5x5x5 solve prints `preparing the 5x5x5 tables (cache directory ...)` on stderr and then reads the tables from the cache directory, or builds them and saves them there (3.3 s on 12 cores, 18 s on one, about 1 s to read them again). If the tables cannot be saved it prints `warning: the tables could not be saved; they are built again next time`. The preparation happens before the time budget starts, so a later `-b 1` fails with `the time budget ran out`, followed by `(the reduction ran out of time before the 3x3x3 stage)` or `(the reduction used up the time budget before the 3x3x3 stage)`, depending on where the clock ran out. `CUBACLE_THREADS` sets the number of threads (at most 256). Without `-b`, the 3x3x3 stage gets at most 10 s; a tight `-m` that it cannot meet in that time ends with `no solution within the move limit (no 3x3x3 solution within the move limit was found in 10 s ...)`.
 
 ## Input notations
 
@@ -227,7 +227,7 @@ cubacle random
 cubacle random --size 5 | cubacle solve - | wc -w
 ```
 
-The second command prints the length of the solution of a random 5x5x5, between 348 and 477 in the 1000 cubes measured.
+The second command prints the length of the solution of a random 5x5x5, between 69 and 77 in the 300 cubes measured.
 
 ## Apply a scramble
 
