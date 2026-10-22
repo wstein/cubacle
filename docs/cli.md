@@ -27,11 +27,12 @@ cubacle solve --scramble "R U R' U'" --max-moves 20 --budget-ms 500 --verbose
 ```
 
 ```text
-elapsed 19.028292ms, probes 1
-U R U R F2 R F2 R L' U2 R' U2 R2 L U2 R'
+elapsed 69.316417ms, probes 1
+moves 15
+U R U R F2 R F2 R' L D2 R' D2 L' U2 R'
 ```
 
-The first line goes to standard error. The solution goes to standard output. The elapsed time varies between runs.
+The first two lines go to standard error. The solution goes to standard output. The elapsed time varies between runs.
 
 | Option | Meaning |
 | --- | --- |
