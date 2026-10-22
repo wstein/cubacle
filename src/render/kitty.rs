@@ -3,7 +3,8 @@
 //! Syntax per <https://sw.kovidgoyal.net/kitty/graphics-protocol/>: every
 //! command is `ESC _ G <keys> ; <base64 payload> ESC \`, with `a=T` (transmit
 //! and display), `f=32` (RGBA), `s` and `v` (pixel width and height), `q=2`
-//! (suppress replies), `c` and `r` (the size in cells). The payload is cut into
+//! (suppress replies), `r` (the height in cells; the width follows the aspect
+//! ratio) and `C=1` (do not move the cursor). The payload is cut into
 //! chunks of at most 4096 base64 bytes (a multiple of 4 for all but the last),
 //! `m=1` on every chunk but the last, which carries `m=0`; later chunks carry
 //! only `m`.
@@ -32,12 +33,25 @@ pub(crate) fn base64(data: &[u8]) -> String {
     out
 }
 
-/// The escape sequences that show `raster`, optionally scaled to `cells` columns by rows.
-pub(crate) fn encode(raster: &Raster, cells: Option<(u32, u32)>) -> String {
+/// How the terminal places the image.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct KittyPlacement {
+    /// Scale the image to this many rows of cells. Only the rows are given,
+    /// so the terminal keeps the aspect ratio whatever its cell shape.
+    pub rows: Option<u32>,
+    /// Leave the cursor where it is (`C=1`) instead of moving it past the image.
+    pub keep_cursor: bool,
+}
+
+/// The escape sequences that show `raster` where the cursor is.
+pub(crate) fn encode(raster: &Raster, placement: &KittyPlacement) -> String {
     let payload = base64(&raster.data);
     let mut keys = format!("a=T,f=32,s={},v={},q=2", raster.width, raster.height);
-    if let Some((columns, rows)) = cells {
-        keys.push_str(&format!(",c={columns},r={rows}"));
+    if let Some(rows) = placement.rows {
+        keys.push_str(&format!(",r={rows}"));
+    }
+    if placement.keep_cursor {
+        keys.push_str(",C=1");
     }
     let mut out = String::new();
     let chunks: Vec<&str> = payload
@@ -112,9 +126,15 @@ mod tests {
             height: 50,
             data: data[..20_000].to_vec(),
         };
-        let parts = payloads(&encode(&raster, Some((12, 6))));
+        let parts = payloads(&encode(
+            &raster,
+            &KittyPlacement {
+                rows: Some(6),
+                keep_cursor: true,
+            },
+        ));
         assert!(parts.len() > 2);
-        assert_eq!(parts[0].0, "a=T,f=32,s=100,v=50,q=2,c=12,r=6,m=1");
+        assert_eq!(parts[0].0, "a=T,f=32,s=100,v=50,q=2,r=6,C=1,m=1");
         let mut joined = String::new();
         for (i, (keys, chunk)) in parts.iter().enumerate() {
             assert!(chunk.len() <= 4096);
@@ -141,7 +161,7 @@ mod tests {
             data: vec![1, 2, 3, 4],
         };
         assert_eq!(
-            encode(&raster, None),
+            encode(&raster, &KittyPlacement::default()),
             "\x1b_Ga=T,f=32,s=1,v=1,q=2,m=0;AQIDBA==\x1b\\"
         );
     }

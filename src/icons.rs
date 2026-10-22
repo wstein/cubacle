@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use clap::{Args, ValueEnum};
 use cubacle::notation::ColourScheme;
 use cubacle::puzzle::{Facelets, MoveSequence, PuzzleKind};
-use cubacle::render::{icon, Action, Icon, Palette, Shading, Style};
+use cubacle::render::{icon, Action, Icon, KittyPlacement, Palette, Rgb, Shading, Style};
 
 #[derive(Clone, Copy, PartialEq, Eq, ValueEnum)]
 pub enum Format {
@@ -51,6 +51,10 @@ pub struct IconArgs {
     /// Show the moving layer grey instead of darkening the rest
     #[arg(long)]
     grey: bool,
+    /// Keep the background transparent in Kitty graphics (default: opaque
+    /// dark, so text under the image cannot show through)
+    #[arg(long)]
+    transparent: bool,
     /// Draw each move on the cube left by the moves before it (default: each
     /// move on its own start cube, solved or from --from)
     #[arg(long)]
@@ -91,6 +95,9 @@ fn detect_stdout() -> Graphics {
     })
 }
 
+/// The backdrop of terminal graphics: opaque, so text below cannot show through.
+const TERMINAL_BACKGROUND: Rgb = Rgb(0x20, 0x24, 0x2b);
+
 fn style(scheme: Option<ColourScheme>, size: u32, grey: bool) -> Style {
     Style {
         palette: Palette::from_letters(scheme.unwrap_or(ColourScheme::WESTERN_BOY).letters()),
@@ -108,9 +115,19 @@ fn style(scheme: Option<ColourScheme>, size: u32, grey: bool) -> Style {
 fn show(icon: &Icon, graphics: Graphics, size: u32) -> String {
     match graphics {
         Graphics::Kitty => {
+            // Erase the rows the image covers so older text cannot show
+            // through, step back up, draw without moving the cursor, then step
+            // down below the image. The terminal scales to `rows` and keeps
+            // the aspect ratio; the 16 px row height is an estimate.
             let rows = size.div_ceil(16).max(2);
-            let mut text = icon.to_rgba(size).to_kitty(Some((rows * 3, rows)));
-            text.push('\n');
+            let placement = KittyPlacement {
+                rows: Some(rows),
+                keep_cursor: true,
+            };
+            let mut text = "\x1b[2K\n".repeat(rows as usize);
+            text.push_str(&format!("\x1b[{rows}A"));
+            text.push_str(&icon.to_rgba(size).to_kitty(&placement));
+            text.push_str(&format!("\x1b[{rows}B\r"));
             text
         }
         Graphics::Ansi => icon.to_text(true),
@@ -138,7 +155,7 @@ pub fn run(args: IconArgs) -> Result<(), String> {
                 .map_err(|_| format!("{token:?} is not a move or rotation"))
         })
         .collect::<Result<_, _>>()?;
-    let style = style(args.scheme, args.size, args.grey);
+    let mut style = style(args.scheme, args.size, args.grey);
     let to_stdout = args.out.is_none();
     let terminal = std::io::stdout().is_terminal();
     let graphics = if to_stdout {
@@ -152,6 +169,9 @@ pub fn run(args: IconArgs) -> Result<(), String> {
         (Format::Auto, None) => Format::Text,
         (other, _) => other,
     };
+    if format == Format::Kitty && !args.transparent {
+        style.background = Some(TERMINAL_BACKGROUND);
+    }
     if matches!(format, Format::Svg | Format::Rgba) && actions.len() != 1 {
         return Err("svg and rgba hold one icon; give one move or use --format text".into());
     }
@@ -212,7 +232,10 @@ pub fn print_solution(
     scheme: Option<ColourScheme>,
 ) -> Result<(), String> {
     let graphics = detect_stdout();
-    let style = style(scheme, 96, false);
+    let mut style = style(scheme, 96, false);
+    if graphics == Graphics::Kitty {
+        style.background = Some(TERMINAL_BACKGROUND);
+    }
     let mut state = start.clone();
     let total = solution.len();
     let mut out = String::new();

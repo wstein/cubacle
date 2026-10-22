@@ -364,8 +364,31 @@ fn icon_writes_graphics_to_a_file() {
     ]);
     assert!(ok, "{err}");
     let text = std::fs::read_to_string(&kitty).unwrap();
-    assert!(text.starts_with("\x1b_Ga=T,f=32,s=144,v=96,q=2,c=18,r=6,m=1;"));
+    // Erase six rows, step back up, draw without moving the cursor, step down.
+    let head = "\x1b[2K\n".repeat(6) + "\x1b[6A\x1b_Ga=T,f=32,s=144,v=96,q=2,r=6,C=1,m=1;";
+    assert!(text.starts_with(&head), "{:?}", &text[..80]);
+    assert!(
+        !text.contains(",c="),
+        "only r is given so the aspect ratio holds"
+    );
     assert!(text.contains("\x1b_Gm=0;"));
+    assert!(text.ends_with("\x1b\\\x1b[6B\r"));
+    let clear = dir.join("clear.kitty");
+    let (ok, _, err) = cubacle(&[
+        "icon",
+        "R",
+        "--format",
+        "kitty",
+        "--transparent",
+        "--out",
+        clear.to_str().unwrap(),
+    ]);
+    assert!(ok, "{err}");
+    assert_ne!(
+        std::fs::read_to_string(&clear).unwrap(),
+        text,
+        "opaque by default"
+    );
     let rgba = dir.join("r.rgba");
     let (ok, _, err) = cubacle(&[
         "icon",

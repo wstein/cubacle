@@ -37,6 +37,7 @@ mod text;
 
 pub use action::{Action, Axis, RenderError};
 pub use arrow::Direction;
+pub use kitty::KittyPlacement;
 pub use raster::Raster;
 pub use style::{Palette, Rgb, Shading, Style};
 
@@ -158,9 +159,8 @@ impl Icon {
 }
 
 impl Raster {
-    /// Kitty graphics escapes that display the pixels, optionally scaled to
-    /// `columns` by `rows` terminal cells.
-    pub fn to_kitty(&self, cells: Option<(u32, u32)>) -> String {
-        kitty::encode(self, cells)
+    /// Kitty graphics escapes that display the pixels where the cursor is.
+    pub fn to_kitty(&self, placement: &KittyPlacement) -> String {
+        kitty::encode(self, placement)
     }
 }
