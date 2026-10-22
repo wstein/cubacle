@@ -26,13 +26,13 @@ Milliseconds per cube. 4x4 moves include the closing rotation; 5x5 includes the 
 | | 2x2x2 | 3x3x3 | 4x4x4 | 5x5x5 |
 | --- | --- | --- | --- | --- |
 | Moves, mean / median / p90 / max | 8.76 / 9 / 10 / 10 (optimal) | 20.81 / 21 / 21 / 21 | 47.47 / 48 / 49 / 51 (44.30 without rotation) | 72.90 / 73 / 75 / 77 |
-| Time, 1 thread, mean / median / p90 | 0.002 / 0.002 / 0.003 | 0.788 / 0.404 / 1.690 | 72.2 / 62.6 / 116.8 | 408.4 / 362.5 / 666.5 |
+| Time, 1 thread, mean / median / p90 | 0.002 / 0.002 / 0.003 | 0.482 / 0.290 / 1.011 (0.845 / 0.433 / 1.82 before twist-flip pruning) | 72.2 / 62.6 / 116.8 | 408.4 / 362.5 / 666.5 |
 | 2 threads, one solve, mean (cores busy, utilisation) | n/a | n/a | 52.1 (1.53, 77 %) | 239.5 (1.97, 99 %) |
 | 4 threads | n/a | n/a | 41.7 (2.22, 56 %) | 142.4 (3.84, 96 %) |
 | 8 threads | n/a | n/a | 40.6 (3.60, 45 %) | 89.8 (7.38, 92 %) |
 | 12 threads, mean / median / p90 | n/a | n/a | 41.6 / 40.3 / 55.6 (5.13 cores, 43 %) | 100.2 / 79.1 / 158.9 (9.24 cores, 77 %) |
 | CPU per cube, 1 thread / 12 threads | n/a | n/a | 72 / 214 ms (x3.0) | 408 / 927 ms (x2.3) |
-| Table build, cold, 1 thread | 64 ms (95 ms first run) | 18 ms | 317 ms | 18.2 s |
+| Table build, cold, 1 thread | 64 ms (95 ms first run) | 41 ms | 317 ms | 18.2 s |
 | Table build, cold, 4 / 8 / 12 threads | n/a | n/a | 173 / 156 / 151 ms | 5.86 / 3.66 / 3.28 s |
 | Table load, warm | none (built each process) | none | none (always built) | 0.97 to 1.0 s |
 | Peak RSS, Rust | 18.7 MB | 2.8 MB | 62 to 64 MB (tables 12.1 MB) | 306 to 319 MB |
@@ -46,7 +46,7 @@ Milliseconds per cube. 4x4 moves include the closing rotation; 5x5 includes the 
 
 The 5x5 rows for 2, 4 and 8 threads are from the 100-cube set (report 2: 1 thread 427.3 ms, 6 threads 114.9, 10 threads 88.7, 12 threads 87.6 ms, 10.5 cores, 88 %). The 5x5 Java figure is the warm mean of 576 ms; the older 865 ms mean in the first benchmark and in the 5x5 port page is a cold-start figure and is not used for comparisons. On the same cubes and work the speed-up of 5x5 at 12 threads is therefore 5.75x, not "9x".
 
-Java does the same work: node counts of the Rust and Java searches agree within 3 to 8 % in 4x4 and 5x5 (report 7), so the single-thread speed-up (1.58x and 1.41x) is a per-node speed-up, and the rest comes from parallelism. The 3x3x3 is the exception: ours is an older min2phase variant without twist-flip pruning and with `MAX_DEPTH2` 13 (upstream: twist-flip pruning with conjugate pruning, `MAX_DEPTH2` 12). It searches 4.1x more phase 1 nodes and 1.7x more probes than upstream Java, and is 1.4x slower [M, report 7].
+Java does the same work: node counts of the Rust and Java searches agree within 3 to 8 % in 4x4 and 5x5 (report 7), so the single-thread speed-up (1.58x and 1.41x) is a per-node speed-up, and the rest comes from parallelism. The 3x3x3 was the exception (report 7: 4.1x more phase 1 nodes and 1.7x more probes than upstream Java, 1.4x slower) until it got the upstream twist-flip pruning with conjugate pruning: it now searches 1,087 phase 1 nodes per cube against 4,710 [M]. It still uses `MAX_DEPTH2` 13 (upstream: 12), hence 12.3 probes against 7.4.
 
 ### 3x3x3 `solve_batch`, 1000 cubes [M]
 
@@ -142,7 +142,7 @@ These are ranked proposals from the measurement, **not done**. Gains marked [E] 
 | A | Deterministic parallel 3x3x3 hand-off: the 6 URF searches as independent tasks, each with ceil(min_probes/6) probes and no shared state; shortest wins, ties to the lowest URF index | 4x4x4 hand-off 21.0 to 10.6 ms, total 42.2 to 32.0 ms (-24 %); moves 47.52 against 47.49 | answers differ from the serial run (fixtures change; needs an owner decision); 1.3x more probes in total | small (about 40 lines) | [M] prototype on 200 cubes; with 500 probes per URF: 52 ms, 47.11 moves |
 | B | Persistent worker pool, coarse tasks, lock-free ordered merge (per-slot `OnceLock` plus an atomic prefix instead of one `Mutex`) | 4x4x4 phases 2+3 from 18 to about 7-8 ms; 5x5x5 100 to about 60-70 ms [E] | low: the ordered merge keeps answers deterministic | medium | [M] 36 % system time, 57 ms per cube mutex wait, 56 to 228 spawns per cube |
 | C | Bound speculation: cancel or deprioritise tasks past the cut; give each task the global remaining quota (also fixes the 1-thread overshoot) | 5x5x5 CPU per cube 927 to about 500 ms, latency -25 to -35 %; 1-thread 5x5x5 -3 to -8 % [E] | low | medium | [M] node inflation 2x (5x5x5), +54 to +82 % (4x4x4) |
-| D | 3x3x3 parity with upstream min2phase (`USE_TWIST_FLIP_PRUN`, conjugate pruning, `MAX_DEPTH2` 12) | 3x3x3 0.79 to about 0.3-0.4 ms; hand-off 21 to about 8-10 ms single-threaded [E] | changes every 3x3x3 answer and touches the search code (needs an owner decision) | medium to large | [M] 4.1x fewer nodes in Java |
+| D | 3x3x3 parity with upstream min2phase: twist-flip and conjugate pruning are done (answers unchanged, 0.845 to 0.482 ms per cube [M]); `MAX_DEPTH2` 12 is open | 3x3x3 0.79 to about 0.3-0.4 ms; hand-off 21 to about 8-10 ms single-threaded [E] | changes every 3x3x3 answer and touches the search code (needs an owner decision) | medium to large | [M] 4.1x fewer nodes in Java |
 | E | Thread defaults: 4x4x4 latency 4 threads, 5x5x5 8 threads; server 5x5x5 threads per solve = cores / permits (for example 3 x 4) | server 5x5x5 10.3 to 14.5 per second, p50 970 to about 190 ms; 2-3x less CPU for 4x4x4 [E] | none | trivial | [M] report 3 and 5 |
 | F | Micro-optimisations: read the clock every N nodes instead of `Instant::now()` per 3x3x3 node when a budget is set; stop re-walking the root for each first-move task; prefetch pruning entries in 5x5x5 phases 1 and 4 | 2 to 10 % each [E] | low | small | [M] 0.65 us per node in 5x5x5 phase 1 |
 | G | Parallel 4x4x4 phase 1 | at most 1.8 ms | low | medium | [M] |
