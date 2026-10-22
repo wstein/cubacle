@@ -16,7 +16,7 @@ pub(super) const N_CCOMB: usize = 70;
 
 pub(super) const N_MOVES_P1: usize = 18;
 pub(super) const N_MOVES_P2: usize = 10;
-pub(super) const MAX_DEPTH2: usize = 13;
+pub(super) const MAX_DEPTH2: usize = 12;
 pub(super) const SEARCH_TIMEOUT: i8 = i8::MIN;
 pub(super) const SEARCH_COMPLETE: i8 = i8::MIN + 1;
 pub(super) const PREMOVE_TIMEOUT: i32 = i32::MIN;
