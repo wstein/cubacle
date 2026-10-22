@@ -6,6 +6,7 @@ use std::time::{Duration, Instant};
 use super::cubie::Cubie;
 use super::reduction::{reduce, Stuck};
 use super::tables::{Config, Tables};
+use crate::puzzle::normalise;
 use crate::puzzle::{
     Face, Facelets, Failure, Move, MoveSequence, PuzzleKind, SolveMetrics, SolveOptions,
     SolveResult, Solver, Turn,
@@ -301,6 +302,7 @@ impl Solver for FiveSolver {
             ),
             max_moves: Some(tail_limit),
             min_probes: options.min_probes.or(Some(HAND_OFF_PROBES)),
+            slices: false,
         };
         let finish = self.three.solve(&three_by_three(&reduced), &hand_off);
         let tail = match finish.outcome {
@@ -322,7 +324,7 @@ impl Solver for FiveSolver {
                 "the 3x3x3 stage returned a move this cube cannot make as a 3x3x3 turn",
             );
         }
-        let solution = MoveSequence::new(join(head, tail.moves()));
+        let solution = MoveSequence::new(normalise(5, &join(head, tail.moves()), options.slices));
         if !facelets.apply(&solution).is_ok_and(|end| end.is_solved()) {
             return fail(
                 Failure::Internal,

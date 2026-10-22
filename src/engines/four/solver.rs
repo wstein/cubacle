@@ -15,6 +15,7 @@ use super::reduce::{after, reduce};
 use super::rotation::Rotations;
 use super::swap::Swaps;
 use super::tables::Tables;
+use crate::puzzle::normalise;
 use crate::puzzle::{
     Face, Facelets, Failure, Move, MoveSequence, PuzzleKind, SolveMetrics, SolveOptions,
     SolveResult, Solver,
@@ -274,6 +275,7 @@ impl Solver for FourSolver {
             time_budget: Some(stage_budget),
             max_moves: Some(tail_limit),
             min_probes: options.min_probes.or(Some(self.hand_off_probes)),
+            slices: false,
         };
         let finish = self.three.solve(&three, &hand_off);
         let probes = finish.metrics.probes;
@@ -315,13 +317,14 @@ impl Solver for FourSolver {
         }
         let real = to_real(&t.syms, &all, length1, add1, sym);
         let moves: Vec<Move> = real.iter().map(|&c| to_move(c)).collect();
+        let moves = normalise(4, &moves, false);
         let Some(moves) = self.swaps.finish(&self.rotations, facelets, &moves) else {
             return fail(
                 Failure::Internal,
                 "the solution does not solve the cube (the 3x3x3 stage was given an unsolvable state?)",
             );
         };
-        let solution = MoveSequence::new(moves);
+        let solution = MoveSequence::new(normalise(4, &moves, options.slices));
         if limit.is_some_and(|max| solution.len() > max) {
             return fail(
                 Failure::Exhausted,

@@ -14,6 +14,11 @@ pub struct SolveOptions {
     /// not time, so the answer is the same on every machine. Other engines
     /// ignore it.
     pub min_probes: Option<u64>,
+    /// Allow single inner layers in the answer (`2R`) where they make it
+    /// shorter. The reduction engines (4x4x4, 5x5x5) otherwise write wide
+    /// turns and outer layers only (5x5x5: also second layers). Engines for
+    /// other sizes ignore it.
+    pub slices: bool,
 }
 
 impl SolveOptions {
@@ -29,6 +34,11 @@ impl SolveOptions {
 
     pub fn with_min_probes(mut self, probes: u64) -> SolveOptions {
         self.min_probes = Some(probes);
+        self
+    }
+
+    pub fn with_slices(mut self, slices: bool) -> SolveOptions {
+        self.slices = slices;
         self
     }
 }

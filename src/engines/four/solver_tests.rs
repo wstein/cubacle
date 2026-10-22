@@ -105,6 +105,23 @@ fn scrambled_cubes_are_solved_and_the_answer_replays() {
 }
 
 #[test]
+fn slices_are_only_written_when_asked_for_and_never_lengthen_the_answer() {
+    let four = solver(2);
+    for seed in 1..=6 {
+        let cube = scrambled(seed, 40);
+        let plain = four.solve(&cube, &SolveOptions::default());
+        let sliced = four.solve(&cube, &SolveOptions::default().with_slices(true));
+        let (plain, sliced) = (plain.solution().unwrap(), sliced.solution().unwrap());
+        assert!(solves(&cube, plain) && solves(&cube, sliced), "seed {seed}");
+        assert!(
+            plain.moves().iter().all(|m| m.wide || m.depth == 1),
+            "{plain}"
+        );
+        assert!(sliced.len() <= plain.len(), "seed {seed}");
+    }
+}
+
+#[test]
 fn the_solved_cube_needs_no_move() {
     let result = solver(1).solve(
         &Facelets::solved(PuzzleKind::Cube4),

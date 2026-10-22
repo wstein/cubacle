@@ -4,6 +4,7 @@
 //! [`PuzzleKind`], a [`Facelets`] state, a [`MoveSequence`] and a [`Solver`].
 
 mod apply;
+mod axis;
 mod cubies;
 mod facelets;
 mod kind;
@@ -12,6 +13,7 @@ mod solver;
 
 pub(crate) use apply::locate;
 pub use apply::ApplyError;
+pub(crate) use axis::normalise;
 pub(crate) use cubies::five_orbits;
 pub use facelets::{Face, Facelets, FaceletsError};
 pub use kind::PuzzleKind;
