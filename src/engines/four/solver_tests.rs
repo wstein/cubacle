@@ -256,3 +256,56 @@ fn a_solver_that_is_not_a_3x3_solver_is_an_internal_error() {
     let result = four.solve(&scrambled(1, 20), &SolveOptions::default());
     assert_eq!(result.outcome, Err(Failure::Internal));
 }
+
+#[test]
+fn a_move_limit_caps_the_hand_off_and_its_failure_is_exhausted_not_a_budget() {
+    let cube = scrambled(11, 30);
+    let stub = Stub::new(Err(Failure::BudgetExhausted));
+    // A limit and a long time budget: the tail search is capped at one second
+    // and its timeout is a limit failure.
+    let options = SolveOptions::default()
+        .with_max_moves(120)
+        .with_time_budget(Duration::from_secs(30));
+    let result = with_stub(&stub).solve(&cube, &options);
+    assert_eq!(result.outcome, Err(Failure::Exhausted));
+    let seen = stub.seen.lock().unwrap();
+    assert_eq!(seen[0].time_budget, Some(Duration::from_secs(1)));
+    drop(seen);
+
+    // No limit: the caller's budget governs and its end is a budget failure.
+    let stub = Stub::new(Err(Failure::BudgetExhausted));
+    let options = SolveOptions::default().with_time_budget(Duration::from_secs(30));
+    let result = with_stub(&stub).solve(&cube, &options);
+    assert_eq!(result.outcome, Err(Failure::BudgetExhausted));
+    let seen = stub.seen.lock().unwrap();
+    assert!(seen[0].time_budget.unwrap() > Duration::from_secs(1));
+}
+
+#[test]
+fn a_spent_clock_stops_every_task_before_it_searches() {
+    use super::candidates::Cand;
+    use super::control::{Control, Stop};
+    use super::cube::Cube;
+    use super::tables::Tables;
+    use super::{phase2, phase3};
+    use std::time::Instant;
+
+    let t = Tables::build(1, 4);
+    let spent = Control::new(Some(Instant::now()));
+    std::thread::sleep(Duration::from_millis(2));
+    let cand = Cand::empty();
+    let never = || false;
+    let r2 = phase2::one(
+        &t,
+        &spent,
+        &never,
+        &cand,
+        &Cube::solved(),
+        5,
+        10,
+        usize::MAX,
+    );
+    assert_eq!(r2.err(), Some(Stop::Timeout));
+    let r3 = phase3::one(&t, &spent, &never, &cand, 5, usize::MAX);
+    assert_eq!(r3.err(), Some(Stop::Timeout));
+}

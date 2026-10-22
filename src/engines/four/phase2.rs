@@ -37,14 +37,24 @@ struct Search<'a> {
     move2: [usize; 32],
     out: Vec<Cand>,
     limit: usize,
+    /// The first move to search (the others are left to other tasks), or
+    /// `ALL` to search them all.
+    only: usize,
     nodes: u32,
     stop: Option<Stop>,
     e12: Edge,
 }
 
+/// Search every first move.
+const ALL: usize = usize::MAX;
+/// First moves of phase 2 (the search tries the moves 0 to 22).
+const FIRST_MOVES: usize = 23;
+
 /// The results of searching candidate `cand` (whose state is `cube`) for
-/// solutions of exactly `length2` moves, at most `limit` of them.
-fn one(
+/// solutions of exactly `length2` moves that begin with move `only` (any
+/// move for `ALL`), at most `limit` of them.
+#[allow(clippy::too_many_arguments)] // one task: the state, the lengths and the clock
+pub(super) fn one(
     t: &Tables,
     ctl: &Control,
     cancelled: &dyn Fn() -> bool,
@@ -52,7 +62,11 @@ fn one(
     cube: &Cube,
     length2: usize,
     limit: usize,
+    only: usize,
 ) -> Result<Vec<Cand>, Stop> {
+    if ctl.check() {
+        return Err(Stop::Timeout);
+    }
     let mut s = Search {
         t,
         ctl,
@@ -63,6 +77,7 @@ fn one(
         move2: [0; 32],
         out: Vec::new(),
         limit,
+        only,
         nodes: 0,
         stop: None,
         e12: Edge::new(),
@@ -92,9 +107,19 @@ pub(super) fn run(
     let mut max_length2 = 9;
     while max_length2 <= MAX_LENGTH2_LIMIT {
         for length12 in cands[0].value..MAX_TOTAL {
-            let tasks: Vec<usize> = (0..cands.len())
+            // Each candidate is split by its first move, in the order the
+            // serial search takes them, so the joined results are the serial
+            // ones. A candidate with nothing left to move is one task.
+            let tasks: Vec<(usize, usize)> = (0..cands.len())
                 .take_while(|&i| cands[i].value <= length12)
                 .filter(|&i| length12 - i32::from(cands[i].length1) <= max_length2)
+                .flat_map(|i| {
+                    if length12 == i32::from(cands[i].length1) {
+                        vec![(i, ALL)]
+                    } else {
+                        (0..FIRST_MOVES).map(|m| (i, m)).collect()
+                    }
+                })
                 .collect();
             if tasks.is_empty() {
                 continue;
@@ -102,9 +127,11 @@ pub(super) fn run(
             let need = PHASE2_SOLUTIONS - results.len();
             let failed = std::sync::Mutex::new(None);
             let got = par::first_results(threads, tasks.len(), need, |k, cancelled| {
-                let i = tasks[k];
+                let (i, first) = tasks[k];
                 let length2 = (length12 - i32::from(cands[i].length1)) as usize;
-                match one(t, ctl, cancelled, &cands[i], &cubes[i], length2, need) {
+                match one(
+                    t, ctl, cancelled, &cands[i], &cubes[i], length2, need, first,
+                ) {
                     Ok(found) => found,
                     Err(stop) => {
                         *failed.lock().expect("no panic while holding the lock") = Some(stop);
@@ -157,6 +184,10 @@ impl Search<'_> {
                 if prun > maxl {
                     m = SET2.skip[m];
                 }
+                m += 1;
+                continue;
+            }
+            if depth == 0 && self.only != ALL && m != self.only {
                 m += 1;
                 continue;
             }

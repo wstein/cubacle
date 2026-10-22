@@ -26,6 +26,11 @@ const THREE_MAX_MOVES: u8 = 21;
 const HAND_OFF_PROBES: u64 = 500;
 /// What the 3x3x3 stage may take when the caller sets no time budget.
 const HAND_OFF_BUDGET: Duration = Duration::from_secs(10);
+/// What the 3x3x3 stage may take when the caller sets a move limit: the
+/// reduction is fixed, so a limit the tail cannot meet would otherwise keep
+/// the 3x3x3 solver searching until the budget ends. A tail that can meet
+/// the limit is found in a few milliseconds.
+const LIMITED_HAND_OFF_BUDGET: Duration = Duration::from_secs(1);
 
 /// The 4x4x4 reduction solver, a port of Tsai's three-phase solver
 /// cs0x7f/TPR-4x4x4-Solver.
@@ -245,10 +250,24 @@ impl Solver for FourSolver {
         let tail_limit = limit.map_or(THREE_MAX_MOVES, |max| {
             u8::try_from(max - fixed).map_or(THREE_MAX_MOVES, |n| n.min(THREE_MAX_MOVES))
         });
+        // The cap on the 3x3x3 stage, if one applies, and whether it (not the
+        // caller's deadline) is what ends the stage.
+        let cap = if limit.is_some() {
+            LIMITED_HAND_OFF_BUDGET
+        } else {
+            HAND_OFF_BUDGET
+        };
+        let stage_budget = match remaining {
+            Some(r) => r.max(Duration::from_millis(1)).min(if limit.is_some() {
+                cap
+            } else {
+                Duration::MAX
+            }),
+            None => cap,
+        };
+        let capped = remaining.is_none_or(|r| limit.is_some() && r > cap);
         let hand_off = SolveOptions {
-            time_budget: Some(
-                remaining.map_or(HAND_OFF_BUDGET, |r| r.max(Duration::from_millis(1))),
-            ),
+            time_budget: Some(stage_budget),
             max_moves: Some(tail_limit),
             min_probes: options.min_probes.or(Some(self.hand_off_probes)),
         };
@@ -256,10 +275,18 @@ impl Solver for FourSolver {
         let probes = finish.metrics.probes;
         let tail = match finish.outcome {
             Ok(tail) => tail,
-            Err(Failure::BudgetExhausted) if deadline.is_none() => {
+            Err(Failure::BudgetExhausted) if capped => {
                 return done(
                     Err(Failure::Exhausted),
-                    Some("no 3x3x3 solution within the move limit was found in 10 s (set a time budget to allow longer)".into()),
+                    Some(format!(
+                        "no 3x3x3 solution within the move limit was found in {} s{}",
+                        cap.as_secs(),
+                        if limit.is_some() {
+                            " (the reduction is fixed; a larger limit may help)"
+                        } else {
+                            " (set a time budget to allow longer)"
+                        }
+                    )),
                     probes,
                 );
             }

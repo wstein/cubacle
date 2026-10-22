@@ -27,28 +27,41 @@ struct Search<'a> {
     t: &'a Tables,
     ctl: &'a Control,
     cancelled: &'a dyn Fn() -> bool,
+    /// The first move to search, or `ALL`.
+    only: usize,
     tempe: [Edge; 24],
     move3: [usize; 24],
     nodes: u32,
     stop: Option<Stop>,
 }
 
+/// Search every first move.
+const ALL: usize = usize::MAX;
+/// First moves of phase 3 (the search tries the moves 0 to 16).
+const FIRST_MOVES: usize = 17;
+
 /// The phase 3 moves (as move numbers) that finish `cand` in exactly
-/// `remaining` moves, if there are any.
-fn one(
+/// `remaining` moves and begin with move `only` (any for `ALL`), if there
+/// are any.
+pub(super) fn one(
     t: &Tables,
     ctl: &Control,
     cancelled: &dyn Fn() -> bool,
     cand: &Cand,
     remaining: i32,
+    only: usize,
 ) -> Result<Option<Vec<usize>>, Stop> {
     if cand.prun3 > remaining {
         return Ok(None);
+    }
+    if ctl.check() {
+        return Err(Stop::Timeout);
     }
     let mut s = Search {
         t,
         ctl,
         cancelled,
+        only,
         tempe: [Edge::new(); 24],
         move3: [0; 24],
         nodes: 0,
@@ -77,9 +90,9 @@ pub(super) fn run(
     let attempts = results.len().min(PHASE3_ATTEMPTS);
     let mut max_length3 = 13;
     while max_length3 <= MAX_LENGTH3_LIMIT {
-        // Every (total length, result) pair in the order the serial loop
-        // visits them; the first to succeed in this order wins.
-        let tasks: Vec<(i32, usize)> = (results[0].value..MAX_TOTAL)
+        // Every (total length, result, first move) triple in the order the
+        // serial loop visits them; the first to succeed in this order wins.
+        let tasks: Vec<(i32, usize, usize)> = (results[0].value..MAX_TOTAL)
             .flat_map(|length123| {
                 (0..attempts)
                     .take_while(move |&i| results[i].value <= length123)
@@ -87,15 +100,24 @@ pub(super) fn run(
                         length123 - i32::from(results[i].length1) - i32::from(results[i].length2)
                             <= max_length3
                     })
-                    .map(move |i| (length123, i))
+                    .flat_map(move |i| {
+                        let remaining = length123
+                            - i32::from(results[i].length1)
+                            - i32::from(results[i].length2);
+                        if remaining == 0 {
+                            vec![(length123, i, ALL)]
+                        } else {
+                            (0..FIRST_MOVES).map(|m| (length123, i, m)).collect()
+                        }
+                    })
             })
             .collect();
         let failed = std::sync::Mutex::new(None);
         let got = par::first_results(threads, tasks.len(), 1, |k, cancelled| {
-            let (length123, i) = tasks[k];
+            let (length123, i, first) = tasks[k];
             let remaining =
                 length123 - i32::from(results[i].length1) - i32::from(results[i].length2);
-            match one(t, ctl, cancelled, &results[i], remaining) {
+            match one(t, ctl, cancelled, &results[i], remaining, first) {
                 Ok(found) => found.map(|moves| (i, moves)).into_iter().collect(),
                 Err(stop) => {
                     *failed.lock().expect("no panic while holding the lock") = Some(stop);
@@ -167,6 +189,10 @@ impl Search<'_> {
                 if prunx > maxl && m < 14 {
                     m = SET3.skip[m];
                 }
+                m += 1;
+                continue;
+            }
+            if depth == 0 && self.only != ALL && m != self.only {
                 m += 1;
                 continue;
             }
