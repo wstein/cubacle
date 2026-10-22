@@ -53,10 +53,10 @@ fn convert_reads_the_japanese_scheme() {
     let solved = "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB";
     assert_eq!(cubacle(&["convert", japanese]).1, solved);
     assert_eq!(
-        cubacle(&["convert", "--scheme", "japanese-bl-wt", japanese]).1,
+        cubacle(&["convert", "--scheme", "japanese", japanese]).1,
         solved
     );
-    let (ok, _, error) = cubacle(&["convert", "--scheme", "western-boy", japanese]);
+    let (ok, _, error) = cubacle(&["convert", "--scheme", "western", japanese]);
     assert!(!ok);
     assert!(error.contains("centres"), "{error}");
 }
@@ -152,7 +152,7 @@ fn a_2x2_is_solved_from_every_notation() {
     for args in [
         vec!["solve", token],
         vec!["solve", facelets],
-        vec!["solve", "--scheme", "western-boy", &colours],
+        vec!["solve", "--scheme", "western", &colours],
     ] {
         let (ok, solution, error) = cubacle(&args);
         assert!(ok, "{args:?}: {error}");

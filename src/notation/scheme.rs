@@ -77,8 +77,9 @@ impl fmt::Display for ColourScheme {
     }
 }
 
-/// Accepts a preset name (`western-boy`, `japanese-bl-wt`) or six colour
-/// letters in `URFDLB` order, such as `WRGYOB`.
+/// Accepts a preset name (`western`, `japanese`; the longer `western-boy` and
+/// `japanese-bl-wt` also work) or six colour letters in `URFDLB` order, such
+/// as `WRGYOB`.
 impl FromStr for ColourScheme {
     type Err = SchemeError;
 
@@ -112,7 +113,7 @@ impl fmt::Display for SchemeError {
         match self {
             SchemeError::Unknown(text) => write!(
                 f,
-                "{text:?} is not a scheme; use western-boy, japanese-bl-wt or six letters like WRGYOB"
+                "{text:?} is not a scheme; use western, japanese or six letters like WRGYOB"
             ),
             SchemeError::Duplicate(letter) => {
                 write!(f, "colour {letter} is used for more than one face")
@@ -141,6 +142,8 @@ mod tests {
 
     #[test]
     fn parses_names_and_letters() {
+        assert_eq!("western".parse(), Ok(ColourScheme::WESTERN_BOY));
+        assert_eq!("Japanese".parse(), Ok(ColourScheme::JAPANESE_BL_WT));
         assert_eq!("western-boy".parse(), Ok(ColourScheme::WESTERN_BOY));
         assert_eq!("Japanese-BL-WT".parse(), Ok(ColourScheme::JAPANESE_BL_WT));
         assert_eq!("wrgboy".parse(), Ok(ColourScheme::JAPANESE_BL_WT));

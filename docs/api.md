@@ -43,7 +43,7 @@ For `POST` requests, send the header `Content-Type: application/json`.
 | Field | Meaning |
 | --- | --- |
 | `cube` | The cube as an Orbit64 token, URFDLB facelets (spaced or compact) or W/R/G/Y/O/B colours. See [Input notations](cli.md#input-notations). |
-| `scheme` | Optional. `western-boy`, `japanese-bl-wt` or six letters in URFDLB order. |
+| `scheme` | Optional. `western`, `japanese` or six letters in URFDLB order. |
 | `maxMoves` | Optional. Longest accepted solution, 1 to 25. |
 | `budgetMs` | Optional. Time limit in milliseconds, 1 to 600000. Defaults to, and is capped by, `--request-timeout-ms`. |
 

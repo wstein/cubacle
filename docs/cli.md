@@ -124,13 +124,13 @@ A cube without centres, such as the 2x2x2, needs a scheme to map colours to face
 
 | Scheme | U R F D L B | Opposite pairs |
 | --- | --- | --- |
-| `western-boy` (default) | W R G Y O B | white-yellow, green-blue, red-orange |
-| `japanese-bl-wt` | W R G B O Y | white-blue, green-yellow, red-orange |
+| `western` (default) | W R G Y O B | white-yellow, green-blue, red-orange |
+| `japanese` | W R G B O Y | white-blue, green-yellow, red-orange |
 
-You can also give six letters in URFDLB order, such as `--scheme WRGYOB`.
+You can also give six letters in URFDLB order, such as `--scheme WRGYOB`. The longer names `western-boy` and `japanese-bl-wt` work as aliases.
 
 ```sh
-cubacle convert --scheme japanese-bl-wt WWWW RRRR GGGG BBBB OOOO YYYY
+cubacle convert --scheme japanese WWWW RRRR GGGG BBBB OOOO YYYY
 cubacle convert --scheme WRGYOB WWWWRRRRGGGGYYYYOOOOBBBB
 ```
 

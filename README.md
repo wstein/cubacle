@@ -15,7 +15,7 @@ cubacle solve A4ib8aejxj4Y                       # Orbit64 token
 cubacle solve FUFUUFFFF UUUURRURU RRRFFRRFR BDBBDDBBB DLDDLLDDD LBLBBLLLL
 cubacle solve GWGWWGGGG WWWWRRWRW RRRGGRRGR BYBBYYBBB YOYYOOYYY OBOBBOOOO
 cubacle solve --scramble "R U R' U'" --max-moves 20 --budget-ms 500 --verbose
-cubacle convert --scheme japanese-bl-wt WWWW RRRR GGGG BBBB OOOO YYYY
+cubacle convert --scheme japanese WWWW RRRR GGGG BBBB OOOO YYYY
 cubacle random | cubacle solve -
 cubacle scramble -n 25
 cubacle facelets "R U R' U'"
@@ -27,8 +27,8 @@ A cube may be written as an [Orbit64](https://github.com/wstein/flix-orbit64) st
 
 | Scheme | U R F D L B | Opposite pairs |
 | --- | --- | --- |
-| `western-boy` (default) | W R G Y O B | white–yellow, green–blue, red–orange |
-| `japanese-bl-wt` | W R G B O Y | white–blue, green–yellow, red–orange |
+| `western` (default) | W R G Y O B | white–yellow, green–blue, red–orange |
+| `japanese` | W R G B O Y | white–blue, green–yellow, red–orange |
 
 Any six letters in `URFDLB` order also work, e.g. `--scheme WRGYOB`.
 

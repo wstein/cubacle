@@ -3,7 +3,7 @@ id: 20261022120007
 aliases: []
 tags: ["type/design", "status/reference", "category/notation"]
 ---
-Two schemes exist: `western-boy` is WRGYOB and `japanese-bl-wt` is WRGBOY. On odd cubes the scheme is detected from the centres.
+Two schemes exist: `western` is WRGYOB and `japanese` is WRGBOY (the longer names `western-boy` and `japanese-bl-wt` also work). On odd cubes the scheme is detected from the centres.
 
 ## Links
 
