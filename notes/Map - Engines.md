@@ -11,3 +11,4 @@ Raw-material notes, category engines.
 - [[Cold start and prepare]]
 - [[5x5 reduction engine]]
 - [[5x5 parity and limits]]
+- [[5x5 versus cube555]]
