@@ -27,6 +27,12 @@ that is ported from cs0x7f/cube555 (https://github.com/cs0x7f/cube555), which
 its author offers under this MIT licence as well as under the GPLv3. Each
 ported file names the Java file it comes from.
 
+The same notice below, with the year 2023, also covers the code in
+`src/engines/four/` that is ported from cs0x7f/TPR-4x4x4-Solver
+(https://github.com/cs0x7f/TPR-4x4x4-Solver), which its author likewise offers
+under this MIT licence as well as under the GPLv3. Each ported file names the
+Java file it comes from.
+
 MIT License
 
 Copyright (c) 2023 Chen Shuang
