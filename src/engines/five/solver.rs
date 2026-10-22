@@ -93,7 +93,12 @@ impl Solver for FiveSolver {
         let remaining = match options.time_budget {
             Some(budget) => match budget.checked_sub(started.elapsed()) {
                 Some(left) if left > Duration::ZERO => Some(left),
-                _ => return fail(Failure::BudgetExhausted, "the time budget ran out"),
+                _ => {
+                    return fail(
+                        Failure::BudgetExhausted,
+                        "the reduction used up the budget before the 3x3x3 stage",
+                    )
+                }
             },
             None => None,
         };
