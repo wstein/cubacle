@@ -13,3 +13,4 @@ Raw-material notes, category open-items.
 - [[Validate in CI]]
 - [[Contribution branch]]
 - [[4x4 thread scaling is capped by the hand-off]]
+- [[Step-by-step learning solver]]
