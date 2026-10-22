@@ -394,7 +394,7 @@ struct SolveRequest {
     max_moves: Option<u8>,
     /// 1..=600000, further capped by the server's request timeout.
     budget_ms: Option<u64>,
-    /// 3x3x3 only: keep improving until this many probes were made. 1..=MAX_MIN_PROBES.
+    /// 3x3x3, 4x4x4, 5x5x5: make at least this many probes in the 3x3x3 search. 1..=MAX_MIN_PROBES.
     min_probes: Option<u64>,
     /// 3x3x3 only: keep improving until `budgetMs` is spent (required).
     improve: Option<bool>,
@@ -509,9 +509,19 @@ async fn solve(
     };
     options = options.with_time_budget(budget);
     let improve = request.improve.unwrap_or(false);
-    if (improve || request.min_probes.is_some()) && kind != PuzzleKind::Cube3 {
+    if improve && kind != PuzzleKind::Cube3 {
         return Err(ApiError::bad_input(
-            "improve and minProbes are only available for the 3x3x3",
+            "improve is only available for the 3x3x3",
+        ));
+    }
+    if request.min_probes.is_some()
+        && !matches!(
+            kind,
+            PuzzleKind::Cube3 | PuzzleKind::Cube4 | PuzzleKind::Cube5
+        )
+    {
+        return Err(ApiError::bad_input(
+            "minProbes is only available for the 3x3x3, 4x4x4 and 5x5x5",
         ));
     }
     if improve && request.budget_ms.is_none() {

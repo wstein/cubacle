@@ -105,10 +105,10 @@ struct SolveArgs {
     /// Hard time limit in milliseconds
     #[arg(short, long)]
     budget_ms: Option<u64>,
-    /// 3x3x3 only: keep improving until this many probes were made (deterministic: the same answer on every machine)
+    /// 3x3x3, 4x4x4, 5x5x5: make at least this many probes in the 3x3x3 search (4x4x4 and 5x5x5: default 500; deterministic, the same answer on every machine)
     #[arg(long, value_name = "N", conflicts_with = "improve")]
     probes: Option<u64>,
-    /// 3x3x3 only: keep improving until the time budget (-b, default 1000 ms) is spent, then print the best solution
+    /// 3x3x3, 4x4x4, 5x5x5: spend the time budget (-b, default 1000 ms) on a shorter solution, then print the best one
     #[arg(long)]
     improve: bool,
     /// 3x3x3 only: with --improve, search the six orientations concurrently (needs -b)
@@ -255,7 +255,10 @@ fn solve(args: SolveArgs) -> Result<(), String> {
     }
     options = options.with_slices(args.slices);
     let result = match improve::mode(&args) {
-        Some(mode) => improve::solve(&facelets, options, mode, args.verbose),
+        Some(mode) if facelets.kind() == PuzzleKind::Cube3 => {
+            improve::solve(&facelets, options, mode, args.verbose)
+        }
+        Some(mode) => improve::solve_reduction(solver.as_ref(), &facelets, options, mode),
         None => solver.solve(&facelets, &options),
     };
 

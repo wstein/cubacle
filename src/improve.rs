@@ -42,11 +42,16 @@ pub(crate) fn check(args: &SolveArgs, kind: PuzzleKind) -> Result<(), String> {
     }
     match kind {
         PuzzleKind::Cube3 => Ok(()),
+        PuzzleKind::Cube4 | PuzzleKind::Cube5 if args.parallel => Err(format!(
+            "--parallel works on the 3x3x3 only; for the {0}x{0}x{0} use --improve or --probes",
+            kind.size()
+        )),
+        PuzzleKind::Cube4 | PuzzleKind::Cube5 => Ok(()),
         PuzzleKind::Cube2 => {
             Err("--probes, --improve and --parallel do not apply to the 2x2x2: its solution is already optimal".into())
         }
         _ => Err(format!(
-            "improve modes are not implemented yet for the {0}x{0}x{0}; they work on the 3x3x3 only",
+            "improve modes are not available for the {0}x{0}x{0}; they work on the 3x3x3, 4x4x4 and 5x5x5",
             kind.size()
         )),
     }
@@ -83,4 +88,19 @@ pub(crate) fn solve(
         }
     }
     result
+}
+
+/// Solves a 4x4x4 or 5x5x5 in the given mode with its reduction engine:
+/// `--probes` sets the probe minimum of the 3x3x3 tail, `--improve` keeps the
+/// best of several reductions within the budget.
+pub(crate) fn solve_reduction(
+    solver: &dyn Solver,
+    cube: &Facelets,
+    options: SolveOptions,
+    mode: Mode,
+) -> SolveResult {
+    match mode {
+        Mode::Probes(n) => solver.solve(cube, &options.with_min_probes(n)),
+        Mode::Time | Mode::TimeParallel => solver.solve_improving(cube, &options),
+    }
 }

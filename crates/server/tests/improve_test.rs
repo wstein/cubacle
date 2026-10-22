@@ -12,7 +12,8 @@ const CUBE: &str = "A4ib8aejxj4Y";
 
 async fn solve(body: Value) -> (StatusCode, Value) {
     let three = Min2PhaseSolver::shared();
-    let five = FiveSolver::new(std::sync::Arc::new(three.clone()));
+    let dir = std::path::PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join("five-tables");
+    let five = FiveSolver::new(std::sync::Arc::new(three.clone())).with_cache_dir(Some(dir));
     let four = FourSolver::new(std::sync::Arc::new(three.clone())).with_threads(1);
     let app = router(AppState::with_engines(Config::default(), three, five, four));
     let request = Request::post("/v1/solve")
@@ -61,5 +62,24 @@ async fn improve_options_are_validated() {
         let (status, body) = solve(case.clone()).await;
         assert_eq!(status, StatusCode::BAD_REQUEST, "{case}: {body}");
         assert_eq!(body["error"]["code"], "bad_input", "{case}");
+    }
+}
+
+#[tokio::test]
+async fn min_probes_works_for_the_4x4x4_and_5x5x5_and_is_deterministic() {
+    for size in [4usize, 5] {
+        let kind = cubacle::puzzle::PuzzleKind::of_size(size).unwrap();
+        let cube = cubacle::puzzle::Facelets::solved(kind)
+            .apply(&"R U F' Rw2 Uw Fw' L D2 B".parse().unwrap())
+            .unwrap()
+            .to_string();
+        let (status, a) = solve(json!({"cube": cube, "minProbes": 1000})).await;
+        assert_eq!(status, StatusCode::OK, "{size}: {a}");
+        let (_, b) = solve(json!({"cube": cube, "minProbes": 1000})).await;
+        assert_eq!(a["solution"], b["solution"], "{size}");
+        let (status, body) = solve(json!({"cube": cube, "improve": true, "budgetMs": 100})).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST, "{size}: {body}");
+        let (status, body) = solve(json!({"cube": cube, "minProbes": 0})).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST, "{size}: {body}");
     }
 }

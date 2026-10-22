@@ -58,12 +58,17 @@ fn improve_and_parallel_return_a_valid_solution_within_the_budget() {
 
 #[test]
 fn improve_flags_are_refused_where_they_do_not_fit() {
-    let cases: [(&[&str], &str); 5] = [
+    let cases: [(&[&str], &str); 7] = [
         (&["--parallel", "-b", "100"], "together with --improve"),
         (&["--improve", "--parallel"], "needs a time budget"),
         (&["--probes", "5", "--improve"], "cannot be used"),
         (&["--size", "2", "--improve"], "already optimal"),
-        (&["--size", "4", "--probes", "5"], "not implemented yet"),
+        (&["--size", "6", "--probes", "5"], "not available"),
+        (&["--size", "7", "--improve"], "not available"),
+        (
+            &["--size", "4", "--improve", "--parallel", "-b", "100"],
+            "3x3x3 only",
+        ),
     ];
     for (flags, message) in cases {
         let mut args = vec!["solve", "-s", "R U"];
@@ -73,5 +78,36 @@ fn improve_flags_are_refused_where_they_do_not_fit() {
         let (ok, _, error) = cubacle(&args);
         assert!(!ok, "{flags:?}");
         assert!(error.contains(message), "{flags:?}: {error}");
+    }
+}
+
+/// A short scramble of a 4x4x4 or 5x5x5 and the length of the answer.
+fn reduction_answer(size: &str, extra: &[&str]) -> (String, usize) {
+    let scramble = "R U F' Rw2 Uw Fw' L D2 B";
+    let mut args = vec!["solve", "-s", scramble, "--size", size];
+    args.extend(extra);
+    let (ok, solution, error) = cubacle(&args);
+    assert!(ok, "{size} {extra:?}: {error}");
+    let kind = PuzzleKind::of_size(size.parse().unwrap()).unwrap();
+    let moves: MoveSequence = solution.parse().expect("moves");
+    let cube = Facelets::solved(kind)
+        .apply(&scramble.parse().unwrap())
+        .unwrap()
+        .apply(&moves)
+        .unwrap();
+    assert!(cube.is_solved(), "{size} {extra:?}: {solution}");
+    (solution, moves.len())
+}
+
+#[test]
+fn probes_and_improve_work_on_the_4x4x4_and_5x5x5() {
+    for size in ["4", "5"] {
+        let (_, plain) = reduction_answer(size, &[]);
+        let (a, probed) = reduction_answer(size, &["--probes", "2000"]);
+        let (b, _) = reduction_answer(size, &["--probes", "2000"]);
+        assert_eq!(a, b, "{size}: --probes is deterministic");
+        assert!(probed <= plain, "{size}: {probed} against {plain}");
+        let (_, improved) = reduction_answer(size, &["--improve", "-b", "2000"]);
+        assert!(improved <= plain, "{size}: {improved} against {plain}");
     }
 }
