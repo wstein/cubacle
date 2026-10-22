@@ -62,7 +62,7 @@ jobs:
           persist-credentials: false
       # the 4x4x4 tables (12 MB) are built in well under a second: no cache
       - name: Heavy 4x4x4 tests
-        run: cargo test --release --test four_test -- --ignored four_full
+        run: cargo test --release --lib --test four_test -- --ignored four_full
   msrv:
     name: msrv
     runs-on: ubuntu-latest

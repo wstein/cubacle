@@ -217,7 +217,7 @@ mod full_tests {
 
     #[test]
     #[ignore = "builds the full wing table (about a second)"]
-    fn the_full_table_is_the_reference_table() {
+    fn four_full_wing_table_is_the_reference_table() {
         let t = Edge3::new();
         for threads in [1, 4] {
             let started = Instant::now();
