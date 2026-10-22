@@ -273,6 +273,9 @@ impl Solver for FiveSolver {
             return fail(Failure::Internal, "the reduction moves do not fit the cube");
         };
 
+        if options.reduce_only {
+            return done(Ok(MoveSequence::new(normalise(5, &head, false))), None);
+        }
         let limit = options.max_moves.map(usize::from);
         if limit.is_some_and(|max| head.len() > max) {
             return fail(
@@ -303,6 +306,7 @@ impl Solver for FiveSolver {
             max_moves: Some(tail_limit),
             min_probes: options.min_probes.or(Some(HAND_OFF_PROBES)),
             slices: false,
+            reduce_only: false,
         };
         let finish = self.three.solve(&three_by_three(&reduced), &hand_off);
         let tail = match finish.outcome {

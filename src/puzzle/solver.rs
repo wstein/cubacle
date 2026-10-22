@@ -19,6 +19,11 @@ pub struct SolveOptions {
     /// turns and outer layers only (5x5x5: also second layers). Engines for
     /// other sizes ignore it.
     pub slices: bool,
+    /// Stop when the cube is reduced to a 3x3x3 and answer with the moves
+    /// that reduce it (centres solved, wings paired), not with a solution.
+    /// For engines that build on another reduction engine; the 4x4x4 and
+    /// 5x5x5 honour it, the others ignore it.
+    pub reduce_only: bool,
 }
 
 impl SolveOptions {
@@ -39,6 +44,11 @@ impl SolveOptions {
 
     pub fn with_slices(mut self, slices: bool) -> SolveOptions {
         self.slices = slices;
+        self
+    }
+
+    pub fn with_reduce_only(mut self, reduce_only: bool) -> SolveOptions {
+        self.reduce_only = reduce_only;
         self
     }
 }
@@ -69,7 +79,8 @@ pub enum Failure {
 /// The outcome of one solve.
 ///
 /// A solved result always means the cube is fully solved by `solution`, which
-/// contains only layer turns, never whole-cube rotations.
+/// contains only layer turns, never whole-cube rotations. The exception is a
+/// solve with [`SolveOptions::reduce_only`], whose moves only reduce the cube.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SolveResult {
     pub outcome: Result<MoveSequence, Failure>,

@@ -83,6 +83,26 @@ fn generated_states_are_solved_and_the_answer_replays() {
 }
 
 #[test]
+fn reduce_only_stops_after_the_reduction() {
+    let four = solver(2);
+    for _ in 0..3 {
+        let cube = generate::random_state(PuzzleKind::Cube4).expect("a generator");
+        let reduce = SolveOptions::default().with_reduce_only(true);
+        let head = four.solve(&cube, &reduce).outcome.expect("a reduction");
+        assert!(head.len() < 40, "{head}");
+        let reduced = cube.apply(&head).expect("replays");
+        // Nothing is left to reduce, and the rest of the solve works.
+        let again = four.solve(&reduced, &reduce).outcome.expect("a reduction");
+        assert!(again.is_empty(), "{again}");
+        let rest = four
+            .solve(&reduced, &SolveOptions::default())
+            .outcome
+            .expect("a solution");
+        assert!(reduced.apply(&rest).expect("replays").is_solved());
+    }
+}
+
+#[test]
 fn a_cube_of_another_size_is_refused() {
     let result = solver(1).solve(
         &Facelets::solved(PuzzleKind::Cube3),

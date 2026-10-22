@@ -221,6 +221,10 @@ impl Solver for FourSolver {
         );
         let head = to_real(&t.syms, &model_moves, length1, add1, sym);
         let head_moves: Vec<Move> = head.iter().map(|&c| to_move(c)).collect();
+        if options.reduce_only {
+            let head = normalise(4, &head_moves, false);
+            return done(Ok(MoveSequence::new(head)), None, None);
+        }
         let Ok(reduced) = facelets.apply(&MoveSequence::new(head_moves.clone())) else {
             return fail(Failure::Internal, "the reduction moves do not fit the cube");
         };
@@ -276,6 +280,7 @@ impl Solver for FourSolver {
             max_moves: Some(tail_limit),
             min_probes: options.min_probes.or(Some(self.hand_off_probes)),
             slices: false,
+            reduce_only: false,
         };
         let finish = self.three.solve(&three, &hand_off);
         let probes = finish.metrics.probes;
