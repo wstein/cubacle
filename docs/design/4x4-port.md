@@ -139,7 +139,7 @@ Per-search buffers (`move1..3`, `tempe`, the candidate queues) live in a
 | `four/edge3.rs`, `four/edge3_prune.rs` | `Edge3` | wing coordinate, move/rotation tables, 2-bit prune table and its builder |
 | `four/phase1.rs`, `phase2.rs`, `phase3.rs` | `Search.search1/2/3`, `init2/3` | the IDA* searches, written without recursion over mutable statics |
 | `four/candidates.rs` | `PriorityQueue`, `FullCube.compareTo` | bounded best-N list, ordering rules |
-| `four/handoff.rs` | tail of `doSearch` | 3x3x3 call through the trait, tail verification |
+| `four/solver.rs` | tail of `doSearch` | 3x3x3 call through the trait, tail verification, replay |
 
 Reference sizes (Java, for the 500-line budget): `Edge3` 11.9 KB, `Center1` 7.2 KB,
 `Search` 10.7 KB, `FullCube` 8.8 KB; each splits cleanly.
@@ -341,7 +341,7 @@ is written once, from scratch in Rust, and owned by neither port:
 | `prune`: byte-depth and 2-bit mod-3 tables, serial and parallel breadth-first builders | `createPrun` of Center1/2/3 and Edge3 | the atomic AND builder lives here |
 | `candidates`: bounded best-N list with a defined tie order | the `PriorityQueue` of phase 1 | tie order documented and tested |
 | `parallel`: thread count setting, ordered "first success by index" and "ordered concat" helpers | section 6 | no global pool |
-| `handoff`: injected 3x3x3 call, budget and limit accounting, tail verification, replay | `four/handoff.rs`, and the existing `five/solver.rs` logic | extracted from `five`, which today has the only copy |
+| `handoff`: injected 3x3x3 call, budget and limit accounting, tail verification, replay | `four/solver.rs`, written next to the `five/solver.rs` logic | not extracted: each engine keeps its own copy |
 
 Not shared: the phase coordinates and move tables (cube-size specific), the
 cube model, anything copied from either Java code base. Licensing consequence:

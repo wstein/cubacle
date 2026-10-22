@@ -39,7 +39,7 @@ offers the code under the GPLv3 or under the MIT licence; this work takes the
 MIT option. Two of its source files (`Search.java`, `MainProgram.java`) also carry
 a 2014 header that names only the GPL-3.0-or-later. The 3x3x3 part of that solver
 is not ported: the injected `Solver` trait replaces it. Every ported file
-names the Java file it derives from and keep this notice:
+names the Java file it derives from and keeps this notice:
 
     Copyright (c) 2023 Chen Shuang
 

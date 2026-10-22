@@ -4,7 +4,7 @@ Rules for anyone, human or automated, who changes this repository.
 
 ## Project
 
-cubacle is a solver and generator for Rubik's cubes (2x2, 3x3 and 5x5 now, other
+cubacle is a solver and generator for Rubik's cubes (2x2, 3x3, 4x4 and 5x5 now, other
 sizes planned), with a lightweight CLI and a stateless REST backend
 (`crates/server`). Documentation is in `docs/` (Hugo, published from `develop`);
 decision notes are in `notes/` (ChartScribe format) and are raw material, not
@@ -39,7 +39,7 @@ change pass; a change that alters solver output needs an explicit decision.
 - Default visibility is `pub(crate)`. Expose only what is meant to be the API.
 - Dependencies point one way: puzzle types, then notation, then engines, then the
   applications (CLI, server). Engines do not use each other's internals; a
-  reduction engine (the 5x5 now, 4x4 and up later) uses the 3x3 solver only through the
+  reduction engine (the 4x4 and 5x5 now, 6x6 and up later) uses the 3x3 solver only through the
   `Solver` trait, with an injected instance, never through a global.
 - File size: no source file over 1000 lines, ever. From about 500 lines, plan a split
   along a real responsibility. Most files should stay far smaller.

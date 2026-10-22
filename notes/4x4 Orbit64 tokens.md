@@ -11,5 +11,5 @@ The Orbit64 format puts the 4x4x4 in 27 characters and 156.96 bits, which equals
 - [[Orbit64 slot numbering caveat]]
 
 Source: docs/design/4x4-port.md, lines 267-283
-Source: src/notation/orbit64.rs, lines 7-8
+Source: src/notation/mod.rs, lines 5-5
 Source: docs/api.md, lines 74-90
