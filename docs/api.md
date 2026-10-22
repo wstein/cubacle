@@ -34,7 +34,7 @@ The server binds to the local machine by default. It has no authentication, so d
 | `GET /v1/scramble?moves=25&size=3` | `moves`: 1 to 200; `size`: 2, 3 or 5 | `{"scramble":"U' L2 F2 D U2"}` |
 | `GET /v1/random?size=3` | `size`: 2 to 7 (only 2 to 5 have engines) | `{"kind":"2x2x2","facelets":"...","token":"..."}` |
 | `POST /v1/convert` | `{"cube","scheme"?}` | `{"kind","facelets","token"?}` |
-| `POST /v1/solve` | `{"cube","scheme"?,"maxMoves"?,"budgetMs"?}` | `{"kind","solution","length","elapsedMicros"}` |
+| `POST /v1/solve` | `{"cube","scheme"?,"maxMoves"?,"budgetMs"?,"minProbes"?,"improve"?}` | `{"kind","solution","length","elapsedMicros"}` |
 
 For `POST` requests, send the header `Content-Type: application/json`.
 
@@ -46,6 +46,10 @@ For `POST` requests, send the header `Content-Type: application/json`.
 | `scheme` | Optional. `boy`, `jp` or six letters in URFDLB order. |
 | `maxMoves` | Optional. Longest accepted solution, 1 to 25 (1 to 255 for a 4x4x4 or 5x5x5, whose solutions have about 48 and 73 moves). |
 | `budgetMs` | Optional. Time limit in milliseconds, 1 to 600000. Defaults to, and is capped by, `--request-timeout-ms`. |
+| `minProbes` | Optional, 3x3x3 only. Keep improving the solution until this many probes were made, 1 to 100000000. Counts work, not time, so the answer is the same on every machine. See [3x3x3 performance](engines/3x3.md). |
+| `improve` | Optional, 3x3x3 only. Keep improving until `budgetMs` is spent and return the best solution found; `budgetMs` is required and `minProbes` cannot be combined with it. Spending the budget is not an error once a solution exists. |
+
+Other sizes answer 400 to `minProbes` and `improve`.
 
 Unknown fields are rejected with a 400 error.
 

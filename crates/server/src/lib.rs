@@ -48,6 +48,8 @@ pub const MAX_TIMEOUT_MS: u64 = 600_000;
 /// Largest `--max-concurrency`. Stays well below tokio's blocking-thread limit,
 /// so a permit holder never waits for a thread and its budget clock starts on time.
 pub const MAX_CONCURRENCY: usize = 256;
+/// Largest `minProbes` (the budget bounds the time anyway).
+const MAX_MIN_PROBES: u64 = 100_000_000;
 /// Largest `maxMoves` the 3x3 engine honours (it silently clamps above this).
 pub const MAX_MOVES: u8 = 25;
 /// Largest `maxMoves` for the 5x5x5 (a byte; its solutions have about 73 moves).
@@ -377,6 +379,10 @@ struct SolveRequest {
     max_moves: Option<u8>,
     /// 1..=600000, further capped by the server's request timeout.
     budget_ms: Option<u64>,
+    /// 3x3x3 only: keep improving until this many probes were made. 1..=MAX_MIN_PROBES.
+    min_probes: Option<u64>,
+    /// 3x3x3 only: keep improving until `budgetMs` is spent (required).
+    improve: Option<bool>,
 }
 
 /// Requires `Content-Type: application/json`. Without this a web page could
@@ -485,6 +491,28 @@ async fn solve(
         None => state.config.request_timeout,
     };
     options = options.with_time_budget(budget);
+    let improve = request.improve.unwrap_or(false);
+    if (improve || request.min_probes.is_some()) && kind != PuzzleKind::Cube3 {
+        return Err(ApiError::bad_input(
+            "improve and minProbes are only available for the 3x3x3",
+        ));
+    }
+    if improve && request.budget_ms.is_none() {
+        return Err(ApiError::bad_input("improve needs budgetMs"));
+    }
+    if improve && request.min_probes.is_some() {
+        return Err(ApiError::bad_input(
+            "improve and minProbes cannot be combined",
+        ));
+    }
+    if let Some(probes) = request.min_probes {
+        if !(1..=MAX_MIN_PROBES).contains(&probes) {
+            return Err(ApiError::bad_input(format!(
+                "minProbes must be between 1 and {MAX_MIN_PROBES}"
+            )));
+        }
+        options = options.with_min_probes(probes);
+    }
 
     // One semaphore serves both sizes; separate pools per size are a possible
     // later refinement.
@@ -505,6 +533,7 @@ async fn solve(
             PuzzleKind::Cube2 => return Some(PocketSolver::new().solve(&facelets, &options)),
             PuzzleKind::Cube4 => four.solve(&facelets, &options),
             PuzzleKind::Cube5 => five.solve(&facelets, &options),
+            _ if improve => three.solve_with_minimum_time(&facelets, &options, budget),
             _ => three.solve(&facelets, &options),
         };
         // Defence in depth, in release builds too: never serve a wrong answer.
