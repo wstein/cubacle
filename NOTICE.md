@@ -20,6 +20,7 @@ while the original portions remain available under their MIT terms.
 | Worker pool (`src/engines/three/pool.rs`), batch/parallel/pattern APIs | original work | — | AGPL-3.0-or-later |
 | 5x5 five-phase search (`src/engines/five/`, ported from `src/*.java`; the parallel search, cache and solver adapter are new) | cs0x7f/cube555 (Chen Shuang) | GPL-3.0 or MIT, MIT taken | AGPL-3.0-or-later, MIT notice (2023) in `LICENSE-MIT` |
 | Reduction building blocks (`src/reduction/`: `bfs.rs`, `hashed.rs`, `nibbles.rs`, `comb.rs`, `ida.rs`) and the table spaces (`src/engines/five/spaces.rs`) | `Util.PruningTable` (`bfs.rs`, `hashed.rs`, `nibbles.rs`), the coordinate helpers of `Util` (`comb.rs`) and `PhaseSearch` (`ida.rs`) of cs0x7f/cube555, ported and reorganised; the parallel build, cache (`cache.rs`) and parallel runner (`par.rs`, the parallel part of `ida.rs`) are new | MIT, same as above | AGPL-3.0-or-later, MIT notice (2023) in `LICENSE-MIT` |
+| 4x4 reduction engine (`src/engines/four/`, ported from `src/*.java`; the parallel search, the 3x3 hand-off through the `Solver` trait and the validation are new) | [cs0x7f/TPR-4x4x4-Solver](https://github.com/cs0x7f/TPR-4x4x4-Solver), Java | MIT or GPL-3.0-or-later, both offered in its README | MIT option taken; AGPL-3.0-or-later with the MIT notice below retained |
 | Orbit64 state codec (`src/notation/orbit64/`) | wstein/flix-orbit64 (Flix) | Apache-2.0, Copyright 2026 Werner Stein | AGPL-3.0-or-later; Rust re-implementation of the format and of the slot tables in `Orbit64.Net`, same author as cubacle; each file names its origin |
 
 The port of `cs0x7f/cube555` (README: GPLv3 and MIT, both by Chen Shuang) takes the MIT
@@ -27,5 +28,35 @@ option. Each ported file starts with a header naming the Java file it comes from
 MIT notice is in `LICENSE-MIT` beside the one of min2phase_rust. `flix-cube-solvers` is
 GPL-3.0 and `cube-solvers` is MIT; neither is used.
 
-Ports added later (for example 4x4) record their upstream, licence and the option
+Ports added later record their upstream, licence and the option
 taken in this table before they land.
+
+## TPR-4x4x4-Solver (MIT option)
+
+The 4x4x4 engine is a Rust port of the three-phase reduction solver
+`cs0x7f/TPR-4x4x4-Solver`, which implements Tsai's 4x4x4 algorithm. Its README
+offers the code under the GPLv3 or under the MIT licence; this work takes the
+MIT option. Two of its source files (`Search.java`, `MainProgram.java`) also carry
+a 2014 header that names only the GPL-3.0-or-later. The 3x3x3 part of that solver
+is not ported: the injected `Solver` trait replaces it. Every ported file
+names the Java file it derives from and keep this notice:
+
+    Copyright (c) 2023 Chen Shuang
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
