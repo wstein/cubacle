@@ -18,6 +18,13 @@ while the original portions remain available under their MIT terms.
 | --- | --- | --- | --- |
 | 3x3 two-phase core (`src/engines/three/`) | cs0x7f/min2phase_rust | MIT | AGPL-3.0-or-later, MIT notice retained |
 | Worker pool (`src/engines/three/pool.rs`), batch/parallel/pattern APIs | original work | — | AGPL-3.0-or-later |
+| 5x5 reduction engine (`src/engines/five/`) | original work, written from scratch | — | AGPL-3.0-or-later |
 
-Ports added later (for example 4x4, 5x5) record their upstream, licence and the option
+The 5x5 engine contains no third-party code and was written without reading other
+solvers' sources. The licences of the related solvers were checked and none of their code
+was copied or translated: `cs0x7f/cube555` and `flix-cube-solvers` are GPL-3.0 and
+`cube-solvers` is MIT. The techniques used (reduction, commutator 3-cycles conjugated by
+setup moves) are textbook methods.
+
+Ports added later (for example 4x4) record their upstream, licence and the option
 taken in this table before they land.

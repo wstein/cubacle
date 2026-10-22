@@ -9,3 +9,5 @@ Raw-material notes, category engines.
 - [[2x2 state space and depth table]]
 - [[2x2 timing]]
 - [[Cold start and prepare]]
+- [[5x5 reduction engine]]
+- [[5x5 parity and limits]]
