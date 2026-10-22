@@ -1,4 +1,5 @@
 mod icons;
+mod improve;
 
 use std::io::Read;
 use std::process::ExitCode;
@@ -103,6 +104,15 @@ struct SolveArgs {
     /// Hard time limit in milliseconds
     #[arg(short, long)]
     budget_ms: Option<u64>,
+    /// 3x3x3 only: keep improving until this many probes were made (deterministic: the same answer on every machine)
+    #[arg(long, value_name = "N", conflicts_with = "improve")]
+    probes: Option<u64>,
+    /// 3x3x3 only: keep improving until the time budget (-b, default 1000 ms) is spent, then print the best solution
+    #[arg(long)]
+    improve: bool,
+    /// 3x3x3 only: with --improve, search the six orientations concurrently (needs -b)
+    #[arg(long)]
+    parallel: bool,
     /// Also print timing and search statistics to stderr
     #[arg(short, long)]
     verbose: bool,
@@ -184,6 +194,7 @@ fn read_cube(input: &InputArgs) -> Result<Facelets, String> {
 
 fn solve(args: SolveArgs) -> Result<(), String> {
     let facelets = read_cube(&args.input)?;
+    improve::check(&args, facelets.kind())?;
     let solver: Box<dyn Solver> = match facelets.kind() {
         PuzzleKind::Cube2 => Box::new(PocketSolver::new()),
         PuzzleKind::Cube3 => Box::new(Min2PhaseSolver::new()),
@@ -225,7 +236,10 @@ fn solve(args: SolveArgs) -> Result<(), String> {
     if let Some(millis) = args.budget_ms {
         options = options.with_time_budget(Duration::from_millis(millis));
     }
-    let result = solver.solve(&facelets, &options);
+    let result = match improve::mode(&args) {
+        Some(mode) => improve::solve(&facelets, options, mode, args.verbose),
+        None => solver.solve(&facelets, &options),
+    };
 
     if args.verbose {
         eprintln!(
