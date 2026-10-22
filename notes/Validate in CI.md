@@ -1,9 +1,9 @@
 ---
 id: 20261022120025
 aliases: []
-tags: ["type/question", "status/open", "category/open-items"]
+tags: ["type/decision", "status/decided", "category/open-items"]
 ---
-Whether to run `cscribe validate` in CI is undecided.
+CI runs `cscribe validate` with the pinned ChartScribe v0.1.0 release (linux amd64 archive, SHA-256 checked). It replaced building the tool from source.
 
 ## Links
 
