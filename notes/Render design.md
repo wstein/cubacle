@@ -1,5 +1,5 @@
 ---
-id: 20261022130001
+id: 20261022130002
 aliases: []
 tags: ["type/design", "status/decided", "category/architecture"]
 ---
