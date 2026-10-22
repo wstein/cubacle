@@ -69,8 +69,10 @@ clones share it, `prepare()` builds it ahead of the first solve, and
 `Min2PhaseSolver::shared()` returns a process-wide default for callers with
 nothing to inject. The server builds one solver at startup and clones it into
 every solve. The 2x2x2 distance table is still a process-wide `OnceLock` in
-`engines::two`. A `FiveSolver` keeps its 3-cycle library behind an
-`Arc<OnceLock<..>>` in the same way; the server builds one around a clone of
+`engines::two`. A `FiveSolver` keeps its five-phase pruning tables (237 MB)
+behind an `Arc<OnceLock<..>>` in the same way, read from or written to the
+cache directory (`CUBACLE_CACHE_DIR`, else `$XDG_CACHE_HOME/cubacle`, else
+`~/.cache/cubacle`); the server builds one around a clone of
 its 3x3x3 solver.
 
 ## Reduction engines

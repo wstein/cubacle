@@ -18,9 +18,8 @@ while the original portions remain available under their MIT terms.
 | --- | --- | --- | --- |
 | 3x3 two-phase core (`src/engines/three/`) | cs0x7f/min2phase_rust | MIT | AGPL-3.0-or-later, MIT notice retained |
 | Worker pool (`src/engines/three/pool.rs`), batch/parallel/pattern APIs | original work | — | AGPL-3.0-or-later |
-| 5x5 greedy 3-cycle reduction (`src/engines/five/`, today) | original work, written from scratch | — | AGPL-3.0-or-later |
-| 5x5 five-phase search (`src/engines/five/`, ported from `src/*.java`) | cs0x7f/cube555 (Chen Shuang) | GPL-3.0 or MIT, MIT taken | AGPL-3.0-or-later, MIT notice (2023) in `LICENSE-MIT` |
-| Pruning-table builder (`src/reduction/`) | `Util.PruningTable` of cs0x7f/cube555, ported and reorganised; the parallel build, cache and runner are new | MIT, same as above | AGPL-3.0-or-later, MIT notice (2023) in `LICENSE-MIT` |
+| 5x5 five-phase search (`src/engines/five/`, ported from `src/*.java`; the parallel search, cache and solver adapter are new) | cs0x7f/cube555 (Chen Shuang) | GPL-3.0 or MIT, MIT taken | AGPL-3.0-or-later, MIT notice (2023) in `LICENSE-MIT` |
+| Reduction building blocks (`src/reduction/`: `bfs.rs`, `hashed.rs`, `nibbles.rs`, `comb.rs`, `ida.rs`) and the table spaces (`src/engines/five/spaces.rs`) | `Util.PruningTable` (`bfs.rs`, `hashed.rs`, `nibbles.rs`), the coordinate helpers of `Util` (`comb.rs`) and `PhaseSearch` (`ida.rs`) of cs0x7f/cube555, ported and reorganised; the parallel build, cache (`cache.rs`) and parallel runner (`par.rs`, the parallel part of `ida.rs`) are new | MIT, same as above | AGPL-3.0-or-later, MIT notice (2023) in `LICENSE-MIT` |
 | Orbit64 state codec (`src/notation/orbit64/`) | wstein/flix-orbit64 (Flix) | Apache-2.0, Copyright 2026 Werner Stein | AGPL-3.0-or-later; Rust re-implementation of the format and of the slot tables in `Orbit64.Net`, same author as cubacle; each file names its origin |
 
 The port of `cs0x7f/cube555` (README: GPLv3 and MIT, both by Chen Shuang) takes the MIT
