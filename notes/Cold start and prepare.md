@@ -10,7 +10,7 @@ A cold CLI call with a tiny time budget can fail while the table builds. `prepar
 - [[2x2 timing]]
 - [[2x2 embedded table idea]]
 
-Source: docs/engines.md, lines 25-25
+Source: docs/engines/2x2.md, lines 30-30
 Source: src/engines/two/mod.rs, lines 433-436
 Source: README.md, lines 37-37
 Source: owner decision of 2026-10-21, lines 1-1

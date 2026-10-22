@@ -10,5 +10,5 @@ Supported: 2x2, 3x3, 4x4 and 5x5 (the last two by reduction). Planned by reducti
 - [[Cubacle project]]
 - [[Orbit64 tokens]]
 
-Source: docs/engines.md, lines 11-16
+Source: docs/engines/_index.md, lines 11-17
 Source: src/notation/orbit64/mod.rs, lines 5-17

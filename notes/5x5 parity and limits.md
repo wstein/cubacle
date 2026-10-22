@@ -10,4 +10,4 @@ FiveSolver accepts only a 5x5x5 whose six face centres are in place and an injec
 - [[5x5 reduction engine]]
 
 Source: src/engines/five/solver.rs, lines 215-318
-Source: docs/engines.md, lines 39-48
+Source: docs/engines/5x5.md, lines 74-79

@@ -10,5 +10,5 @@ The table build takes about 93 ms once per process; a solve takes about 299 ns a
 - [[2x2 solver]]
 - [[Cold start and prepare]]
 
-Source: docs/engines.md, lines 22-25
+Source: docs/engines/2x2.md, lines 30-30
 Source: owner decision of 2026-10-21, lines 1-1
