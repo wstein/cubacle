@@ -52,6 +52,17 @@ jobs:
           key: five-tables-${{ hashFiles('src/engines/five/**', 'src/reduction/**') }}
       - name: Full-table tests
         run: cargo test --release -- --ignored five_full
+  four-full:
+    name: four-full
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # the 4x4x4 tables (12 MB) are built in well under a second: no cache
+      - name: Heavy 4x4x4 tests
+        run: cargo test --release --test four_test -- --ignored four_full
   msrv:
     name: msrv
     runs-on: ubuntu-latest
