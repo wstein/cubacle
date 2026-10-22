@@ -531,6 +531,11 @@ async fn solve(
             "no_solution_within_limit",
             detail("no solution within the move limit"),
         )),
+        Err(Failure::Internal) => Err(ApiError::new(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "internal",
+            detail("internal error"),
+        )),
     }
 }
 

@@ -40,6 +40,10 @@ pub enum Failure {
     BudgetExhausted,
     /// The space was searched out within the move limit and holds no solution.
     Exhausted,
+    /// The engine failed itself, not the input: a bug, or a solver that was
+    /// wired up wrongly (for example a 5x5x5 engine given a solver that does
+    /// not handle the 3x3x3).
+    Internal,
 }
 
 /// The outcome of one solve.

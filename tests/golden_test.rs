@@ -20,7 +20,12 @@ fn describe(solver: &dyn Solver, facelets: &Facelets, options: &SolveOptions) ->
         .map_or_else(|| "-".to_owned(), |probes| probes.to_string());
     let outcome = match &result.outcome {
         Ok(solution) => format!("ok {solution}"),
-        Err(failure @ (Failure::InvalidInput | Failure::BudgetExhausted | Failure::Exhausted)) => {
+        Err(
+            failure @ (Failure::InvalidInput
+            | Failure::BudgetExhausted
+            | Failure::Exhausted
+            | Failure::Internal),
+        ) => {
             format!("err {failure:?}")
         }
     };

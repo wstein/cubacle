@@ -234,6 +234,7 @@ fn solve(args: SolveArgs) -> Result<(), String> {
                 Failure::InvalidInput => "the cube state is impossible",
                 Failure::BudgetExhausted => "the time budget ran out",
                 Failure::Exhausted => "no solution within the move limit",
+                Failure::Internal => "internal error",
             };
             Err(format!(
                 "{reason}{}",

@@ -119,7 +119,7 @@ Errors have this shape:
 | 422 | `impossible_cube` | The cube state cannot be reached by legal moves. |
 | 422 | `no_solution_within_limit` | No solution within `maxMoves`. |
 | 429 | `busy` | All solver slots are in use. The response has `Retry-After: 1`. |
-| 500 | `internal` | A handler or solver thread panicked. |
+| 500 | `internal` | A handler or solver thread panicked, or an engine reached a state it cannot explain. |
 | 501 | `no_engine` | `solve` of a valid cube size (4, 6 or 7) that has no engine yet, whether sent as facelets or as an Orbit64 token. `convert` works for those sizes. |
 | 504 | `budget_exhausted` | The time budget ran out. |
 
