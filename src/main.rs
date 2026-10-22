@@ -1,3 +1,5 @@
+mod icons;
+
 use std::io::Read;
 use std::process::ExitCode;
 use std::sync::Arc;
@@ -23,6 +25,8 @@ struct Cli {
 enum Command {
     /// Solve a cube given as facelets or as a scramble
     Solve(SolveArgs),
+    /// Draw moves as small pictures (SVG, pixels, Kitty graphics or text)
+    Icon(icons::IconArgs),
     /// Print a random scramble
     Scramble {
         /// Number of moves
@@ -82,6 +86,9 @@ struct SolveArgs {
     /// Also print timing and search statistics to stderr
     #[arg(short, long)]
     verbose: bool,
+    /// Show each step with a picture of the cube (graphics on a capable terminal)
+    #[arg(long)]
+    icons: bool,
 }
 
 fn main() -> ExitCode {
@@ -97,6 +104,7 @@ fn main() -> ExitCode {
 fn run(cli: Cli) -> Result<(), String> {
     match cli.command {
         Command::Solve(args) => solve(args),
+        Command::Icon(args) => icons::run(args),
         Command::Convert(input) => {
             println!("{}", read_cube(&input)?);
             Ok(())
@@ -191,6 +199,9 @@ fn solve(args: SolveArgs) -> Result<(), String> {
                 && !facelets.apply(&solution).is_ok_and(|end| end.is_solved())
             {
                 return Err("internal error: solution does not solve the cube".into());
+            }
+            if args.icons {
+                return icons::print_solution(&facelets, &solution, args.input.scheme);
             }
             println!("{solution}");
             Ok(())

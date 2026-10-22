@@ -274,3 +274,75 @@ fn a_5x5_failure_is_reported_and_never_replayed_wrongly() {
     assert!(!ok);
     assert!(error.contains("size"), "{error}");
 }
+
+#[test]
+fn icon_text_on_a_pipe_has_no_escape_sequences() {
+    let (ok, out, _) = cubacle(&["icon", "R", "U'", "--format", "text"]);
+    assert!(ok);
+    assert!(!out.contains('\x1b'));
+    assert!(out.starts_with("R \u{2191}"));
+    assert!(out.contains("U' \u{2192}"));
+    let (ok, auto, _) = cubacle(&["icon", "R", "U'"]);
+    assert!(ok);
+    assert_eq!(auto, out);
+}
+
+#[test]
+fn icon_svg_goes_to_stdout_and_graphics_are_refused_on_a_pipe() {
+    let (ok, out, _) = cubacle(&["icon", "Rw2", "--cube", "4", "--format", "svg"]);
+    assert!(ok);
+    assert!(out.starts_with("<svg ") && out.contains("<title>Rw2</title>"));
+    let (ok, out, err) = cubacle(&["icon", "R", "--format", "kitty"]);
+    assert!(!ok);
+    assert!(!out.contains('\x1b'));
+    assert!(err.contains("terminal"), "{err}");
+    let (ok, _, err) = cubacle(&["icon", "R", "U", "--format", "svg"]);
+    assert!(!ok && err.contains("one icon"), "{err}");
+    let (ok, _, err) = cubacle(&["icon", "3R"]);
+    assert!(!ok && err.contains("does not exist"), "{err}");
+}
+
+#[test]
+fn icon_writes_graphics_to_a_file() {
+    let dir = std::env::temp_dir().join(format!("cubacle-icon-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let kitty = dir.join("r.kitty");
+    let (ok, _, err) = cubacle(&[
+        "icon",
+        "R",
+        "--format",
+        "kitty",
+        "--out",
+        kitty.to_str().unwrap(),
+    ]);
+    assert!(ok, "{err}");
+    let text = std::fs::read_to_string(&kitty).unwrap();
+    assert!(text.starts_with("\x1b_Ga=T,f=32,s=144,v=96,q=2,c=18,r=6,m=1;"));
+    assert!(text.contains("\x1b_Gm=0;"));
+    let rgba = dir.join("r.rgba");
+    let (ok, _, err) = cubacle(&[
+        "icon",
+        "R",
+        "--size",
+        "32",
+        "--format",
+        "rgba",
+        "--out",
+        rgba.to_str().unwrap(),
+    ]);
+    assert!(ok, "{err}");
+    assert_eq!(std::fs::metadata(&rgba).unwrap().len(), 48 * 32 * 4);
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn solve_icons_on_a_pipe_is_plain_text_and_plain_solve_is_unchanged() {
+    let (ok, plain, _) = cubacle(&["solve", "-s", "R U"]);
+    assert!(ok);
+    assert!(!plain.contains("step"));
+    let (ok, icons, _) = cubacle(&["solve", "-s", "R U", "--icons"]);
+    assert!(ok);
+    assert!(!icons.contains('\x1b'));
+    assert!(icons.contains("step 1 of "));
+    assert!(icons.trim_end().ends_with(&plain));
+}

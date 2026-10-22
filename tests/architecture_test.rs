@@ -12,7 +12,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 /// (source directory, modules it may name), keyed as `puzzle` or `engines::three`.
-const RULES: [(&str, &[&str]); 6] = [
+const RULES: [(&str, &[&str]); 7] = [
     ("src/puzzle", &["puzzle"]),
     ("src/notation", &["puzzle", "notation"]),
     ("src/generate", &["puzzle", "generate"]),
@@ -415,6 +415,7 @@ fn applications_use_only_the_public_modules() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     for file in [
         "src/main.rs",
+        "src/icons.rs",
         "crates/server/src/lib.rs",
         "crates/server/src/main.rs",
     ] {
