@@ -32,6 +32,10 @@ mod p4;
 #[allow(dead_code)]
 mod p4_model;
 #[allow(dead_code)]
+mod p5;
+#[allow(dead_code)]
+mod p5_model;
+#[allow(dead_code)]
 mod spaces;
 #[cfg(test)]
 #[allow(dead_code)]
