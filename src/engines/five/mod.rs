@@ -36,7 +36,13 @@ mod p5;
 #[allow(dead_code)]
 mod p5_model;
 #[allow(dead_code)]
+mod reduction;
+#[allow(dead_code)]
+mod solving;
+#[allow(dead_code)]
 mod spaces;
+#[allow(dead_code)]
+mod tables;
 #[cfg(test)]
 #[allow(dead_code)]
 mod testing;
