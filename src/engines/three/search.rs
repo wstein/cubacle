@@ -121,6 +121,8 @@ pub(super) struct IdaContext {
     pub(super) max_depth2: i8,
     pub(super) target_length: i8,
     pub(super) probes: u64,
+    /// Probes to make before a solution may be returned (0: the first will do).
+    pub(super) probe_min: u64,
     pub(super) phase1_nodes: u64,
     pub(super) phase1_rejected_slice_twist: u64,
     pub(super) phase1_rejected_slice_flip: u64,
@@ -156,6 +158,7 @@ impl IdaContext {
             max_depth2: 0,
             target_length: 0,
             probes: 0,
+            probe_min: 0,
             phase1_nodes: 0,
             phase1_rejected_slice_twist: 0,
             phase1_rejected_slice_flip: 0,
@@ -204,7 +207,7 @@ impl IdaContext {
 
     pub(super) fn time_limit(&mut self) -> TimeLimit {
         let Some(maximum_deadline) = self.deadline else {
-            return if self.has_solution && !self.improve {
+            return if self.has_solution && !self.improve && self.probes >= self.probe_min {
                 TimeLimit::ReturnSolution
             } else {
                 TimeLimit::Continue
@@ -220,6 +223,7 @@ impl IdaContext {
             return TimeLimit::TimedOut;
         }
         if self.has_solution
+            && self.probes >= self.probe_min
             && self
                 .minimum_deadline
                 .is_none_or(|minimum_deadline| now >= minimum_deadline)

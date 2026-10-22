@@ -296,6 +296,7 @@ impl Solver for FiveSolver {
                 remaining.map_or(HAND_OFF_BUDGET, |r| r.max(Duration::from_millis(1))),
             ),
             max_moves: Some(tail_limit),
+            ..SolveOptions::default()
         };
         let finish = self.three.solve(&three_by_three(&reduced), &hand_off);
         let tail = match finish.outcome {

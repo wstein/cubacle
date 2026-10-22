@@ -5,7 +5,7 @@ use std::sync::OnceLock;
 
 use super::engine::{
     solve_batch, solve_parallel_with_time_limits, solve_pattern, solve_pattern_parallel,
-    solve_with_time_limits,
+    solve_with_limits, solve_with_time_limits,
 };
 use super::stats::{SolveOutcome, SolveStats};
 use super::tables::{self, SharedTables};
@@ -187,8 +187,9 @@ impl Solver for Min2PhaseSolver {
     }
 
     fn solve(&self, facelets: &Facelets, options: &SolveOptions) -> SolveResult {
+        let probe_min = options.min_probes.unwrap_or(0);
         self.timed(facelets, options, |text, max, budget| {
-            solve_with_time_limits(&self.tables, text, max, Duration::ZERO, budget)
+            solve_with_limits(&self.tables, text, max, Duration::ZERO, budget, probe_min)
         })
     }
 }
@@ -391,5 +392,37 @@ mod centre_tests {
         let cube = scrambled("R U R' U' F2 D L2 B");
         let result = Min2PhaseSolver::new().solve(&cube, &SolveOptions::default());
         assert!(cube.apply(result.solution().unwrap()).unwrap().is_solved());
+    }
+}
+
+#[cfg(test)]
+mod probe_tests {
+    use super::*;
+
+    const SCRAMBLE: &str = "R U2 F' D L2 B R' U' F2 D2 L B' R2 U F D' L' B2 R U2 F L D B'";
+
+    fn run(min_probes: Option<u64>) -> SolveResult {
+        let cube = Facelets::solved(PuzzleKind::Cube3)
+            .apply(&SCRAMBLE.parse().unwrap())
+            .unwrap();
+        let options = SolveOptions {
+            min_probes,
+            ..SolveOptions::default()
+        };
+        let result = Min2PhaseSolver::shared().solve(&cube, &options);
+        assert!(cube.apply(result.solution().unwrap()).unwrap().is_solved());
+        result
+    }
+
+    #[test]
+    fn a_probe_minimum_keeps_improving_and_counts_work_not_time() {
+        let first = run(None);
+        let improved = run(Some(500));
+        assert!(first.metrics.probes < Some(500));
+        assert!(improved.metrics.probes >= Some(500));
+        assert!(improved.solution().unwrap().len() <= first.solution().unwrap().len());
+        // The same count gives the same answer, however long it takes.
+        assert_eq!(run(Some(500)).outcome, improved.outcome);
+        assert_eq!(run(Some(500)).metrics.probes, improved.metrics.probes);
     }
 }

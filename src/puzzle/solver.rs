@@ -9,6 +9,11 @@ pub struct SolveOptions {
     pub time_budget: Option<Duration>,
     /// The longest solution to accept, in moves.
     pub max_moves: Option<u8>,
+    /// Keep improving a solution until this many probes have been made, for
+    /// engines that count probes (the 3x3x3 engine does). It counts work,
+    /// not time, so the answer is the same on every machine. Other engines
+    /// ignore it.
+    pub min_probes: Option<u64>,
 }
 
 impl SolveOptions {
@@ -19,6 +24,11 @@ impl SolveOptions {
 
     pub fn with_max_moves(mut self, moves: u8) -> SolveOptions {
         self.max_moves = Some(moves);
+        self
+    }
+
+    pub fn with_min_probes(mut self, probes: u64) -> SolveOptions {
+        self.min_probes = Some(probes);
         self
     }
 }

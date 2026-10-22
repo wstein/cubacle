@@ -37,7 +37,7 @@ pub(super) fn solve_pattern(
     Cubie::inv(&to, &mut to_inverse);
     Cubie::corn_mult(&to_inverse, &from, &mut relative);
     Cubie::edge_mult(&to_inverse, &from, &mut relative);
-    solve_cubie_entry(tables, relative, maxl, Duration::ZERO, None)
+    solve_cubie_entry(tables, relative, maxl, Duration::ZERO, None, 0)
 }
 
 /// Solve independent cube states concurrently and return results in input order.
@@ -114,11 +114,38 @@ pub(super) fn solve_with_time_limits(
     minimum_search_time: Duration,
     maximum_search_time: Option<Duration>,
 ) -> SolveStats {
+    solve_with_limits(
+        tables,
+        facelet,
+        maxl,
+        minimum_search_time,
+        maximum_search_time,
+        0,
+    )
+}
+
+/// Like [`solve_with_time_limits`], and a solution is only returned once
+/// `probe_min` phase-two probes have been made (or the search is complete).
+pub(super) fn solve_with_limits(
+    tables: &SharedTables,
+    facelet: &str,
+    maxl: u8,
+    minimum_search_time: Duration,
+    maximum_search_time: Option<Duration>,
+    probe_min: u64,
+) -> SolveStats {
     let cc = match parse_facelet(facelet) {
         Ok(cubie) => cubie,
         Err(stats) => return stats,
     };
-    solve_cubie_entry(tables, cc, maxl, minimum_search_time, maximum_search_time)
+    solve_cubie_entry(
+        tables,
+        cc,
+        maxl,
+        minimum_search_time,
+        maximum_search_time,
+        probe_min,
+    )
 }
 
 pub(super) fn solve_parallel_with_time_limits(
@@ -143,7 +170,14 @@ fn solve_parallel_cubie_entry(
     maximum_search_time: Option<Duration>,
 ) -> SolveStats {
     if super::pool::worker_count() <= 1 || super::pool::in_pool_worker() {
-        return solve_cubie_entry(tables, cc, maxl, minimum_search_time, maximum_search_time);
+        return solve_cubie_entry(
+            tables,
+            cc,
+            maxl,
+            minimum_search_time,
+            maximum_search_time,
+            0,
+        );
     }
 
     let started = Instant::now();
@@ -256,8 +290,10 @@ fn solve_cubie_entry(
     maxl: u8,
     minimum_search_time: Duration,
     maximum_search_time: Option<Duration>,
+    probe_min: u64,
 ) -> SolveStats {
     let mut ctx = IdaContext::new();
+    ctx.probe_min = probe_min;
     ctx.set_time_limits(minimum_search_time, maximum_search_time);
     let built = tables::get(tables);
     let solution = ctx.solve_cubie(&built.sctx, &built.stbl, &cc, std::cmp::min(25, maxl) as i8);
