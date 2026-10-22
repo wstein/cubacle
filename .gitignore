@@ -19,3 +19,6 @@ Cargo.lock
 examples/*.csv
 sample_profile*.txt
 .claude/worktrees/
+
+# Ignore the scratch directory, which is used for temporary files
+/scratch/
