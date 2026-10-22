@@ -55,7 +55,7 @@ Moving stickers are uppercase and the others lowercase.
 | Option | Meaning |
 | --- | --- |
 | `--format auto\|svg\|rgba\|kitty\|text` | The output format. `auto` (the default) uses Kitty graphics on a capable terminal and text otherwise. |
-| `--size N` | Icon height in pixels, 96 by default. The width is 1.5 times the height. |
+| `--size N` | Icon height in pixels. Default: 32 per cube layer, at least 96 (96 for the 2x2x2 and 3x3x3, 128 for the 4x4x4, 224 for the 7x7x7), so stickers stay readable on larger cubes. The width is 1.5 times the height. |
 | `--cube N` | Cube size, 2 to 7, 3 by default. |
 | `--out FILE` | Write to a file instead of standard output. |
 | `--scheme boy\|jp` | Colour scheme, `boy` by default; six letters in `URFDLB` order also work. |

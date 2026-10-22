@@ -502,3 +502,18 @@ fn solve_always_reports_the_move_count() {
         format!("moves {}", solution.split_whitespace().count())
     );
 }
+
+#[test]
+fn icons_of_larger_cubes_are_drawn_larger() {
+    let bytes = |cube: &str| {
+        Command::new(env!("CARGO_BIN_EXE_cubacle"))
+            .args(["icon", "--format", "rgba", "--cube", cube, "U"])
+            .output()
+            .expect("cubacle runs")
+            .stdout
+            .len()
+    };
+    // height x 1.5 height x 4 bytes
+    assert_eq!(bytes("3"), 96 * 144 * 4);
+    assert_eq!(bytes("7"), 224 * 336 * 4);
+}

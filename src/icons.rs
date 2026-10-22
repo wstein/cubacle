@@ -30,9 +30,9 @@ pub struct IconArgs {
     /// Moves or whole-cube rotations, e.g. R U' Rw2 2R x
     #[arg(num_args = 1.., required = true)]
     moves: Vec<String>,
-    /// Icon height in pixels
-    #[arg(long, default_value_t = 96)]
-    size: u32,
+    /// Icon height in pixels (default: 32 per cube layer, at least 96)
+    #[arg(long)]
+    size: Option<u32>,
     /// Cube size, 2 to 7
     #[arg(long, default_value_t = 3)]
     cube: usize,
@@ -98,6 +98,11 @@ fn detect_stdout() -> Graphics {
 /// The backdrop of terminal graphics: opaque, so text below cannot show through.
 const TERMINAL_BACKGROUND: Rgb = Rgb(0x20, 0x24, 0x2b);
 
+/// The icon height that keeps stickers readable: 32 pixels per cube layer, at least 96.
+fn default_height(cube: usize) -> u32 {
+    (32 * u32::try_from(cube).unwrap_or(7)).max(96)
+}
+
 fn style(scheme: Option<ColourScheme>, size: u32, grey: bool) -> Style {
     Style {
         palette: Palette::from_letters(scheme.unwrap_or(ColourScheme::WESTERN_BOY).letters()),
@@ -155,7 +160,8 @@ pub fn run(args: IconArgs) -> Result<(), String> {
                 .map_err(|_| format!("{token:?} is not a move or rotation"))
         })
         .collect::<Result<_, _>>()?;
-    let mut style = style(args.scheme, args.size, args.grey);
+    let height = args.size.unwrap_or_else(|| default_height(args.cube));
+    let mut style = style(args.scheme, height, args.grey);
     let to_stdout = args.out.is_none();
     let terminal = std::io::stdout().is_terminal();
     let graphics = if to_stdout {
@@ -191,15 +197,15 @@ pub fn run(args: IconArgs) -> Result<(), String> {
         let drawn = icon(&state, action, &style).map_err(|error| error.to_string())?;
         match format {
             Format::Svg => bytes.extend(drawn.to_svg().into_bytes()),
-            Format::Rgba => bytes.extend(drawn.to_rgba(args.size).data),
-            Format::Kitty => bytes.extend(show(&drawn, Graphics::Kitty, args.size).into_bytes()),
+            Format::Rgba => bytes.extend(drawn.to_rgba(height).data),
+            Format::Kitty => bytes.extend(show(&drawn, Graphics::Kitty, height).into_bytes()),
             Format::Text | Format::Auto => {
                 let how = if graphics == Graphics::Kitty {
                     Graphics::Ansi
                 } else {
                     graphics
                 };
-                bytes.extend(show(&drawn, how, args.size).into_bytes());
+                bytes.extend(show(&drawn, how, height).into_bytes());
                 bytes.push(b'\n');
             }
         }
@@ -232,7 +238,7 @@ pub fn print_solution(
     scheme: Option<ColourScheme>,
 ) -> Result<(), String> {
     let graphics = detect_stdout();
-    let mut style = style(scheme, 96, false);
+    let mut style = style(scheme, default_height(start.kind().size()), false);
     if graphics == Graphics::Kitty {
         style.background = Some(TERMINAL_BACKGROUND);
     }
