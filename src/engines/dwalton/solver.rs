@@ -73,7 +73,7 @@ impl DwaltonSolver {
     }
 
     /// Solves and reports the moves of each stage.
-    pub fn solve_accounted(&self, cube: &Facelets) -> (SolveResult, Account) {
+    pub fn solve_tallied(&self, cube: &Facelets) -> (SolveResult, Account) {
         let started = Instant::now();
         let mut account = Account::default();
         let fail = |failure: Failure, message: String, account: &Account| {
@@ -210,7 +210,7 @@ impl Solver for DwaltonSolver {
     }
 
     fn solve(&self, facelets: &Facelets, _options: &SolveOptions) -> SolveResult {
-        self.solve_accounted(facelets).0
+        self.solve_tallied(facelets).0
     }
 }
 

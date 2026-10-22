@@ -24,7 +24,7 @@ fn six_by_six_scrambles_are_solved_and_replay() {
         let cube: Facelets = Facelets::solved(PuzzleKind::Cube6)
             .apply(&generate::scramble(PuzzleKind::Cube6, 80))
             .unwrap();
-        let (result, account) = solver.solve_accounted(&cube);
+        let (result, account) = solver.solve_tallied(&cube);
         println!("{account:?}");
         let moves = result
             .outcome
@@ -47,7 +47,7 @@ fn reference_cubes_are_solved() {
     for i in 1..=20 {
         let text = std::fs::read_to_string(format!("{dir}/{size}-{i}.txt")).unwrap();
         let cube = Facelets::parse(text.trim()).unwrap();
-        let (result, account) = solver.solve_accounted(&cube);
+        let (result, account) = solver.solve_tallied(&cube);
         let moves = result
             .outcome
             .unwrap_or_else(|f| panic!("{i}: {f:?} {:?}", result.message));
@@ -77,7 +77,7 @@ fn seven_by_seven_scrambles_are_solved_and_replay() {
         let cube: Facelets = Facelets::solved(PuzzleKind::Cube7)
             .apply(&generate::scramble(PuzzleKind::Cube7, 100))
             .unwrap();
-        let (result, account) = solver.solve_accounted(&cube);
+        let (result, account) = solver.solve_tallied(&cube);
         println!("{account:?}");
         let moves = result
             .outcome
