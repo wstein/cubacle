@@ -22,6 +22,8 @@ mod cubie;
 mod cubie_sym;
 mod mv;
 #[allow(dead_code)]
+mod p1;
+#[allow(dead_code)]
 mod spaces;
 #[cfg(test)]
 #[allow(dead_code)]
