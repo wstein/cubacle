@@ -30,7 +30,7 @@ const RULES: [(&str, &[&str]); 10] = [
     ),
     (
         "src/engines/dwalton",
-        &["puzzle", "reduction", "engines::dwalton"],
+        &["puzzle", "notation", "reduction", "engines::dwalton"],
     ),
 ];
 

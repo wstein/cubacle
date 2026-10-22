@@ -5,7 +5,7 @@ use cubacle::engines::five::FiveSolver;
 use cubacle::engines::four::FourSolver;
 use cubacle::engines::three::Min2PhaseSolver;
 use cubacle::generate;
-use cubacle::puzzle::{Facelets, PuzzleKind};
+use cubacle::puzzle::{Facelets, Failure, PuzzleKind, SolveOptions, Solver};
 
 fn solver() -> DwaltonSolver {
     let three = Arc::new(Min2PhaseSolver::new());
@@ -84,4 +84,25 @@ fn seven_by_seven_scrambles_are_solved_and_replay() {
             .unwrap_or_else(|f| panic!("{f:?} {:?}", result.message));
         assert!(cube.apply(&moves).unwrap().is_solved());
     }
+}
+
+#[test]
+fn an_impossible_7x7x7_is_refused_before_any_search() {
+    // Corner and edge permutations of different parity: no turns lead here.
+    let text = "WWYYYYWWWWYWYWWWYRYYWWWOWOYWWWYRYYWWWWYWYWWYWWWWWOOOOOOOORBOBROORRGRROORYRYROORRGRROORBOBROOOOOOOOBBGGGBBBBOGOBBBBBWBBBBBGGGBBBBBWBBBBBOGOBBBBBBBBBYYWWWWYYYYWYWYYYWOWWYYYRYRWYYYWOWWYYYYWYWYYWYYYYYRRRRRRRROGRGORROOBOORROWOWORROOBOORROGRGORRRRRRRRGGGGGGGGGRBRGGGGGYGGGGGBBBGGGGGYGGGGGRBRGGGGBBBGG";
+    // colours to face letters: white up, red right, green front, yellow down, orange left, blue back
+    let letters: String = text
+        .chars()
+        .map(|c| match c {
+            'W' => 'U',
+            'G' => 'F',
+            'Y' => 'D',
+            'O' => 'L',
+            other => other,
+        })
+        .collect();
+    let cube = Facelets::parse(&letters).expect("facelets");
+    let result = solver7().solve(&cube, &SolveOptions::default());
+    assert_eq!(result.outcome.unwrap_err(), Failure::InvalidInput);
+    assert!(result.message.unwrap().contains("parity"));
 }

@@ -96,6 +96,11 @@ impl DwaltonSolver {
                 &tally,
             );
         }
+        // The Orbit64 codec checks that the pieces form a reachable cube; do it
+        // before the search so an impossible cube is reported at once and plainly.
+        if let Err(error) = crate::notation::orbit64::encode(cube) {
+            return fail(Failure::InvalidInput, error.to_string(), &tally);
+        }
         let mut all: Vec<Move> = Vec::new();
         let mut cur = cube.clone();
         let note = |tally: &mut StageTally, name: &str, moves: &[Move]| {
