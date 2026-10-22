@@ -6,6 +6,7 @@
 set -eu
 SRC=$1; WORK=$2; N=${3:-1000}; SEED=${4:-1}
 HERE=$(cd "$(dirname "$0")" && pwd); REPO=$(cd "$HERE/../.." && pwd)
+TARGET=${CARGO_TARGET_DIR:-$REPO/target}
 mkdir -p "$WORK"; cp -R "$SRC/." "$WORK/tpr"
 (cd "$WORK/tpr" && sh make.sh >/dev/null 2>&1)
 cp "$HERE/FourDriver.java" "$WORK/tpr/"
@@ -18,9 +19,9 @@ java -cp .:threephase.jar FourDriver < "$WORK/cubes.txt" > "$WORK/raw.out" 2> "$
 awk -F'\t' 'NF >= 6' "$WORK/raw.out" > "$WORK/answers.tsv"
 grep -a "INIT_MS" "$WORK/java.err"
 echo "== Java"
-"$REPO/target/release/examples/four_compare" external "$WORK/cubes.txt" "$WORK/answers.tsv"
+"$TARGET/release/examples/four_compare" external "$WORK/cubes.txt" "$WORK/answers.tsv"
 echo "== Rust, $(printf %s "${CUBACLE_THREADS:-all}") thread(s)"
-/usr/bin/time -l "$REPO/target/release/examples/four_compare" ours "$WORK/cubes.txt" "$WORK/ours.tsv" 2>&1 \
+/usr/bin/time -l "$TARGET/release/examples/four_compare" ours "$WORK/cubes.txt" "$WORK/ours.tsv" 2>&1 \
   | grep -v "^ *[0-9]* *\(page\|swap\|block\|messages\|signals\|volun\|invol\|vir\|ave\|shared\|unshared\|instr\|cycles\)"
 echo "== Phases 1 to 3 against Java"
-"$REPO/target/release/examples/four_compare" phases "$WORK/cubes.txt" "$WORK/answers.tsv" "$WORK/ours.tsv"
+"$TARGET/release/examples/four_compare" phases "$WORK/cubes.txt" "$WORK/answers.tsv" "$WORK/ours.tsv"
