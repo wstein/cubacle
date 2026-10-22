@@ -3,12 +3,13 @@ id: 20261022130000
 aliases: []
 tags: ["type/decision", "status/decided", "category/engines"]
 ---
-The 5x5x5 is solved by reduction in an engine named five, not reduction: its stages rely on fixed face centres and on three pieces per edge, which a 4x4 or 6x6 does not have, so a shared engine would be invented before it is needed. It is written from scratch and ports no code; the related solvers (GPL-3.0 or MIT) were only checked for their licence, not read or copied, which NOTICE.md records. Centres and wings are put in order by greedy pure 3-cycles, each a commutator conjugated by a setup of at most four moves, and the 3x3x3 hidden in rows and columns 0, 2 and 4 goes to an injected Solver, never a global.
+The 5x5x5 is solved by reduction in an engine named five, not reduction: its stages rely on fixed face centres and on three pieces per edge, which a 4x4 or 6x6 does not have, so a shared engine would be invented before it is needed. The greedy engine in the tree today is written from scratch and ports no code. The owner decided on 2026-10-22 to replace it by a port of cs0x7f/cube555 (MIT option, see [[5x5 port plan]]), which NOTICE.md records. Centres and wings are put in order by greedy pure 3-cycles, each a commutator conjugated by a setup of at most four moves, and the 3x3x3 hidden in rows and columns 0, 2 and 4 goes to an injected Solver, never a global.
 
 ## Links
 
 - [[Reduction engines and the 3x3 solver]]
 - [[5x5 parity and limits]]
+- [[5x5 port plan]]
 
 Source: AGENTS.md, lines 40-43
 Source: ARCHITECTURE.md, lines 67-79

@@ -18,13 +18,15 @@ while the original portions remain available under their MIT terms.
 | --- | --- | --- | --- |
 | 3x3 two-phase core (`src/engines/three/`) | cs0x7f/min2phase_rust | MIT | AGPL-3.0-or-later, MIT notice retained |
 | Worker pool (`src/engines/three/pool.rs`), batch/parallel/pattern APIs | original work | — | AGPL-3.0-or-later |
-| 5x5 reduction engine (`src/engines/five/`) | original work, written from scratch | — | AGPL-3.0-or-later |
+| 5x5 greedy 3-cycle reduction (`src/engines/five/`, today) | original work, written from scratch | — | AGPL-3.0-or-later |
+| 5x5 five-phase search (`src/engines/five/`, planned port, not yet landed) | cs0x7f/cube555 (Chen Shuang) | GPL-3.0 or MIT, MIT taken | AGPL-3.0-or-later, MIT notice retained |
 
-The 5x5 engine contains no third-party code and was written without reading other
-solvers' sources. The licences of the related solvers were checked and none of their code
-was copied or translated: `cs0x7f/cube555` and `flix-cube-solvers` are GPL-3.0 and
-`cube-solvers` is MIT. The techniques used (reduction, commutator 3-cycles conjugated by
-setup moves) are textbook methods.
+The greedy 5x5 engine in the tree today contains no third-party code and was written
+without reading other solvers' sources (commutator 3-cycles conjugated by setup moves are
+textbook methods). The planned port of `cs0x7f/cube555` (README: GPLv3 and MIT, both by
+Chen Shuang) takes the MIT option; its files will carry an attribution header naming the
+Java origin, and `LICENSE-MIT` stays with them. `flix-cube-solvers` is GPL-3.0 and
+`cube-solvers` is MIT; neither is used.
 
 Ports added later (for example 4x4) record their upstream, licence and the option
 taken in this table before they land.
