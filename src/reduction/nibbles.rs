@@ -28,6 +28,18 @@ impl Nibbles {
         (self.words[index >> 3] >> ((index & 7) << 2)) & 0xf
     }
 
+    /// Gives every unknown entry (`0xf`) of the first `entries` the value
+    /// `value`, so that a table that stops early still never overestimates.
+    pub(crate) fn fill_unknown(&mut self, entries: usize, value: u32) {
+        for (w, word) in self.words.iter_mut().enumerate() {
+            for j in 0..8 {
+                if w * 8 + j < entries && (*word >> (j * 4)) & 0xf == 0xf {
+                    *word = (*word & !(0xf << (j * 4))) | (value << (j * 4));
+                }
+            }
+        }
+    }
+
     /// Bytes held.
     pub(crate) fn bytes(&self) -> usize {
         self.words.len() * 4

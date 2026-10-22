@@ -2,15 +2,21 @@
 
 use std::ops::Range;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Mutex;
+
+/// The most threads `CUBACLE_THREADS` can ask for.
+const MAX_THREADS: usize = 256;
 
 /// The number of worker threads: `CUBACLE_THREADS` if it is a positive
-/// number, else the available parallelism.
+/// number (at most 256), else the available parallelism.
 pub(crate) fn threads() -> usize {
-    std::env::var("CUBACLE_THREADS")
-        .ok()
+    from_setting(std::env::var("CUBACLE_THREADS").ok().as_deref())
+}
+
+fn from_setting(value: Option<&str>) -> usize {
+    value
         .and_then(|value| value.parse::<usize>().ok())
         .filter(|&count| count > 0)
+        .map(|count| count.min(MAX_THREADS))
         .or_else(|| std::thread::available_parallelism().ok().map(usize::from))
         .unwrap_or(1)
 }
@@ -49,22 +55,20 @@ pub(crate) fn for_chunks(
     });
 }
 
-/// Hands the items out dynamically to `threads` workers.
-pub(crate) fn for_each<T: Send>(threads: usize, items: Vec<T>, f: impl Fn(T) + Sync) {
-    let queue = Mutex::new(items.into_iter());
-    run(threads, |_| loop {
-        let item = queue.lock().expect("work queue").next();
-        match item {
-            Some(item) => f(item),
-            None => return,
-        }
-    });
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::sync::atomic::AtomicU64;
+
+    #[test]
+    fn the_thread_setting_is_capped_and_checked() {
+        assert_eq!(from_setting(Some("3")), 3);
+        assert_eq!(from_setting(Some("1000000")), MAX_THREADS);
+        let default = from_setting(None);
+        assert!(default >= 1);
+        assert_eq!(from_setting(Some("0")), default);
+        assert_eq!(from_setting(Some("many")), default);
+    }
 
     #[test]
     fn every_item_is_visited_once() {

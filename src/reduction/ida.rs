@@ -157,6 +157,10 @@ fn dfs<S: Stage>(
     if task.prun == 0 && task.maxl < stage.min_back_depth() {
         return task.maxl == 0 && sink(task.owner, &task.prefix[..task.depth]);
     }
+    if task.depth >= MAX_DEPTH {
+        // The prefix is full; no stage searches this deep.
+        return false;
+    }
     let mut stop = false;
     let here = *task;
     children(stage, &here, |mv, child, prun| {
@@ -318,7 +322,7 @@ pub(crate) fn search<S: Stage, C: Collector>(
             .iter()
             .take_while(|e| e.est <= length)
             .map(|e| Task {
-                owner: e.start,
+                owner: starts[e.start].owner,
                 node: e.node,
                 depth: 0,
                 maxl: length - starts[e.start].cost,

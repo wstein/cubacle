@@ -25,12 +25,14 @@ pub(crate) trait Space: Sync {
     /// The states at distance 0.
     fn solved(&self) -> Vec<usize>;
 
-    /// Calls `f` with the state each move leads to from `state`.
-    fn moves<F: FnMut(usize)>(&self, state: usize, f: &mut F);
+    /// Calls `f` with the state each move leads to from `state`, and a tag
+    /// that is handed back to [`Space::images`] for that target.
+    fn moves<F: FnMut(usize, u32)>(&self, state: usize, f: &mut F);
 
-    /// Calls `f` with the states that share the distance of `target` because
-    /// of a symmetry that fixes its class (none for plain coordinates).
-    fn images<F: FnMut(usize)>(&self, _target: usize, _f: &mut F) {}
+    /// Calls `f` with the states that share the distance of `target` (reached
+    /// with `tag`) because of a symmetry that fixes its class. None for
+    /// plain coordinates.
+    fn images<F: FnMut(usize)>(&self, _target: usize, _tag: u32, _f: &mut F) {}
 }
 
 /// Sets nibble `index` to `value` if it is unknown; true if this call did it.
@@ -46,9 +48,10 @@ fn read(words: &[AtomicU32], index: usize) -> u32 {
     (words[index >> 3].load(Ordering::Relaxed) >> ((index & 7) << 2)) & 0xf
 }
 
-/// Builds the table of exact distances (capped at 14; deeper states stay
-/// unknown, as in the original) for `space` with `threads` workers.
-pub(crate) fn build<S: Space>(space: &S, threads: usize) -> Nibbles {
+/// Builds the table of exact distances for `space` with `threads` workers.
+/// Layers go down to `cap` (at most 15, the original's limit; states deeper
+/// than that stay at `0xf`, unknown).
+pub(crate) fn build<S: Space>(space: &S, threads: usize, cap: u32) -> Nibbles {
     let n = space.size();
     let words: Vec<AtomicU32> = (0..Nibbles::words_for(n))
         .map(|_| AtomicU32::new(u32::MAX))
@@ -86,7 +89,7 @@ pub(crate) fn build<S: Space>(space: &S, threads: usize) -> Nibbles {
                     }
                     if inverse {
                         let mut hit = false;
-                        space.moves(state, &mut |t| {
+                        space.moves(state, &mut |t, _| {
                             if !hit && read(&words, t) == check {
                                 hit = true;
                             }
@@ -95,10 +98,10 @@ pub(crate) fn build<S: Space>(space: &S, threads: usize) -> Nibbles {
                             found += 1;
                         }
                     } else {
-                        space.moves(state, &mut |t| {
+                        space.moves(state, &mut |t, tag| {
                             if read(&words, t) == check && claim(&words, t, fill) {
                                 found += 1;
-                                space.images(t, &mut |e| {
+                                space.images(t, tag, &mut |e| {
                                     if read(&words, e) == check && claim(&words, e, fill) {
                                         found += 1;
                                     }
@@ -112,7 +115,7 @@ pub(crate) fn build<S: Space>(space: &S, threads: usize) -> Nibbles {
         });
         let done = done.into_inner();
         cumulative += done;
-        if done == 0 || depth >= MAX_DEPTH {
+        if done == 0 || depth >= cap.min(MAX_DEPTH) {
             break;
         }
     }
@@ -133,16 +136,16 @@ mod tests {
         fn solved(&self) -> Vec<usize> {
             vec![0]
         }
-        fn moves<F: FnMut(usize)>(&self, state: usize, f: &mut F) {
-            f((state + 1) % self.0);
-            f((state + self.0 - 1) % self.0);
+        fn moves<F: FnMut(usize, u32)>(&self, state: usize, f: &mut F) {
+            f((state + 1) % self.0, 0);
+            f((state + self.0 - 1) % self.0, 0);
         }
     }
 
     #[test]
     fn distances_on_a_ring_are_exact_for_any_thread_count() {
         for threads in [1, 4] {
-            let table = build(&Ring(25), threads);
+            let table = build(&Ring(25), threads, 15);
             for state in 0..25usize {
                 assert_eq!(table.get(state) as usize, state.min(25 - state));
             }
@@ -150,11 +153,19 @@ mod tests {
     }
 
     #[test]
+    fn a_cap_stops_the_layers_early() {
+        let table = build(&Ring(3001), 2, 4);
+        assert_eq!(table.get(3), 3);
+        assert_eq!(table.get(4), 4);
+        assert_eq!(table.get(5), 0xf);
+    }
+
+    #[test]
     fn inverse_layers_agree_with_forward_layers() {
         // 13 of 25 states are known after layer 6, so the last layers run inverted.
-        let table = build(&Ring(25), 2);
+        let table = build(&Ring(25), 2, 15);
         assert_eq!(table.get(12), 12);
-        let big = build(&Ring(3001), 3);
+        let big = build(&Ring(3001), 3, 15);
         assert_eq!(big.get(14), 14);
         assert_eq!(big.get(15), 0xf);
         assert_eq!(big.get(3001 - 14), 14);
