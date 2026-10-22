@@ -26,6 +26,8 @@ mod p1;
 #[allow(dead_code)]
 mod p2;
 #[allow(dead_code)]
+mod p3;
+#[allow(dead_code)]
 mod spaces;
 #[cfg(test)]
 #[allow(dead_code)]
