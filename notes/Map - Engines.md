@@ -27,3 +27,5 @@ Raw-material notes, category engines.
 - [[4x4 Orbit64 tokens]]
 - [[4x4 phases 1 to 3 equal the Java ones]]
 - [[Spread solves over cores for throughput]]
+- [[Improve modes trade time for moves]]
+- [[Bisect over max_moves is unsound under a time budget]]
