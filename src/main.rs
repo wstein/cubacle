@@ -7,6 +7,7 @@ use std::time::Duration;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use cubacle::engines::five::FiveSolver;
+use cubacle::engines::four::FourSolver;
 use cubacle::engines::three::Min2PhaseSolver;
 use cubacle::engines::two::PocketSolver;
 use cubacle::generate;
@@ -96,7 +97,7 @@ struct ConvertArgs {
 struct SolveArgs {
     #[command(flatten)]
     input: InputArgs,
-    /// Longest solution to accept (default: 21; none for the 5x5x5; a limit applies to the whole solution)
+    /// Longest solution to accept (default: 21; none for the 4x4x4 and 5x5x5; a limit applies to the whole solution)
     #[arg(short = 'm', long)]
     max_moves: Option<u8>,
     /// Hard time limit in milliseconds
@@ -186,6 +187,12 @@ fn solve(args: SolveArgs) -> Result<(), String> {
     let solver: Box<dyn Solver> = match facelets.kind() {
         PuzzleKind::Cube2 => Box::new(PocketSolver::new()),
         PuzzleKind::Cube3 => Box::new(Min2PhaseSolver::new()),
+        PuzzleKind::Cube4 => {
+            let four = FourSolver::new(Arc::new(Min2PhaseSolver::new()));
+            eprintln!("preparing the 4x4x4 tables (built now, about 12 MB)");
+            four.prepare();
+            Box::new(four)
+        }
         PuzzleKind::Cube5 => {
             let five = FiveSolver::new(Arc::new(Min2PhaseSolver::new()));
             match five.cache_dir() {
@@ -204,7 +211,7 @@ fn solve(args: SolveArgs) -> Result<(), String> {
         kind => {
             let size = kind.size();
             return Err(format!(
-                "no engine for the {size}x{size}x{size} yet; only the 2x2x2, 3x3x3 and 5x5x5 are solvable"
+                "no engine for the {size}x{size}x{size} yet; only the 2x2x2, 3x3x3, 4x4x4 and 5x5x5 are solvable"
             ));
         }
     };
@@ -232,8 +239,10 @@ fn solve(args: SolveArgs) -> Result<(), String> {
     }
     match result.outcome {
         Ok(solution) => {
-            if matches!(facelets.kind(), PuzzleKind::Cube3 | PuzzleKind::Cube5)
-                && !facelets.apply(&solution).is_ok_and(|end| end.is_solved())
+            if matches!(
+                facelets.kind(),
+                PuzzleKind::Cube3 | PuzzleKind::Cube4 | PuzzleKind::Cube5
+            ) && !facelets.apply(&solution).is_ok_and(|end| end.is_solved())
             {
                 return Err("internal error: solution does not solve the cube".into());
             }

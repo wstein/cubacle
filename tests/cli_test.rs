@@ -65,10 +65,52 @@ fn convert_reads_the_japanese_scheme() {
 
 #[test]
 fn unsupported_sizes_say_so() {
-    let solved_4x4: String = "URFDLB".chars().flat_map(|c| [c; 16]).collect();
-    let (ok, _, error) = cubacle(&["solve", &solved_4x4]);
+    let solved_6x6: String = "URFDLB".chars().flat_map(|c| [c; 36]).collect();
+    assert_eq!(solved_6x6.len(), 216);
+    let (ok, _, error) = cubacle(&["solve", &solved_6x6]);
     assert!(!ok);
-    assert!(error.contains("no engine for the 4x4x4"), "{error}");
+    assert!(error.contains("no engine for the 6x6x6"), "{error}");
+}
+
+#[test]
+fn a_4x4_scramble_is_solved_and_the_solution_replays() {
+    let scramble = "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F Uw Rw' F2 Lw";
+    let cube = Facelets::solved(PuzzleKind::Cube4)
+        .apply(&scramble.parse().unwrap())
+        .unwrap();
+    let (ok, solution, error) = cubacle(&["solve", "--size", "4", "--scramble", scramble]);
+    assert!(ok, "{error}");
+    assert!(solved_by(&cube, &solution), "{solution}");
+    // The same cube as typed facelets gets the same solution.
+    let (ok, again, error) = cubacle(&["solve", &cube.to_string()]);
+    assert!(ok, "{error}");
+    assert_eq!(again, solution);
+}
+
+#[test]
+fn a_random_4x4_is_generated_and_solved() {
+    let (ok, facelets, error) = cubacle(&["random", "--size", "4"]);
+    assert!(ok, "{error}");
+    let cube = Facelets::parse(&facelets).unwrap();
+    assert_eq!(cube.kind(), PuzzleKind::Cube4);
+    let (ok, solution, error) = cubacle(&["solve", &facelets]);
+    assert!(ok, "{error}");
+    assert!(solved_by(&cube, &solution));
+}
+
+#[test]
+fn a_4x4_failure_is_reported_and_never_replayed_wrongly() {
+    let (ok, _, error) = cubacle(&[
+        "solve",
+        "--size",
+        "4",
+        "-m",
+        "30",
+        "-s",
+        "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F Uw Rw' F2 Lw",
+    ]);
+    assert!(!ok);
+    assert!(error.contains("move limit"), "{error}");
 }
 
 /// Corner sticker positions of the 3x3 in facelet order, per corner slot.
