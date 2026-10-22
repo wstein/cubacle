@@ -113,3 +113,37 @@ fn rasters_have_the_requested_height() {
     assert!(raster.data.chunks(4).any(|px| px[3] == 255));
     assert!(raster.data.chunks(4).any(|px| px[3] == 0));
 }
+
+/// Nothing (stickers, shadow, arrow halo, badge, label) may come within 2 px of
+/// the border, whatever the cube size, move or icon size.
+#[test]
+fn drawings_keep_a_margin_from_the_border() {
+    for kind in PuzzleKind::ALL {
+        for text in [
+            "R", "D'", "L", "U'", "B'", "F", "x", "y'", "z2", "R2", "Rw2", "3Rw'",
+        ] {
+            let action: Action = text.parse().unwrap();
+            if icon(&Facelets::solved(kind), &action, &Style::default()).is_err() {
+                continue;
+            }
+            for size in [64, 96, 128] {
+                let drawn = icon(&Facelets::solved(kind), &action, &Style::default()).unwrap();
+                let raster = drawn.to_rgba(size);
+                let (w, h) = (raster.width as usize, raster.height as usize);
+                let (mut left, mut top, mut right, mut bottom) = (w, h, w, h);
+                for y in 0..h {
+                    for x in 0..w {
+                        if raster.data[(y * w + x) * 4 + 3] > 8 {
+                            left = left.min(x);
+                            top = top.min(y);
+                            right = right.min(w - 1 - x);
+                            bottom = bottom.min(h - 1 - y);
+                        }
+                    }
+                }
+                let margin = left.min(top).min(right).min(bottom);
+                assert!(margin >= 2, "{kind:?} {text} at {size}px: margin {margin}");
+            }
+        }
+    }
+}

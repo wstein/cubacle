@@ -231,7 +231,7 @@ pub(crate) fn shapes(
     let metrics = Metrics {
         width: width * across,
         head_len: 1.9 * width,
-        head_half: (1.5 * width * across).min(2.2),
+        head_half: (1.5 * width * across).min(if across > 1.0 { 2.2 } else { 1.25 }),
     };
     let grow = 0.28_f64.max(1.4 / ppm) * across.sqrt();
     let nf = n as f64;

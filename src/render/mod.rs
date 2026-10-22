@@ -67,14 +67,14 @@ pub fn icon(state: &Facelets, action: &Action, style: &Style) -> Result<Icon, Re
     }
     let n = kind.size();
     let pixels_per_unit = f64::from(style.size.max(16)) / HEIGHT;
-    let projection = geometry::Projection::new(n, 4.0, 5.0, 92.0, 86.0);
+    let projection = geometry::Projection::new(n, 10.0, 9.0, 80.0, 76.0);
     let pixels_per_model = projection.scale * pixels_per_unit;
     let mut shapes = Vec::new();
     if style.shadow {
         let ellipse = (0..32)
             .map(|i| {
                 let a = std::f64::consts::TAU * f64::from(i) / 32.0;
-                [50.0 + 36.0 * a.cos(), 93.6 + 2.6 * a.sin()]
+                [50.0 + 34.0 * a.cos(), 88.5 + 2.6 * a.sin()]
             })
             .collect();
         shapes.push(Shape::new(Part::Shadow, ellipse, style::BODY).with_opacity(0.3));
@@ -110,13 +110,13 @@ pub fn icon(state: &Facelets, action: &Action, style: &Style) -> Result<Icon, Re
 fn label_shapes(label: &str, pixels_per_unit: f64) -> Vec<Shape> {
     let units = font::measure(label);
     let mut scale = 26.0 / font::GLYPH_HEIGHT;
-    if units * scale > 42.0 {
-        scale = 42.0 / units;
+    if units * scale > 36.0 {
+        scale = 36.0 / units;
     }
     let height = scale * font::GLYPH_HEIGHT;
     let stroke = (0.19 * scale).max(2.0 / pixels_per_unit);
-    let (x, y) = (103.0, 50.0 - height / 2.0);
-    let outline = (stroke + 3.0 / pixels_per_unit).max(stroke + 1.2);
+    let (x, y) = (104.0, 47.0 - height / 2.0);
+    let outline = stroke + (3.0 / pixels_per_unit).clamp(1.2, 2.0);
     let mut shapes = font::text(label, x, y, height, outline, style::BODY, Part::Label);
     shapes.extend(font::text(
         label,

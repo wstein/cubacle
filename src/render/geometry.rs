@@ -168,7 +168,7 @@ mod tests {
 
     fn scene(kind: PuzzleKind, text: &str) -> (Vec<Shape>, Projection) {
         let state = Facelets::solved(kind);
-        let projection = Projection::new(kind.size(), 4.0, 5.0, 92.0, 86.0);
+        let projection = Projection::new(kind.size(), 10.0, 9.0, 80.0, 76.0);
         let action: Action = text.parse().unwrap();
         let ppm = projection.scale * 0.96;
         (
