@@ -67,7 +67,8 @@ fn layers_of(m: &Move, n: usize) -> Option<(Vec<usize>, u8)> {
 }
 
 /// The moves a run may use. `slices` allows every single layer; otherwise the
-/// outer layers, and on a 5x5x5 or larger the second layer, as the engines do.
+/// outer layers, on a 5x5x5 or larger the second layer, and on a 6x6x6 or
+/// larger also the third, as the engines do.
 fn generators(n: usize, slices: bool) -> Vec<Generator> {
     let mut list = Vec::new();
     let single = |layer: usize| {
@@ -86,23 +87,35 @@ fn generators(n: usize, slices: bool) -> Vec<Generator> {
         if n >= 5 {
             v.extend([1, n - 2]);
         }
+        if n >= 6 {
+            v.extend([2, n - 3]);
+        }
         v.sort_unstable();
         v
     };
     for layer in layer_set {
         list.push(single(layer));
     }
-    if n >= 3 {
+    // Two-layer turns; on a 6x6x6 and larger also the wider blocks (up to
+    // half the cube, or three layers without `slices`).
+    let widest = if n < 6 {
+        2
+    } else if slices {
+        n / 2
+    } else {
+        3
+    };
+    for depth in 2..=widest.min(n - 1) {
         list.push(Generator {
-            layers: vec![0, 1],
+            layers: (0..depth).collect(),
             negative: false,
-            depth: 2,
+            depth: depth as u8,
             wide: true,
         });
         list.push(Generator {
-            layers: vec![n - 2, n - 1],
+            layers: (n - depth..n).collect(),
             negative: true,
-            depth: 2,
+            depth: depth as u8,
             wide: true,
         });
     }
@@ -271,7 +284,12 @@ mod tests {
                 .wrapping_add(1442695040888963407);
             (state >> 33) % bound
         };
-        for (kind, n) in [(PuzzleKind::Cube4, 4), (PuzzleKind::Cube5, 5)] {
+        for (kind, n) in [
+            (PuzzleKind::Cube4, 4),
+            (PuzzleKind::Cube5, 5),
+            (PuzzleKind::Cube6, 6),
+            (PuzzleKind::Cube7, 7),
+        ] {
             let scramble: Vec<Move> = (0..40).map(|_| move_at(&mut next, n, true)).collect();
             let base = Facelets::solved(kind)
                 .apply(&MoveSequence::new(scramble))
@@ -289,7 +307,9 @@ mod tests {
                     assert_eq!(want, got, "{} -> {}", show(&moves), show(&result));
                     if !slices {
                         let allowed = |m: &Move| {
-                            (m.depth == 1 && !m.wide) || (m.depth == 2 && (m.wide || n >= 5))
+                            (m.depth == 1 && !m.wide)
+                                || (m.depth == 2 && (m.wide || n >= 5))
+                                || (n >= 6 && m.depth == 3)
                         };
                         assert!(result.iter().all(allowed), "{}", show(&result));
                     }
@@ -303,9 +323,11 @@ mod tests {
     fn move_at(next: &mut impl FnMut(u64) -> u64, n: usize, all: bool) -> Move {
         let face = Face::ALL[next(6) as usize];
         let turn = [Turn::Clockwise, Turn::Half, Turn::CounterClockwise][next(3) as usize];
-        match next(3) {
+        match next(4) {
             0 => Move::new(face, 1, false, turn),
             1 => Move::new(face, 2, true, turn),
+            3 if n >= 6 => Move::new(face, 3, n % 2 == 0, turn),
+            3 => Move::new(face, 1, false, turn),
             _ if n >= 5 || all => Move::new(face, 2, false, turn),
             _ => Move::new(face, 1, false, turn),
         }
