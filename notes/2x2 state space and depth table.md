@@ -9,4 +9,7 @@ With a fixed corner the state space is 7! x 3^6 = 3,674,160 states. A BFS depth 
 
 - [[2x2 solver]]
 
-Source: project history of cubacle, lines 1-1
+Source: src/engines/two/mod.rs, lines 3-7
+Source: src/engines/two/mod.rs, lines 26-27
+Source: src/engines/two/mod.rs, lines 265-265
+Source: owner decision of 2026-10-21, lines 1-1

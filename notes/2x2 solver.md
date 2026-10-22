@@ -11,4 +11,6 @@ The 2x2 solver was written from scratch; no code was copied from other solvers. 
 - [[2x2 timing]]
 - [[Cold start and prepare]]
 
-Source: project history of cubacle, lines 1-1
+Source: src/engines/two/mod.rs, lines 1-13
+Source: NOTICE.md, lines 17-20
+Source: owner decision of 2026-10-21, lines 1-1

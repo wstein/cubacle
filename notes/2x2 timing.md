@@ -10,4 +10,5 @@ The table build takes about 93 ms once per process; a solve takes about 299 ns a
 - [[2x2 solver]]
 - [[Cold start and prepare]]
 
-Source: project history of cubacle, lines 1-1
+Source: docs/engines.md, lines 21-24
+Source: owner decision of 2026-10-21, lines 1-1
