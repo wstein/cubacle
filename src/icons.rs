@@ -236,9 +236,11 @@ pub fn print_solution(
     start: &Facelets,
     solution: &MoveSequence,
     scheme: Option<ColourScheme>,
+    height: Option<u32>,
 ) -> Result<(), String> {
     let graphics = detect_stdout();
-    let mut style = style(scheme, default_height(start.kind().size()), false);
+    let height = height.unwrap_or_else(|| default_height(start.kind().size()));
+    let mut style = style(scheme, height, false);
     if graphics == Graphics::Kitty {
         style.background = Some(TERMINAL_BACKGROUND);
     }

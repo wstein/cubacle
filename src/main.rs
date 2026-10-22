@@ -122,6 +122,9 @@ struct SolveArgs {
     /// Show each step with a picture of the cube (graphics on a capable terminal)
     #[arg(long)]
     icons: bool,
+    /// Icon height in pixels for --icons (default: 32 per cube layer, at least 96)
+    #[arg(long, requires = "icons", value_name = "PIXELS")]
+    icon_size: Option<u32>,
 }
 
 fn main() -> ExitCode {
@@ -266,7 +269,12 @@ fn solve(args: SolveArgs) -> Result<(), String> {
             }
             eprintln!("moves {}", solution.len());
             if args.icons {
-                return icons::print_solution(&facelets, &solution, args.input.scheme);
+                return icons::print_solution(
+                    &facelets,
+                    &solution,
+                    args.input.scheme,
+                    args.icon_size,
+                );
             }
             println!("{solution}");
             Ok(())
