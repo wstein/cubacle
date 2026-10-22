@@ -4,7 +4,7 @@ A Rubik's cube solver and generator in Rust, built as a backend for cube explore
 
 Today the 2×2×2 is solved optimally, the 3×3×3 is solved with an optimized implementation of the two-phase algorithm (derived from [min2phase](https://github.com/cs0x7f/min2phase) by Chen Shuang), the 4×4×4 is solved by a port of the three-phase reduction of [TPR-4x4x4-Solver](https://github.com/cs0x7f/TPR-4x4x4-Solver) (about 47 moves, 12 MB of tables built in a fraction of a second), and the 5×5×5 is solved by a port of the five-phase reduction of [cube555](https://github.com/cs0x7f/cube555) (about 73 moves, 237 MB of cached tables). The `cubacle::puzzle` module describes cubes of every size from 2×2×2 to 7×7×7 behind one `Solver` trait; engines for the other sizes are being added. [ARCHITECTURE.md](ARCHITECTURE.md) explains how the crate is laid out and which module may depend on which.
 
-cubacle stands on the work of [Herbert Kociemba](https://kociemba.org/), who devised the two-phase algorithm and the Cube Explorer: thank you for this great work. See [Credits](docs/credits.md) for everyone else.
+cubacle stands on the work of [Herbert Kociemba](https://kociemba.org/), who devised the two-phase algorithm and the Cube Explorer: thank you for this great work. The 6x6x6 and 7x7x7 engines follow [Daniel Walton](https://github.com/dwalton76/rubiks-cube-NxNxN-solver)'s staged reduction method. See [Credits](docs/credits.md) for everyone else.
 
 Licensed under AGPL-3.0-or-later; see [`NOTICE.md`](NOTICE.md) for the MIT-licensed origin of the 3×3×3 core.
 
