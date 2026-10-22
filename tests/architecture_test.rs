@@ -12,12 +12,13 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 /// (source directory, modules it may name), keyed as `puzzle` or `engines::three`.
-const RULES: [(&str, &[&str]); 5] = [
+const RULES: [(&str, &[&str]); 6] = [
     ("src/puzzle", &["puzzle"]),
     ("src/notation", &["puzzle", "notation"]),
     ("src/generate", &["puzzle", "generate"]),
     ("src/engines/three", &["puzzle", "engines::three"]),
     ("src/engines/two", &["puzzle", "notation", "engines::two"]),
+    ("src/engines/five", &["puzzle", "engines::five"]),
 ];
 
 /// Modules the applications may name through `cubacle::`.
@@ -27,6 +28,7 @@ const APP_ALLOWED: &[&str] = &[
     "generate",
     "engines::three",
     "engines::two",
+    "engines::five",
 ];
 
 fn rust_files(dir: &Path, out: &mut Vec<PathBuf>) {
@@ -377,6 +379,33 @@ fn the_worker_pool_stays_private_to_the_3x3_engine() {
             );
         }
     }
+}
+
+#[test]
+fn the_5x5_engine_reaches_the_3x3_solver_only_through_the_trait() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let src = root.join("src");
+    let mut files = Vec::new();
+    rust_files(&root.join("src/engines/five"), &mut files);
+    assert!(!files.is_empty());
+    for file in files {
+        let source = strip_test_items(&strip_comments_and_strings(
+            &fs::read_to_string(&file).unwrap(),
+        ));
+        assert!(
+            !source.contains("Min2PhaseSolver") && !source.contains("three::"),
+            "{} names the 3x3 engine; inject a `dyn Solver` instead",
+            file.display()
+        );
+        assert!(
+            !source.replace("'static", "").contains("static ") && !source.contains("lazy_static"),
+            "{} keeps global state; the solver and its tables belong to an instance",
+            file.display()
+        );
+        let _ = module_of(&file, &src);
+    }
+    let solver = fs::read_to_string(root.join("src/engines/five/solver.rs")).unwrap();
+    assert!(solver.contains("Arc<dyn Solver + Send + Sync>"));
 }
 
 #[test]

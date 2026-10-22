@@ -95,7 +95,9 @@ fn quarter(axis: usize, v: Vec3) -> Vec3 {
     out
 }
 
-fn turned(kind: PuzzleKind, stickers: &[Face], mv: &Move) -> Vec<Face> {
+/// Where every sticker goes when `mv` is performed: sticker `i` ends up at
+/// index `result[i]`, and stickers outside the turned layers stay put.
+pub(crate) fn destinations(kind: PuzzleKind, mv: &Move) -> Vec<usize> {
     let (axis, sign) = match mv.face {
         Face::U => (1, 1),
         Face::D => (1, -1),
@@ -113,8 +115,8 @@ fn turned(kind: PuzzleKind, stickers: &[Face], mv: &Move) -> Vec<Face> {
         _ => 1,
     };
     let edge = kind.size() as i32 - 1 - 2 * (i32::from(mv.depth) - 1);
-    let mut result = stickers.to_vec();
-    for (index, &sticker) in stickers.iter().enumerate() {
+    let mut result: Vec<usize> = (0..kind.facelet_count()).collect();
+    for (index, slot) in result.iter_mut().enumerate() {
         let (position, normal) = locate(kind, index);
         let height = sign * position[axis];
         let inside = if mv.wide {
@@ -130,7 +132,15 @@ fn turned(kind: PuzzleKind, stickers: &[Face], mv: &Move) -> Vec<Face> {
             position = quarter(axis, position);
             normal = quarter(axis, normal);
         }
-        result[index_of(kind, position, normal)] = sticker;
+        *slot = index_of(kind, position, normal);
+    }
+    result
+}
+
+fn turned(kind: PuzzleKind, stickers: &[Face], mv: &Move) -> Vec<Face> {
+    let mut result = stickers.to_vec();
+    for (index, &target) in destinations(kind, mv).iter().enumerate() {
+        result[target] = stickers[index];
     }
     result
 }
