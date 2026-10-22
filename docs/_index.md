@@ -14,7 +14,8 @@ cubacle is a Rubik's cube solver and generator written in Rust. It comes as a co
 | --- | --- |
 | 2x2x2 | Supported. Solutions are optimal in the half-turn metric. |
 | 3x3x3 | Supported. Solved with the Kociemba two-phase algorithm. |
-| 4x4x4 to 7x7x7 | Planned. The notations and the API accept these sizes, but no engine exists yet. |
+| 5x5x5 | Supported by reduction. Solutions are correct but long (about 410 moves). |
+| 4x4x4, 6x6x6, 7x7x7 | Planned. The notations and the API accept these sizes, but no engine exists yet. |
 
 For details, see [Engines and limits](engines.md).
 

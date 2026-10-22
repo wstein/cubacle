@@ -9,5 +9,5 @@ Two schemes exist: `boy` is WRGYOB and `jp` is WRGBOY (the longer names `western
 
 - [[Input notations]]
 
-Source: docs/cli.md, lines 125-128
+Source: docs/cli.md, lines 156-159
 Source: src/notation/input.rs, lines 72-74

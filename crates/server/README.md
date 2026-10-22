@@ -1,6 +1,6 @@
 # cubacle-server
 
-Stateless HTTP backend for the cubacle solvers (2x2x2 and 3x3x3). No sessions and no per-client state, so several instances can run behind a load balancer. Engine tables are built once at startup, before the listener accepts connections. Solving runs on blocking threads guarded by a semaphore (`--max-concurrency`); when all slots are busy the server answers 429 with `Retry-After`.
+Stateless HTTP backend for the cubacle solvers (2x2x2, 3x3x3 and 5x5x5). No sessions and no per-client state, so several instances can run behind a load balancer. Engine tables are built once at startup, before the listener accepts connections. Solving runs on blocking threads guarded by a semaphore (`--max-concurrency`); when all slots are busy the server answers 429 with `Retry-After`.
 
 ```sh
 cargo run --release -p cubacle-server -- --bind 127.0.0.1:8080
@@ -23,10 +23,10 @@ The server logs method, path, status and latency of every request (never bodies)
 | Method and path | Body / query | Success |
 |---|---|---|
 | `GET /health` | | `{"status":"ok"}` |
-| `GET /v1/scramble?moves=25` | moves 1..=200 | `{"scramble":"R U ..."}` |
-| `GET /v1/random?size=3` | size 2..=7 (only 2 and 3 have engines) | `{"kind":"3x3x3","facelets":"..."}` |
+| `GET /v1/scramble?moves=25&size=3` | moves 1..=200, size 2, 3 or 5 | `{"scramble":"R U ..."}` |
+| `GET /v1/random?size=3` | size 2..=7 (only 2, 3 and 5 have engines) | `{"kind":"3x3x3","facelets":"..."}` |
 | `POST /v1/convert` | `{"cube","scheme"?}` | `{"kind","facelets"}` |
-| `POST /v1/solve` | `{"cube","scheme"?,"maxMoves"? (1..=25),"budgetMs"? (1..=600000)}` | `{"kind","solution","length","elapsedMicros"}` |
+| `POST /v1/solve` | `{"cube","scheme"?,"maxMoves"? (1..=25; 1..=255 for a 5x5x5),"budgetMs"? (1..=600000)}` | `{"kind","solution","length","elapsedMicros"}` |
 
 `cube` accepts Orbit64 tokens, URFDLB facelets (spaced or compact) or W/R/G/Y/O/B colours; `scheme` is `boy`, `jp` or six letters.
 
@@ -43,7 +43,8 @@ Errors are `{"error":{"code","message"}}`:
 | 422 | `no_solution_within_limit` | nothing within `maxMoves` |
 | 429 | `busy` | all solver slots in use (`Retry-After: 1`) |
 | 500 | `internal` | a handler or solver thread panicked |
-| 501 | `no_engine` | a valid cube size (4..=7) without an engine, including Orbit64 tokens of those sizes |
+| 501 | `no_engine` | a valid cube size (4, 6 or 7) without an engine, including Orbit64 tokens of those sizes |
+| 501 | `token_unsupported` | an Orbit64 token of the 5x5x5 (the engine exists, the decoder does not) |
 | 504 | `budget_exhausted` | time budget ran out (not 408: the client was not slow, the server was). Do not retry unchanged: retry only with a larger `budgetMs` or an easier input |
 
 ```sh

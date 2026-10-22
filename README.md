@@ -2,7 +2,7 @@
 
 A Rubik's cube solver and generator in Rust, built as a backend for cube explorers. The name is a play on *cubicle*: a small room for working on cubes.
 
-Today the 2×2×2 is solved optimally and the 3×3×3 is solved with an optimized implementation of the two-phase algorithm (derived from [min2phase](https://github.com/cs0x7f/min2phase) by Chen Shuang). The `cubacle::puzzle` module describes cubes of every size from 2×2×2 to 7×7×7 behind one `Solver` trait; engines for the other sizes are being added. [ARCHITECTURE.md](ARCHITECTURE.md) explains how the crate is laid out and which module may depend on which.
+Today the 2×2×2 is solved optimally, the 3×3×3 is solved with an optimized implementation of the two-phase algorithm (derived from [min2phase](https://github.com/cs0x7f/min2phase) by Chen Shuang), and the 5×5×5 is solved by reduction (long, correct solutions; original work). The `cubacle::puzzle` module describes cubes of every size from 2×2×2 to 7×7×7 behind one `Solver` trait; engines for the other sizes are being added. [ARCHITECTURE.md](ARCHITECTURE.md) explains how the crate is laid out and which module may depend on which.
 
 Licensed under AGPL-3.0-or-later; see [`NOTICE.md`](NOTICE.md) for the MIT-licensed origin of the 3×3×3 core.
 
@@ -32,7 +32,7 @@ A cube may be written as an [Orbit64](https://github.com/wstein/flix-orbit64) st
 
 Any six letters in `URFDLB` order also work, e.g. `--scheme WRGYOB`.
 
-`solve` handles the 2×2×2 and the 3×3×3; larger sizes have no engine yet. It prints the solution, and for the 3×3×3 checks by replay that it solves the cube. It exits with a non-zero status when the state is impossible, the limit is too tight or the time budget runs out. Orbit64 tokens decode for the 2×2×2 and 3×3×3.
+`solve` handles the 2×2×2, 3×3×3 and 5×5×5; the other sizes have no engine yet. It prints the solution, and for the 3×3×3 and 5×5×5 checks by replay that it solves the cube. It exits with a non-zero status when the state is impossible, the limit is too tight or the time budget runs out. Orbit64 tokens decode for the 2×2×2 and 3×3×3. `--size 5` picks the 5×5×5 for `--scramble`, `scramble`, `random` and `facelets`; a 5×5×5 solution has 348 to 477 moves (1000 random cubes), see [docs/engines.md](docs/engines.md).
 
 The 2×2×2 solver (`PocketSolver`) keeps one corner fixed and searches an exact distance table of all 3,674,160 states, so its solutions are optimal in the half-turn metric (U, R and F turns by 90° or 180°). The table is built on first use in well under a second in a release build. A cube that is solved in any orientation needs no moves. A solve with a ready table takes microseconds and always meets `--budget-ms`; the first solve in a process includes the one-off table build, which a budget cannot interrupt and which counts against it. `Solver::prepare()` does the build ahead of time.
 
@@ -74,7 +74,7 @@ A limit of 20 or 21 moves is recommended for the 3×3×3 (`SolveOptions::with_ma
 
 - `puzzle`: `PuzzleKind`, `Facelets` (with `apply(&MoveSequence)`), `Move` and `MoveSequence` (parse with `str::parse`), the `Solver` trait, `SolveOptions`, `SolveResult` and `Failure`.
 - `notation`: `parse_cube` (Orbit64 tokens, facelets and colours), `ColourScheme`, the `orbit64` codec.
-- `generate`: `random_state(kind)` (a uniform 2×2×2 or 3×3×3 state) and `scramble(kind, length)`.
+- `generate`: `random_state(kind)` (a uniform 2×2×2, 3×3×3 or 5×5×5 state) and `scramble(kind, length)`.
 - `engines::three::Min2PhaseSolver`: the 3×3×3 `Solver`, plus
   - `solve_pattern(&from, &to, &options)`: moves that transform one cube state into another.
   - `solve_batch(&cubes, &options)`: independent cubes solved concurrently, results in input order.
@@ -177,4 +177,4 @@ cargo test --workspace --release
 
 ## HTTP server
 
-`crates/server` holds `cubacle-server`, a stateless REST backend (solve, convert, scramble, random) for the 2x2x2 and 3x3x3. See [crates/server/README.md](crates/server/README.md).
+`crates/server` holds `cubacle-server`, a stateless REST backend (solve, convert, scramble, random) for the 2x2x2, 3x3x3 and 5x5x5. See [crates/server/README.md](crates/server/README.md).

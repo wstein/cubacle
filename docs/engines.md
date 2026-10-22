@@ -12,7 +12,8 @@ An engine solves one cube size. cubacle picks the engine from the size of the cu
 | --- | --- | --- |
 | 2x2x2 | Optimal table solver | Supported |
 | 3x3x3 | Kociemba two-phase | Supported |
-| 4x4x4 to 7x7x7 | Reduction | Planned, not yet supported |
+| 5x5x5 | Reduction (centres and wings, then the 3x3x3 solver) | Supported, solutions are long |
+| 4x4x4, 6x6x6, 7x7x7 | Reduction | Planned, not yet supported |
 
 ## 2x2x2: optimal table solver
 
@@ -35,21 +36,34 @@ The 3x3x3 solver uses an optimized implementation of the two-phase algorithm, de
 - A search with a time budget is not deterministic. CPU scheduling and the moment the search sees the time limit can change the best result.
 - The command-line tool checks each 3x3x3 solution by replaying it on the cube.
 
-## 4x4x4 to 7x7x7: planned
+## 5x5x5: reduction
+
+`FiveSolver` solves a 5x5x5 whose six face centres stay in place. It never turns the middle layer or a wide block, so the solved cube is the solved facelet string and no whole-cube rotation is involved.
+
+1. It puts the 24 x-centres and the 24 t-centres on their faces, and the 24 wings next to the middle edge they belong with. Each step is a 3-cycle of three pieces: a short commutator found offline, conjugated by a setup of at most four moves. A greedy rule takes the cycle that fixes the most pieces per move.
+2. A 5x5x5 has no flipped-edge parity, because the middle edges give every wing its orientation. Only the permutation parity of the 24 wings can be odd. 3-cycles cannot change it, so one inner quarter turn (`2R`) first repairs it when it is odd.
+3. The corners, middle edges and centres then form a 3x3x3 (stickers in rows and columns 0, 2 and 4). `FiveSolver` hands it to the 3x3x3 solver it was built with, through the `Solver` trait, and appends that solution.
+4. It replays the answer of the 3x3x3 stage on the 3x3x3 it sent, then the whole solution on the 5x5x5, before returning it.
+
+What it does not do: it does not look for short solutions. Over 1000 random cubes, the solutions had 348 to 477 moves (median 412), of which the 3x3x3 stage adds at most 25. It does not accept cubes whose face centres have moved. Orbit64 tokens of the 5x5x5 are not decoded.
+
+Measured in a release build on an Apple M-series laptop: the 3-cycle library has about 11,650 entries (4,042 x-centre, 3,564 t-centre and 4,044 wing cycles out of 4,048 possible each); it is built on first use or by `prepare()` in about 0.22 s, and a cold `cubacle solve` of a 5x5x5 peaks near 5 MB. With the library ready a solve takes about 1 ms (median 1.1 ms, maximum 4.6 ms over the 1000 cubes). The 3x3x3 solver is injected, so a 5x5x5 build always includes its tables.
+
+## 4x4x4, 6x6x6, 7x7x7: planned
 
 The input notations and the API already accept cubes of these sizes. No engine exists, so a solve request fails:
 
 - The command-line tool exits with a non-zero status.
 - The REST API answers 501 with the code `no_engine`.
 
-The planned approach is reduction: solve the centres and edges to reduce the cube to a 3x3x3, then hand it to the 3x3x3 solver. See [Architecture](architecture.md).
+The planned approach is reduction, as for the 5x5x5. The even cubes also need parity handling and have no fixed centres. See [Architecture](architecture.md).
 
 ## Limits
 
 | Limit | Value |
 | --- | --- |
-| Supported sizes | 2x2x2 and 3x3x3 |
-| Default move limit | 21 (CLI) |
-| REST `maxMoves` | 1 to 25 |
+| Supported sizes | 2x2x2, 3x3x3 and 5x5x5 |
+| Default move limit | 21 for the 2x2x2 and 3x3x3 (CLI), none for the 5x5x5 |
+| REST `maxMoves` | 1 to 25, or 1 to 255 for the 5x5x5 |
 | REST `budgetMs` | 1 to 600000 |
 | REST scramble length | 1 to 200 moves |

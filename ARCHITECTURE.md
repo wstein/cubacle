@@ -15,6 +15,8 @@ src/
     three/        the 3x3x3 two-phase engine (Min2PhaseSolver), with its
                   private worker pool in pool.rs
     two/          the optimal 2x2x2 engine (PocketSolver)
+    five/         the 5x5x5 reduction engine (FiveSolver), finishing with an
+                  injected 3x3x3 Solver
   main.rs         the cubacle command line
 crates/server/    the cubacle-server HTTP backend
 ```
@@ -29,6 +31,8 @@ puzzle  <-  notation  <-  engines  <-  apps (CLI, server)
 
 - `puzzle` depends on nothing else in the crate.
 - `notation` and `generate` depend only on `puzzle`.
+- The 5x5x5 engine depends on `puzzle` only; the 3x3x3 solver it finishes with
+  is injected as an `Arc<dyn Solver + Send + Sync>`.
 - An engine depends on `puzzle` (and, for the 2x2x2, on the Orbit64 corner
   tables in `notation`). Engines never use each other's internals: they meet
   the world only through the `Solver` trait and `puzzle` types.
@@ -43,7 +47,7 @@ cross-check against `generate` or `Facelets::apply`).
 
 Items are private, or `pub(crate)` when a sibling module needs them. Only what
 a future crate would export is `pub`: the `puzzle`, `notation` and `generate`
-APIs, `Min2PhaseSolver` and `PocketSolver`. Inside `engines::three` the
+APIs, `Min2PhaseSolver`, `PocketSolver` and `FiveSolver`. Inside `engines::three` the
 sub-modules (`consts`, `coordinates`, `cubie`, `engine`, `pool`, `search`, `solver`, `stats`, `tables`) are private
 and talk to each other with `pub(super)` items.
 
@@ -55,15 +59,17 @@ clones share it, `prepare()` builds it ahead of the first solve, and
 `Min2PhaseSolver::shared()` returns a process-wide default for callers with
 nothing to inject. The server builds one solver at startup and clones it into
 every solve. The 2x2x2 distance table is still a process-wide `OnceLock` in
-`engines::two`.
+`engines::two`. A `FiveSolver` keeps its 3-cycle library behind an
+`Arc<OnceLock<..>>` in the same way; the server builds one around a clone of
+its 3x3x3 solver.
 
-## Future reduction engines (4x4x4 and up)
+## Reduction engines
 
-A reduction engine solves a big cube by reducing it to a 3x3x3 and handing
+`engines::five` is the first. A reduction engine solves a big cube by reducing it to a 3x3x3 and handing
 that to a 3x3x3 solver. It must receive that solver, never reach for one:
 
 ```rust
-pub struct Reduction4 {
+pub struct FiveSolver {
     three: Arc<dyn Solver + Send + Sync>, // or a generic S: Solver
 }
 ```

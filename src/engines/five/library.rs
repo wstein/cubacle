@@ -7,8 +7,10 @@
 
 use super::model::{group, invert, parse, Model, MoveId, MOVES, STICKERS};
 
-/// Base commutators per orbit. Each is verified to be a pure 3-cycle by the
-/// tests; their inverses are added when the library is built.
+/// Base commutators per orbit, found by an exhaustive search over commutators
+/// `A B A' B'` of sequences of at most three turns of depth 1 or 2 that move
+/// exactly three pieces of one orbit. Building the library asserts that each
+/// is a pure 3-cycle; their inverses are added then.
 const X_BASES: [&str; 1] = ["U 2R 2D 2R' U' 2R 2D' 2R'"];
 const T_BASES: [&str; 4] = [
     "2B2 2D2 2B2 B2 L2 B2 2B2 2D2 2B2 B2 L2 B2",

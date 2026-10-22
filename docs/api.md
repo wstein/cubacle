@@ -31,8 +31,8 @@ The server binds to the local machine by default. It has no authentication, so d
 | Method and path | Input | Success response |
 | --- | --- | --- |
 | `GET /health` | None | `{"status":"ok"}` |
-| `GET /v1/scramble?moves=25` | `moves`: 1 to 200 | `{"scramble":"U' L2 F2 D U2"}` |
-| `GET /v1/random?size=3` | `size`: 2 to 7 (only 2 and 3 have engines) | `{"kind":"2x2x2","facelets":"..."}` |
+| `GET /v1/scramble?moves=25&size=3` | `moves`: 1 to 200; `size`: 2, 3 or 5 | `{"scramble":"U' L2 F2 D U2"}` |
+| `GET /v1/random?size=3` | `size`: 2 to 7 (only 2, 3 and 5 have engines) | `{"kind":"2x2x2","facelets":"..."}` |
 | `POST /v1/convert` | `{"cube","scheme"?}` | `{"kind","facelets"}` |
 | `POST /v1/solve` | `{"cube","scheme"?,"maxMoves"?,"budgetMs"?}` | `{"kind","solution","length","elapsedMicros"}` |
 
@@ -44,7 +44,7 @@ For `POST` requests, send the header `Content-Type: application/json`.
 | --- | --- |
 | `cube` | The cube as an Orbit64 token, URFDLB facelets (spaced or compact) or W/R/G/Y/O/B colours. See [Input notations](cli.md#input-notations). |
 | `scheme` | Optional. `boy`, `jp` or six letters in URFDLB order. |
-| `maxMoves` | Optional. Longest accepted solution, 1 to 25. |
+| `maxMoves` | Optional. Longest accepted solution, 1 to 25 (1 to 255 for a 5x5x5, whose solutions have hundreds of moves). |
 | `budgetMs` | Optional. Time limit in milliseconds, 1 to 600000. Defaults to, and is capped by, `--request-timeout-ms`. |
 
 Unknown fields are rejected with a 400 error.
@@ -55,6 +55,8 @@ Unknown fields are rejected with a 400 error.
 curl -s localhost:8080/health
 curl -s 'localhost:8080/v1/scramble?moves=20'
 curl -s 'localhost:8080/v1/random?size=2'
+curl -s 'localhost:8080/v1/random?size=5'
+curl -s 'localhost:8080/v1/scramble?size=5&moves=8'
 curl -s -XPOST localhost:8080/v1/convert \
   -H 'Content-Type: application/json' -d '{"cube":"A4ib8aejxj4Y"}'
 curl -s -XPOST localhost:8080/v1/solve \
@@ -69,6 +71,21 @@ The solve request returns:
 ```
 
 The `elapsedMicros` value varies between runs.
+
+A 5x5x5 is sent as its 150 facelets. This request solves the cube of a scramble:
+
+```sh
+CUBE=$(cubacle facelets "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F" --size 5)
+curl -s -XPOST localhost:8080/v1/solve \
+  -H 'Content-Type: application/json' \
+  -d "{\"cube\":\"$CUBE\",\"budgetMs\":5000}"
+```
+
+```json
+{"kind":"5x5x5","solution":"2R 2D2 2R' 2B2 2R 2D 2R' U 2R 2D' 2R' U' ...","length":327,"elapsedMicros":971}
+```
+
+The solution is shortened here; it has 327 moves.
 
 ## Errors
 
@@ -89,12 +106,14 @@ Errors have this shape:
 | 422 | `no_solution_within_limit` | No solution within `maxMoves`. |
 | 429 | `busy` | All solver slots are in use. The response has `Retry-After: 1`. |
 | 500 | `internal` | A handler or solver thread panicked. |
-| 501 | `no_engine` | A valid cube size (4 to 7) that has no engine yet. |
+| 501 | `no_engine` | A valid cube size (4, 6 or 7) that has no engine yet, including Orbit64 tokens of those sizes. |
+| 501 | `token_unsupported` | An Orbit64 token of the 5x5x5: the engine exists, the token decoder does not. Send facelets. |
 | 504 | `budget_exhausted` | The time budget ran out. |
 
 Some details:
 
-- `GET /v1/random?size=4` returns 501, and `size=9` returns 400, because `size` accepts 2 to 7 but only 2 and 3 have engines.
+- `GET /v1/random?size=4` returns 501, and `size=9` returns 400, because `size` accepts 2 to 7 but only 2, 3 and 5 have engines. `GET /v1/scramble` takes the same sizes.
+- A 5x5x5 solve request can be sent with the cube as 150 facelets. The server builds the 5x5x5 tables at startup, so the first request is not slower.
 - The server answers 504 rather than 408, because the client was not slow; the server was. Do not retry the same request. Retry with a larger `budgetMs` or an easier cube.
 - On 429, wait and retry. The limit is `--max-concurrency` solves at once.
 

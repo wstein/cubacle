@@ -3,11 +3,14 @@ id: 20261022130001
 aliases: []
 tags: ["type/design", "status/reference", "category/engines"]
 ---
-On a 5x5x5 the middle edges fix the orientation of the wings, so no flipped-edge parity exists. Only the permutation parity of the 24 distinguishable wings can be odd, and 3-cycles cannot change it; one inner quarter turn (2R) before the centres repairs it. The solution is not optimal: it is hundreds of moves, a hand-off to the 3x3x3 solver adds at most 25. On a prototype build the 3-cycle library held about 11,600 entries, took about 0.2 s in release to build and the process peaked near 5 MB.
+On a 5x5x5 the middle edges fix the orientation of the wings, so no flipped-edge parity exists. Only the permutation parity of the 24 distinguishable wings can be odd, and 3-cycles cannot change it; one inner quarter turn (2R) before the centres repairs it. Solutions are not short: 348 to 477 moves over 1000 random cubes, the 3x3x3 hand-off adding at most 25. Measured in release: 11,650 library cycles, about 0.22 s to build, 1.1 ms median per solve afterwards, near 5 MB peak for a cold run.
 
 ## Links
 
 - [[5x5 reduction engine]]
 
-Source: AGENTS.md, lines 40-43
+Source: src/engines/five/reduce.rs, lines 1-9
+Source: src/engines/five/reduce.rs, lines 128-133
+Source: src/engines/five/solver.rs, lines 12-12
+Source: docs/engines.md, lines 39-50
 Source: owner request of 2026-10-22, lines 1-1

@@ -36,8 +36,9 @@ The first line goes to standard error. The solution goes to standard output. The
 | Option | Meaning |
 | --- | --- |
 | `-s`, `--scramble <MOVES>` | Solve the cube produced by this scramble instead of reading one. |
+| `--size <N>` | Cube size for `--scramble`: 2 to 7, default 3. A cube given as text has its size already. |
 | `--scheme <SCHEME>` | Colour scheme for colour input. See [Colour schemes](#colour-schemes). |
-| `-m`, `--max-moves <N>` | Longest solution to accept. Default: 21. |
+| `-m`, `--max-moves <N>` | Longest solution to accept. Default: 21 for the 2x2x2 and 3x3x3, none for the 5x5x5. |
 | `-b`, `--budget-ms <MS>` | Hard time limit in milliseconds. |
 | `-v`, `--verbose` | Print timing and search statistics to standard error. |
 
@@ -59,7 +60,37 @@ cubacle solve -s "R U F B L D R U" --max-moves 2
 error: no solution within the move limit (the search ended without a solution (time budget or move limit reached))
 ```
 
-Sizes from 4x4x4 up have no engine yet. See [Engines and limits](engines.md).
+The 4x4x4, 6x6x6 and 7x7x7 have no engine yet. See [Engines and limits](engines.md).
+
+## Solve a 5x5x5
+
+Give `solve` a 150-sticker cube, or a scramble with `--size 5`. A 5x5x5 scramble may turn the first two layers of a face (`R`, `2R`); the middle layer (`3R`) and wide moves are not allowed, because they move the face centres, which the solver keeps fixed.
+
+```sh
+cubacle solve --size 5 --scramble "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F" | wc -w
+```
+
+```text
+327
+```
+
+The solution is not short: 348 to 477 moves over 1000 random cubes (see [Engines and limits](engines.md)). It starts like this:
+
+```text
+2R 2D2 2R' 2B2 2R 2D 2R' U 2R 2D' 2R' U'
+```
+
+The tool replays every 5x5x5 solution on the cube and exits with an error if it does not solve it. With a move limit the reduction cannot meet, `solve` fails:
+
+```sh
+cubacle solve --size 5 -s "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F" -m 100
+```
+
+```text
+error: no solution within the move limit (the reduction alone exceeds the move limit)
+```
+
+The first 5x5x5 solve in a process builds a table of centre and wing 3-cycles first, about 0.22 s in a release build. A time budget cannot interrupt that and the build counts against it, so `-b 1` on a cold process fails with `the time budget ran out`.
 
 ## Input notations
 
@@ -154,7 +185,7 @@ FUFUUFFFFUUUURRURURRRFFRRFRBDBBDDBBBDLDDLLDDDLBLBBLLLL
 
 ## Generate scrambles and cubes
 
-`scramble` prints a random scramble. `-n` sets the number of moves (default: 25).
+`scramble` prints a random scramble. `-n` sets the number of moves (default: 25) and `--size` the cube size (default: 3). On a 5x5x5 the scramble also turns second layers.
 
 ```sh
 cubacle scramble -n 8
@@ -164,11 +195,14 @@ cubacle scramble -n 8
 L' U F' R2 F L2 F' D2
 ```
 
-The output is random; moves are separated by single spaces. `random` prints a uniformly random 3x3x3 state as facelets:
+The output is random; moves are separated by single spaces. `random` prints a random state as facelets, uniform for the 2x2x2 and 3x3x3. `--size` takes 2, 3 or 5 (default: 3):
 
 ```sh
 cubacle random
+cubacle random --size 5 | cubacle solve - | wc -w
 ```
+
+The second command prints the length of the solution of a random 5x5x5, between 348 and 477 in the 1000 cubes measured.
 
 ## Apply a scramble
 
@@ -180,9 +214,11 @@ A scramble is standard move notation with the moves separated by whitespace. Bes
 | `R3` | `R'` |
 | `R2'`, `R'2` | `R2` |
 
+Orbit64 tokens of the 5x5x5 are not decoded yet; write the cube as facelets or colours.
+
 Moves must be separated: a run such as `RUR'` and a lone `-` are rejected. A 3x3x3 whose centres a wide or inner-layer move has displaced cannot be solved; `solve` reports that instead of a wrong solution.
 
-`facelets` prints the facelets reached by applying a scramble to a solved cube:
+`facelets` prints the facelets reached by applying a scramble to a solved cube (`--size` picks the cube, default 3):
 
 ```sh
 cubacle facelets "R U R' U'"

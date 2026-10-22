@@ -9,6 +9,6 @@ The server review led to: a header-read timeout and bounded graceful shutdown, v
 
 - [[Backend stack and protocol]]
 
-Source: docs/api.md, lines 75-93
-Source: docs/api.md, lines 103-103
+Source: docs/api.md, lines 92-111
+Source: docs/api.md, lines 122-122
 Source: crates/server/src/lib.rs, lines 505-512

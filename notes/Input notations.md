@@ -11,4 +11,4 @@ Accepted inputs are Orbit64 tokens (flix-orbit64 format), compact or spaced URFD
 - [[Colour schemes]]
 
 Source: README.md, lines 26-26
-Source: docs/cli.md, lines 64-119
+Source: docs/cli.md, lines 95-150
