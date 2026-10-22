@@ -43,6 +43,7 @@ const APP_ALLOWED: &[&str] = &[
     "engines::three",
     "engines::two",
     "engines::five",
+    "engines::dwalton",
     "engines::four",
 ];
 

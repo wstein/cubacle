@@ -314,6 +314,7 @@ impl Table {
         self.nibbles.get(index) as i32
     }
 
+    #[allow(dead_code)] // for measuring the tables
     pub(super) fn bytes(&self) -> usize {
         match &self.reach {
             Some((_, r)) => r.len() * 24,
@@ -321,6 +322,7 @@ impl Table {
         }
     }
 
+    #[allow(dead_code)] // for measuring the tables
     pub(super) fn states(&self) -> usize {
         self.size
     }

@@ -65,15 +65,21 @@ fn convert_reads_the_japanese_scheme() {
 
 #[test]
 fn unsupported_sizes_say_so() {
-    let solved_6x6: String = "URFDLB".chars().flat_map(|c| [c; 36]).collect();
-    assert_eq!(solved_6x6.len(), 216);
-    let (ok, _, error) = cubacle(&["solve", &solved_6x6]);
-    assert!(!ok);
-    assert!(error.contains("no engine for the 6x6x6"), "{error}");
     let solved_7x7: String = "URFDLB".chars().flat_map(|c| [c; 49]).collect();
     let (ok, _, error) = cubacle(&["solve", &solved_7x7]);
     assert!(!ok);
     assert!(error.contains("no engine for the 7x7x7"), "{error}");
+}
+
+#[test]
+fn a_random_6x6_is_generated_and_solved() {
+    let (ok, facelets, error) = cubacle(&["random", "--size", "6"]);
+    assert!(ok, "{error}");
+    let cube = Facelets::parse(&facelets).unwrap();
+    assert_eq!(cube.kind(), PuzzleKind::Cube6);
+    let (ok, solution, error) = cubacle(&["solve", &facelets]);
+    assert!(ok, "{error}");
+    assert!(solved_by(&cube, &solution), "{solution}");
 }
 
 #[test]

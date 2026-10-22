@@ -7,9 +7,6 @@
 //! tables over colour patterns of sticker sets), `stage` (the search over
 //! them).
 
-// Work in progress: the public solver lands with the later milestones.
-#![allow(dead_code)]
-
 mod fake;
 mod geometry;
 mod pattern;

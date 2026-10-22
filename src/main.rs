@@ -7,6 +7,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
+use cubacle::engines::dwalton::DwaltonSolver;
 use cubacle::engines::five::FiveSolver;
 use cubacle::engines::four::FourSolver;
 use cubacle::engines::three::Min2PhaseSolver;
@@ -225,10 +226,24 @@ fn solve(args: SolveArgs) -> Result<(), String> {
             }
             Box::new(five)
         }
+        PuzzleKind::Cube6 => {
+            let three = Arc::new(Min2PhaseSolver::new());
+            let four = FourSolver::new(three.clone());
+            let five = FiveSolver::new(three.clone());
+            eprintln!("preparing the 4x4x4, 5x5x5 and 6x6x6 tables (built now on first use)");
+            four.prepare();
+            five.prepare();
+            Box::new(DwaltonSolver::new(
+                PuzzleKind::Cube6,
+                three,
+                Arc::new(four),
+                Arc::new(five),
+            ))
+        }
         kind => {
             let size = kind.size();
             return Err(format!(
-                "no engine for the {size}x{size}x{size} yet; only the 2x2x2, 3x3x3, 4x4x4 and 5x5x5 are solvable"
+                "no engine for the {size}x{size}x{size} yet; only the 2x2x2 to 6x6x6 are solvable"
             ));
         }
     };
