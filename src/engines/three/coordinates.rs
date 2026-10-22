@@ -10,6 +10,10 @@ pub(super) struct Coord {
     pub(super) fsym: u16,
     pub(super) slice: u16,
     pub(super) prun: i8,
+    pub(super) twr: u16,
+    pub(super) twc: u16,
+    pub(super) fc: u16,
+    pub(super) fsc: u16,
 }
 
 #[derive(Clone, Copy)]
@@ -30,6 +34,10 @@ impl Coord {
             fsym: 0u16,
             slice: 0u16,
             prun: 0i8,
+            twr: 0,
+            twc: 0,
+            fc: 0,
+            fsc: 0,
         }
     }
 
@@ -53,6 +61,7 @@ impl Coord {
                     + stbl.slice_conj[(self.slice * 8 + self.fsym) as usize] as usize,
             ),
         ) as i8;
+        self.prun = self.prun.max(self.set_twist_flip(stbl, src));
         self.prun
     }
 

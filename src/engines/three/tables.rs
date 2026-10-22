@@ -2,6 +2,7 @@ use super::consts::*;
 use std::sync::{Arc, OnceLock};
 
 use super::cubie::*;
+use super::twist_flip::TwistFlipTables;
 
 pub(super) fn esym2csym(esym: u16) -> u16 {
     esym ^ (0x00dddd00u32 >> ((esym & 0xf) << 1) & 3) as u16
@@ -248,6 +249,7 @@ pub(super) struct StaticTables {
     pub(super) slice_twst_prun: [u32; N_SLICE * N_TWST_SYM / 8 + 1],
     pub(super) ccomb_eperm_prun: [u32; N_CCOMB * N_PERM_SYM / 8 + 1],
     pub(super) mperm_cperm_prun: [u32; N_MPERM * N_PERM_SYM / 8 + 1],
+    pub(super) twist_flip: TwistFlipTables,
 }
 
 #[allow(clippy::needless_range_loop)]
@@ -484,6 +486,7 @@ impl StaticTables {
             slice_twst_prun: [0u32; N_SLICE * N_TWST_SYM / 8 + 1],
             ccomb_eperm_prun: [0u32; N_CCOMB * N_PERM_SYM / 8 + 1],
             mperm_cperm_prun: [0u32; N_MPERM * N_PERM_SYM / 8 + 1],
+            twist_flip: TwistFlipTables::new(),
         });
         stbl.init(sctx);
         stbl
@@ -515,6 +518,8 @@ impl StaticTables {
             &mut self.eperm_selfsym,
         );
         init_move_tables(sctx, self);
+        self.twist_flip
+            .init(sctx, &self.flip_move, &self.flip_selfsym);
         init_raw_sym_prun(
             &mut self.slice_twst_prun,
             &self.slice_move,

@@ -2,7 +2,7 @@
 //!
 //! Files, from the bottom up: `consts` and `cubie` (the cube as pieces),
 //! `tables` (move and pruning tables, built once per [`Min2PhaseSolver`]
-//! family), `coordinates` and `search` (the iterative-deepening search),
+//! family), `twist_flip` (the twist-flip pruning table), `coordinates` and `search` (the iterative-deepening search),
 //! `engine` (string-level entry points, parsing and the worker pool) and
 //! `solver` (the [`crate::puzzle::Solver`] adapter, the only public item).
 
@@ -15,6 +15,7 @@ mod search;
 mod solver;
 mod stats;
 mod tables;
+mod twist_flip;
 
 pub use solver::Min2PhaseSolver;
 

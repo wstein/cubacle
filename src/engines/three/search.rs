@@ -467,7 +467,11 @@ impl IdaContext {
                     break;
                 }
                 let slice_flip = next_node.move_flip_prun(sctx, stbl, node, m as usize);
-                let prun = slice_twist.max(slice_flip);
+                let mut prun = slice_twist.max(slice_flip);
+                prun = prun.max(next_node.move_twist_flip(stbl, node, m as usize));
+                if prun <= maxl {
+                    prun = prun.max(next_node.move_twist_flip_conj(sctx, stbl, node, m as usize));
+                }
                 next_node.prun = prun;
                 if prun > maxl {
                     self.phase1_rejected_slice_flip += 1;
