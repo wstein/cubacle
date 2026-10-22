@@ -260,10 +260,9 @@ fn solve(args: SolveArgs) -> Result<(), String> {
     }
     match result.outcome {
         Ok(solution) => {
-            if matches!(
-                facelets.kind(),
-                PuzzleKind::Cube3 | PuzzleKind::Cube4 | PuzzleKind::Cube5
-            ) && !facelets.apply(&solution).is_ok_and(|end| end.is_solved())
+            // Every engine's answer is replayed here, whatever the size.
+            if facelets.kind() != PuzzleKind::Cube2
+                && !facelets.apply(&solution).is_ok_and(|end| end.is_solved())
             {
                 return Err("internal error: solution does not solve the cube".into());
             }

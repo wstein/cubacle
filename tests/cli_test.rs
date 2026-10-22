@@ -70,6 +70,10 @@ fn unsupported_sizes_say_so() {
     let (ok, _, error) = cubacle(&["solve", &solved_6x6]);
     assert!(!ok);
     assert!(error.contains("no engine for the 6x6x6"), "{error}");
+    let solved_7x7: String = "URFDLB".chars().flat_map(|c| [c; 49]).collect();
+    let (ok, _, error) = cubacle(&["solve", &solved_7x7]);
+    assert!(!ok);
+    assert!(error.contains("no engine for the 7x7x7"), "{error}");
 }
 
 #[test]
