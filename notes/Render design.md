@@ -17,6 +17,10 @@ A move turns by `sense = -side * dir` about the positive axis (`dir` is +1 clock
 
 PDF export, animation, a frontend, and curved rotation arrows for inner slices (they use the straight arrow).
 
+## Terminal output
+
+Kitty output erases the covered rows, draws with `C=1` and steps below the image, uses an opaque background by default and sends only `r` so the terminal keeps the aspect ratio. `icon` draws each move on its own start cube; `--cumulative` replays, as `solve --icons` does. Every drawing keeps a 2 px margin, tested for sizes 2 to 7.
+
 ## Links
 
 - [[Crate roles and dependency direction]]

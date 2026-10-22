@@ -60,6 +60,7 @@ Moving stickers are uppercase and the others lowercase.
 | `--out FILE` | Write to a file instead of standard output. |
 | `--scheme boy\|jp` | Colour scheme, `boy` by default; six letters in `URFDLB` order also work. |
 | `--from SCRAMBLE` | Start from the cube that this scramble produces. |
+| `--transparent` | Keep the Kitty background transparent (opaque dark by default). |
 | `--cumulative` | Draw each move on the cube left by the moves before it. |
 | `--grey` | Grey the moving layers instead of darkening the rest. |
 
@@ -81,20 +82,20 @@ Each step prints `step i of n: MOVE` and then the icon of the cube before that s
 
 `cubacle` writes Kitty graphics when standard output is a terminal and the environment names a terminal that supports the [Kitty graphics protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/): `KITTY_WINDOW_ID` is set, `TERM` is `xterm-kitty`, or `TERM_PROGRAM` is `ghostty` or `WezTerm`. Other terminals get coloured text, or plain text when `NO_COLOR` is set, `TERM` is `dumb` or standard output is not a terminal.
 
-The Kitty output transmits raw RGBA (`a=T,f=32`) in chunks of at most 4096 base64 bytes, with `m=1` on every chunk but the last, and asks the terminal to scale the image to a fixed number of cells (`c` and `r`) so that the layout is predictable. This is covered by unit tests of the encoding; it has not been tried in a live Kitty, Ghostty or WezTerm window.
+The Kitty output transmits raw RGBA (`a=T,f=32`) in chunks of at most 4096 base64 bytes, with `m=1` on every chunk but the last. It first erases the terminal rows that the image covers, steps back up, draws the image with `C=1` (the cursor does not move) and then steps down below it, so older text cannot show through and later output does not overlap. The icon has an opaque dark background by default; `--transparent` keeps it transparent. Only the height in rows (`r`) is sent, so the terminal keeps the aspect ratio whatever its cell shape; the row count assumes about 16 pixels per row, which is an estimate and not queried. The encoding is covered by unit tests; the drawing was seen in a Kitty-protocol terminal by the owner.
 
 ## Use the module
 
 ```rust
 use cubacle::puzzle::{Facelets, PuzzleKind};
-use cubacle::render::{icon, Action, Style};
+use cubacle::render::{icon, Action, KittyPlacement, Style};
 
 let state = Facelets::solved(PuzzleKind::Cube5);
 let action: Action = "2R".parse().expect("a move");
 let drawn = icon(&state, &action, &Style::default()).expect("2R exists on a 5x5");
 let svg = drawn.to_svg();
 let pixels = drawn.to_rgba(128);
-let escapes = pixels.to_kitty(None);
+let escapes = pixels.to_kitty(&KittyPlacement::default());
 assert!(svg.starts_with("<svg") && escapes.starts_with("\x1b_G"));
 ```
 
