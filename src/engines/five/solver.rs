@@ -260,6 +260,19 @@ mod tests {
     }
 
     #[test]
+    fn generated_states_are_reachable_and_solve_back() {
+        // Reachability of every generated state is argued in generate/five.rs;
+        // this is the check that the engine really solves them.
+        let solver = real();
+        for _ in 0..30 {
+            let cube = crate::generate::random_state(PuzzleKind::Cube5).unwrap();
+            let result = solver.solve(&cube, &SolveOptions::default());
+            let solution = result.solution().expect("a generated state is reachable");
+            assert!(cube.apply(solution).unwrap().is_solved());
+        }
+    }
+
+    #[test]
     fn a_solved_cube_needs_no_moves_beyond_the_trivial() {
         let solved = Facelets::solved(PuzzleKind::Cube5);
         let result = real().solve(&solved, &SolveOptions::default());

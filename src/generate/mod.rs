@@ -5,17 +5,20 @@
 
 use std::collections::BTreeMap;
 
+mod five;
+
 use rand::RngExt;
 
 use crate::puzzle::{locate, Face, Facelets, Move, MoveSequence, PuzzleKind, Turn};
 
-/// A random scramble of `length` outer-face turns.
+/// A random scramble of `length` turns: outer-face turns, plus the second
+/// layer on a 5x5x5 (the layers that leave the face centres in place).
 ///
 /// No two consecutive turns act on the same face, and turns of opposite faces
 /// always come in the same order, so the sequence has no redundant pairs such
 /// as `R R` or `R L R`.
 pub fn scramble(kind: PuzzleKind, length: usize) -> MoveSequence {
-    let _ = kind; // outer turns exist on every size
+    let layers = if kind == PuzzleKind::Cube5 { 2 } else { 1 };
     let mut rng = rand::rng();
     let mut last_axis = 18;
     let mut moves = Vec::with_capacity(length);
@@ -27,22 +30,28 @@ pub fn scramble(kind: PuzzleKind, length: usize) -> MoveSequence {
         }
         last_axis = axis;
         let turn = [Turn::Clockwise, Turn::Half, Turn::CounterClockwise][index % 3];
-        moves.push(Move::new(Face::ALL[axis], 1, false, turn));
+        let depth = rng.random_range(1..=layers);
+        moves.push(Move::new(Face::ALL[axis], depth, false, turn));
     }
     MoveSequence::new(moves)
 }
 
-/// A uniformly random reachable state, or `None` for sizes without a
-/// generator (only the 2x2x2 and 3x3x3 have one).
+/// A random reachable state, or `None` for sizes without a generator (the
+/// 2x2x2, 3x3x3 and 5x5x5 have one).
 ///
 /// The 2x2x2 is a uniformly random arrangement of the eight corners with
 /// twists summing to zero. The 3x3x3 adds the edges, with a flip sum of zero
-/// and the permutation parities of corners and edges tied together.
+/// and the permutation parities of corners and edges tied together. The
+/// 5x5x5 (centres fixed) is a uniform 3x3x3 core with shuffled centres and
+/// wings; see `five.rs` for why every such state is reachable.
 pub fn random_state(kind: PuzzleKind) -> Option<Facelets> {
+    let mut rng = rand::rng();
+    if kind == PuzzleKind::Cube5 {
+        return Some(five::random(&mut rng));
+    }
     if !matches!(kind, PuzzleKind::Cube2 | PuzzleKind::Cube3) {
         return None;
     }
-    let mut rng = rand::rng();
     let (corners, edges) = pieces(kind);
 
     let corner_perm = shuffled(&mut rng, corners.len());
@@ -113,7 +122,7 @@ fn place(
     }
 }
 
-fn shuffled(rng: &mut impl RngExt, len: usize) -> Vec<usize> {
+pub(super) fn shuffled(rng: &mut impl RngExt, len: usize) -> Vec<usize> {
     let mut items: Vec<usize> = (0..len).collect();
     for i in (1..len).rev() {
         items.swap(i, rng.random_range(0..=i));
@@ -155,9 +164,22 @@ mod tests {
     }
 
     #[test]
-    fn only_the_2x2_and_3x3_have_a_state_generator() {
+    fn a_5x5_scramble_turns_the_first_two_layers_and_keeps_the_centres() {
+        let moves = scramble(PuzzleKind::Cube5, 200);
+        assert!(moves.moves().iter().all(|m| m.fits(PuzzleKind::Cube5)));
+        assert!(moves.moves().iter().any(|m| m.depth == 2));
+        assert!(moves.moves().iter().all(|m| m.depth <= 2 && !m.wide));
+        let cube = Facelets::solved(PuzzleKind::Cube5).apply(&moves).unwrap();
+        for face in Face::ALL {
+            assert_eq!(cube.stickers()[face as usize * 25 + 12], face);
+        }
+    }
+
+    #[test]
+    fn only_the_2x2_3x3_and_5x5_have_a_state_generator() {
         assert!(random_state(PuzzleKind::Cube2).is_some());
         assert!(random_state(PuzzleKind::Cube3).is_some());
+        assert!(random_state(PuzzleKind::Cube5).is_some());
         assert!(random_state(PuzzleKind::Cube4).is_none());
     }
 
