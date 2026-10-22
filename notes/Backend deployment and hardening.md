@@ -9,4 +9,7 @@ The server is fully stateless so several instances can run, and ships as a singl
 
 - [[Backend stack and protocol]]
 
-Source: project history of cubacle, lines 1-1
+Source: crates/server/src/lib.rs, lines 6-11
+Source: docs/api.md, lines 27-27
+Source: docs/api.md, lines 111-111
+Source: owner decision of 2026-10-21, lines 1-1

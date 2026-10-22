@@ -9,4 +9,6 @@ The server review led to: a header-read timeout and bounded graceful shutdown, v
 
 - [[Backend stack and protocol]]
 
-Source: project history of cubacle, lines 1-1
+Source: docs/api.md, lines 75-93
+Source: docs/api.md, lines 103-103
+Source: crates/server/src/lib.rs, lines 505-512

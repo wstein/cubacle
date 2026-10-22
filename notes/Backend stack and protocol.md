@@ -11,4 +11,6 @@ The backend uses axum and tokio. REST/JSON serves stateless calls and Server-Sen
 - [[Backend deployment and hardening]]
 - [[Server review fixes]]
 
-Source: project history of cubacle, lines 1-1
+Source: crates/server/Cargo.toml, lines 20-21
+Source: docs/api.md, lines 9-9
+Source: owner decision of 2026-10-21, lines 1-1

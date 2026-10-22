@@ -9,4 +9,7 @@ Solving runs on dedicated threads, never on async threads, so the async runtime 
 
 - [[Backend stack and protocol]]
 
-Source: project history of cubacle, lines 1-1
+Source: crates/server/src/lib.rs, lines 15-20
+Source: docs/api.md, lines 17-17
+Source: docs/api.md, lines 90-90
+Source: AGENTS.md, lines 46-46
