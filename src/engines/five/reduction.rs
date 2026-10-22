@@ -99,6 +99,69 @@ pub(super) fn reduce(
     threads: usize,
     deadline: Option<Instant>,
 ) -> Result<Vec<u8>, Stuck> {
+    let sols4 = first_four(tables, cube, threads, deadline)?;
+    let sols5 = last(tables, &sols4, 1, threads, deadline)?;
+    sols5
+        .into_iter()
+        .next()
+        .map(|sc| sc.moves)
+        .ok_or(Stuck::NoWay)
+}
+
+/// Up to `n` reductions of one cube, the best first: the first `n` results of
+/// phase 5 in the serial order, so that the list does not depend on the
+/// thread count and starts with the reduction of [`reduce`].
+///
+/// Phase 5 collects under `early`, a deadline before `deadline`; if only that
+/// one runs out, the single reduction of [`reduce`] is found instead.
+pub(super) fn reduce_many(
+    tables: &Tables,
+    cube: &Cubie,
+    threads: usize,
+    (deadline, early): (Option<Instant>, Option<Instant>),
+    n: usize,
+) -> Result<Vec<Vec<u8>>, Stuck> {
+    let sols4 = first_four(tables, cube, threads, deadline)?;
+    let sols5 = match last(tables, &sols4, n, threads, early) {
+        Err(Stuck::TimedOut)
+            if early != deadline && deadline.is_none_or(|d| Instant::now() < d) =>
+        {
+            last(tables, &sols4, 1, threads, deadline)?
+        }
+        other => other?,
+    };
+    if sols5.is_empty() {
+        return Err(Stuck::NoWay);
+    }
+    Ok(sols5.into_iter().take(n).map(|sc| sc.moves).collect())
+}
+
+fn last(
+    tables: &Tables,
+    sols4: &[Solving],
+    quota: usize,
+    threads: usize,
+    deadline: Option<Instant>,
+) -> Result<Vec<Solving>, Stuck> {
+    phase(
+        &Stage5(&tables.p5),
+        &tables.syms,
+        sols4,
+        |sc| vec![tables.p5.start(&sc.cube)],
+        quota,
+        threads,
+        deadline,
+        |sc, out| out.push(sc),
+    )
+}
+
+/// Phases 1 to 4.
+fn first_four(
+    tables: &Tables,
+    cube: &Cubie,
+    threads: usize,
+    deadline: Option<Instant>,
+) -> Result<Vec<Solving>, Stuck> {
     let syms = &tables.syms;
     // Phase 1: the cube as it is and turned twice.
     let mut sc = Solving::new(cube.clone());
@@ -182,21 +245,7 @@ pub(super) fn reduce(
             out.push(sc);
         },
     )?;
-    let sols5 = phase(
-        &Stage5(&tables.p5),
-        syms,
-        &sols4,
-        |sc| vec![tables.p5.start(&sc.cube)],
-        KEEP[4],
-        threads,
-        deadline,
-        |sc, out| out.push(sc),
-    )?;
-    sols5
-        .into_iter()
-        .next()
-        .map(|sc| sc.moves)
-        .ok_or(Stuck::NoWay)
+    Ok(sols4)
 }
 
 #[cfg(test)]

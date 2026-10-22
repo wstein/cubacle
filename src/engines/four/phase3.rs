@@ -87,6 +87,21 @@ pub(super) fn run(
     threads: usize,
     ctl: &Control,
 ) -> Result<(usize, Vec<usize>), Stop> {
+    let mut found = run_many(t, results, threads, ctl, 1)?;
+    Ok(found.swap_remove(0))
+}
+
+/// The first `need` successes in the serial order (fewer if the attempts at
+/// the first `max_length3` that has any hold fewer), best first: a result of
+/// phase 2 with its moves, the same result again when more than one first
+/// move or total length succeeds.
+pub(super) fn run_many(
+    t: &Tables,
+    results: &[Cand],
+    threads: usize,
+    ctl: &Control,
+    need: usize,
+) -> Result<Vec<(usize, Vec<usize>)>, Stop> {
     let attempts = results.len().min(PHASE3_ATTEMPTS);
     let mut max_length3 = 13;
     while max_length3 <= MAX_LENGTH3_LIMIT {
@@ -113,7 +128,7 @@ pub(super) fn run(
             })
             .collect();
         let failed = std::sync::Mutex::new(None);
-        let got = par::first_results(threads, tasks.len(), 1, |k, cancelled| {
+        let got = par::first_results(threads, tasks.len(), need, |k, cancelled| {
             let (length123, i, first) = tasks[k];
             let remaining =
                 length123 - i32::from(results[i].length1) - i32::from(results[i].length2);
@@ -131,8 +146,8 @@ pub(super) fn run(
         {
             return Err(stop);
         }
-        if let Some(found) = got.into_iter().next() {
-            return Ok(found);
+        if !got.is_empty() {
+            return Ok(got);
         }
         if ctl.check() {
             return Err(Stop::Timeout);

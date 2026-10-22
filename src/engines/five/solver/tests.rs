@@ -1,9 +1,11 @@
 //! Tests of the 5x5x5 solver: stubs for the hand-off, depth-capped tables.
 
 use std::sync::Mutex;
+use std::time::Duration;
 
 use super::*;
 use crate::engines::three::Min2PhaseSolver;
+use crate::reduction::improve::Plan;
 
 /// A deterministic stream of numbers below a bound.
 struct Lcg(u64);
@@ -250,5 +252,65 @@ fn a_hand_off_that_runs_out_of_time_without_a_budget_is_exhausted() {
         ..SolveOptions::default()
     };
     let result = small(stub).solve(&cube, &budgeted);
+    assert_eq!(result.outcome, Err(Failure::BudgetExhausted));
+}
+
+fn plan(candidates: usize, probes: u64) -> Plan {
+    Plan {
+        candidates,
+        probes,
+        collect: Duration::from_secs(600),
+    }
+}
+
+#[test]
+fn one_candidate_with_the_default_probes_is_the_plain_answer() {
+    let solver = real();
+    for seed in 0..4 {
+        let cube = scrambled(seed, 4);
+        let options = SolveOptions::default();
+        let plain = solver.solve(&cube, &options);
+        let one = solver.run(&cube, &options, Some(plan(1, 500)));
+        assert_eq!(plain.outcome, one.outcome, "seed {seed}");
+    }
+}
+
+#[test]
+fn the_best_of_several_candidates_is_valid_never_longer_and_thread_independent() {
+    let solver = real();
+    for seed in 0..4 {
+        let cube = scrambled(seed, 4);
+        let options = SolveOptions::default();
+        let plain = solver.solve(&cube, &options);
+        let a = solver
+            .clone()
+            .with_threads(1)
+            .run(&cube, &options, Some(plan(5, 800)));
+        let b = solver
+            .clone()
+            .with_threads(4)
+            .run(&cube, &options, Some(plan(5, 800)));
+        let solution = a.solution().expect("a solution");
+        assert!(cube.apply(solution).unwrap().is_solved(), "seed {seed}");
+        assert!(
+            solution.len() <= plain.solution().unwrap().len(),
+            "seed {seed}"
+        );
+        assert_eq!(a.outcome, b.outcome, "seed {seed}");
+    }
+}
+
+#[test]
+fn improving_with_a_budget_answers_and_a_spent_budget_fails_cleanly() {
+    let solver = real();
+    let cube = scrambled(2, 4);
+    let options = SolveOptions::default().with_time_budget(Duration::from_secs(60));
+    let result = solver.solve_improving(&cube, &options);
+    assert!(cube
+        .apply(result.solution().expect("a solution"))
+        .unwrap()
+        .is_solved());
+    let spent = SolveOptions::default().with_time_budget(Duration::ZERO);
+    let result = solver.solve_improving(&cube, &spent);
     assert_eq!(result.outcome, Err(Failure::BudgetExhausted));
 }

@@ -6,34 +6,23 @@
 
 use std::fmt;
 use std::sync::{Arc, OnceLock};
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use super::control::{Control, Stop};
 use super::facelets;
-use super::output::{of_face_turn, to_move, to_real};
-use super::reduce::{after, reduce};
+use super::reduce::reduce;
+use super::reduce::reduce_many;
 use super::rotation::Rotations;
 use super::swap::Swaps;
 use super::tables::Tables;
-use crate::puzzle::normalise;
 use crate::puzzle::{
-    Face, Facelets, Failure, Move, MoveSequence, PuzzleKind, SolveMetrics, SolveOptions,
-    SolveResult, Solver,
+    Facelets, Failure, MoveSequence, PuzzleKind, SolveMetrics, SolveOptions, SolveResult, Solver,
 };
+use crate::reduction::improve::{self, Plan};
 use crate::reduction::par;
 
-/// The longest 3x3x3 hand-off asked for (the reference asks for 21).
-const THREE_MAX_MOVES: u8 = 21;
 /// Probes the 3x3x3 solver makes before it may answer (the reference: 500).
 const HAND_OFF_PROBES: u64 = 500;
-/// What the 3x3x3 stage may take when the caller sets no time budget.
-const HAND_OFF_BUDGET: Duration = Duration::from_secs(10);
-/// What the 3x3x3 stage may take when the caller sets a move limit: the
-/// reduction is fixed, so a limit the tail cannot meet would otherwise keep
-/// the 3x3x3 solver searching until the budget ends. A tail that can meet
-/// the limit is found in a few milliseconds.
-const LIMITED_HAND_OFF_BUDGET: Duration = Duration::from_secs(1);
-
 /// The 4x4x4 reduction solver, a port of Tsai's three-phase solver
 /// cs0x7f/TPR-4x4x4-Solver.
 ///
@@ -50,12 +39,12 @@ const LIMITED_HAND_OFF_BUDGET: Duration = Duration::from_secs(1);
 /// time budget the solution does not depend on it.
 #[derive(Clone)]
 pub struct FourSolver {
-    three: Arc<dyn Solver + Send + Sync>,
+    pub(super) three: Arc<dyn Solver + Send + Sync>,
     tables: Arc<OnceLock<Tables>>,
-    rotations: Arc<Rotations>,
-    swaps: Arc<Swaps>,
+    pub(super) rotations: Arc<Rotations>,
+    pub(super) swaps: Arc<Swaps>,
     threads: usize,
-    hand_off_probes: u64,
+    pub(super) hand_off_probes: u64,
     layers: u32,
 }
 
@@ -122,19 +111,10 @@ impl FourSolver {
         self.threads
     }
 
-    fn tables(&self) -> &Tables {
+    pub(super) fn tables(&self) -> &Tables {
         self.tables
             .get_or_init(|| Tables::build(par::threads(), self.layers))
     }
-}
-
-/// Whether the centres of every face show the face's own colour.
-fn centres_home(cube: &Facelets) -> bool {
-    let s = cube.stickers();
-    Face::ALL
-        .iter()
-        .enumerate()
-        .all(|(f, &face)| [5, 6, 9, 10].iter().all(|&i| s[f * 16 + i] == face))
 }
 
 impl Solver for FourSolver {
@@ -148,6 +128,24 @@ impl Solver for FourSolver {
     }
 
     fn solve(&self, facelets: &Facelets, options: &SolveOptions) -> SolveResult {
+        self.run(facelets, options, None)
+    }
+
+    fn solve_improving(&self, facelets: &Facelets, options: &SolveOptions) -> SolveResult {
+        let budget = options.time_budget.unwrap_or(improve::DEFAULT_BUDGET);
+        let options = options.with_time_budget(budget);
+        self.run(facelets, &options, Some(improve::plan(budget)))
+    }
+}
+
+impl FourSolver {
+    /// One solve; with a `plan`, the best of several reductions.
+    pub(super) fn run(
+        &self,
+        facelets: &Facelets,
+        options: &SolveOptions,
+        plan: Option<Plan>,
+    ) -> SolveResult {
         let started = Instant::now();
         let done = |outcome: Result<MoveSequence, Failure>,
                     message: Option<String>,
@@ -194,7 +192,14 @@ impl Solver for FourSolver {
                 },
             );
         }
-        let reduction = match reduce(t, &cube, self.threads, &ctl) {
+        let reductions = match plan {
+            None => reduce(t, &cube, self.threads, &ctl).map(|r| vec![r]),
+            Some(plan) => {
+                let early = Control::new(deadline.map(|d| d.min(started + plan.collect)));
+                reduce_many(t, &cube, self.threads, (&ctl, &early), plan.candidates)
+            }
+        };
+        let reductions = match reductions {
             Ok(r) => r,
             Err(Stop::Timeout) => {
                 return fail(
@@ -206,150 +211,15 @@ impl Solver for FourSolver {
             Err(Stop::Internal(why)) => return fail(Failure::Internal, why),
         };
 
-        let model_moves = reduction.model_moves();
-        let model = after(t, &cube, &model_moves);
-        let Some(three) = facelets::three_by_three(&model) else {
-            return fail(
-                Failure::Internal,
-                "the reduced cube has no 3x3x3 (the centres are not solved)",
-            );
-        };
-        let (length1, add1, sym) = (
-            usize::from(reduction.cand.length1),
-            reduction.cand.add1,
-            usize::from(reduction.cand.sym),
-        );
-        let head = to_real(&t.syms, &model_moves, length1, add1, sym);
-        let head_moves: Vec<Move> = head.iter().map(|&c| to_move(c)).collect();
-        if options.reduce_only {
-            // Keep the cube's frame: the big cubes lift these moves.
-            let head = normalise(4, &head_moves, false);
-            let Some(head) = self
-                .swaps
-                .finish_with(&self.rotations, facelets, &head, centres_home)
-            else {
-                return fail(Failure::Internal, "the reduced centres are not home");
-            };
-            return done(
-                Ok(MoveSequence::new(normalise(4, &head, false))),
-                None,
-                None,
-            );
-        }
-        let Ok(reduced) = facelets.apply(&MoveSequence::new(head_moves.clone())) else {
-            return fail(Failure::Internal, "the reduction moves do not fit the cube");
-        };
-        let Some(rotation) = self.rotations.find(&reduced, centres_home) else {
-            return fail(
-                Failure::Internal,
-                "the reduced cube is not a rotation of the standard colour scheme",
-            );
-        };
-
-        let limit = options.max_moves.map(usize::from);
-        let fixed = head_moves.len() + rotation.len();
-        if limit.is_some_and(|max| fixed > max) {
-            return fail(
-                Failure::Exhausted,
-                "the reduction and the final rotation alone are longer than the move limit",
-            );
-        }
-        let remaining = match deadline {
-            Some(d) => {
-                let now = Instant::now();
-                if now >= d {
-                    return fail(
-                        Failure::BudgetExhausted,
-                        "the reduction used up the time budget before the 3x3x3 stage",
-                    );
-                }
-                Some(d - now)
-            }
-            None => None,
-        };
-        let tail_limit = limit.map_or(THREE_MAX_MOVES, |max| {
-            u8::try_from(max - fixed).map_or(THREE_MAX_MOVES, |n| n.min(THREE_MAX_MOVES))
-        });
-        // The cap on the 3x3x3 stage, if one applies, and whether it (not the
-        // caller's deadline) is what ends the stage.
-        let cap = if limit.is_some() {
-            LIMITED_HAND_OFF_BUDGET
-        } else {
-            HAND_OFF_BUDGET
-        };
-        let stage_budget = match remaining {
-            Some(r) => r.max(Duration::from_millis(1)).min(if limit.is_some() {
-                cap
-            } else {
-                Duration::MAX
-            }),
-            None => cap,
-        };
-        let capped = remaining.is_none_or(|r| limit.is_some() && r > cap);
-        let hand_off = SolveOptions {
-            time_budget: Some(stage_budget),
-            max_moves: Some(tail_limit),
-            min_probes: options.min_probes.or(Some(self.hand_off_probes)),
-            slices: false,
-            reduce_only: false,
-        };
-        let finish = self.three.solve(&three, &hand_off);
-        let probes = finish.metrics.probes;
-        let tail = match finish.outcome {
-            Ok(tail) => tail,
-            Err(Failure::BudgetExhausted) if capped => {
-                return done(
-                    Err(Failure::Exhausted),
-                    Some(format!(
-                        "no 3x3x3 solution within the move limit was found in {} s{}",
-                        cap.as_secs(),
-                        if limit.is_some() {
-                            " (the reduction is fixed; a larger limit may help)"
-                        } else {
-                            " (set a time budget to allow longer)"
-                        }
-                    )),
-                    probes,
-                );
-            }
-            Err(failure) => {
-                let message = finish.message.unwrap_or_else(|| "the 3x3x3 failed".into());
-                return done(
-                    Err(failure),
-                    Some(format!("3x3x3 stage: {message}")),
-                    probes,
-                );
+        let outcome = match plan {
+            None => self.finish(t, &cube, facelets, &reductions[0], options, deadline),
+            Some(plan) => {
+                self.finish_best(t, &cube, facelets, &reductions, options, deadline, plan)
             }
         };
-        let mut all = model_moves;
-        for mv in tail.moves() {
-            let Some(code) = of_face_turn(mv) else {
-                return fail(
-                    Failure::Internal,
-                    "the 3x3x3 stage returned a move this cube cannot make as a 3x3x3 turn",
-                );
-            };
-            all.push(code);
+        match outcome {
+            Ok((solution, probes)) => done(Ok(solution), None, probes),
+            Err(miss) => done(Err(miss.failure), Some(miss.message), miss.probes),
         }
-        let real = to_real(&t.syms, &all, length1, add1, sym);
-        let moves: Vec<Move> = real.iter().map(|&c| to_move(c)).collect();
-        let moves = normalise(4, &moves, false);
-        let Some(moves) = self.swaps.finish(&self.rotations, facelets, &moves) else {
-            return fail(
-                Failure::Internal,
-                "the solution does not solve the cube (the 3x3x3 stage was given an unsolvable state?)",
-            );
-        };
-        let solution = MoveSequence::new(normalise(4, &moves, options.slices));
-        if limit.is_some_and(|max| solution.len() > max) {
-            return fail(
-                Failure::Exhausted,
-                "the solution is longer than the move limit",
-            );
-        }
-        if !facelets.apply(&solution).is_ok_and(|end| end.is_solved()) {
-            return fail(Failure::Internal, "the solution does not solve the cube");
-        }
-        done(Ok(solution), None, probes)
     }
 }

@@ -114,4 +114,13 @@ pub trait Solver {
 
     /// Solves a cube. A failure is reported in the result, never by panicking.
     fn solve(&self, facelets: &Facelets, options: &SolveOptions) -> SolveResult;
+
+    /// Like [`Solver::solve`], but spends the time budget (default one
+    /// second) looking for a shorter answer than the first. Engines without
+    /// such a mode answer as `solve` does. The reduction engines (4x4x4,
+    /// 5x5x5) keep several reductions and finish each; what is counted
+    /// rather than timed is described on the engine.
+    fn solve_improving(&self, facelets: &Facelets, options: &SolveOptions) -> SolveResult {
+        self.solve(facelets, options)
+    }
 }

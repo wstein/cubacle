@@ -53,3 +53,35 @@ pub(super) fn reduce(
         move3,
     })
 }
+
+/// Up to `n` reductions of one cube, the best first. Phases 1 and 2 are
+/// shared; phase 3 goes on past its first success, in the serial order, so
+/// the list does not depend on the thread count.
+///
+/// Phase 3 collects under `limits.1`, a deadline earlier than the caller's
+/// `limits.0`; if that one runs out the single reduction of [`reduce`] is
+/// found instead, so a budget that is too small for several still gives one.
+pub(super) fn reduce_many(
+    t: &Tables,
+    cube: &Cube,
+    threads: usize,
+    limits: (&Control, &Control),
+    n: usize,
+) -> Result<Vec<Reduction>, Stop> {
+    let (ctl, early) = limits;
+    let cands = phase1::run(t, cube, ctl)?;
+    let cubes: Vec<Cube> = cands.iter().map(|c| after(t, cube, c.moves())).collect();
+    let mut results = phase2::run(t, &cands, &cubes, threads, ctl)?;
+    results.sort_by_key(|c| c.value);
+    let found = match phase3::run_many(t, &results, threads, early, n) {
+        Err(Stop::Timeout) if !ctl.check() => phase3::run_many(t, &results, threads, ctl, 1),
+        other => other,
+    }?;
+    Ok(found
+        .into_iter()
+        .map(|(index, move3)| Reduction {
+            cand: results[index],
+            move3,
+        })
+        .collect())
+}

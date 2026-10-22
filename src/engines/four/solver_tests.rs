@@ -11,6 +11,7 @@ use crate::puzzle::{
     Face, Facelets, Failure, Move, MoveSequence, PuzzleKind, SolveMetrics, SolveOptions,
     SolveResult, Solver, Turn,
 };
+use crate::reduction::improve::Plan;
 
 /// Wing-table layers used here; the search only gets slower with fewer.
 const LAYERS: u32 = 8;
@@ -325,4 +326,70 @@ fn a_spent_clock_stops_every_task_before_it_searches() {
     assert_eq!(r2.err(), Some(Stop::Timeout));
     let r3 = phase3::one(&t, &spent, &never, &cand, 5, usize::MAX);
     assert_eq!(r3.err(), Some(Stop::Timeout));
+}
+
+fn plan(candidates: usize, probes: u64) -> Plan {
+    Plan {
+        candidates,
+        probes,
+        collect: Duration::from_secs(600),
+    }
+}
+
+#[test]
+fn one_candidate_with_the_default_probes_is_the_plain_answer() {
+    let four = solver(1);
+    for seed in 1..=4 {
+        let cube = scrambled(seed, 40);
+        let options = SolveOptions::default();
+        let plain = four.solve(&cube, &options);
+        let one = four.run(&cube, &options, Some(plan(1, 500)));
+        assert_eq!(plain.outcome, one.outcome, "seed {seed}");
+    }
+}
+
+#[test]
+fn the_best_of_several_candidates_is_valid_never_longer_and_thread_independent() {
+    let one = solver(1);
+    let many = solver(3);
+    for seed in 1..=4 {
+        let cube = scrambled(seed, 40);
+        let options = SolveOptions::default();
+        let plain = one.solve(&cube, &options);
+        let a = one.run(&cube, &options, Some(plan(6, 800)));
+        let b = many.run(&cube, &options, Some(plan(6, 800)));
+        let solution = a.solution().expect("a solution");
+        assert!(solves(&cube, solution), "seed {seed}");
+        assert!(
+            solution.len() <= plain.solution().unwrap().len(),
+            "seed {seed}"
+        );
+        assert_eq!(a.outcome, b.outcome, "seed {seed}");
+    }
+}
+
+#[test]
+fn improving_with_a_budget_answers_and_a_spent_budget_fails_cleanly() {
+    let four = solver(2);
+    let cube = scrambled(5, 40);
+    let options = SolveOptions::default().with_time_budget(Duration::from_secs(60));
+    let result = four.solve_improving(&cube, &options);
+    assert!(solves(&cube, result.solution().expect("a solution")));
+    let spent = SolveOptions::default().with_time_budget(Duration::ZERO);
+    let result = four.solve_improving(&cube, &spent);
+    assert_eq!(result.outcome, Err(Failure::BudgetExhausted));
+}
+
+#[test]
+fn a_failing_first_tail_is_the_answer_of_the_improving_solve() {
+    let stub = Stub::new(Err(Failure::Exhausted));
+    let result = with_stub(&stub).run(
+        &scrambled(3, 30),
+        &SolveOptions::default(),
+        Some(plan(4, 800)),
+    );
+    assert_eq!(result.outcome, Err(Failure::Exhausted));
+    assert_eq!(stub.calls.load(Ordering::SeqCst), 1);
+    let seen = stub.seen.lock().unwrap();
+    assert_eq!(seen[0].min_probes, Some(800));
 }
