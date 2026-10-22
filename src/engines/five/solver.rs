@@ -122,6 +122,13 @@ impl Solver for FiveSolver {
                 return fail(failure, &format!("3x3x3 stage: {message}"));
             }
         };
+        // Believe the 3x3x3 stage only after replaying its answer on the cube it got.
+        if !reduced.apply(&tail).is_ok_and(|end| end.is_solved()) {
+            return fail(
+                Failure::InvalidInput,
+                "the corners and middle edges do not form a solvable 3x3x3",
+            );
+        }
         let Some(tail) = tail
             .moves()
             .iter()
@@ -166,7 +173,7 @@ mod tests {
     use super::super::model::support::scrambled;
     use super::*;
     use crate::engines::three::Min2PhaseSolver;
-    use crate::puzzle::SolveMetrics;
+    use crate::puzzle::{Face, SolveMetrics};
 
     /// Records the 3x3x3 it is asked to solve and answers with a fixed result.
     struct Stub {
@@ -287,19 +294,20 @@ mod tests {
             solver.solve(&three, &SolveOptions::default()).outcome,
             Err(Failure::InvalidInput)
         );
-        // A single twisted corner: the centres and wings are fine, the 3x3x3
-        // stage refuses it.
+        // A corner twisted in place (URF becomes FUR): the centres and wings
+        // are fine, the 3x3x3 stage refuses it.
         let mut stickers = Facelets::solved(PuzzleKind::Cube5).stickers().to_vec();
-        let (a, b, c) = (0, 4, 20 + 25 * 4);
-        let twisted = (stickers[a], stickers[b], stickers[c]);
-        let _ = twisted;
-        stickers.swap(0, 25 * 4 + 20);
+        (stickers[24], stickers[25], stickers[54]) = (Face::F, Face::U, Face::R);
         let cube = Facelets::from_stickers(stickers).unwrap();
         let result = solver.solve(&cube, &SolveOptions::default());
-        assert!(matches!(
-            result.outcome,
-            Err(Failure::InvalidInput | Failure::Exhausted)
-        ));
+        assert_eq!(result.outcome, Err(Failure::InvalidInput));
+        // Stickers of different cubies swapped: the 3x3x3 engine would answer
+        // with moves that do not solve it, which must not get through.
+        let mut stickers = Facelets::solved(PuzzleKind::Cube5).stickers().to_vec();
+        (stickers[24], stickers[25], stickers[50]) = (Face::R, Face::F, Face::U);
+        let cube = Facelets::from_stickers(stickers).unwrap();
+        let result = solver.solve(&cube, &SolveOptions::default());
+        assert_eq!(result.outcome, Err(Failure::InvalidInput));
     }
 
     #[test]
