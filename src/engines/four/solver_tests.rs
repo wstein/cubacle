@@ -1,0 +1,258 @@
+//! Tests of the adapter on depth-capped tables (built in a few milliseconds)
+//! with the real 3x3x3 solver and with stubs. No assertion depends on time.
+
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
+
+use super::solver::FourSolver;
+use crate::engines::three::Min2PhaseSolver;
+use crate::puzzle::{
+    Face, Facelets, Failure, Move, MoveSequence, PuzzleKind, SolveMetrics, SolveOptions,
+    SolveResult, Solver, Turn,
+};
+
+/// Wing-table layers used here; the search only gets slower with fewer.
+const LAYERS: u32 = 8;
+
+fn solver(threads: usize) -> FourSolver {
+    FourSolver::new(Arc::new(Min2PhaseSolver::shared()))
+        .with_layers(LAYERS)
+        .with_threads(threads)
+}
+
+/// A reproducible scramble of outer and second-layer turns.
+fn scrambled(seed: u64, length: usize) -> Facelets {
+    let mut state = seed.wrapping_mul(0x9E37_79B9_7F4A_7C15) | 1;
+    let mut next = |bound: u64| {
+        state ^= state << 13;
+        state ^= state >> 7;
+        state ^= state << 17;
+        state % bound
+    };
+    let moves: Vec<Move> = (0..length)
+        .map(|_| {
+            let face = Face::ALL[next(6) as usize];
+            let turn = [Turn::Clockwise, Turn::Half, Turn::CounterClockwise][next(3) as usize];
+            Move::new(face, 1 + next(2) as u8, false, turn)
+        })
+        .collect();
+    Facelets::solved(PuzzleKind::Cube4)
+        .apply(&MoveSequence::new(moves))
+        .unwrap()
+}
+
+fn solves(cube: &Facelets, solution: &MoveSequence) -> bool {
+    cube.apply(solution).is_ok_and(|end| end.is_solved())
+}
+
+/// Answers every request with a fixed result and records the options.
+struct Stub {
+    kind: PuzzleKind,
+    reply: Result<&'static str, Failure>,
+    seen: Mutex<Vec<SolveOptions>>,
+    calls: AtomicU64,
+}
+
+impl Stub {
+    fn new(reply: Result<&'static str, Failure>) -> Arc<Stub> {
+        Arc::new(Stub::plain(reply))
+    }
+
+    fn plain(reply: Result<&'static str, Failure>) -> Stub {
+        Stub {
+            kind: PuzzleKind::Cube3,
+            reply,
+            seen: Mutex::new(Vec::new()),
+            calls: AtomicU64::new(0),
+        }
+    }
+}
+
+impl Solver for Stub {
+    fn kind(&self) -> PuzzleKind {
+        self.kind
+    }
+
+    fn solve(&self, _: &Facelets, options: &SolveOptions) -> SolveResult {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        self.seen.lock().unwrap().push(*options);
+        SolveResult {
+            outcome: self.reply.map(|text| text.parse().expect("stub moves")),
+            message: None,
+            metrics: SolveMetrics::default(),
+        }
+    }
+}
+
+fn with_stub(stub: &Arc<Stub>) -> FourSolver {
+    FourSolver::new(stub.clone())
+        .with_layers(LAYERS)
+        .with_threads(1)
+}
+
+#[test]
+fn scrambled_cubes_are_solved_and_the_answer_replays() {
+    let four = solver(2);
+    for seed in 1..=6 {
+        let cube = scrambled(seed, 40);
+        let result = four.solve(&cube, &SolveOptions::default());
+        let solution = result
+            .solution()
+            .unwrap_or_else(|| panic!("seed {seed}: {:?} {:?}", result.outcome, result.message));
+        assert!(solves(&cube, solution), "seed {seed}");
+    }
+}
+
+#[test]
+fn the_solved_cube_needs_no_move() {
+    let result = solver(1).solve(
+        &Facelets::solved(PuzzleKind::Cube4),
+        &SolveOptions::default(),
+    );
+    assert!(result.solution().unwrap().is_empty());
+}
+
+#[test]
+fn a_rotated_solved_cube_is_brought_back_with_at_most_four_turns() {
+    for rotation in ["Rw Lw'", "Uw Dw'", "Fw Bw'", "Rw Lw' Uw Dw'", "Fw2 Bw2"] {
+        let cube = Facelets::solved(PuzzleKind::Cube4)
+            .apply(&rotation.parse().unwrap())
+            .unwrap();
+        let result = solver(1).solve(&cube, &SolveOptions::default());
+        let solution = result
+            .solution()
+            .unwrap_or_else(|| panic!("{rotation}: {result:?}"));
+        assert!(solution.len() <= 4, "{rotation}: {solution}");
+        assert!(solves(&cube, solution), "{rotation}");
+    }
+}
+
+#[test]
+fn the_answer_does_not_depend_on_the_number_of_threads() {
+    let (one, three) = (solver(1), solver(3));
+    for seed in 10..16 {
+        let cube = scrambled(seed, 35);
+        let options = SolveOptions::default();
+        let a = one.solve(&cube, &options);
+        let b = three.solve(&cube, &options);
+        assert_eq!(a.outcome, b.outcome, "seed {seed}");
+    }
+}
+
+#[test]
+fn impossible_cubes_are_invalid_input_not_a_hang_or_a_wrong_answer() {
+    let four = solver(1);
+    let good = scrambled(3, 30);
+    let invalid = |cube: &Facelets| {
+        assert_eq!(
+            four.solve(cube, &SolveOptions::default()).outcome,
+            Err(Failure::InvalidInput)
+        );
+    };
+
+    let mut text: Vec<char> = good.to_string().chars().collect();
+    // Another size.
+    invalid(&Facelets::solved(PuzzleKind::Cube3));
+    // Two wing stickers exchanged. Most of these are impossible; an exchange
+    // that happens to give a reachable cube must be solved correctly.
+    let (mut tried, mut invalid_count) = (0, 0);
+    for face in 1..6 {
+        for place in [1, 2, 4, 7, 8, 11, 13, 14] {
+            let mut stickers = good.stickers().to_vec();
+            let other = face * 16 + place;
+            if stickers[1] != stickers[other] {
+                stickers.swap(1, other);
+                let cube = Facelets::from_stickers(stickers).unwrap();
+                match four.solve(&cube, &SolveOptions::default()).outcome {
+                    Err(Failure::InvalidInput) => invalid_count += 1,
+                    Ok(solution) => assert!(solves(&cube, &solution)),
+                    other => panic!("{other:?}"),
+                }
+                tried += 1;
+            }
+        }
+    }
+    assert!(tried > 20 && invalid_count * 2 > tried);
+    // Mirror image: up and down exchanged everywhere.
+    for c in &mut text {
+        *c = match *c {
+            'U' => 'D',
+            'D' => 'U',
+            other => other,
+        };
+    }
+    invalid(&Facelets::parse(&text.iter().collect::<String>()).unwrap());
+    // A twisted corner: three stickers of one corner rotated.
+    let mut stickers = good.stickers().to_vec();
+    stickers.swap(0, 3 * 16 + 15);
+    invalid(&Facelets::from_stickers(stickers).unwrap());
+}
+
+#[test]
+fn a_failing_stub_is_reported_as_a_stage_failure() {
+    let stub = Stub::new(Err(Failure::Exhausted));
+    let four = with_stub(&stub);
+    let result = four.solve(&scrambled(5, 30), &SolveOptions::default());
+    assert_eq!(result.outcome, Err(Failure::Exhausted));
+    assert!(result.message.unwrap().contains("3x3x3 stage"));
+}
+
+#[test]
+fn an_answer_that_does_not_solve_is_never_returned() {
+    let stub = Stub::new(Ok("R2"));
+    let four = with_stub(&stub);
+    for seed in [1, 2] {
+        let result = four.solve(&scrambled(seed, 30), &SolveOptions::default());
+        assert_eq!(result.outcome, Err(Failure::Internal), "seed {seed}");
+    }
+}
+
+#[test]
+fn the_hand_off_asks_for_the_probe_minimum_and_a_bounded_length() {
+    let stub = Stub::new(Err(Failure::Exhausted));
+    let cube = scrambled(7, 30);
+    with_stub(&stub).solve(&cube, &SolveOptions::default());
+    with_stub(&stub)
+        .with_hand_off_probes(7)
+        .solve(&cube, &SolveOptions::default());
+    with_stub(&stub).solve(&cube, &SolveOptions::default().with_min_probes(9));
+    let seen = stub.seen.lock().unwrap();
+    let probes: Vec<_> = seen.iter().map(|o| o.min_probes).collect();
+    assert_eq!(probes, [Some(500), Some(7), Some(9)]);
+    assert!(seen.iter().all(|o| o.max_moves == Some(21)));
+    assert!(seen.iter().all(|o| o.time_budget.is_some()));
+}
+
+#[test]
+fn a_move_limit_below_the_reduction_fails_before_the_hand_off() {
+    let stub = Stub::new(Err(Failure::Exhausted));
+    let result = with_stub(&stub).solve(
+        &scrambled(8, 30),
+        &SolveOptions::default().with_max_moves(5),
+    );
+    assert_eq!(result.outcome, Err(Failure::Exhausted));
+    assert_eq!(stub.calls.load(Ordering::SeqCst), 0);
+}
+
+#[test]
+fn no_time_means_a_budget_failure_not_a_hang() {
+    let four = solver(1);
+    four.prepare();
+    let result = four.solve(
+        &scrambled(9, 30),
+        &SolveOptions::default().with_time_budget(Duration::ZERO),
+    );
+    assert_eq!(result.outcome, Err(Failure::BudgetExhausted));
+}
+
+#[test]
+fn a_solver_that_is_not_a_3x3_solver_is_an_internal_error() {
+    let stub = Arc::new(Stub {
+        kind: PuzzleKind::Cube2,
+        ..Stub::plain(Err(Failure::Exhausted))
+    });
+    let four = FourSolver::new(stub).with_layers(LAYERS);
+    let result = four.solve(&scrambled(1, 20), &SolveOptions::default());
+    assert_eq!(result.outcome, Err(Failure::Internal));
+}

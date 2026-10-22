@@ -12,7 +12,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 /// (source directory, modules it may name), keyed as `puzzle` or `engines::three`.
-const RULES: [(&str, &[&str]); 8] = [
+const RULES: [(&str, &[&str]); 9] = [
     ("src/puzzle", &["puzzle"]),
     ("src/notation", &["puzzle", "notation"]),
     ("src/generate", &["puzzle", "generate"]),
@@ -23,6 +23,10 @@ const RULES: [(&str, &[&str]); 8] = [
     (
         "src/engines/five",
         &["puzzle", "reduction", "engines::five"],
+    ),
+    (
+        "src/engines/four",
+        &["puzzle", "reduction", "engines::four"],
     ),
 ];
 
@@ -35,6 +39,7 @@ const APP_ALLOWED: &[&str] = &[
     "engines::three",
     "engines::two",
     "engines::five",
+    "engines::four",
 ];
 
 fn rust_files(dir: &Path, out: &mut Vec<PathBuf>) {
@@ -332,7 +337,7 @@ fn modules_only_use_what_the_dependency_rules_allow() {
         for file in files {
             // A `#[cfg(test)]` module in its own file (it may use a real 3x3x3
             // solver where the engine itself takes any `dyn Solver`).
-            if file.ends_with("five/solver/tests.rs") {
+            if file.ends_with("five/solver/tests.rs") || file.ends_with("four/solver_tests.rs") {
                 continue;
             }
             let source = fs::read_to_string(&file).expect("readable source");
@@ -455,6 +460,36 @@ fn the_5x5_engine_reaches_the_3x3_solver_only_through_the_trait() {
         let _ = module_of(&file, &src);
     }
     let solver = fs::read_to_string(root.join("src/engines/five/solver.rs")).unwrap();
+    assert!(solver.contains("Arc<dyn Solver + Send + Sync>"));
+}
+
+#[test]
+fn the_4x4_engine_reaches_the_3x3_solver_only_through_the_trait() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let mut files = Vec::new();
+    rust_files(&root.join("src/engines/four"), &mut files);
+    assert!(!files.is_empty());
+    for file in files {
+        // `solver_tests.rs` is a `#[cfg(test)]` module that may use the real
+        // 3x3x3 solver and stubs for the hand-off.
+        if file.ends_with("solver_tests.rs") {
+            continue;
+        }
+        let source = strip_test_items(&strip_comments_and_strings(
+            &fs::read_to_string(&file).unwrap(),
+        ));
+        assert!(
+            !source.contains("Min2PhaseSolver") && !source.contains("three::"),
+            "{} names the 3x3 engine; inject a `dyn Solver` instead",
+            file.display()
+        );
+        assert!(
+            !has_global_state(&source),
+            "{} keeps global state; the solver and its tables belong to an instance",
+            file.display()
+        );
+    }
+    let solver = fs::read_to_string(root.join("src/engines/four/solver.rs")).unwrap();
     assert!(solver.contains("Arc<dyn Solver + Send + Sync>"));
 }
 

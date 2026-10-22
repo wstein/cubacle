@@ -1,4 +1,3 @@
-#![allow(dead_code)] // removed when the solver lands
 //! The 4x4x4 reduction engine: a port of Tsai's three-phase solver
 //! cs0x7f/TPR-4x4x4-Solver.
 //!
@@ -29,7 +28,12 @@ mod phase2;
 mod phase3;
 mod reduce;
 mod rotation;
+mod solver;
+#[cfg(test)]
+mod solver_tests;
 mod sym;
 mod tables;
 #[cfg(test)]
 mod testing;
+
+pub use solver::FourSolver;
