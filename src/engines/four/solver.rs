@@ -74,7 +74,8 @@ impl FourSolver {
         }
     }
 
-    /// Uses `threads` workers instead of the configured number.
+    /// Searches with `threads` workers instead of the configured number. The
+    /// tables are always built with the configured number.
     pub fn with_threads(mut self, threads: usize) -> FourSolver {
         self.threads = threads.max(1);
         self
@@ -113,7 +114,7 @@ impl FourSolver {
 
     fn tables(&self) -> &Tables {
         self.tables
-            .get_or_init(|| Tables::build(self.threads, self.layers))
+            .get_or_init(|| Tables::build(par::threads(), self.layers))
     }
 }
 
