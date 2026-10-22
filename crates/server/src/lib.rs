@@ -32,6 +32,7 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use cubacle::engines::five::FiveSolver;
+use cubacle::engines::four::FourSolver;
 use cubacle::engines::three::Min2PhaseSolver;
 use cubacle::engines::two::PocketSolver;
 use cubacle::generate;
@@ -51,6 +52,8 @@ pub const MAX_CONCURRENCY: usize = 256;
 pub const MAX_MOVES: u8 = 25;
 /// Largest `maxMoves` for the 5x5x5 (a byte; its solutions have about 73 moves).
 pub const MAX_MOVES_5X5: u8 = u8::MAX;
+/// Largest `maxMoves` for the 4x4x4 (a byte; its solutions have about 48 moves).
+pub const MAX_MOVES_4X4: u8 = u8::MAX;
 
 /// Runtime limits of the server.
 #[derive(Debug, Clone)]
@@ -89,6 +92,9 @@ pub struct AppState {
     three: Min2PhaseSolver,
     /// The 5x5x5 engine, finishing with a clone of `three`.
     five: FiveSolver,
+    /// The 4x4x4 engine, finishing with a clone of `three`; one thread per
+    /// solve, so concurrent requests do not compete for cores.
+    four: FourSolver,
 }
 
 impl AppState {
@@ -102,22 +108,30 @@ impl AppState {
     /// Like [`AppState::new`], with the 3x3x3 engine injected.
     pub fn with_solver(config: Config, three: Min2PhaseSolver) -> AppState {
         let five = FiveSolver::new(Arc::new(three.clone()));
-        AppState::with_engines(config, three, five)
+        let four = FourSolver::new(Arc::new(three.clone())).with_threads(1);
+        AppState::with_engines(config, three, five, four)
     }
 
-    /// Like [`AppState::with_solver`], with the 5x5x5 engine injected too (a
-    /// clone shares its tables, so tests can build them once and keep their
-    /// cache directory private).
-    pub fn with_engines(config: Config, three: Min2PhaseSolver, five: FiveSolver) -> AppState {
+    /// Like [`AppState::with_solver`], with the 5x5x5 and 4x4x4 engines injected
+    /// too (a clone shares its tables, so tests can build them once and keep
+    /// the 5x5x5 cache directory private).
+    pub fn with_engines(
+        config: Config,
+        three: Min2PhaseSolver,
+        five: FiveSolver,
+        four: FourSolver,
+    ) -> AppState {
         PocketSolver::new().prepare();
         let state = AppState {
             permits: Arc::new(Semaphore::new(config.max_concurrency.max(1))),
             config: Arc::new(config),
+            four,
             five,
             three,
         };
         state.three.prepare();
         state.five.prepare();
+        state.four.prepare();
         state
     }
 
@@ -131,6 +145,7 @@ impl AppState {
             permits: Arc::new(Semaphore::new(config.max_concurrency.max(1))),
             config: Arc::new(config),
             five: FiveSolver::new(Arc::new(three.clone())),
+            four: FourSolver::new(Arc::new(three.clone())).with_threads(1),
             three,
         }
     }
@@ -215,7 +230,7 @@ impl ApiError {
             StatusCode::NOT_IMPLEMENTED,
             "no_engine",
             format!(
-                "no engine for the {size}x{size}x{size} yet; only 2x2x2, 3x3x3 and 5x5x5 exist"
+                "no engine for the {size}x{size}x{size} yet; only 2x2x2, 3x3x3, 4x4x4 and 5x5x5 exist"
             ),
         )
     }
@@ -308,8 +323,8 @@ async fn scramble(
 /// The cube size of a request, if an engine (and so a generator) exists for it.
 fn engine_kind(size: usize) -> Result<PuzzleKind, ApiError> {
     match size {
-        2 | 3 | 5 => Ok(PuzzleKind::of_size(size).expect("2, 3 and 5 are sizes")),
-        4 | 6 | 7 => Err(ApiError::no_engine(size)),
+        2..=5 => Ok(PuzzleKind::of_size(size).expect("2 to 5 are sizes")),
+        6 | 7 => Err(ApiError::no_engine(size)),
         _ => Err(ApiError::bad_input("size must be between 2 and 7")),
     }
 }
@@ -342,8 +357,7 @@ impl CubeBody {
 async fn random(params: Result<Query<RandomParams>, QueryRejection>) -> ApiResult<CubeBody> {
     let Query(params) = params.map_err(|e| ApiError::bad_input(e.body_text()))?;
     let kind = engine_kind(params.size.unwrap_or(3))?;
-    let facelets =
-        generate::random_state(kind).expect("the 2x2x2, 3x3x3 and 5x5x5 have generators");
+    let facelets = generate::random_state(kind).expect("the 2x2x2 to 5x5x5 have generators");
     Ok(Json(CubeBody::of(&facelets)))
 }
 
@@ -449,10 +463,10 @@ async fn solve(
 
     let mut options = SolveOptions::default();
     if let Some(moves) = request.max_moves {
-        let most = if kind == PuzzleKind::Cube5 {
-            MAX_MOVES_5X5
-        } else {
-            MAX_MOVES
+        let most = match kind {
+            PuzzleKind::Cube4 => MAX_MOVES_4X4,
+            PuzzleKind::Cube5 => MAX_MOVES_5X5,
+            _ => MAX_MOVES,
         };
         if !(1..=most).contains(&moves) {
             return Err(ApiError::bad_input(format!(
@@ -484,11 +498,12 @@ async fn solve(
         error
     })?;
 
-    let (three, five) = (state.three.clone(), state.five.clone());
+    let (three, four, five) = (state.three.clone(), state.four.clone(), state.five.clone());
     let result = tokio::task::spawn_blocking(move || {
         let _permit = permit; // released when the solve finishes
         let result = match kind {
             PuzzleKind::Cube2 => return Some(PocketSolver::new().solve(&facelets, &options)),
+            PuzzleKind::Cube4 => four.solve(&facelets, &options),
             PuzzleKind::Cube5 => five.solve(&facelets, &options),
             _ => three.solve(&facelets, &options),
         };

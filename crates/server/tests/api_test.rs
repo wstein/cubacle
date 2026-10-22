@@ -5,6 +5,7 @@ use axum::body::Body;
 use axum::http::{header, Request, StatusCode};
 use axum::Router;
 use cubacle::engines::five::FiveSolver;
+use cubacle::engines::four::FourSolver;
 use cubacle::engines::three::Min2PhaseSolver;
 use cubacle::puzzle::{Facelets, PuzzleKind};
 use cubacle_server::{router, AppState, Config};
@@ -24,8 +25,15 @@ fn five() -> FiveSolver {
     .clone()
 }
 
+/// One single-threaded 4x4x4 solver for all tests of this binary.
+fn four() -> FourSolver {
+    static FOUR: OnceLock<FourSolver> = OnceLock::new();
+    FOUR.get_or_init(|| FourSolver::new(Arc::new(Min2PhaseSolver::shared())).with_threads(1))
+        .clone()
+}
+
 fn app_with(config: Config) -> (Router, AppState) {
-    let state = AppState::with_engines(config, Min2PhaseSolver::shared(), five());
+    let state = AppState::with_engines(config, Min2PhaseSolver::shared(), five(), four());
     (router(state.clone()), state)
 }
 
@@ -115,9 +123,22 @@ async fn random_cubes_for_supported_sizes() {
     let (status, _, _) = call(app(), post_json("/v1/solve", json!({"cube": facelets}))).await;
     assert_eq!(status, StatusCode::OK);
 
-    let (status, _, body) = call(app(), get("/v1/random?size=4")).await;
+    let (status, _, body) = call(app(), get("/v1/random?size=6")).await;
     assert_eq!(status, StatusCode::NOT_IMPLEMENTED);
     assert_eq!(code(&body), "no_engine");
+}
+
+#[tokio::test]
+async fn a_random_4x4_is_solved_and_the_answer_solves_it() {
+    let (status, _, body) = call(app(), get("/v1/random?size=4")).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(body["kind"], "4x4x4");
+    let cube = body["facelets"].as_str().unwrap().to_owned();
+    let (status, _, body) = call(app(), post_json("/v1/solve", json!({"cube": cube}))).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    let facelets = cube.parse::<Facelets>().unwrap();
+    let solution = body["solution"].as_str().unwrap().parse().unwrap();
+    assert!(facelets.apply(&solution).unwrap().is_solved());
 }
 
 #[tokio::test]
@@ -266,12 +287,12 @@ async fn move_limit_too_small_is_422() {
 
 #[tokio::test]
 async fn unsupported_size_is_501() {
-    let cube = "U".repeat(16)
-        + &"R".repeat(16)
-        + &"F".repeat(16)
-        + &"D".repeat(16)
-        + &"L".repeat(16)
-        + &"B".repeat(16);
+    let cube = "U".repeat(36)
+        + &"R".repeat(36)
+        + &"F".repeat(36)
+        + &"D".repeat(36)
+        + &"L".repeat(36)
+        + &"B".repeat(36);
     let (status, _, body) = call(app(), post_json("/v1/solve", json!({"cube": cube}))).await;
     assert_eq!(status, StatusCode::NOT_IMPLEMENTED, "{body}");
     assert_eq!(code(&body), "no_engine");
@@ -384,7 +405,7 @@ async fn size_validation_distinguishes_400_and_501() {
         assert_eq!(status, StatusCode::BAD_REQUEST, "{size}");
         assert_eq!(code(&body), "bad_input");
     }
-    for size in ["4", "6", "7"] {
+    for size in ["6", "7"] {
         let (status, _, body) = call(app(), get(&format!("/v1/random?size={size}"))).await;
         assert_eq!(status, StatusCode::NOT_IMPLEMENTED, "{size}");
         assert_eq!(code(&body), "no_engine");
@@ -393,8 +414,8 @@ async fn size_validation_distinguishes_400_and_501() {
 
 #[tokio::test]
 async fn orbit64_tokens_of_sizes_without_an_engine_convert_but_do_not_solve() {
-    // 27, 66 and 90 characters are the widths of the 4x4x4, 6x6x6 and 7x7x7.
-    for (width, size) in [(27, 4), (66, 6), (90, 7)] {
+    // 66 and 90 characters are the widths of the 6x6x6 and 7x7x7.
+    for (width, size) in [(66, 6), (90, 7)] {
         let cube = "A".repeat(width);
         let (status, _, body) = call(app(), post_json("/v1/convert", json!({"cube": cube}))).await;
         assert_eq!(status, StatusCode::OK, "{size}: {body}");
@@ -590,7 +611,7 @@ async fn unprepared_state_serves_non_solving_endpoints() {
 async fn an_injected_solver_is_prepared_and_used() {
     let solver = Min2PhaseSolver::new();
     assert!(format!("{solver:?}").contains("tables_built: false"));
-    let state = AppState::with_engines(Config::default(), solver.clone(), five());
+    let state = AppState::with_engines(Config::default(), solver.clone(), five(), four());
     assert!(
         format!("{solver:?}").contains("tables_built: true"),
         "with_solver must prepare the injected solver"
