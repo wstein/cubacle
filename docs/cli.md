@@ -60,7 +60,7 @@ cubacle solve -s "R U F B L D R U" --max-moves 2
 error: no solution within the move limit (the search ended without a solution (time budget or move limit reached))
 ```
 
-The 6x6x6 and 7x7x7 have no engine yet. See [Engines and limits](engines.md).
+The 6x6x6 and 7x7x7 have no engine yet. See [Engines and limits](engines/_index.md).
 
 ## Solve a 4x4x4
 
@@ -98,7 +98,7 @@ cubacle solve --size 5 --scramble "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F" | wc -w
 67
 ```
 
-The solutions have 73 moves on average: 70 to 76 over 100 random cubes and 69 to 77 over 300 others (see [Engines and limits](engines.md)). It starts like this:
+The solutions have 73 moves on average: 70 to 76 over 100 random cubes and 69 to 77 over 300 others (see [Engines and limits](engines/_index.md)). It starts like this:
 
 ```text
 Fw' D F' Rw U B' Uw' Lw' U Bw R2 Fw' Uw2 D Fw'
@@ -257,7 +257,7 @@ The second command prints the length of the solution of a random 5x5x5, between 
 cubacle random --size 4 | cubacle solve - | wc -w
 ```
 
-This prints the length of the solution of a random 4x4x4 (rotation included), between 43 and 50 in 100 cubes measured (47.5 on average); the 1000 cubes drawn by the original solver's generator gave 42 to 51 (see [Engines and limits](engines.md)).
+This prints the length of the solution of a random 4x4x4 (rotation included), between 43 and 50 in 100 cubes measured (47.5 on average); the 1000 cubes drawn by the original solver's generator gave 42 to 51 (see [Engines and limits](engines/_index.md)).
 
 ## Apply a scramble
 

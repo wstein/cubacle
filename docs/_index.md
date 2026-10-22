@@ -18,7 +18,7 @@ cubacle is a Rubik's cube solver and generator written in Rust. It comes as a co
 | 5x5x5 | Supported by a five-phase reduction. Solutions have about 73 moves; the first solve needs 237 MB of tables. |
 | 6x6x6, 7x7x7 | Planned. The notations and the API accept these sizes, but no engine exists yet. |
 
-For details, see [Engines and limits](engines.md).
+For details, see [Engines and limits](engines/_index.md).
 
 ## Quick start
 
@@ -47,7 +47,7 @@ curl -s localhost:8080/health
 - [Install and build](install.md)
 - [Command-line guide](cli.md)
 - [REST API reference](api.md)
-- [Engines and limits](engines.md)
+- [Engines and limits](engines/_index.md)
 - [Architecture](architecture.md)
 - [Contributing](contributing.md)
 - [Credits and licence](credits.md)
