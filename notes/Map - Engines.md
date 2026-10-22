@@ -17,3 +17,8 @@ Raw-material notes, category engines.
 - [[5x5 Java tables are the oracle]]
 - [[5x5 search is deterministic across threads]]
 - [[5x5 table cache]]
+- [[4x4 port of the TPR solver]]
+- [[4x4 versus TPR]]
+- [[4x4 phases and tables]]
+- [[4x4 parity is in the coordinates]]
+- [[4x4 multi-core plan]]
