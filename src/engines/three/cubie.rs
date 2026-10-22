@@ -364,29 +364,46 @@ impl Cubie {
                 }
                 ori += 1
             }
+            let col0 = f[CORNER_FACELET[i][ori % 3] as usize];
             let col1 = f[CORNER_FACELET[i][(ori + 1) % 3] as usize];
             let col2 = f[CORNER_FACELET[i][(ori + 2) % 3] as usize];
+            let mut found = false;
             for j in 0..8 {
-                if col1 == CORNER_FACELET[j][1] / 9 && col2 == CORNER_FACELET[j][2] / 9 {
+                if col0 == CORNER_FACELET[j][0] / 9
+                    && col1 == CORNER_FACELET[j][1] / 9
+                    && col2 == CORNER_FACELET[j][2] / 9
+                {
                     self.ca[i] = (ori as u8 % 3) << 3 | j as u8;
+                    found = true;
                     break;
                 }
             }
+            if !found {
+                // No corner piece has these colours: not a cube.
+                return -4;
+            }
         }
         for i in 0..12 {
+            let mut found = false;
             for j in 0..12 {
                 if f[EDGE_FACELET[i][0] as usize] == EDGE_FACELET[j][0] / 9
                     && f[EDGE_FACELET[i][1] as usize] == EDGE_FACELET[j][1] / 9
                 {
                     self.ea[i] = (j as u8) << 1;
+                    found = true;
                     break;
                 }
                 if f[EDGE_FACELET[i][0] as usize] == EDGE_FACELET[j][1] / 9
                     && f[EDGE_FACELET[i][1] as usize] == EDGE_FACELET[j][0] / 9
                 {
                     self.ea[i] = ((j as u8) << 1) | 1;
+                    found = true;
                     break;
                 }
+            }
+            if !found {
+                // No edge piece has these colours: not a cube.
+                return -2;
             }
         }
         0

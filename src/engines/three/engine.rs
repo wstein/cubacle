@@ -218,8 +218,11 @@ fn make_urf_cubies(tables: &Tables, cc: &Cubie) -> [Cubie; 6] {
 
 fn parse_facelet(facelet: &str) -> Result<Cubie, SolveStats> {
     let mut cc = Cubie::new();
-    if cc.set_from_facelet(facelet) < 0 {
-        return Err(unsolvable_stats(String::from("Error 1")));
+    let parsed = cc.set_from_facelet(facelet);
+    if parsed < 0 {
+        return Err(unsolvable_stats(
+            String::from("Error ") + &(-parsed).to_string(),
+        ));
     }
     let verify = cc.verify();
     if verify < 0 {
