@@ -77,16 +77,16 @@ impl fmt::Display for ColourScheme {
     }
 }
 
-/// Accepts a preset name (`western`, `japanese`; the longer `western-boy` and
-/// `japanese-bl-wt` also work) or six colour letters in `URFDLB` order, such
+/// Accepts a preset name (`western`, `japanese`; `boy`, `western-boy`, `jp`
+/// and `japanese-bl-wt` also work) or six colour letters in `URFDLB` order, such
 /// as `WRGYOB`.
 impl FromStr for ColourScheme {
     type Err = SchemeError;
 
     fn from_str(text: &str) -> Result<ColourScheme, SchemeError> {
         match text.trim().to_ascii_lowercase().as_str() {
-            "western-boy" | "western" => Ok(ColourScheme::WESTERN_BOY),
-            "japanese-bl-wt" | "japanese" => Ok(ColourScheme::JAPANESE_BL_WT),
+            "western-boy" | "western" | "boy" => Ok(ColourScheme::WESTERN_BOY),
+            "japanese-bl-wt" | "japanese" | "jp" => Ok(ColourScheme::JAPANESE_BL_WT),
             other => {
                 let letters: Vec<char> = other.chars().collect();
                 let letters: [char; 6] = letters
@@ -145,6 +145,8 @@ mod tests {
         assert_eq!("western".parse(), Ok(ColourScheme::WESTERN_BOY));
         assert_eq!("Japanese".parse(), Ok(ColourScheme::JAPANESE_BL_WT));
         assert_eq!("western-boy".parse(), Ok(ColourScheme::WESTERN_BOY));
+        assert_eq!("BOY".parse(), Ok(ColourScheme::WESTERN_BOY));
+        assert_eq!("JP".parse(), Ok(ColourScheme::JAPANESE_BL_WT));
         assert_eq!("Japanese-BL-WT".parse(), Ok(ColourScheme::JAPANESE_BL_WT));
         assert_eq!("wrgboy".parse(), Ok(ColourScheme::JAPANESE_BL_WT));
         assert!("WRGYO".parse::<ColourScheme>().is_err());
