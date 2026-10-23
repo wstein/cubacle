@@ -13,3 +13,6 @@ Raw-material notes, category open-items.
 - [[Contribution branch]]
 - [[4x4 thread scaling is capped by the hand-off]]
 - [[Step-by-step learning solver]]
+- [[Icon sheet export for documents]]
+- [[SiGN notation as an output option]]
+- [[Structured solution output]]
