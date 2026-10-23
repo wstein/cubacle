@@ -7,6 +7,7 @@ pub mod orbit64;
 mod range;
 mod scheme;
 mod sign;
+mod sse;
 
 pub use expr::{parse_expression, ExprError, MAX_DEPTH, MAX_EXPANDED_MOVES};
 pub use input::{colour_scheme_of, parse_cube, InputError};

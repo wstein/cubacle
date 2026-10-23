@@ -62,7 +62,7 @@ fn moves(word: &str, from: &str, to: &str, tail: &str) -> Result<Vec<Move>, Move
 }
 
 /// The layers `from..=to` of a face turned together.
-fn layers(face: Face, from: u8, to: u8, turn: Turn) -> Vec<Move> {
+pub(crate) fn layers(face: Face, from: u8, to: u8, turn: Turn) -> Vec<Move> {
     if from == to {
         return vec![Move::new(face, from, false, turn)];
     }
@@ -75,7 +75,7 @@ fn layers(face: Face, from: u8, to: u8, turn: Turn) -> Vec<Move> {
     moves
 }
 
-fn back(turn: Turn) -> Turn {
+pub(crate) fn back(turn: Turn) -> Turn {
     match turn {
         Turn::Clockwise => Turn::CounterClockwise,
         Turn::CounterClockwise => Turn::Clockwise,

@@ -12,8 +12,8 @@ pub const MAX_DEPTH: usize = 100;
 
 /// Reads a move expression for a cube of the given kind.
 ///
-/// Moves are separated by whitespace, in WCA or SiGN spelling, plus layer
-/// ranges (`2-3r`, `2-3Rw`) which expand into plain moves. Around them:
+/// Moves are separated by whitespace, in WCA, SiGN or SSE spelling (`T3R`,
+/// `N2-4R`, `WR`, `SR`, `CR`: see [`super::sse`]), plus layer ranges (`2-3r`, `2-3Rw`) which expand into plain moves. Around them:
 ///
 /// - `( ... )` groups moves. After a group, `*N` or a bare `N` repeats it N
 ///   times, `'` inverts it (the moves reversed, each inverted), and the two
@@ -189,6 +189,16 @@ impl Reader {
         let word: String = self.chars[start..self.at].iter().collect();
         if let Some(range) = super::range::expand(&word) {
             let moves = range.map_err(|error| ExprError::Sign {
+                position: start,
+                error,
+            })?;
+            for mv in &moves {
+                self.check_fit(*mv, start)?;
+            }
+            return Ok(moves);
+        }
+        if let Some(sse) = super::sse::expand(&word, Some(self.kind.size())) {
+            let moves = sse.map_err(|error| ExprError::Sign {
                 position: start,
                 error,
             })?;

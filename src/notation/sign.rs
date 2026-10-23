@@ -107,22 +107,36 @@ pub fn to_wca_token(token: &str) -> Result<Cow<'_, str>, MovesError> {
     }
 }
 
-/// One move in WCA or SiGN spelling.
+/// One move in WCA, SiGN or SSE spelling.
 pub fn parse_move(token: &str) -> Result<Move, MovesError> {
+    if let Some(sse) = super::sse::expand(token, None) {
+        return match sse?.as_slice() {
+            [one] => Ok(*one),
+            _ => Err(MovesError {
+                token: token.to_owned(),
+                reason: "an SSE twist of several moves; read it as a sequence",
+            }),
+        };
+    }
     to_wca_token(token)?.parse().map_err(|_| MovesError {
         token: token.to_owned(),
         reason: "not a move in WCA or SiGN notation",
     })
 }
 
-/// Moves separated by whitespace, each in WCA or SiGN spelling (mixing is
-/// fine). A layer range such as `2-3r` is expanded into its plain moves.
+/// Moves separated by whitespace, each in WCA, SiGN or SSE spelling (mixing is
+/// fine). A layer range such as `2-3r` is expanded into its plain moves. SSE
+/// twists that depend on the cube size (`M W S C`) are refused here, because
+/// no size is given; [`crate::notation::parse_expression`] reads them.
 pub fn parse_moves(text: &str) -> Result<MoveSequence, MovesError> {
     let mut moves = Vec::new();
     for word in text.split_whitespace() {
         match super::range::expand(word) {
             Some(range) => moves.extend(range?),
-            None => moves.push(parse_move(word)?),
+            None => match super::sse::expand(word, None) {
+                Some(sse) => moves.extend(sse?),
+                None => moves.push(parse_move(word)?),
+            },
         }
     }
     Ok(MoveSequence::new(moves))
