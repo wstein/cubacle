@@ -343,7 +343,7 @@ impl Plan {
                         None => "no way back onto the path was found".to_owned(),
                     };
                     writeln!(f, "Recommended: solve fresh, {why}.")?;
-                    writeln!(f, "Moves now: {}", words(fresh, w))?;
+                    writeln!(f, "Fresh solution: {}", words(fresh, w))?;
                 }
             }
             _ => {}

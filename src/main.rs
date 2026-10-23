@@ -294,7 +294,7 @@ fn solver_for(kind: PuzzleKind) -> Box<dyn Solver> {
             let four = FourSolver::new(three.clone());
             let five = FiveSolver::new(three.clone());
             eprintln!(
-                "preparing the 4x4x4 and 5x5x5 tables (the centre tables are built on first use)"
+                "preparing the 4x4x4 and 5x5x5 tables for the wings (the centre tables are built on first use)"
             );
             four.prepare();
             five.prepare();

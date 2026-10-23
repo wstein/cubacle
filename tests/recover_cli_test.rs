@@ -47,7 +47,7 @@ fn a_given_solution_is_followed_and_the_shorter_route_wins() {
     assert!(ok);
     // Undoing 3 moves costs 20 in all, solving fresh 18: fresh wins.
     assert!(out.contains("Recommended: solve fresh"), "{out}");
-    let moves = out.lines().find_map(|l| l.strip_prefix("Moves now: "));
+    let moves = out.lines().find_map(|l| l.strip_prefix("Fresh solution: "));
     assert_eq!(moves.map(|m| m.split(' ').count()), Some(18), "{out}");
 }
 
