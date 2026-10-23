@@ -11,7 +11,7 @@ use cubacle::notation::{orbit64, ColourScheme, Notation};
 use cubacle::phases::Phase;
 use cubacle::puzzle::{Facelets, Move, MoveSequence, Turn};
 use cubacle::render::{
-    icon, state_icon, state_icon_against, Action, Icon, KittyPlacement, Raster, Rgb, Style,
+    icon, state_icon, state_icon_against, Action, Icon, KittyPlacement, Raster, Style,
 };
 
 use crate::icons::{default_height, detect_stdout, show, style, Background, Graphics};
@@ -127,7 +127,19 @@ pub(crate) fn token_line(phase: &Phase, state: &Facelets) -> Result<String, Stri
 const QUARTER_NOTE: &str = "   <-- quarter turn, not a half turn";
 
 /// The frame colour of a lone quarter turn in the Kitty rows (amber).
-const QUARTER_FRAME: Rgb = Rgb(255, 176, 0);
+#[cfg(feature = "quarter-frame")]
+const QUARTER_FRAME: cubacle::render::Rgb = cubacle::render::Rgb(255, 176, 0);
+
+/// The icon of a move as it goes into a Kitty row: with the `quarter-frame`
+/// feature a lone quarter turn gets an amber frame, otherwise the icon as is.
+#[cfg_attr(not(feature = "quarter-frame"), allow(unused_variables))]
+fn row_icon(raster: Raster, lone: bool) -> Raster {
+    #[cfg(feature = "quarter-frame")]
+    if lone {
+        return raster.framed(QUARTER_FRAME);
+    }
+    raster
+}
 
 /// Whether each move is a quarter turn with a half turn right before and right
 /// after it.
@@ -383,12 +395,7 @@ fn kitty_steps(
                 let action = Action::Layer(*mv);
                 let drawn = icon(&state, &action, style).map_err(|error| error.to_string())?;
                 let raster = drawn.to_rgba(style.size);
-                // a quarter turn between half turns gets an amber frame
-                rasters.push(if lone[at] {
-                    raster.framed(QUARTER_FRAME)
-                } else {
-                    raster
-                });
+                rasters.push(row_icon(raster, lone[at]));
                 state = action.apply(&state).map_err(|error| error.to_string())?;
             }
             out.push_str(&rows::heading(&row, total));
@@ -485,6 +492,31 @@ mod tests {
             step_line(0, 10, &seq.moves()[0].to_string(), false),
             "step 1 of 10: 3Rw2\n"
         );
+    }
+
+    #[cfg(not(feature = "quarter-frame"))]
+    #[test]
+    fn kitty_rows_have_no_amber_frame_by_default() {
+        let plain = Raster {
+            width: 40,
+            height: 40,
+            data: vec![7; 40 * 40 * 4],
+        };
+        let shown = row_icon(plain.clone(), true);
+        assert_eq!(shown.data, plain.data);
+    }
+
+    #[cfg(feature = "quarter-frame")]
+    #[test]
+    fn kitty_rows_frame_a_lone_quarter_turn_with_the_feature() {
+        let plain = Raster {
+            width: 40,
+            height: 40,
+            data: vec![7; 40 * 40 * 4],
+        };
+        assert_eq!(row_icon(plain.clone(), false).data, plain.data);
+        let shown = row_icon(plain, true);
+        assert_eq!(&shown.data[..4], [255, 176, 0, 255]);
     }
 
     #[test]

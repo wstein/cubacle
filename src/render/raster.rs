@@ -68,6 +68,7 @@ pub(crate) fn rasterise_canvas(
 impl Raster {
     /// Draws a frame of `colour` along the border of the raster, over what is
     /// there. The thickness is 3 px at 109 px height and grows with the height.
+    #[cfg(feature = "quarter-frame")]
     pub fn framed(mut self, colour: Rgb) -> Raster {
         let (w, h) = (self.width as usize, self.height as usize);
         let t = (h / 36).max(2).min(w / 2).min(h / 2);
@@ -250,6 +251,7 @@ mod tests {
         assert_eq!((empty.width, empty.height, empty.data.len()), (0, 0, 0));
     }
 
+    #[cfg(feature = "quarter-frame")]
     #[test]
     fn framed_paints_the_border_and_keeps_the_inside() {
         let plain = Raster {
