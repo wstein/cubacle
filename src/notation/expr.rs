@@ -5,6 +5,9 @@ use crate::puzzle::{Face, Move, MoveSequence, NotationError, PuzzleKind, Turn};
 /// The most moves an expression may expand to.
 pub const MAX_EXPANDED_MOVES: usize = 100_000;
 
+/// The deepest nesting of parentheses an expression may have.
+pub const MAX_DEPTH: usize = 100;
+
 /// Why a move expression could not be read.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExprError {
@@ -18,6 +21,8 @@ pub enum ExprError {
     DoesNotFit { mv: Move, kind: PuzzleKind },
     /// A middle-slice move (`M`, `E`, `S`) on a cube without a middle layer.
     NoMiddleLayer { word: String, kind: PuzzleKind },
+    /// Parentheses are nested deeper than [`MAX_DEPTH`].
+    TooDeep,
     /// The expression expands to more than [`MAX_EXPANDED_MOVES`] moves.
     TooLong,
 }
@@ -43,6 +48,9 @@ impl fmt::Display for ExprError {
                     f,
                     "{word} turns the middle layer, which a {size}x{size}x{size} does not have"
                 )
+            }
+            ExprError::TooDeep => {
+                write!(f, "parentheses are nested deeper than {MAX_DEPTH}")
             }
             ExprError::TooLong => write!(
                 f,
@@ -79,7 +87,7 @@ pub fn parse_expression(text: &str, kind: PuzzleKind) -> Result<MoveSequence, Ex
         at: 0,
         kind,
     };
-    let moves = reader.sequence(0)?;
+    let moves = reader.sequence(0, 0)?;
     Ok(MoveSequence::new(moves))
 }
 
@@ -91,7 +99,7 @@ struct Reader {
 
 impl Reader {
     /// Items up to the end of the text or an unconsumed `)`.
-    fn sequence(&mut self, depth: usize) -> Result<Vec<Move>, ExprError> {
+    fn sequence(&mut self, depth: usize, open: usize) -> Result<Vec<Move>, ExprError> {
         let mut out = Vec::new();
         loop {
             while self.chars.get(self.at).is_some_and(|c| c.is_whitespace()) {
@@ -101,19 +109,20 @@ impl Reader {
                 return if depth == 0 {
                     Ok(out)
                 } else {
-                    Err(ExprError::Unbalanced { position: self.at })
+                    Err(ExprError::Unbalanced { position: open })
                 };
             };
             let item = match c {
                 ')' if depth > 0 => return Ok(out),
                 ')' => return Err(ExprError::Unbalanced { position: self.at }),
                 '(' => {
+                    if depth >= MAX_DEPTH {
+                        return Err(ExprError::TooDeep);
+                    }
                     let open = self.at;
                     self.at += 1;
-                    let inner = self.sequence(depth + 1)?;
-                    if self.chars.get(self.at) != Some(&')') {
-                        return Err(ExprError::Unbalanced { position: open });
-                    }
+                    // Returns only at the matching ')', or with an error.
+                    let inner = self.sequence(depth + 1, open)?;
                     self.at += 1;
                     inner
                 }
@@ -159,14 +168,9 @@ impl Reader {
         if !"MESxyz".contains(letter) {
             return Ok(None);
         }
-        let turn = format!("R{}", chars.as_str())
-            .parse::<Move>()
-            .ok()
-            .filter(|mv| !mv.wide && mv.depth == 1)
-            .map(|mv| mv.turn)
-            .ok_or_else(|| NotationError {
-                token: word.to_owned(),
-            })?;
+        let turn = Turn::from_suffix(chars.as_str()).ok_or_else(|| NotationError {
+            token: word.to_owned(),
+        })?;
         let n = self.kind.size();
         let layers = u8::try_from(n).expect("sizes are small");
         let moves = match letter {
@@ -213,13 +217,18 @@ impl Reader {
         while self.chars.get(self.at).is_some_and(char::is_ascii_digit) {
             self.at += 1;
         }
+        if digits == self.at {
+            return Err(ExprError::BadRepeat { position: star });
+        }
         let count: usize = self.chars[digits..self.at]
             .iter()
             .collect::<String>()
             .parse()
-            .ok()
-            .filter(|&n| n >= 1)
-            .ok_or(ExprError::BadRepeat { position: star })?;
+            // more digits than a usize holds: certainly too long
+            .map_err(|_| ExprError::TooLong)?;
+        if count == 0 {
+            return Err(ExprError::BadRepeat { position: star });
+        }
         if item.len().saturating_mul(count) > MAX_EXPANDED_MOVES {
             return Err(ExprError::TooLong);
         }
@@ -287,7 +296,7 @@ mod tests {
         }
         assert_eq!(
             expand("(R U", PuzzleKind::Cube3),
-            Err(ExprError::Unbalanced { position: 4 })
+            Err(ExprError::Unbalanced { position: 0 })
         );
     }
 
@@ -427,6 +436,80 @@ mod tests {
         assert_eq!(
             crate::notation::parse_cube(&state.to_string(), None).unwrap(),
             state
+        );
+    }
+
+    const ALL_KINDS: [PuzzleKind; 6] = [
+        PuzzleKind::Cube2,
+        PuzzleKind::Cube3,
+        PuzzleKind::Cube4,
+        PuzzleKind::Cube5,
+        PuzzleKind::Cube6,
+        PuzzleKind::Cube7,
+    ];
+
+    #[test]
+    fn a_rotation_leaves_every_face_one_colour() {
+        for kind in ALL_KINDS {
+            let face_len = kind.face_len();
+            for word in ["x", "y", "z'", "x2", "y'", "z"] {
+                let text = cube(word, kind).to_string();
+                for face in text.as_bytes().chunks(face_len) {
+                    assert!(face.iter().all(|&c| c == face[0]), "{word} on {kind:?}");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn conjugating_by_a_rotation_relabels_the_face() {
+        for kind in ALL_KINDS {
+            for (conjugated, plain) in [
+                ("x U x'", "F"),
+                ("x F x'", "D"),
+                ("y F y'", "R"),
+                ("z U z'", "L"),
+            ] {
+                assert_eq!(
+                    cube(conjugated, kind),
+                    cube(plain, kind),
+                    "{conjugated} {kind:?}"
+                );
+            }
+        }
+        for kind in &ALL_KINDS[1..] {
+            assert_eq!(cube("y 2F y'", *kind), cube("2R", *kind), "{kind:?}");
+        }
+        for kind in [PuzzleKind::Cube3, PuzzleKind::Cube5, PuzzleKind::Cube7] {
+            assert_eq!(cube("y M y'", kind), cube("S", kind), "{kind:?}");
+        }
+    }
+
+    #[test]
+    fn nesting_is_limited_instead_of_overflowing_the_stack() {
+        let deep = format!("{}R{}", "(".repeat(40_000), ")".repeat(40_000));
+        assert_eq!(expand(&deep, PuzzleKind::Cube3), Err(ExprError::TooDeep));
+        let ok = format!("{}R{}", "(".repeat(MAX_DEPTH), ")".repeat(MAX_DEPTH));
+        assert_eq!(expand(&ok, PuzzleKind::Cube3).unwrap(), "R");
+    }
+
+    #[test]
+    fn a_count_too_big_for_a_number_is_too_long() {
+        assert_eq!(
+            expand("R*99999999999999999999", PuzzleKind::Cube3),
+            Err(ExprError::TooLong)
+        );
+        assert_eq!(
+            expand("R*0", PuzzleKind::Cube3),
+            Err(ExprError::BadRepeat { position: 1 })
+        );
+    }
+
+    #[test]
+    fn an_unclosed_group_is_reported_where_it_opens() {
+        assert_eq!(
+            expand("F (R (U", PuzzleKind::Cube3),
+            Err(ExprError::Unbalanced { position: 5 })
         );
     }
 }

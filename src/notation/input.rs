@@ -95,6 +95,27 @@ pub fn parse_cube(text: &str, scheme: Option<ColourScheme>) -> Result<Facelets, 
     parse_colours(&upper, scheme)
 }
 
+/// The colour scheme a cube written as colours shows in its fixed centres, or
+/// `None` for other notations and for cubes without readable centres.
+pub fn colour_scheme_of(text: &str) -> Option<ColourScheme> {
+    let upper: String = text
+        .split_whitespace()
+        .collect::<String>()
+        .to_ascii_uppercase();
+    if orbit64::looks_like_token(&upper) {
+        return None;
+    }
+    let hits = |alphabet: &str| upper.chars().filter(|c| alphabet.contains(*c)).count();
+    if hits(FACE_LETTERS) >= hits(COLOUR_LETTERS)
+        || !upper.chars().all(|c| COLOUR_LETTERS.contains(c))
+    {
+        return None;
+    }
+    let colours: Vec<char> = upper.chars().collect();
+    let kind = PuzzleKind::of_facelet_count(colours.len())?;
+    ColourScheme::from_centres(&colours, kind.size()).ok()
+}
+
 fn parse_colours(compact: &str, scheme: Option<ColourScheme>) -> Result<Facelets, InputError> {
     let colours: Vec<char> = compact.chars().map(|c| c.to_ascii_uppercase()).collect();
     if let Some((position, &found)) = colours

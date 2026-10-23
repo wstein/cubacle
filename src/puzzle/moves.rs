@@ -12,6 +12,18 @@ pub enum Turn {
 }
 
 impl Turn {
+    /// The turn a suffix such as `'`, `2`, `2'`, `'2`, `1` or `3` stands for;
+    /// the empty suffix is a clockwise quarter. Shared by layer moves and the
+    /// rotation and slice letters.
+    pub(crate) fn from_suffix(suffix: &str) -> Option<Turn> {
+        match suffix {
+            "" | "1" => Some(Turn::Clockwise),
+            "2" | "2'" | "'2" => Some(Turn::Half),
+            "'" | "3" => Some(Turn::CounterClockwise),
+            _ => None,
+        }
+    }
+
     fn suffix(self) -> &'static str {
         match self {
             Turn::Clockwise => "",
@@ -100,12 +112,7 @@ impl FromStr for Move {
             Some(rest) => (true, rest),
             None => (false, rest),
         };
-        let turn = match rest {
-            "" | "1" => Turn::Clockwise,
-            "2" | "2'" | "'2" => Turn::Half,
-            "'" | "3" => Turn::CounterClockwise,
-            _ => return Err(bad()),
-        };
+        let turn = Turn::from_suffix(rest).ok_or_else(bad)?;
         let depth = if prefix.is_empty() {
             if wide {
                 2

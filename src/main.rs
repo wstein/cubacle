@@ -17,7 +17,7 @@ use cubacle::engines::three::Min2PhaseSolver;
 use cubacle::engines::two::PocketSolver;
 use cubacle::generate;
 use cubacle::notation::orbit64;
-use cubacle::notation::{parse_cube, parse_expression, ColourScheme};
+use cubacle::notation::{colour_scheme_of, parse_cube, parse_expression, ColourScheme};
 use cubacle::phases::{from_stages, phases};
 use cubacle::puzzle::{Facelets, Failure, PuzzleKind, SolveOptions, Solver};
 
@@ -65,18 +65,21 @@ enum Command {
 /// How a cube is written on the command line.
 #[derive(Args)]
 struct InputArgs {
-    /// An Orbit64 token, URFDLB facelets or W/R/G/Y/O/B colours; spaces are
-    /// allowed and need no quoting. "-" reads stdin.
+    /// An Orbit64 token, URFDLB facelets, W/R/G/Y/O/B colours, or (when the
+    /// text is no cube) a move expression such as "(R U)*3" for a cube of
+    /// --size; spaces are allowed and need no quoting. "-" reads stdin.
     #[arg(num_args = 1.., required_unless_present = "scramble", conflicts_with = "scramble")]
     cube: Vec<String>,
     /// Solve the cube produced by this scramble instead
     #[arg(short, long)]
     scramble: Option<String>,
-    /// Cube size for --scramble (a cube given as text has its size already)
+    /// Cube size for --scramble or a move expression (a cube given as text has
+    /// its size already)
     #[arg(long, default_value_t = 3)]
     size: usize,
-    /// Colour scheme: boy, jp or six letters in URFDLB order
-    /// (default: read from the centres, boy without centres)
+    /// Colour scheme: boy, jp or six letters in URFDLB order (default for
+    /// reading colours: from the centres, boy without centres; for `convert
+    /// --to color`: the scheme the colours were read in, else boy)
     #[arg(long)]
     scheme: Option<ColourScheme>,
 }
@@ -89,7 +92,7 @@ enum Output {
     /// An Orbit64 state token
     Token,
     /// W/R/G/Y/O/B sticker letters in facelet order, written with --scheme
-    /// (default: boy, the western scheme)
+    /// (default: the scheme of colour input, else boy)
     #[value(name = "color", alias = "colour")]
     Colour,
 }
@@ -158,12 +161,16 @@ fn run(cli: Cli) -> Result<(), String> {
         Command::Solve(args) => solve(args),
         Command::Icon(args) => icons::run(args),
         Command::Convert(args) => {
-            let cube = read_cube(&args.input)?;
+            let (cube, detected) = read_input(&args.input)?;
             match args.to {
                 Output::Facelets => println!("{cube}"),
                 Output::Token => println!("{}", orbit64::encode(&cube).map_err(|e| e.to_string())?),
                 Output::Colour => {
-                    let scheme = args.input.scheme.unwrap_or(ColourScheme::WESTERN_BOY);
+                    let scheme = args
+                        .input
+                        .scheme
+                        .or(detected)
+                        .unwrap_or(ColourScheme::WESTERN_BOY);
                     println!("{}", scheme.paint(&cube));
                 }
             }
@@ -191,18 +198,30 @@ fn kind_of(size: usize) -> Result<PuzzleKind, String> {
     PuzzleKind::of_size(size).ok_or_else(|| format!("size must be between 2 and 7, not {size}"))
 }
 
-/// The solved cube of the given kind with a scramble applied.
-fn scrambled(text: &str, kind: PuzzleKind) -> Result<Facelets, String> {
-    let moves = parse_expression(text, kind)
-        .map_err(|error| format!("scramble is not valid move notation ({error})"))?;
+/// The solved cube of the given kind with a move expression applied; errors
+/// are the bare reason.
+fn expression_cube(text: &str, kind: PuzzleKind) -> Result<Facelets, String> {
+    let moves = parse_expression(text, kind).map_err(|error| error.to_string())?;
     Facelets::solved(kind)
         .apply(&moves)
         .map_err(|error| error.to_string())
 }
 
+/// The solved cube of the given kind with a scramble applied.
+fn scrambled(text: &str, kind: PuzzleKind) -> Result<Facelets, String> {
+    expression_cube(text, kind)
+        .map_err(|error| format!("scramble is not valid move notation ({error})"))
+}
+
 fn read_cube(input: &InputArgs) -> Result<Facelets, String> {
+    read_input(input).map(|(cube, _)| cube)
+}
+
+/// The cube, and the colour scheme its colours were written in when it was
+/// given as colours with centres to read it from.
+fn read_input(input: &InputArgs) -> Result<(Facelets, Option<ColourScheme>), String> {
     if let Some(scramble) = &input.scramble {
-        return scrambled(scramble, kind_of(input.size)?);
+        return Ok((scrambled(scramble, kind_of(input.size)?)?, None));
     }
     let text = match input.cube.as_slice() {
         [single] if single == "-" => {
@@ -214,13 +233,22 @@ fn read_cube(input: &InputArgs) -> Result<Facelets, String> {
         }
         parts => parts.join(" "),
     };
-    parse_cube(&text, input.scheme).or_else(|error| {
-        // Text that is no cube may be a move expression for a cube of --size.
-        match kind_of(input.size).map(|kind| scrambled(&text, kind)) {
-            Ok(Ok(cube)) if !text.trim().is_empty() => Ok(cube),
-            _ => Err(error.to_string()),
+    // Cube text always wins; only text that is no cube is tried as a move
+    // expression for a cube of --size.
+    match parse_cube(&text, input.scheme) {
+        Ok(cube) => Ok((cube, input.scheme.or_else(|| colour_scheme_of(&text)))),
+        Err(error) if text.trim().is_empty() => Err(error.to_string()),
+        Err(error) => {
+            let size = input.size;
+            let expression = kind_of(size).and_then(|kind| expression_cube(&text, kind));
+            match expression {
+                Ok(cube) => Ok((cube, None)),
+                Err(reason) => Err(format!(
+                    "not a cube ({error}) and not a move expression for a {size}x{size}x{size} ({reason})"
+                )),
+            }
         }
-    })
+    }
 }
 
 fn solve(args: SolveArgs) -> Result<(), String> {

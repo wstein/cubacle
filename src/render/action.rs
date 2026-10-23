@@ -72,16 +72,14 @@ impl FromStr for Action {
         let Some(axis) = axis else {
             return token.parse().map(Action::Layer);
         };
-        let turn = match chars.as_str() {
-            "" => Turn::Clockwise,
-            "2" => Turn::Half,
-            "'" => Turn::CounterClockwise,
-            _ => {
-                return Err(NotationError {
-                    token: token.to_owned(),
-                })
-            }
-        };
+        // The same suffixes as layer moves, but icons keep their stricter
+        // spelling of rotations: only "", "2" and "'" (no x3, x2').
+        let suffix = chars.as_str();
+        let turn = Turn::from_suffix(suffix)
+            .filter(|_| matches!(suffix, "" | "2" | "'"))
+            .ok_or_else(|| NotationError {
+                token: token.to_owned(),
+            })?;
         Ok(Action::Rotate { axis, turn })
     }
 }

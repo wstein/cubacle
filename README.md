@@ -79,7 +79,7 @@ A limit of 20 or 21 moves is recommended for the 3×3×3 (`SolveOptions::with_ma
 ## API overview
 
 - `puzzle`: `PuzzleKind`, `Facelets` (with `apply(&MoveSequence)`), `Move` and `MoveSequence` (parse with `str::parse`), the `Solver` trait, `SolveOptions`, `SolveResult` and `Failure`.
-- `notation`: `parse_cube` (Orbit64 tokens, facelets and colours), `ColourScheme`, the `orbit64` codec.
+- `notation`: `parse_cube` (Orbit64 tokens, facelets and colours), `parse_expression` (move expressions with `(...)*N`, `M E S` and `x y z`), `ColourScheme` (with `paint`), the `orbit64` codec.
 - `render`: `icon(&state, &action, &style)` draws a move as SVG, RGBA pixels, Kitty graphics or text; see the [move icons](docs/icons.md) page.
 - `generate`: `random_state(kind)` (a uniform 2×2×2, 3×3×3 or 5×5×5 state) and `scramble(kind, length)`.
 - `engines::three::Min2PhaseSolver`: the 3×3×3 `Solver`, plus

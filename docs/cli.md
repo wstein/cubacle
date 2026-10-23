@@ -254,7 +254,7 @@ cubacle convert A4ib8aejxj4Y
 FUFUUFFFFUUUURRURURRRFFRRFRBDBBDDBBBDLDDLLDDDLBLBBLLLL
 ```
 
-`--to` picks the output: `facelets` (default), `token` or `color`. `color` (also spelled `colour`) writes one W/R/G/Y/O/B letter per sticker, in the same order as the facelets output, through the colour scheme named by `--scheme` (default: `boy`, the western scheme, white up and yellow down). `--scheme western` is another name for `boy`; `jp` and six letters in URFDLB order work too. The text reads back with `convert --scheme <same>`.
+`--to` picks the output: `facelets` (default), `token` or `color`. `color` (also spelled `colour`) writes one W/R/G/Y/O/B letter per sticker, in the same order as the facelets output, through the colour scheme named by `--scheme` (default: the scheme the input colours were read in, else `boy`, the western scheme, white up and yellow down; so a Japanese-scheme colour cube with its centres converts back into Japanese letters, and tokens, facelets and scrambles come out western). `--scheme western` is another name for `boy`; `jp` and six letters in URFDLB order work too. The text reads back with `convert --scheme <same>`.
 
 ```sh
 cubacle convert A4ib8aejxj4Y --to color
@@ -315,7 +315,7 @@ A scramble is standard move notation with the moves separated by whitespace. Bes
 | `R3` | `R'` |
 | `R2'`, `R'2` | `R2` |
 
-Moves must be separated: a run such as `RUR'` and a lone `-` are rejected. A 3x3x3 whose centres a wide or inner-layer move has displaced cannot be solved; `solve` reports that instead of a wrong solution.
+Moves must be separated: a run such as `RUR'` and a lone `-` are rejected. A 3x3x3 whose centres a wide or inner-layer move has displaced cannot be solved; `solve` reports that instead of a wrong solution ("the centres have moved"). The same holds for a rotation (`x`, `y`, `z`): `cubacle solve -s x` on a 3x3x3 fails, while the 2x2x2 and 4x4x4, which have no fixed centres, solve such a cube (`cubacle solve --size 2 -s x` works).
 
 ### Repeated groups
 
@@ -336,7 +336,7 @@ UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB
 | `M`, `E`, `S` | The middle layer of an odd cube, turned like `L`, like `D` and like `F`. On a 3x3x3 `M` is `2L`; on a 7x7x7 it is `4L`. |
 | `x`, `y`, `z` | The whole cube turned like `R`, like `U` and like `F`. |
 
-All of them take `'`, `2` and the aliases above, and `*N`. An even cube (2x2x2, 4x4x4, 6x6x6) has no middle layer and refuses `M`, `E` and `S` with an error; `x`, `y` and `z` work on every size. Wide forms such as `Mw` and prefixed forms such as `2M` are not accepted. The expression is expanded into plain layer turns: a rotation becomes a wide turn of all layers but one plus the opposite outer face turned the same way round the axis, so `x` on a 3x3x3 is `2Rw L'`. The standard identities hold and are tested: `x = R M' L'`, `y = U E' D'`, `z = F S B'`.
+All of them take `'`, `2` and the aliases above, and `*N`. An even cube (2x2x2, 4x4x4, 6x6x6) has no middle layer and refuses `M`, `E` and `S` with an error; `x`, `y` and `z` work on every size. Wide forms such as `Mw` and prefixed forms such as `2M` are not accepted. The expression is expanded into plain layer turns: a rotation becomes a wide turn of all layers but one plus the opposite outer face turned the same way round the axis, so `x` on a 3x3x3 is `Rw L'` (`Rw` is the two layers on the right). The standard identities hold and are tested: `x = R M' L'`, `y = U E' D'`, `z = F S B'`.
 
 A rotation moves the centres, so the state after it is a rotated cube, not a solved-looking one: after `x` a solved 3x3x3 shows `F` on the up face.
 
@@ -356,7 +356,9 @@ cubacle facelets "M"
 UBUUBUUBURRRRRRRRRFUFFUFFUFDFDDFDDFDLLLLLLLLLBDBBDBBDB
 ```
 
-`facelets` and `--scramble` read the same notation. `convert` and `solve` also take an expression in place of a cube when the text is not a cube; `--size` picks the cube:
+`facelets` and `--scramble` read the same notation.
+
+For `convert` and `solve` the text is tried as a cube first (token, facelets, colours), and only when it is none of those as a move expression. So `U U U U R R R R F F F F D D D D L L L L B B B B` is read as the 2x2x2 facelets it spells, whereas `facelets` and `--scramble` always read a scramble: use `--scramble` when the text could be both. `--size` is not compared with the size of a cube given as text. When the text is neither, the error gives both reasons. `convert` and `solve` also take an expression in place of a cube when the text is not a cube; `--size` picks the cube:
 
 ```sh
 cubacle convert --size 3 "(R U)*6"

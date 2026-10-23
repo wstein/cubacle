@@ -1,4 +1,4 @@
-//! Move expressions (`(...)*N`, and later slices and rotations) on the command line.
+//! Move expressions (`(...)*N`, slices, rotations) and colour output on the command line.
 
 use std::process::Command;
 
@@ -13,6 +13,9 @@ fn cubacle(args: &[&str]) -> (bool, String, String) {
         String::from_utf8_lossy(&output.stderr).trim().to_owned(),
     )
 }
+
+/// `convert --size 7 "((M' U)*4 y' z')*3" --to color --scheme western`.
+const GOLDEN_7X7: &str = "WWWBWWWWWWBWWWWWWBWWWOWWWWWRWWWBWWWWWWBWWWWWWGWWWRRRWRRRRRRWRRRRRRWRRRGBBRBBBRRRWRRRRRRWRRRRRRYRRRGGGWGGGGGGGGGGGGGGGGGORRGRRRGGGGGGGGGGGGGGGGGYGGGYYYGYYYYYYGYYYYYYGYYYORRYRRRYYYGYYYYYYGYYYYYYBYYYOOOWOOOOOOYOOOOOOYOOOBOOOOOGOOOYOOOOOOYOOOOOOYOOOBBBWBBBBBBYBBBBBBYBBBROOBOOOBBBYBBBBBBYBBBBBBYBBB";
 
 #[test]
 fn facelets_expands_repeated_groups() {
@@ -115,6 +118,7 @@ fn colours_cover_the_expression_on_a_7x7_and_survive_a_round_trip() {
     ]);
     assert!(ok, "{error}");
     assert_eq!(colours.len(), 6 * 49);
+    assert_eq!(colours, GOLDEN_7X7);
     assert!(colours.chars().all(|c| "WRGYOB".contains(c)));
     let (ok, facelets, _) = cubacle(&args);
     assert!(ok);
@@ -131,4 +135,47 @@ fn a_broken_expression_is_reported() {
     let (ok, _, error) = cubacle(&["facelets", "(R U)*0"]);
     assert!(!ok);
     assert!(error.contains("'*'"), "{error}");
+}
+
+#[test]
+fn both_reasons_are_given_when_text_is_neither_cube_nor_expression() {
+    for (args, expression_reason) in [
+        (vec!["convert", "--size", "4", "M"], "middle layer"),
+        (vec!["convert", "(R U)*0"], "'*'"),
+        (vec!["convert", "--size", "9", "R"], "size must be between"),
+    ] {
+        let (ok, _, error) = cubacle(&args);
+        assert!(!ok);
+        assert!(error.contains("not a cube"), "{error}");
+        assert!(error.contains(expression_reason), "{error}");
+    }
+}
+
+#[test]
+fn cube_text_wins_over_an_expression_and_scramble_is_the_unambiguous_form() {
+    let text = "U U U U R R R R F F F F D D D D L L L L B B B B";
+    let (ok, as_cube, _) = cubacle(&["convert", text]);
+    assert!(ok);
+    assert_eq!(as_cube, "UUUURRRRFFFFDDDDLLLLBBBB");
+    let (ok, as_scramble, _) = cubacle(&["convert", "--scramble", text]);
+    assert!(!ok || as_scramble != as_cube);
+}
+
+#[test]
+fn colours_default_to_the_scheme_they_were_read_in() {
+    let japanese = "WWWWWWWWWRRRRRRRRRGGGGGGGGGBBBBBBBBBOOOOOOOOOYYYYYYYYY";
+    let (ok, out, _) = cubacle(&["convert", japanese, "--to", "color"]);
+    assert!(ok);
+    assert_eq!(out, japanese);
+    let (ok, out, _) = cubacle(&["convert", japanese, "--to", "color", "--scheme", "boy"]);
+    assert!(!ok || out != japanese);
+}
+
+#[test]
+fn a_3x3_with_moved_centres_cannot_be_solved_but_a_2x2_can() {
+    let (ok, _, error) = cubacle(&["solve", "-s", "x"]);
+    assert!(!ok);
+    assert!(error.contains("centres have moved"), "{error}");
+    let (ok, _, error) = cubacle(&["solve", "--size", "2", "-s", "x"]);
+    assert!(ok, "{error}");
 }
