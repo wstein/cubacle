@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use clap::{Args, ValueEnum};
 use cubacle::notation::ColourScheme;
 use cubacle::puzzle::{Facelets, MoveSequence, PuzzleKind};
-use cubacle::render::{icon, Action, Icon, KittyPlacement, Palette, Rgb, Shading, Style};
+use cubacle::render::{icon, Action, Backdrop, Icon, KittyPlacement, Palette, Rgb, Shading, Style};
 
 #[derive(Clone, Copy, PartialEq, Eq, ValueEnum)]
 pub enum Format {
@@ -23,6 +23,32 @@ pub enum Format {
     Kitty,
     /// Letters; coloured when the terminal supports it
     Text,
+}
+
+/// What the icon will be seen on.
+#[derive(Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub enum Background {
+    /// Dark backdrop: light notation, resting pieces dimmed to 25 %
+    Dark,
+    /// Light backdrop: dark notation, resting pieces dimmed to 40 %
+    Light,
+}
+
+impl Background {
+    fn backdrop(self) -> Backdrop {
+        match self {
+            Background::Dark => Backdrop::Dark,
+            Background::Light => Backdrop::Light,
+        }
+    }
+
+    /// The solid colour `--opaque` paints behind the icon.
+    fn opaque(self) -> Rgb {
+        match self {
+            Background::Dark => Rgb(0x20, 0x24, 0x2b),
+            Background::Light => Rgb(0xff, 0xff, 0xff),
+        }
+    }
 }
 
 #[derive(Args)]
@@ -51,8 +77,13 @@ pub struct IconArgs {
     /// Show the moving layer grey instead of darkening the rest
     #[arg(long)]
     grey: bool,
-    /// Give Kitty graphics an opaque dark background (default: transparent,
-    /// so the icon takes the colours of the terminal)
+    /// The backdrop the icon is seen on: it sets the colour of the notation and
+    /// how strongly the pieces that do not turn are dimmed
+    #[arg(long, value_enum, default_value = "dark")]
+    background: Background,
+    /// Paint a solid background of the --background colour behind SVG, RGBA
+    /// and Kitty graphics (default: transparent, so the icon takes the colours
+    /// of the terminal or page)
     #[arg(long)]
     opaque: bool,
     /// Draw each move on the cube left by the moves before it (default: each
@@ -95,15 +126,12 @@ fn detect_stdout() -> Graphics {
     })
 }
 
-/// The backdrop of `--opaque` terminal graphics.
-const TERMINAL_BACKGROUND: Rgb = Rgb(0x20, 0x24, 0x2b);
-
 /// The icon height that keeps stickers readable: 32 pixels per cube layer, at least 96.
 fn default_height(cube: usize) -> u32 {
     (32 * u32::try_from(cube).unwrap_or(7)).max(96)
 }
 
-fn style(scheme: Option<ColourScheme>, size: u32, grey: bool) -> Style {
+fn style(scheme: Option<ColourScheme>, size: u32, grey: bool, background: Background) -> Style {
     Style {
         palette: Palette::from_letters(scheme.unwrap_or(ColourScheme::WESTERN_BOY).letters()),
         shading: if grey {
@@ -112,6 +140,7 @@ fn style(scheme: Option<ColourScheme>, size: u32, grey: bool) -> Style {
             Shading::DimRest
         },
         size,
+        backdrop: background.backdrop(),
         ..Style::default()
     }
 }
@@ -161,7 +190,7 @@ pub fn run(args: IconArgs) -> Result<(), String> {
         })
         .collect::<Result<_, _>>()?;
     let height = args.size.unwrap_or_else(|| default_height(args.cube));
-    let mut style = style(args.scheme, height, args.grey);
+    let mut style = style(args.scheme, height, args.grey, args.background);
     let to_stdout = args.out.is_none();
     let terminal = std::io::stdout().is_terminal();
     let graphics = if to_stdout {
@@ -175,8 +204,8 @@ pub fn run(args: IconArgs) -> Result<(), String> {
         (Format::Auto, None) => Format::Text,
         (other, _) => other,
     };
-    if format == Format::Kitty && args.opaque {
-        style.background = Some(TERMINAL_BACKGROUND);
+    if args.opaque && matches!(format, Format::Kitty | Format::Svg | Format::Rgba) {
+        style.background = Some(args.background.opaque());
     }
     if matches!(format, Format::Svg | Format::Rgba) && actions.len() != 1 {
         return Err("svg and rgba hold one icon; give one move or use --format text".into());
@@ -237,10 +266,11 @@ pub fn print_solution(
     solution: &MoveSequence,
     scheme: Option<ColourScheme>,
     height: Option<u32>,
+    background: Background,
 ) -> Result<(), String> {
     let graphics = detect_stdout();
     let height = height.unwrap_or_else(|| default_height(start.kind().size()));
-    let style = style(scheme, height, false);
+    let style = style(scheme, height, false, background);
     let mut state = start.clone();
     let total = solution.len();
     let mut out = String::new();

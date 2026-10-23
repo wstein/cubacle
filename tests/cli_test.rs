@@ -508,6 +508,36 @@ fn solve_always_reports_the_move_count() {
 }
 
 #[test]
+fn icon_background_sets_the_notation_colour_and_opaque_paints_it() {
+    let svg = |extra: &[&str]| {
+        let mut args = vec!["icon", "R", "--format", "svg"];
+        args.extend_from_slice(extra);
+        let (ok, out, err) = cubacle(&args);
+        assert!(ok, "{err}");
+        out
+    };
+    let (dark, light) = (svg(&[]), svg(&["--background", "light"]));
+    assert_eq!(dark, svg(&["--background", "dark"]), "dark is the default");
+    assert!(dark.contains("#f4f4f4") && !dark.contains("<rect"));
+    assert!(light.contains("#14161a") && !light.contains("#f4f4f4"));
+    assert!(
+        svg(&["--opaque"]).contains("<rect width=\"114.00\" height=\"109.20\" fill=\"#20242b\"/>")
+    );
+    assert!(svg(&["--opaque", "--background", "light"]).contains("fill=\"#ffffff\"/>"));
+    let (ok, _, err) = cubacle(&["icon", "R", "--background", "grey"]);
+    assert!(!ok && err.contains("invalid value"), "{err}");
+}
+
+#[test]
+fn solve_icons_takes_a_background_and_plain_solve_does_not() {
+    let (ok, out, err) = cubacle(&["solve", "-s", "R U", "--icons", "--background", "light"]);
+    assert!(ok, "{err}");
+    assert!(out.contains("step 1 of "));
+    let (ok, _, err) = cubacle(&["solve", "-s", "R U", "--background", "light"]);
+    assert!(!ok && err.contains("--icons"), "{err}");
+}
+
+#[test]
 fn icons_of_larger_cubes_are_drawn_larger() {
     let bytes = |cube: &str| {
         Command::new(env!("CARGO_BIN_EXE_cubacle"))

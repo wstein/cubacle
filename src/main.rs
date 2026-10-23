@@ -126,6 +126,9 @@ struct SolveArgs {
     /// Icon height in pixels for --icons (default: 32 per cube layer, at least 96)
     #[arg(long, requires = "icons", value_name = "PIXELS")]
     icon_size: Option<u32>,
+    /// What the --icons pictures are seen on: sets the notation colour and the dimming
+    #[arg(long, requires = "icons", value_enum, default_value = "dark")]
+    background: icons::Background,
 }
 
 fn main() -> ExitCode {
@@ -287,6 +290,7 @@ fn solve(args: SolveArgs) -> Result<(), String> {
                     &solution,
                     args.input.scheme,
                     args.icon_size,
+                    args.background,
                 );
             }
             println!("{solution}");
