@@ -38,7 +38,7 @@ use cubacle::engines::three::Min2PhaseSolver;
 use cubacle::engines::two::PocketSolver;
 use cubacle::generate;
 use cubacle::notation::orbit64;
-use cubacle::notation::{parse_cube, ColourScheme};
+use cubacle::notation::{parse_cube, ColourScheme, Notation};
 use cubacle::puzzle::{Facelets, Failure, PuzzleKind, SolveOptions, Solver};
 use serde::{Deserialize, Serialize};
 use tokio::sync::Semaphore;
@@ -317,6 +317,8 @@ async fn health() -> Json<Health> {
 struct ScrambleParams {
     moves: Option<u16>,
     size: Option<usize>,
+    /// `wca` (default) or `sign`.
+    notation: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -332,10 +334,17 @@ async fn scramble(
     if !(1..=200).contains(&moves) {
         return Err(ApiError::bad_input("moves must be between 1 and 200"));
     }
+    let notation = read_notation(params.notation.as_deref())?;
     let kind = engine_kind(params.size.unwrap_or(3))?;
     Ok(Json(ScrambleBody {
-        scramble: generate::scramble(kind, usize::from(moves)).to_string(),
+        scramble: notation.write(&generate::scramble(kind, usize::from(moves))),
     }))
+}
+
+/// The `notation` field of a request: `wca` when absent.
+fn read_notation(text: Option<&str>) -> Result<Notation, ApiError> {
+    text.map_or(Ok(Notation::Wca), str::parse)
+        .map_err(ApiError::bad_input)
 }
 
 /// The cube size of a request, if an engine (and so a generator) exists for it.
@@ -401,6 +410,8 @@ struct SolveRequest {
     /// Allow single inner layers (`2R`) in 4x4x4 and 5x5x5 answers.
     #[serde(default)]
     slices: bool,
+    /// How the solution is written: `wca` (default) or `sign`.
+    notation: Option<String>,
 }
 
 /// Requires `Content-Type: application/json`. Without this a web page could
@@ -481,6 +492,7 @@ async fn solve(
     body: Result<Bytes, BytesRejection>,
 ) -> ApiResult<SolveBody> {
     let request: SolveRequest = read_body(&headers, body)?;
+    let notation = read_notation(request.notation.as_deref())?;
     let facelets = read_cube(&request.cube, request.scheme.as_deref())?;
     let kind = facelets.kind();
     engine_kind(kind.size())?;
@@ -600,7 +612,7 @@ async fn solve(
     match &result.outcome {
         Ok(solution) => Ok(Json(SolveBody {
             kind: kind_name(kind),
-            solution: solution.to_string(),
+            solution: notation.write(solution),
             length: solution.len(),
             elapsed_micros: u64::try_from(result.metrics.elapsed.as_micros()).unwrap_or(u64::MAX),
         })),
