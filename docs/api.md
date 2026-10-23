@@ -33,8 +33,8 @@ The server binds to the local machine by default. It has no authentication, so d
 | `GET /health` | None | `{"status":"ok"}` |
 | `GET /v1/scramble?moves=25&size=3` | `moves`: 1 to 200; `size`: 2 to 7; `notation`?: `wca` or `sign` | `{"scramble":"U' L2 F2 D U2"}` |
 | `GET /v1/random?size=3` | `size`: 2 to 7 (only 2 to 5 have engines) | `{"kind":"2x2x2","facelets":"...","token":"..."}` |
-| `POST /v1/convert` | `{"cube","scheme"?}` | `{"kind","facelets","token"?}` |
-| `POST /v1/solve` | `{"cube","scheme"?,"maxMoves"?,"budgetMs"?,"minProbes"?,"improve"?,"slices"?,"notation"?,"optimise"?}` | `{"kind","solution","length","compressed"?,"compressedLength"?,"elapsedMicros"}` |
+| `POST /v1/convert` | `{"cube" or "scramble","size"?,"scheme"?}` | `{"kind","facelets","token"?}` |
+| `POST /v1/solve` | `{"cube" or "scramble","size"?,"scheme"?,"maxMoves"?,"budgetMs"?,"minProbes"?,"improve"?,"slices"?,"notation"?,"optimise"?}` | `{"kind","solution","length","compressed"?,"compressedLength"?,"elapsedMicros"}` |
 
 For `POST` requests, send the header `Content-Type: application/json`.
 
@@ -56,7 +56,7 @@ Other sizes answer 400 to `minProbes` and `improve`.
 
 Unknown fields are rejected with a 400 error.
 
-The server reads no move strings today (the cube is sent as a token, facelets or colours), so SiGN input has no field to go into; `notation` only chooses how moves are written. The answer has the same moves and the same `length` in both.
+Instead of `cube`, `/v1/convert` and `/v1/solve` take a `scramble`: moves in WCA or SiGN spelling, with layer ranges (`2-3r`), groups (`(R U)3`, `(R U)'`, `(R U)*3`) and commutators and conjugates (`[A, B]`, `[A: B]`), exactly as the command line reads them (see [Move notations](cli.md#move-notations)). `size` (2 to 7, default 3) says which cube the scramble is applied to. Send `cube` or `scramble`, not both; `size` goes only with `scramble` and `scheme` only with `cube`. A scramble that does not parse is a 400 whose message names the character, such as `scramble: character 7: a [ ] has one comma or colon; nest another [ ] for more`. `notation` chooses how the answer is written; it has the same moves and the same `length` in both.
 
 ### Examples
 

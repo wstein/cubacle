@@ -205,7 +205,8 @@ Moves now: R2 D' R U' Fw D2 Fw B2 U2 F2 Dw' D2 F' Dw2 L B' R L' Bw2 Rw2 F' Bw2 R
 | Option | Meaning |
 | --- | --- |
 | `--now <CUBE>` | The cube as it is now, an Orbit64 token, facelets or colours (quote it when it has spaces). Required. |
-| `--solution <MOVES>` | The solution the person followed. Default: the one `solve` prints for the original cube. |
+| `--solution <MOVES>` | The solution the person followed, in WCA or SiGN, groups and ranges allowed (see [Move notations](#move-notations)). Default: the one `solve` prints for the original cube. |
+| `--notation <wca\|sign>` | How the moves in the explanation and in `Moves now:` are written. Default `wca`. |
 | `--fresh` | Skip the search and print the solution of the current cube. |
 | `--depth <N>` | Moves the search for a way back onto the path may use, 0 to 5 (default 3). Measured on a 7x7x7: 3 adds about 20 ms per orientation, 4 makes the whole search take 3 to 5 s, 5 reaches the default time limit and holds about 70 MB. Turned cubes are searched at depth 3 at most. |
 | `--strays <N>` | Stray moves after a mistake the search allows, 0 to 3 (default 2; one for solutions under 16 moves). |
@@ -407,6 +408,26 @@ cubacle facelets "(R U R' U')*6"
 UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB
 ```
 
+After a group, `*N` or a bare `N` repeats it N times and `'` inverts it (the moves in reverse order, each inverted); both can be given, in either order: `(R U)3`, `(R U)'`, `(R U)2'` (inverse of two repeats). After a single move only `*N` repeats (`R2` stays a half turn). Run in this build:
+
+```sh
+cubacle facelets "(R U)2'"
+cubacle facelets "U' R' U' R'"
+```
+
+print the same cube twice.
+
+### Commutators and conjugates
+
+`[A, B]` is the commutator `A B A' B'` and `[A: B]` the conjugate `A B A'`. `A` and `B` are any expressions (groups, rotations, slices, ranges and further brackets, nested up to 100 deep) and may be written with or without spaces; a bracket can take the same suffixes as a group (`[R, U]2`, `[R, U]'`). Each bracket has exactly one `,` or `:`; use a nested bracket for more. Both sides must hold moves. The 100000-move limit counts the expanded moves, so `[(R U)*40000, F]` is refused.
+
+```sh
+cubacle facelets "[R U: F]" # is R U F U' R'
+cubacle facelets "R U F U' R'"
+```
+
+Errors name the character (counted from 0) where the problem starts: `R [U, F, D]` fails at character 7, an unclosed `[` at its own position, and a layer the cube lacks (`2-3r` on a 3x3x3) at the start of the word.
+
 ### Middle slices and whole-cube rotations
 
 | Written | Meaning |
@@ -477,7 +498,15 @@ Every command that reads moves (`solve --scramble`, `facelets`, `convert --scram
 
 A turn ends in nothing (clockwise), `2` or `'`, as before (`3r2`, `u'`). The notations agree on every uppercase spelling and WCA has no lowercase one on big cubes, so no spelling has two meanings and nothing needs a tie-break. If a spelling ever did differ between the two, WCA would win; today none does. Mixed input such as `R u 3Rw 2R` is therefore read as it stands. Output in SiGN writes `u` for the two-layer turn (SiGN omits the 2) and `3u` for three.
 
-Rejected, with the token in the message: `rw` and `3rw` (a lowercase letter already means a wide turn), `1r` and `0r`, a turn count after the letter that is not 2 or a quote, and layer ranges such as `2-3r` (SiGN writes layers 2 to 3 so; the move type has no turn that skips the outer layer and is wide). The face letters are `U R F D L B`; the whole-cube rotations `x y z` stay icon-only.
+#### Layer ranges
+
+SiGN writes the layers a to b of a face as `a-b` before the letter: `2-3r` is the second and third layer from the right, `2-4l2` a half turn of layers 2 to 4 from the left, `1-3r` is `3r`, and `2-2r` is `2R`. A range is expanded when it is read into plain moves, the outer b layers turned together and the outer a-1 layers turned back, so the engines and the move count never see it: `2-3r` is `3Rw R'`, `3-5r` is `5Rw Rw'`, `2-4l2` is `4Lw2 L2`. Layers are counted from the face named, and a is not larger than b. As an extension of this program, which neither source has, the range may be written with `Rw` instead of the lowercase letter: `2-3Rw2` equals `2-3r2`. The tests turn every range of every size from the 2x2x2 to the 7x7x7 and compare it with turning the same layers one by one.
+
+Rejected, with the token in the message: `rw` and `3rw` (a lowercase letter already means a wide turn), `1r` and `0r`, a turn count after the letter that is not 2 or a quote, and ranges that run backwards (`3-2r`), start at 0 (`0-2r`), lack a letter (`2-3`), use a capital without `w` (`2-3R`) or reach a layer the cube lacks. The face letters are `U R F D L B`; the whole-cube rotations `x y z` and the slices `M E S` are read in expressions and by `icon`.
+
+#### Where moves are read and written
+
+Moves are read as WCA or SiGN, with groups, commutators and ranges, by `solve --scramble`, `convert --scramble` and `facelets`, by `repair --solution`, by `icon` (its moves and `--from`), and by the `scramble` field of the REST API. Moves are written in either notation by `--notation wca|sign` on `solve` (the solution, the `--icons` step lines and the last line; the icon pictures keep WCA letters), `scramble` and `repair` (every move in the explanation and in `Moves now:`).
 
 ```sh
 cubacle facelets "r U f'"
