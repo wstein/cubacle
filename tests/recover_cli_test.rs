@@ -40,8 +40,6 @@ fn a_given_solution_is_followed_and_the_shorter_route_wins() {
         NOW,
         "--solution",
         solution,
-        "--strays",
-        "0",
         "--depth",
         "0",
         "--one-mistake",

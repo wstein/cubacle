@@ -174,7 +174,6 @@ impl Plan {
             Finding::Mistakes {
                 mistakes,
                 done,
-                strays,
                 alternatives,
             } => {
                 writeln!(f, "Your cube is off the path of the solution.")?;
@@ -193,16 +192,7 @@ impl Plan {
                         writeln!(f, "  {}. {}.", i + 1, describe(m, w))?;
                     }
                 }
-                if strays.is_empty() {
-                    writeln!(f, "You had done {done} of {n} steps when you stopped.")?;
-                } else {
-                    let list = words(&strays.iter().copied().collect(), w);
-                    writeln!(
-                        f,
-                        "You had done {done} of {n} steps, then made {} ({list}).",
-                        plural(strays.len(), "stray move")
-                    )?;
-                }
+                writeln!(f, "You had done {done} of {n} steps when you stopped.")?;
                 if *alternatives > 0 {
                     writeln!(
                         f,
@@ -219,7 +209,7 @@ impl Plan {
             )?,
             Finding::Unexplained => writeln!(
                 f,
-                "Your cube is off the path of the solution, and no simple cause was found (three or more mistakes, or more stray moves than the search covers)."
+                "Your cube is off the path of the solution, and no simple cause was found (three or more mistakes)."
             )?,
         }
         if d.timed_out {

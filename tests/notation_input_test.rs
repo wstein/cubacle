@@ -92,8 +92,6 @@ fn recover_reads_an_expression_solution_and_takes_a_notation() {
             "--notation",
             notation,
             "--one-mistake",
-            "--strays",
-            "0",
             "--depth",
             "0",
         ])

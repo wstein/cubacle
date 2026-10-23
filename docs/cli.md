@@ -164,14 +164,14 @@ Then continue with step 7 (B2) of the printed solution.
 The output says one of these things.
 
 - **The cube is on the path**: `you are after step j of n`, and which step comes next.
-- **One or two mistakes explain the cube**: the step and the printed move, and what was done instead: the step *skipped*, turned by the *wrong amount* (a quarter instead of a half turn or the reverse), the *wrong way*, in *other layers* (`Fw2` for `3Fw2`), on the *wrong face*, *replaced* by some other move, *done twice*, *swapped* with the next step, or an *extra move* made before it. It also says how many steps were done when the cube was entered, and up to two *stray moves* made after them. When moves that commute give several equal explanations, the earliest step is shown and the number of the others is printed.
+- **One or two mistakes explain the cube**: the step and the printed move, and what was done instead: the step *skipped*, turned by the *wrong amount* (a quarter instead of a half turn or the reverse), the *wrong way*, in *other layers* (`Fw2` for `3Fw2`), on the *wrong face*, *replaced* by some other move, *done twice*, *swapped* with the next step, or an *extra move* made before it. It also says how many steps were done when the cube was entered. When moves that commute give several equal explanations, the earliest step is shown and the number of the others is printed.
 - **The cube is a few moves away from the path**, but no mistake is named.
-- **Nothing was found** (three or more mistakes, or more stray moves than the search covers): the fresh solution is printed.
+- **Nothing was found** (three or more mistakes, or moves done by hand after the mistake): the fresh solution is printed.
 
 Then two ways forward are compared: the *recover* (the moves that bring the cube back onto the printed path, followed by the rest of the printed solution) and a *fresh* solution of the cube as it is, which runs beside the search. The recover is either `undo N moves` (the inverse of what was done since the mistake) or a shorter correction found by a search of up to `--depth` moves (default 3) from the cube to any cube of the printed path. The shorter total wins, a tie goes to the recover, and a recover is never recommended when it is longer than the fresh solution. The chosen moves follow `Moves now:` in the notation of `solve`. With `--solution` of the same 3x3x3 and the search limited to undoing, the fresh solution wins:
 
 ```sh
-cubacle recover -s "R U2 F' D L2 B R' U' F2 D2 L B'" --now FDDRURLDBRDBLRFFDUUBUUFBLBLBRDFDFBUFRUFULLDRURLDLBFRBL --solution "B L' U2 B2 D' U2 B2 D2 U' F2 D U' R2 U' R' B' L2 D' F U2 R'" --one-mistake --strays 0 --depth 0
+cubacle recover -s "R U2 F' D L2 B R' U' F2 D2 L B'" --now FDDRURLDBRDBLRFFDUUBUUFBLBLBRDFDFBUFRUFULLDRURLDLBFRBL --solution "B L' U2 B2 D' U2 B2 D2 U' F2 D U' R2 U' R' B' L2 D' F U2 R'" --one-mistake --depth 0
 ```
 
 ```text
@@ -209,8 +209,7 @@ Moves now: R2 D' R U' Fw D2 Fw B2 U2 F2 Dw' D2 F' Dw2 L B' R L' Bw2 Rw2 F' Bw2 R
 | `--notation <wca\|sign>` | How the moves in the explanation and in `Moves now:` are written. Default `wca`. |
 | `--fresh` | Skip the search and print the solution of the current cube. |
 | `--depth <N>` | Moves the search for a way back onto the path may use, 0 to 5 (default 3). Measured on a 7x7x7: 3 adds about 20 ms per orientation, 4 makes the whole search take 3 to 5 s, 5 reaches the default time limit and holds about 70 MB. Turned cubes are searched at depth 3 at most. |
-| `--strays <N>` | Stray moves after a mistake the search allows, 0 to 3 (default 2; one for solutions under 16 moves). |
-| `--one-mistake` | Look for one mistake (and its stray moves) only. The default also looks for two. |
+| `--one-mistake` | Look for one mistake only. The default also looks for two. |
 | `--thorough` | For two mistakes, try every move instead of it and every extra move. Slow on big cubes (it does not finish within the default time limit on a 7x7x7). |
 | `--max-time <MS>` | Time limit of the search in milliseconds, 0 for none (default 8000). The result then says that the search stopped at its time limit. |
 | `-v`, `--verbose` | Print the time of the solve, the fresh solve and the search to standard error. |

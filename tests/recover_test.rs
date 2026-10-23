@@ -163,24 +163,6 @@ fn every_kind_of_mistake_is_named_and_recovered() {
 }
 
 #[test]
-fn stray_moves_after_the_last_step_are_found() {
-    let (original, solution) = setup(4, 20, 99);
-    let mut done = solution[..8].to_vec();
-    done.push(Move::new(Face::R, 1, false, Turn::Clockwise));
-    done.push(Move::new(Face::U, 2, true, Turn::Half));
-    let current = run(&original, &done);
-    let d = diagnose(&original, &current, &seq(&solution), &limits()).unwrap();
-    assert!(
-        !matches!(d.finding, Finding::Unexplained),
-        "{:?}",
-        d.finding
-    );
-    assert_recovers(&d, &current, &solution);
-    let shortest = d.routes.iter().map(|r| r.moves.len()).min().unwrap();
-    assert!(shortest <= 2);
-}
-
-#[test]
 fn two_mistakes_are_found_when_asked_for() {
     let (original, solution) = setup(3, 22, 5);
     let mut done = go_wrong(&solution, 4, 9, "amount");
@@ -188,11 +170,7 @@ fn two_mistakes_are_found_when_asked_for() {
     done.extend_from_slice(&solution[9..12]);
     done.extend_from_slice(&solution[13..15]);
     let current = run(&original, &done);
-    // Stray moves would explain this cube as well; ask for mistakes only.
-    let two = Limits {
-        strays: 0,
-        ..limits()
-    };
+    let two = limits();
     let d = diagnose(&original, &current, &seq(&solution), &two).unwrap();
     match &d.finding {
         Finding::Mistakes { mistakes, .. } => assert_eq!(mistakes.len(), 2, "{mistakes:?}"),
@@ -202,7 +180,6 @@ fn two_mistakes_are_found_when_asked_for() {
     let one = Limits {
         two_mistakes: false,
         resume_depth: 1,
-        strays: 0,
         ..limits()
     };
     let d = diagnose(&original, &current, &seq(&solution), &one).unwrap();
@@ -293,32 +270,4 @@ fn locate_finds_the_exact_position_only() {
         cubacle::recover::locate(&original, &off, &seq(&solution)),
         Ok(None)
     );
-}
-
-#[test]
-fn a_mistake_followed_by_stray_moves_is_found() {
-    for size in [3, 5] {
-        let (original, solution) = setup(size, 30, 77 + size as u64);
-        let mut done = go_wrong(&solution, 10, 16, "skip");
-        done.push(Move::new(Face::R, 1, false, Turn::Clockwise));
-        done.push(Move::new(Face::D, 1, false, Turn::Half));
-        let current = run(&original, &done);
-        let d = diagnose(&original, &current, &seq(&solution), &limits()).unwrap();
-        let Finding::Mistakes {
-            mistakes, strays, ..
-        } = &d.finding
-        else {
-            panic!("{size}x{size}: {:?}", d.finding);
-        };
-        assert_eq!(mistakes.len(), 1);
-        assert!(mistakes[0].step <= 11, "{:?}", mistakes[0]);
-        assert!(strays.len() <= 2);
-        assert_recovers(&d, &current, &solution);
-        let none = Limits {
-            strays: 0,
-            ..limits()
-        };
-        let d = diagnose(&original, &current, &seq(&solution), &none).unwrap();
-        assert!(!matches!(&d.finding, Finding::Mistakes { strays, .. } if !strays.is_empty()));
-    }
 }

@@ -36,10 +36,6 @@ pub struct Limits {
     /// The most moves the search for a way back onto the path may use
     /// (0 to 5; 3 takes milliseconds, 5 seconds and about 130 MB on a 7x7x7).
     pub resume_depth: usize,
-    /// The most stray moves after one mistake (0 to 3; 2 takes a fraction of a
-    /// second on a 7x7x7). Short solutions use at most one, because on a 2x2x2
-    /// more would explain cubes by chance.
-    pub strays: usize,
     /// Also look for two mistakes (with the likely kinds only).
     pub two_mistakes: bool,
     /// For two mistakes, try every move and every extra move too: slow and
@@ -53,7 +49,6 @@ impl Default for Limits {
     fn default() -> Limits {
         Limits {
             resume_depth: 3,
-            strays: 2,
             two_mistakes: true,
             thorough: false,
             max_time: Some(Duration::from_secs(8)),
@@ -135,8 +130,6 @@ pub enum Finding {
     Mistakes {
         mistakes: Vec<Mistake>,
         done: usize,
-        /// Stray moves made after those `done` steps (up to two).
-        strays: Vec<Move>,
         alternatives: usize,
     },
     /// No simple explanation, but the cube is `away` moves from the cube after
@@ -328,13 +321,6 @@ impl Context<'_> {
         }
         let fix = resume::search(&frame, depth);
         let mut explained = search::single(&frame, &self.any);
-        if explained.is_none() && self.limits.strays > 0 {
-            let strays = self
-                .limits
-                .strays
-                .min(if self.printed.len() < 16 { 1 } else { 3 });
-            explained = search::with_strays(&frame, &self.likely, strays);
-        }
         if explained.is_none() && with_double && self.limits.two_mistakes {
             explained = self.double(&frame);
         }
@@ -397,7 +383,6 @@ impl Context<'_> {
             finding = Finding::Mistakes {
                 mistakes: e.mistakes.clone(),
                 done: e.done,
-                strays: e.strays.iter().map(|&id| self.perms.mv(id)).collect(),
                 alternatives: e.alternatives,
             };
             routes.push(self.route(&self.perms.undo_of(&e.performed), e.branch, true));

@@ -94,27 +94,11 @@ fn two_mistakes_on_the_way_are_both_named() {
 }
 
 #[test]
-fn a_wrong_amount_and_two_stray_moves_are_recovered_in_three_moves() {
+fn moves_done_by_hand_after_a_mistake_are_not_explained() {
+    // Both cubes were fiddled with after the mistake (two and one extra moves).
     let plan = plan_of("8-9");
-    let Finding::Mistakes {
-        mistakes, strays, ..
-    } = &plan.diagnosis.finding
-    else {
-        panic!("{:?}", plan.diagnosis.finding);
-    };
-    assert_eq!(mistakes[0].step, 25);
-    assert!(matches!(mistakes[0].kind, MistakeKind::WrongAmount { .. }));
-    assert_eq!(strays.len(), 2);
-    let Advice::Recover(route) = &plan.advice else {
-        panic!("{:?}", plan.advice);
-    };
-    assert_eq!(route.moves.len(), 3);
-    assert!(plan.to_string().contains("Recommended: recover"));
-}
-
-#[test]
-fn a_skipped_move_with_a_stray_move_is_recovered_when_that_is_shorter() {
+    assert_eq!(plan.diagnosis.finding, Finding::Near { done: 25, away: 3 });
     let plan = plan_of("12-13");
-    assert_eq!(mistake_steps(&plan), [54]);
-    assert!(matches!(plan.advice, Advice::Recover(_)), "{plan}");
+    assert_eq!(plan.diagnosis.finding, Finding::Unexplained);
+    assert_eq!(plan.advice, Advice::Fresh, "{plan}");
 }
