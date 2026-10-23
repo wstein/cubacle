@@ -12,7 +12,7 @@ use std::borrow::Cow;
 use std::fmt;
 use std::str::FromStr;
 
-use crate::puzzle::{Move, MoveSequence, Turn};
+use crate::puzzle::{Move, MoveSequence, PuzzleKind, Turn};
 
 /// How moves are written out.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -22,6 +22,8 @@ pub enum Notation {
     Wca,
     /// `r`, `3r`, `2R`.
     Sign,
+    /// Superset ENG: `TR`, `T3R`, `NL`, `MR`, `N2-4R`, see [`super::sse_write`].
+    Sse,
 }
 
 impl FromStr for Notation {
@@ -31,14 +33,19 @@ impl FromStr for Notation {
         match text {
             "wca" => Ok(Notation::Wca),
             "sign" => Ok(Notation::Sign),
-            _ => Err(format!("notation must be wca or sign, not {text:?}")),
+            "sse" => Ok(Notation::Sse),
+            _ => Err(format!("notation must be wca, sign or sse, not {text:?}")),
         }
     }
 }
 
 impl Notation {
-    /// One move in this notation.
-    pub fn write_move(self, mv: &Move) -> String {
+    /// One move in this notation, on a cube of the given kind (SSE spells a
+    /// layer by its place on the cube; WCA and SiGN do not need the size).
+    pub fn write_move(self, kind: PuzzleKind, mv: &Move) -> String {
+        if self == Notation::Sse {
+            return super::sse_write::write_move(kind, mv);
+        }
         if self == Notation::Wca || !mv.wide {
             return mv.to_string();
         }
@@ -57,8 +64,12 @@ impl Notation {
     }
 
     /// A sequence in this notation, separated by single spaces.
-    pub fn write(self, moves: &MoveSequence) -> String {
-        let words: Vec<String> = moves.moves().iter().map(|mv| self.write_move(mv)).collect();
+    pub fn write(self, kind: PuzzleKind, moves: &MoveSequence) -> String {
+        let words: Vec<String> = moves
+            .moves()
+            .iter()
+            .map(|mv| self.write_move(kind, mv))
+            .collect();
         words.join(" ")
     }
 }

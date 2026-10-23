@@ -81,7 +81,7 @@ fn expressions_round_trip_through_both_notations_on_every_size() {
             Err(_) => continue,
         };
         for notation in [Notation::Wca, Notation::Sign] {
-            let written = notation.write(&moves);
+            let written = notation.write(kind, &moves);
             let again = parse_expression(&written, kind).unwrap();
             assert_eq!(again, moves, "{notation:?} on {kind:?}: {written}");
         }
@@ -92,7 +92,7 @@ fn expressions_round_trip_through_both_notations_on_every_size() {
     for kind in SIZES {
         let short = "[F: [R, U]] (R U')2 [L2: D] (U F')' x [y: R2]";
         let moves = parse_expression(short, kind).unwrap();
-        let again = parse_expression(&Notation::Sign.write(&moves), kind).unwrap();
+        let again = parse_expression(&Notation::Sign.write(kind, &moves), kind).unwrap();
         assert_eq!(again, moves, "{kind:?}");
     }
 }

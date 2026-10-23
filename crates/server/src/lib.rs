@@ -342,7 +342,7 @@ async fn scramble(
     let notation = read_notation(params.notation.as_deref())?;
     let kind = engine_kind(params.size.unwrap_or(3))?;
     Ok(Json(ScrambleBody {
-        scramble: notation.write(&generate::scramble(kind, usize::from(moves))),
+        scramble: notation.write(kind, &generate::scramble(kind, usize::from(moves))),
     }))
 }
 
@@ -640,7 +640,7 @@ async fn solve(
             let packed = optimise.map(|_| compressed_text(notation, kind, solution));
             Ok(Json(SolveBody {
                 kind: kind_name(kind),
-                solution: notation.write(solution),
+                solution: notation.write(kind, solution),
                 length: solution.len(),
                 compressed: packed.as_ref().map(|(text, _)| text.clone()),
                 compressed_length: packed.map(|(_, count)| count),

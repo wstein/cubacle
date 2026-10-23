@@ -6,7 +6,7 @@ fn seq(text: &str) -> MoveSequence {
 }
 
 fn show(kind: PuzzleKind, text: &str, notation: Notation) -> String {
-    write(notation, &compress(kind, &seq(text)))
+    write(notation, kind, &compress(kind, &seq(text)))
 }
 
 #[test]

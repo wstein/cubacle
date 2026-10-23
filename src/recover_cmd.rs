@@ -57,7 +57,7 @@ pub(crate) struct RecoverArgs {
     /// Print timings to standard error
     #[arg(short, long)]
     verbose: bool,
-    /// How to write the moves: wca (Rw, 3Rw) or sign (r, 3r)
+    /// How to write the moves: wca (Rw, 3Rw), sign (r, 3r) or sse (TR, T3R)
     #[arg(long, default_value = "wca")]
     notation: Notation,
     #[command(flatten)]
@@ -88,7 +88,7 @@ pub(crate) fn run(args: RecoverArgs) -> Result<(), String> {
     };
     if args.fresh {
         let (moves, stages) = solve_staged(&current)?;
-        println!("{}", notation.write(&moves));
+        println!("{}", notation.write(current.kind(), &moves));
         if args.pictures.icons {
             let options = args.pictures.options(args.input.scheme, notation);
             print!(
@@ -187,7 +187,10 @@ pub(crate) fn run(args: RecoverArgs) -> Result<(), String> {
         })?
     };
     let plan = Plan::new(diagnosis, solution, fresh).with_phases(infos);
-    print!("{}", plan.with(&|mv| notation.write_move(mv)));
+    print!(
+        "{}",
+        plan.with(&|mv| notation.write_move(original.kind(), mv))
+    );
     if args.pictures.icons {
         let options = args.pictures.options(args.input.scheme, notation);
         print!(

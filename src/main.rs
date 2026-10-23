@@ -188,10 +188,8 @@ fn run(cli: Cli) -> Result<(), String> {
             size,
             notation,
         } => {
-            println!(
-                "{}",
-                notation.write(&generate::scramble(kind_of(size)?, moves))
-            );
+            let kind = kind_of(size)?;
+            println!("{}", notation.write(kind, &generate::scramble(kind, moves)));
             Ok(())
         }
         Command::Random { size } => {
@@ -385,7 +383,7 @@ fn solve(args: SolveArgs) -> Result<(), String> {
                 println!("{text}");
                 return Ok(());
             }
-            println!("{}", args.notation.write(&solution));
+            println!("{}", args.notation.write(facelets.kind(), &solution));
             Ok(())
         }
         Err(failure) => Err(failure_message(failure, result.message)),

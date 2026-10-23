@@ -43,7 +43,7 @@ fn a_bad_sign_token_is_named() {
 fn notation_must_be_wca_or_sign() {
     let (ok, _, error) = cubacle(&["scramble", "--notation", "ruwix"]);
     assert!(!ok);
-    assert!(error.contains("wca or sign"), "{error}");
+    assert!(error.contains("wca, sign or sse"), "{error}");
 }
 
 #[test]

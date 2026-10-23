@@ -35,6 +35,9 @@ const PAIRS: [(&str, &str); 22] = [
     ("3F2", "3F2"),
 ];
 
+/// WCA and SiGN spellings do not depend on the cube size.
+const ANY: PuzzleKind = PuzzleKind::Cube7;
+
 fn seq(text: &str) -> MoveSequence {
     parse_moves(text).unwrap_or_else(|e| panic!("{text}: {e}"))
 }
@@ -44,9 +47,9 @@ fn the_pairs_read_alike_and_write_each_way() {
     for (wca, sign) in PAIRS {
         let (a, b) = (seq(wca), seq(sign));
         assert_eq!(a, b, "{wca} / {sign}");
-        assert_eq!(Notation::Sign.write(&a), sign.replace("2r", "r"));
+        assert_eq!(Notation::Sign.write(ANY, &a), sign.replace("2r", "r"));
         // `2Rw` is written back in the canonical `Rw`
-        assert_eq!(Notation::Wca.write(&b), a.to_string());
+        assert_eq!(Notation::Wca.write(ANY, &b), a.to_string());
     }
 }
 
@@ -72,13 +75,13 @@ fn every_depth_of_every_size_translates() {
                             format!("{depth}{}{turn}", letter.to_lowercase()),
                         )),
                     };
-                    assert_eq!(Notation::Sign.write(&seq(&single)), single);
+                    assert_eq!(Notation::Sign.write(ANY, &seq(&single)), single);
                     if let Some((w, s)) = wide {
                         let mv = seq(&w);
                         assert!(mv.fits(PuzzleKind::of_size(size).unwrap()));
-                        assert_eq!(Notation::Sign.write(&mv), s, "size {size}: {w}");
+                        assert_eq!(Notation::Sign.write(ANY, &mv), s, "size {size}: {w}");
                         assert_eq!(seq(&s), mv, "size {size}: {s}");
-                        assert_eq!(Notation::Wca.write(&seq(&s)), w);
+                        assert_eq!(Notation::Wca.write(ANY, &seq(&s)), w);
                     }
                 }
             }
@@ -107,15 +110,15 @@ fn bad_tokens_are_rejected_with_a_reason() {
 /// Reads the solution in WCA, writes it in SiGN, reads that, compares, and
 /// checks that both solve the scrambled cube.
 fn round_trip(cube: &Facelets, solution: &MoveSequence) {
-    let sign = Notation::Sign.write(solution);
+    let sign = Notation::Sign.write(ANY, solution);
     let back = parse_moves(&sign).expect("sign reads back");
     assert_eq!(&back, solution);
-    assert_eq!(Notation::Wca.write(&back), solution.to_string());
+    assert_eq!(Notation::Wca.write(ANY, &back), solution.to_string());
     // (the 2x2x2 engine may end in a turned cube, so compare, not is_solved)
     assert_eq!(cube.apply(&back), cube.apply(solution));
     // the reverse direction: SiGN text -> WCA text -> SiGN text
-    let wca = Notation::Wca.write(&parse_moves(&sign).unwrap());
-    assert_eq!(Notation::Sign.write(&parse_moves(&wca).unwrap()), sign);
+    let wca = Notation::Wca.write(ANY, &parse_moves(&sign).unwrap());
+    assert_eq!(Notation::Sign.write(ANY, &parse_moves(&wca).unwrap()), sign);
 }
 
 fn solve_and_round_trip(kind: PuzzleKind, solver: &dyn Solver) {
@@ -155,11 +158,11 @@ fn recorded_big_solutions_round_trip() {
         assert!(cube.apply(&moves).unwrap().is_solved(), "{size}x{size}");
         // the scramble too reads and writes in both notations
         let scr = seq(scramble);
-        assert_eq!(seq(&Notation::Sign.write(&scr)), scr);
-        let sign = Notation::Sign.write(&moves);
+        assert_eq!(seq(&Notation::Sign.write(ANY, &scr)), scr);
+        let sign = Notation::Sign.write(ANY, &moves);
         assert_ne!(sign, solution, "big solutions have wide turns");
         assert!(!sign.contains('w'));
         assert_eq!(seq(&sign), moves);
-        assert_eq!(Notation::Wca.write(&seq(&sign)), solution);
+        assert_eq!(Notation::Wca.write(ANY, &seq(&sign)), solution);
     }
 }

@@ -93,7 +93,7 @@ async fn an_unknown_notation_is_a_400() {
         assert!(body["error"]["message"]
             .as_str()
             .unwrap()
-            .contains("wca or sign"));
+            .contains("wca, sign or sse"));
     }
     let (status, _) = call(
         Request::get("/v1/scramble?notation=x")

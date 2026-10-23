@@ -81,7 +81,7 @@ pub fn run(args: MovesArgs) -> Result<(), String> {
     if args.pictures.icons {
         return draw(&args, kind, &text, &moves);
     }
-    println!("{}", args.notation.write(&moves));
+    println!("{}", args.notation.write(kind, &moves));
     Ok(())
 }
 

@@ -108,7 +108,7 @@ fn recover_reads_an_expression_solution_and_takes_a_notation() {
     assert!(ok, "{err}");
     assert_eq!(plain, sign, "3x3x3 moves read the same in both");
     let (ok, _, err) = cubacle(&["recover", "-s", ORIGINAL, "--now", NOW, "--notation", "x"]);
-    assert!(!ok && err.contains("wca or sign"), "{err}");
+    assert!(!ok && err.contains("wca, sign or sse"), "{err}");
     let (ok, _, err) = args("B L' (U2", "wca");
     assert!(
         !ok && err.contains("--solution") && err.contains("unbalanced"),

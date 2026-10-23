@@ -305,7 +305,7 @@ pub fn print_solution(
     let mut stdout = std::io::stdout().lock();
     stdout
         .write_all(out.as_bytes())
-        .and_then(|()| writeln!(stdout, "{}", options.notation.write(solution)))
+        .and_then(|()| writeln!(stdout, "{}", options.notation.write(start.kind(), solution)))
         .map_err(|e| format!("cannot write to standard output: {e}"))
 }
 
@@ -327,7 +327,7 @@ fn text_steps(
         out.push_str(&step_line(
             index,
             total,
-            &notation.write_move(mv),
+            &notation.write_move(start.kind(), mv),
             lone[index],
         ));
         out.push_str(&show(&drawn, graphics, style.size));

@@ -127,15 +127,19 @@ pub fn expand(moves: &[LayerMove]) -> MoveSequence {
     MoveSequence::new(moves.iter().flat_map(LayerMove::to_moves).collect())
 }
 
-/// One compressed move in a notation: `2-3Rw` in WCA, `2-3r` in SiGN; every
-/// move that is not a range is written as the notation writes it.
-pub fn write_move(notation: Notation, mv: &LayerMove) -> String {
+/// One compressed move in a notation: `2-3Rw` in WCA, `2-3r` in SiGN, `V2R`
+/// or `N2-4R` in SSE; every move that is not a range is written as the
+/// notation writes it.
+pub fn write_move(notation: Notation, kind: PuzzleKind, mv: &LayerMove) -> String {
+    if notation == Notation::Sse {
+        return crate::notation::write_sse_layer_move(kind, mv);
+    }
     match mv.to_move() {
-        Some(plain) => notation.write_move(&plain),
+        Some(plain) => notation.write_move(kind, &plain),
         None => {
             let letter = match notation {
-                Notation::Wca => format!("{}w", mv.face.letter()),
                 Notation::Sign => mv.face.letter().to_ascii_lowercase().to_string(),
+                _ => format!("{}w", mv.face.letter()),
             };
             format!("{}-{}{letter}{}", mv.from, mv.to, mv.turn_suffix())
         }
@@ -143,8 +147,11 @@ pub fn write_move(notation: Notation, mv: &LayerMove) -> String {
 }
 
 /// A compressed sequence, separated by single spaces.
-pub fn write(notation: Notation, moves: &[LayerMove]) -> String {
-    let words: Vec<String> = moves.iter().map(|mv| write_move(notation, mv)).collect();
+pub fn write(notation: Notation, kind: PuzzleKind, moves: &[LayerMove]) -> String {
+    let words: Vec<String> = moves
+        .iter()
+        .map(|mv| write_move(notation, kind, mv))
+        .collect();
     words.join(" ")
 }
 
@@ -173,7 +180,7 @@ pub fn compressed_text(
     solution: &MoveSequence,
 ) -> (String, usize) {
     let packed = compress(kind, solution);
-    (write(notation, &packed), packed.len())
+    (write(notation, kind, &packed), packed.len())
 }
 
 #[cfg(test)]
