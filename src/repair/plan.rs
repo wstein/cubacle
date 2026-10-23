@@ -163,8 +163,9 @@ impl fmt::Display for Plan {
                 if *alternatives > 0 {
                     writeln!(
                         f,
-                        "{} other explanations fit as well (moves that commute cannot be told apart); the earliest is shown.",
-                        alternatives
+                        "{} fit{} as well (moves that commute cannot be told apart); the earliest is shown.",
+                        plural(*alternatives, "other explanation"),
+                        if *alternatives == 1 { "s" } else { "" }
                     )?;
                 }
             }
@@ -184,7 +185,7 @@ impl fmt::Display for Plan {
         if let Some(word) = &d.rotation {
             writeln!(
                 f,
-                "Your cube is held differently from the original: turn the whole cube ({word}) to match it first. The route below assumes the original orientation."
+                "Your cube is held differently from the original: turn the whole cube ({word}) to match it."
             )?;
         }
         match &self.advice {
@@ -236,6 +237,9 @@ impl fmt::Display for Plan {
                         "Recommended: repair, as short as solving fresh and it keeps your printed solution."
                     )?,
                     None => writeln!(f, "Recommended: repair.")?,
+                }
+                if d.rotation.is_some() {
+                    writeln!(f, "The moves assume the cube is turned like the original.")?;
                 }
                 writeln!(f, "Moves now: {}", route.moves)?;
                 writeln!(

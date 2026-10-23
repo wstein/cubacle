@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 
 use clap::Args;
 use cubacle::notation::parse_cube;
-use cubacle::puzzle::{Facelets, MoveSequence};
+use cubacle::puzzle::{Facelets, MoveSequence, PuzzleKind};
 use cubacle::repair::{diagnose, locate, Limits, Plan};
 
 use crate::{default_options, failure_message, read_cube, solver_for, InputArgs};
@@ -112,6 +112,14 @@ pub(crate) fn run(args: RepairArgs) -> Result<(), String> {
             if args.verbose {
                 eprintln!("search {took:?}");
             }
+            // Every fresh solution is replayed, as `solve` does (not on the 2x2x2).
+            let fresh = fresh.and_then(|moves| {
+                let solves = current.kind() == PuzzleKind::Cube2
+                    || current.apply(&moves).is_ok_and(|end| end.is_solved());
+                solves
+                    .then_some(moves)
+                    .ok_or_else(|| "internal error: it does not solve the cube".to_owned())
+            });
             if let Err(reason) = &fresh {
                 eprintln!("warning: no fresh solution ({reason})");
             }
