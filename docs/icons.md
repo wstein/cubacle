@@ -88,6 +88,7 @@ On a Kitty-graphics terminal the solution is shown in phases (see below) and the
 | `--icon-size PIXELS` | Icon height; all icons have the same size. Default: 32 per cube layer, at least 96. |
 | `--columns N` | Icons per row. Default: as many as fit. Wide rows are cut off by the terminal, so a large `N` is your own choice. |
 | `--background dark\|light` | What the icons are seen on. Default: asked from the terminal, dark when it does not answer. |
+| `--views both\|urf` | Corners the whole-cube pictures are seen from (see [Two views of a state](#two-views-of-a-state)). Default `both`. |
 
 ### Phases
 
@@ -153,6 +154,14 @@ cargo build --release --features quarter-frame
 
 There is no command-line option or environment variable for it.
 
+### Two views of a state
+
+A move icon shows the cube from the Up-Right-Front corner (URF), so the Left, Back and Down faces are hidden. The picture of a whole state (`State after phase N - compare it with your cube` in `solve --icons`, `Should be` and `Is now` in `recover --icons`) is therefore drawn twice, side by side in one image: the URF view on the left and the view from the opposite Down-Left-Back corner (DBL) on the right. Together they show every sticker of the six faces exactly once. Move icons stay URF only.
+
+The DBL view is the cube turned with `x2 y'`: the D face is on top, the L face is the large flat face in front, the B face is the oblique face on the right. To get that grip from the usual one (U up, F towards you), turn the cube over front to back (`x2`) and then a quarter turn like `U'` (`y'`): D is up, L towards you and B on your right. A test checks this against the facelet layout: every sticker of D, L and B lands on a visible face of the turned cube, and the two views cover each sticker once.
+
+On a Kitty terminal the two pictures are one image. When that image is wider than the terminal, or `--columns 1` is given, the two views are stacked, one image each. With `--views urf` only the URF picture is drawn. Without graphics `solve --icons` prints no state picture (only the token line), and `recover --icons` prints each state as two text pictures, one below the other, each with a heading that names its corner (`state, seen from URF: ...`, `state, seen from DBL: ...`); `--views urf` leaves out the second.
+
 ### Checkpoints
 
 `solve --icons` writes the cube as an [Orbit64 token](cli.md) (the text `convert --to token` writes) at these places: the line `Start state: TOKEN` once at the top, and the line `State after phase N as token: TOKEN` after each phase that has moves, below the state picture on a graphics terminal and after its last step otherwise. A phase with nothing to do has no line. The last token is the solved cube. Keep the start token; after a phase, the token of your own cube can be compared with the printed one. Plain `solve` without `--icons` prints no token.
@@ -170,7 +179,7 @@ Inside `tmux` and `screen` (`TMUX` or `STY` is set, or `TERM` starts with `scree
 
 ## Recover with icons
 
-`recover` takes the same four options as `solve`, with the same names and meaning (`--icons`, `--icon-size`, `--background`, `--columns`; the last three need `--icons`):
+`recover` takes the same options as `solve`, with the same names and meaning (`--icons`, `--icon-size`, `--background`, `--columns`, `--views`; all but the first need `--icons`):
 
 ```sh
 cubacle recover -s "R U2 F' D L2 B R' U' F2 D2 L B'" --now FDDRURLDBRDBLRFFDUUBUUFBLBLBRDFDFBUFRUFULLDRURLDLBFRBL --at-move 7 --sure-until 3 --icons
@@ -178,14 +187,14 @@ cubacle recover -s "R U2 F' D L2 B R' U' F2 D2 L B'" --now FDDRURLDBRDBLRFFDUUBU
 
 The usual text of `recover` comes first. After it:
 
-1. When a mistake or a nearest cube was found, two pictures of the whole cube: `Should be, after step N (the last correct one)`, the cube of the printed solution after the last correct move, and `Is now`, the cube you typed. Each has its Orbit64 token below it. Compare the two to see what differs: on a Kitty terminal every visible sticker of `Is now` whose colour differs from `Should be` carries a small amber square, and in every mode the line `Stickers that differ: N of M` counts them over all faces (the hidden ones too, so a few differing stickers may have no mark).
+1. When a mistake or a nearest cube was found, two pictures of the whole cube: `Should be, after step N (the last correct one)`, the cube of the printed solution after the last correct move, and `Is now`, the cube you typed. Each has its Orbit64 token below it. Compare the two to see what differs: on a Kitty terminal every sticker of `Is now` whose colour differs from `Should be` carries a small amber square, in the view (URF or DBL) that shows its face, so all of them are marked. In every mode the line `Stickers that differ: N of M` counts them over all faces. With `--views urf` the hidden faces are not drawn, so only the stickers of U, R and F are marked and the line says so.
 2. The moves to do now (the way back, or the fresh solution when that is recommended), one picture per step as in `solve --icons`, with the quarter-turn note (and the optional frame). Phase headings and `State after phase N as token` lines appear only when the moves are a fresh solution that reports solver stages; a way back has none. In `recover` (not in `solve`) a run of phases with nothing to do is one heading, `Phases 1-5: nothing to do`; a single empty phase keeps its own line.
 
 Without graphics the pictures are the text pictures of `solve --icons`:
 
 ```text
 Should be, after step 4 (the last correct one)
-state
+state, seen from URF: U up, F towards you, R on your right
    B Y O
   R W R
  Y R B
@@ -193,9 +202,17 @@ O B O W W G
 W G B O R W
 R B O Y R R
 
+state, seen from DBL: D up, L towards you, B on your right
+   B G G
+  W Y Y
+ G G Y
+W Y B R O Y
+O O G O B G
+G Y R W B W
+
 token: Enl7Pqxeueao
 Is now
-state
+state, seen from URF: U up, F towards you, R on your right
    G Y Y
   R W R
  O Y B
@@ -203,8 +220,16 @@ W B W R Y B
 W G B O R G
 O B O G Y W
 
+state, seen from DBL: D up, L towards you, B on your right
+   Y G G
+  R Y W
+ B G B
+W R Y O B R
+O O W G B O
+G W R Y O R
+
 token: FpkdfDU1GuT4
-Stickers that differ: 31 of 54 (marked amber in graphics rows, on the visible faces).
+Stickers that differ: 31 of 54 (all marked amber in graphics rows, in the view that shows them).
 step 1 of 3: D2
 D2 → (half turn)
 ...

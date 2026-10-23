@@ -51,6 +51,7 @@ The first two lines go to standard error. `moves N` is always printed there, `el
 | `--icon-size <PIXELS>` | With `--icons`: icon height in pixels. Default: 32 per cube layer, at least 96. |
 | `--background <dark\|light>` | With `--icons`: what the icons are seen on. It sets the notation colour and the dimming. Default: the terminal is asked (`OSC 11`), dark when it does not answer. |
 | `--columns <N>` | With `--icons` on a graphics terminal: icons per row. Default: as many as fit the terminal width. See [Move icons](icons.md#how-the-terminal-is-asked). |
+| `--views <both\|urf>` | With `--icons`: the corners the whole-cube state pictures are seen from. `both` (default) draws each state from the Up-Right-Front and from the opposite Down-Left-Back corner, side by side, so all six faces show; `urf` only the first. See [Two views of a state](icons.md#two-views-of-a-state). |
 | `-v`, `--verbose` | Print timing and search statistics to standard error. With `--probes` or `--improve` also `improved from L1 to L2 moves`. Also one line per phase of the solution, such as `phase 1: to the G1 subgroup, moves 1-14` or `phase 2: wings staged, moves 20-25`; the 4x4x4 to 7x7x7 name the stages of their engine (see [Move icons](icons.md#phases)). |
 
 A cube argument of `-` reads the cube from standard input:
@@ -218,7 +219,7 @@ Recommended: solve fresh, shorter than the recover (20 moves).
 Fresh solution: D2 B2 D' B2 D2 U' F2 D U' R2 U' R' B' L2 D' F U2 R'
 ```
 
-With `--icons` (and `--icon-size`, `--background`, `--columns`, as for `solve`) the mistake is also drawn: the cube as it should be after the last correct step and the cube as it is, then the moves to do as step pictures. See [Recover with icons](icons.md#recover-with-icons).
+With `--icons` (and `--icon-size`, `--background`, `--columns`, `--views`, as for `solve`) the mistake is also drawn: the cube as it should be after the last correct step and the cube as it is, then the moves to do as step pictures. See [Recover with icons](icons.md#recover-with-icons).
 
 On a 4x4x4, step 4 of the solution (`F'`) turned the wrong way:
 
