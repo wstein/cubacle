@@ -202,7 +202,7 @@ Then continue with step 7 (B2) of the printed solution.
 
 (The timings on standard error differ from run to run.)
 
-Then two ways forward are compared: the *recover* (the moves that bring the cube back onto the printed path, followed by the rest of the printed solution) and a *fresh* solution of the cube as it is, which runs beside the search. The recover is either `undo N moves` (the inverse of what was done since the mistake) or a shorter correction found by a search of up to `--depth` moves (default 3) from the cube to any cube of the printed path. The shorter total wins, a tie goes to the recover, and a recover is never recommended when it is longer than the fresh solution. The chosen moves follow `Moves now:` in the notation of `solve`. With `--solution` of the same 3x3x3 and the search limited to undoing, the fresh solution wins:
+Then two ways forward are compared: the *recover* (the moves that bring the cube back onto the printed path, followed by the rest of the printed solution) and a *fresh* solution of the cube as it is, which runs beside the search. The recover is either `undo N moves` (the inverse of what was done since the mistake) or a shorter correction found by a search of up to `--depth` moves (default 3) from the cube to any cube of the printed path. The shorter total wins, a tie goes to the recover, and a recover is never recommended when it is longer than the fresh solution. The chosen moves follow `Moves now:` (the way back) or `Fresh solution:` (when solving fresh is recommended), in the notation of `solve`. With `--solution` of the same 3x3x3 and the search limited to undoing, the fresh solution wins:
 
 ```sh
 cubacle recover -s "R U2 F' D L2 B R' U' F2 D2 L B'" --now FDDRURLDBRDBLRFFDUUBUUFBLBLBRDFDFBUFRUFULLDRURLDLBFRBL --solution "B L' U2 B2 D' U2 B2 D2 U' F2 D U' R2 U' R' B' L2 D' F U2 R'" --one-mistake --depth 0
@@ -215,7 +215,7 @@ You had done 8 of 21 steps when you stopped.
 Recover: undo 3 moves by turning D2 B2 U2, then continue with step 5 (D'). That is 20 moves in all.
 Fresh: solve your cube again from where it is, 18 moves.
 Recommended: solve fresh, shorter than the recover (20 moves).
-Moves now: D2 B2 D' B2 D2 U' F2 D U' R2 U' R' B' L2 D' F U2 R'
+Fresh solution: D2 B2 D' B2 D2 U' F2 D U' R2 U' R' B' L2 D' F U2 R'
 ```
 
 With `--icons` (and `--icon-size`, `--background`, `--columns`, as for `solve`) the mistake is also drawn: the cube as it should be after the last correct step and the cube as it is, then the moves to do as step pictures. See [Recover with icons](icons.md#recover-with-icons).
@@ -233,7 +233,7 @@ You had done 9 of 43 steps when you stopped.
 Recover: undo 6 moves by turning B' Uw L2 F Lw' F', then continue with step 4 (F'). That is 46 moves in all.
 Fresh: solve your cube again from where it is, 42 moves.
 Recommended: solve fresh, shorter than the recover (46 moves).
-Moves now: R2 D' R U' Fw D2 Fw B2 U2 F2 Dw' D2 F' Dw2 L B' R L' Bw2 Rw2 F' Bw2 Rw2 D2 F2 R2 F' R2 B R2 L2 B L D R' F2 U' R' B R' L D'
+Fresh solution: R2 D' R U' Fw D2 Fw B2 U2 F2 Dw' D2 F' Dw2 L B' R L' Bw2 Rw2 F' Bw2 Rw2 D2 F2 R2 F' R2 B R2 L2 B L D R' F2 U' R' B R' L D'
 ```
 
 (plus `preparing the 4x4x4 tables ...` on standard error.) Only if the normal search finds nothing, the 23 other orientations of the whole cube are tried, and a cube that fits one is reported with the turns (`x`, `y`, `z`) that rotate it back: `Your cube is held differently from the original: turn the whole cube (x') to match it.` The moves printed then assume that orientation.
@@ -544,7 +544,7 @@ Rejected, with the token in the message: `rw` and `3rw` (a lowercase letter alre
 
 #### Where moves are read and written
 
-Moves are read as WCA or SiGN, with groups, commutators and ranges, by `solve --scramble`, `convert --scramble` and `facelets`, by `recover --solution`, by `icon` (its moves and `--from`), and by the `scramble` field of the REST API. Moves are written in either notation by `--notation wca|sign` on `solve` (the solution, the `--icons` step lines and the last line; the icon pictures keep WCA letters), `scramble` and `recover` (every move in the explanation and in `Moves now:`).
+Moves are read as WCA or SiGN, with groups, commutators and ranges, by `solve --scramble`, `convert --scramble` and `facelets`, by `recover --solution`, by `icon` (its moves and `--from`), and by the `scramble` field of the REST API. Moves are written in either notation by `--notation wca|sign` on `solve` (the solution, the `--icons` step lines and the last line; the icon pictures keep WCA letters), `scramble` and `recover` (every move in the explanation and in `Moves now:` and `Fresh solution:`).
 
 ```sh
 cubacle facelets "r U f'"

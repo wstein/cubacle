@@ -165,8 +165,8 @@ cubacle recover -s "R U2 F' D L2 B R' U' F2 D2 L B'" --now FDDRURLDBRDBLRFFDUUBU
 
 The usual text of `recover` comes first. After it:
 
-1. When a mistake or a nearest cube was found, two pictures of the whole cube: `Should be, after step N (the last correct one)`, the cube of the printed solution after the last correct move, and `Is now`, the cube you typed. Each has its Orbit64 token below it. Compare the two to see what differs.
-2. The moves to do now (the way back, or the fresh solution when that is recommended), one picture per step as in `solve --icons`, with the amber quarter-turn note and frame. Phase headings and `State after phase N as token` lines appear only when the moves are a fresh solution that reports solver stages; a way back has none.
+1. When a mistake or a nearest cube was found, two pictures of the whole cube: `Should be, after step N (the last correct one)`, the cube of the printed solution after the last correct move, and `Is now`, the cube you typed. Each has its Orbit64 token below it. Compare the two to see what differs: on a Kitty terminal every visible sticker of `Is now` whose colour differs from `Should be` carries a small amber square, and in every mode the line `Stickers that differ: N of M` counts them over all faces (the hidden ones too, so a few differing stickers may have no mark).
+2. The moves to do now (the way back, or the fresh solution when that is recommended), one picture per step as in `solve --icons`, with the amber quarter-turn note and frame. Phase headings and `State after phase N as token` lines appear only when the moves are a fresh solution that reports solver stages; a way back has none. In `recover` (not in `solve`) a run of phases with nothing to do is one heading, `Phases 1-5: nothing to do`; a single empty phase keeps its own line.
 
 Without graphics the pictures are the text pictures of `solve --icons`:
 
@@ -191,6 +191,7 @@ W G B O R G
 O B O G Y W
 
 token: FpkdfDU1GuT4
+Stickers that differ: 31 of 54 (marked amber in graphics rows, on the visible faces).
 step 1 of 3: D2
 D2 → (half turn)
 ...

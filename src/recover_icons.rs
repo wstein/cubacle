@@ -73,7 +73,7 @@ pub(crate) fn render_fresh(
     moves: &MoveSequence,
     stages: &[SolveStage],
 ) -> Result<String, String> {
-    let pictures = Pictures::new(current.kind().size(), options);
+    let pictures = Pictures::new(current.kind().size(), options).collapsing_empty_phases();
     let found = from_stages(stages, moves.len())
         .or_else(|| phases(current, moves).ok())
         .unwrap_or_default();
