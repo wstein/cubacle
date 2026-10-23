@@ -117,7 +117,7 @@ For the 4x4x4 to 7x7x7 the phases are the stages of the engine that solved the c
 | --- | --- |
 | 2x2x2 | `solve` |
 | 3x3x3 | `to the G1 subgroup` (corners and edges oriented, the four middle-layer edges in the middle layer: the Kociemba domino state), `solve` |
-| 4x4x4 | `centres staged` (each pair of opposite colours has its centres on one axis), `centres sorted`, `centres and wings paired` (the cube is now a 3x3x3), `3x3 stage` |
+| 4x4x4 | `centres staged` (each pair of opposite colours has its centres on one axis), `centres sorted and wings split` (the centres sorted far enough for the last phase and every wing pair in the half-slot split it needs), `centres and wings paired` (the cube is now a 3x3x3), `3x3 stage` |
 | 5x5x5 | `centres staged` (the same, in two searches), `wings staged` (the wings in slots where they can be paired), `centres and wings paired` (a 3x3x3), `3x3 stage` |
 | 6x6x6, 7x7x7 | `left/right centres staged`, `up/down centres staged`, `centres prepared`, `inner wings and centres`, `outer wings and centres` (a 3x3x3), `3x3 stage` |
 

@@ -25,6 +25,7 @@ Raw-material notes, category engines.
 - [[4x4 final rotation]]
 - [[4x4 3x3 hand-off needs a probe minimum]]
 - [[4x4 Orbit64 tokens]]
+- [[4x4 centres sorted stage is also a wing split]]
 - [[4x4 phases 1 to 3 equal the Java ones]]
 - [[Spread solves over cores for throughput]]
 - [[Improve modes trade time for moves]]
