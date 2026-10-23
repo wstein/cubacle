@@ -52,17 +52,27 @@ fn check_stages(cube: &Facelets, result: &SolveResult) {
 fn six_by_six_scrambles_are_solved_and_replay() {
     let solver = solver();
     for _ in 0..3 {
+        let scramble = generate::scramble(PuzzleKind::Cube6, 80);
         let cube: Facelets = Facelets::solved(PuzzleKind::Cube6)
-            .apply(&generate::scramble(PuzzleKind::Cube6, 80))
+            .apply(&scramble)
             .unwrap();
+        // printed on every run, shown by the harness when an assertion fails
+        println!("scramble: {scramble}");
         let (result, tally) = solver.solve_tallied(&cube);
         println!("{tally:?}");
-        assert!(result.is_solved(), "{:?}", result.message);
+        assert!(
+            result.is_solved(),
+            "{:?} (scramble: {scramble})",
+            result.message
+        );
         check_stages(&cube, &result);
         let moves = result
             .outcome
-            .unwrap_or_else(|f| panic!("{f:?} {:?}", result.message));
-        assert!(cube.apply(&moves).unwrap().is_solved());
+            .unwrap_or_else(|f| panic!("{f:?} {:?} (scramble: {scramble})", result.message));
+        assert!(
+            cube.apply(&moves).unwrap().is_solved(),
+            "scramble: {scramble}"
+        );
     }
 }
 
