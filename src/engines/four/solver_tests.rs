@@ -117,7 +117,7 @@ fn the_stages_cover_the_answer_and_the_reduction_ends_with_solved_centres() {
     let four = solver(2);
     let names = [
         "centres staged",
-        "centres sorted",
+        "centres sorted and wings split",
         "centres and wings paired",
         "3x3 stage",
     ];

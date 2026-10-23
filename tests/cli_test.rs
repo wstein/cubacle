@@ -621,7 +621,7 @@ fn a_4x4_verbose_solve_reports_its_reduction() {
     assert_eq!(phases.len(), 4, "{phases:?}");
     let names = [
         "centres staged",
-        "centres sorted",
+        "centres sorted and wings split",
         "centres and wings paired",
         "3x3 stage",
     ];

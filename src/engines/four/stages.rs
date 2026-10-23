@@ -9,7 +9,7 @@
 //! | Stage | What it does |
 //! | --- | --- |
 //! | `centres staged` | phase 1: every pair of opposite colours has its centres on one axis |
-//! | `centres sorted` | phase 2: the centres sorted far enough for the last phase |
+//! | `centres sorted and wings split` | phase 2: the centres sorted far enough and every wing pair split for the last phase |
 //! | `centres and wings paired` | phase 3: the centres solved and the wings paired |
 //! | `3x3 stage` | the 3x3x3 solver |
 
@@ -20,7 +20,7 @@ use crate::puzzle::{stage_ends, Facelets, Move, SolveStage};
 /// The names of the stages, in order.
 const NAMES: [&str; 4] = [
     "centres staged",
-    "centres sorted",
+    "centres sorted and wings split",
     "centres and wings paired",
     "3x3 stage",
 ];

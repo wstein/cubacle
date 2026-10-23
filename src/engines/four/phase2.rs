@@ -1,4 +1,4 @@
-//! Phase 2: from each candidate of phase 1, the centres sorted far enough that
+//! Phase 2: from each candidate of phase 1, the centres sorted far enough and the wings split so that
 //! the last phase can finish, until 100 results are found.
 //!
 //! Ported from cs0x7f/TPR-4x4x4-Solver src/Search.java (`doSearch`'s second
