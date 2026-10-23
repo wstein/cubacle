@@ -10,6 +10,10 @@
 //!   (any block of adjacent layers, `2-3Rw`), or `sym-outer` / `sym-range`
 //!   (the same metrics over macro moves that turn mirror-symmetric layer sets,
 //!   see `moves.rs`; a much smaller space that reaches the big cubes).
+//! * `face` is `outer` with single outer-layer turns only (the 3x3x3 half-turn
+//!   metric); the result is also replayed on the bigger cubes and every size
+//!   where it builds the pattern is printed (it only turns the outer layers).
+//! * `pattern_search lift ID "MOVES"` does that replay for a given sequence.
 //! * `TURNS`: `half` (half turns only, a much smaller group) or `all`.
 //!
 //! The search runs from the solved cube forwards and from the target
@@ -36,8 +40,36 @@ fn colours(state: &Facelets) -> Vec<u8> {
     state.stickers().iter().map(|f| *f as u8).collect()
 }
 
+/// A sequence of single outer-layer turns turns only the outer layers on a bigger cube
+/// as well, so it may build the same pattern there: print a line for every
+/// size (other than the one searched) where the replay matches the definition.
+fn lift(id: &str, moves: &str, status: &str) {
+    let pattern = patterns::find(id).expect("pattern id");
+    let sequence: MoveSequence = moves.parse().expect("plain moves");
+    for size in 3..=7 {
+        let kind = PuzzleKind::of_size(size).expect("cube size");
+        let Some(target) = pattern.state(kind) else {
+            continue;
+        };
+        let built = Facelets::solved(kind).apply(&sequence).expect("moves fit");
+        let targets = geometry::seeds(size, &colours(&target));
+        if targets.contains(&colours(&built)) {
+            println!(
+                "{id} | {size} | outer | {status} | {} | {moves}",
+                sequence.len()
+            );
+        }
+    }
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    if let [word, id, moves] = &args[..] {
+        if word == "lift" {
+            lift(id, moves, "best-known");
+            return;
+        }
+    }
     let [id, size, mode, turns, rest @ ..] = &args[..] else {
         eprintln!("usage: pattern_search ID SIZE outer|range|sym-outer|sym-range half|all [MAX_COST] [SECONDS] [MAX_STATES]");
         std::process::exit(2);
@@ -60,10 +92,11 @@ fn main() {
     );
     let symmetric = mode.starts_with("sym-");
     let range = mode.ends_with("range");
+    let lifted = mode == "face";
     let set = if symmetric {
         moves::symmetric(n, range, half_only)
     } else {
-        moves::plain(n, range, half_only)
+        moves::plain(n, range, half_only, mode == "face")
     };
     let solved = colours(&Facelets::solved(kind));
     let targets = geometry::seeds(n, &target);
@@ -92,6 +125,7 @@ fn main() {
     );
     let status = match (symmetric, half_only) {
         (true, _) => "best-known",
+        (false, _) if lifted => "best-known",
         (false, true) => "half-turn-optimal",
         (false, false) => "optimal",
     };
@@ -101,4 +135,7 @@ fn main() {
         layers.len(),
         text.join(" ")
     );
+    if lifted {
+        lift(id, &text.join(" "), status);
+    }
 }

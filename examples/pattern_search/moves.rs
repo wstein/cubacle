@@ -43,7 +43,7 @@ pub struct Moves {
     pub text: Vec<Vec<LayerMove>>,
 }
 
-pub fn plain(n: usize, range: bool, half_only: bool) -> Moves {
+pub fn plain(n: usize, range: bool, half_only: bool, face_only: bool) -> Moves {
     let turns: &[Turn] = if half_only {
         &[Turn::Half]
     } else {
@@ -63,7 +63,7 @@ pub fn plain(n: usize, range: bool, half_only: bool) -> Moves {
                     } else {
                         from == 1
                     };
-                    if wanted {
+                    if wanted && (!face_only || to == 1) {
                         text.push(vec![LayerMove::new(face, from, to, *turn)]);
                     }
                 }

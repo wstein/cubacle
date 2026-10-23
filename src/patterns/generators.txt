@@ -14,7 +14,7 @@ six-spots | 3 | range | optimal | 6 | 2U' Fw Bw' Lw' Rw 2U'
 six-spots | 4 | outer | optimal | 8 | 3Fw' 3Rw 3Lw' 3Dw' 3Uw 3Fw' F U
 six-spots | 4 | range | optimal | 4 | 2-3Rw' 2-3Uw 2-3Rw 2-3Uw'
 six-spots | 5 | outer | best-known | 8 | B' U D' L' R B' F U
-six-spots | 5 | range | best-known | 8 | R L' F B' U D' R L'
+six-spots | 5 | range | optimal | 6 | 2-4Uw' 4Fw 4Bw' 4Lw' 4Rw 2-4Uw'
 six-spots | 6 | outer | best-known | 8 | B' U D' L' R B' F U
 six-spots | 6 | range | best-known | 4 | 2-5Rw' 2-5Uw 2-5Rw 2-5Uw'
 six-spots | 7 | outer | best-known | 8 | B' U D' L' R B' F U
