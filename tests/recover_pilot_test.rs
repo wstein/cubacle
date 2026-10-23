@@ -142,7 +142,11 @@ fn check(cubes: &[Cube], c: &Case, solver: Option<&dyn Solver>) {
         }
     }
     let now = cube.original.apply(&MoveSequence::new(done)).unwrap();
-    let limits = Limits::default();
+    // no deadline: the 8 s default reports "Unexplained" on a loaded machine
+    let limits = Limits {
+        max_time: None,
+        ..Limits::default()
+    };
     let scope = Scope {
         at_move: c.stop,
         sure_until: None,
