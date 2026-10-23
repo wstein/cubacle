@@ -16,3 +16,4 @@ Raw-material notes, category architecture.
 - [[Recover advises the shorter way]]
 - [[Recover searches the stop first and widens]]
 - [[Recover pilot - the stop finds old mistakes but recover wins only near it]]
+- [[Whole-cube pictures show two opposite corners]]
