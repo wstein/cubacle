@@ -113,9 +113,10 @@ The phases are read from the cube, not from the engine: the solution is replayed
 | --- | --- |
 | 2x2x2 | `solve` |
 | 3x3x3 | `to the G1 subgroup` (corners and edges oriented, the four middle-layer edges in the middle layer: the Kociemba domino state), `solve` |
-| 4x4x4 to 7x7x7 | `centres` (every face has centres of one colour), `edges` (all wings of an edge paired, centres solved), `3x3 stage` |
+| 4x4x4, 5x5x5 | `centres` (every face has centres of one colour), `edges` (all wings of an edge paired, centres solved), `3x3 stage` |
+| 6x6x6, 7x7x7 | `inner centres` (the centres inside the outermost ring of a face are one colour per face), `centres`, `edges`, `3x3 stage` |
 
-The 4x4x4, 5x5x5 and 6x6x6 engines make the centres and the edges true at the same move, so that phase 2, `edges`, is empty for them (`nothing to do`) unless a solution makes the centres and the edges true at different moves. With `--verbose`, the phases are also written to standard error, for every cube and with or without `--icons`:
+The engines of the big cubes make the centres and the edges true at the same move, so `edges` is usually empty (`nothing to do`). On a 7x7x7 the `inner centres` phase is still the longest, about two thirds of the moves: the state alone cannot see the staging steps inside it, because they are undone and redone on the way. With `--verbose`, the phases are also written to standard error, for every cube and with or without `--icons`:
 
 ```text
 phase 1: centres, moves 1-25

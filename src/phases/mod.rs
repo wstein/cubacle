@@ -10,7 +10,8 @@
 //! | --- | --- |
 //! | 2x2x2 | 1 `solve` |
 //! | 3x3x3 | 1 `to the G1 subgroup`, 2 `solve` |
-//! | 4x4x4 to 7x7x7 | 1 `centres`, 2 `edges`, 3 `3x3 stage` |
+//! | 4x4x4, 5x5x5 | 1 `centres`, 2 `edges`, 3 `3x3 stage` |
+//! | 6x6x6, 7x7x7 | 1 `inner centres`, 2 `centres`, 3 `edges`, 4 `3x3 stage` |
 //!
 //! Each predicate includes the ones before it. A phase ends at the first move
 //! after which its predicate holds in every later state, including the final one;
@@ -27,6 +28,8 @@
 //! * **Centres** (4x4x4 and larger): on every face all centre stickers show one
 //!   colour (the middle sticker of an odd cube included). The six colours are
 //!   then distinct, because each colour has exactly the centre stickers of one face.
+//! * **Inner centres** (6x6x6 and larger): the centre stickers that are not in the
+//!   outermost ring of a face show one colour per face.
 //! * **Edges**: on every edge, the stickers of all its pieces (wings and the
 //!   middle piece of an odd cube) show one colour on each of the two faces:
 //!   the wings are paired.
@@ -55,6 +58,9 @@ struct Layout {
     face_len: usize,
     /// The stickers of the face interior, per face.
     centres: Vec<Vec<usize>>,
+    /// The centre stickers of each face that are not in its outermost ring
+    /// (empty up to the 5x5x5).
+    inner: Vec<Vec<usize>>,
     /// For each edge, its stickers on each of its two faces.
     edges: Vec<[Vec<usize>; 2]>,
     /// The stickers on the F or B face of the four middle-layer edges.
@@ -66,6 +72,7 @@ impl Layout {
         let n = kind.size() as i32;
         let face_len = kind.face_len();
         let mut centres = vec![Vec::new(); 6];
+        let mut inner = vec![Vec::new(); 6];
         let mut edges: BTreeMap<[i32; 3], BTreeMap<usize, Vec<usize>>> = BTreeMap::new();
         for index in 0..kind.facelet_count() {
             let (position, _) = locate(kind, index);
@@ -73,6 +80,19 @@ impl Layout {
             let face = index / face_len;
             if outer == 1 {
                 centres[face].push(index);
+                let (row, col) = (
+                    (index % face_len) / n as usize,
+                    (index % face_len) % n as usize,
+                );
+                if n >= 6
+                    && row
+                        .min(col)
+                        .min(n as usize - 1 - row)
+                        .min(n as usize - 1 - col)
+                        >= 2
+                {
+                    inner[face].push(index);
+                }
             } else if outer == 2 {
                 // the same key for every piece along one edge
                 let key = position.map(|c| if c.abs() == n - 1 { c } else { 0 });
@@ -104,6 +124,7 @@ impl Layout {
         Layout {
             face_len,
             centres,
+            inner,
             edges: pairs,
             slice,
         }
@@ -112,6 +133,10 @@ impl Layout {
 
 fn uniform(stickers: &[usize], state: &[Face]) -> bool {
     stickers.windows(2).all(|w| state[w[0]] == state[w[1]])
+}
+
+fn inner_centres_solved(layout: &Layout, state: &[Face]) -> bool {
+    layout.inner.iter().all(|face| uniform(face, state))
 }
 
 fn centres_solved(layout: &Layout, state: &[Face]) -> bool {
@@ -139,7 +164,13 @@ fn stages(kind: PuzzleKind) -> Vec<(&'static str, Option<Predicate>)> {
     match kind {
         PuzzleKind::Cube2 => vec![("solve", None)],
         PuzzleKind::Cube3 => vec![("to the G1 subgroup", Some(in_g1)), ("solve", None)],
+        PuzzleKind::Cube4 | PuzzleKind::Cube5 => vec![
+            ("centres", Some(centres_solved)),
+            ("edges", Some(edges_paired)),
+            ("3x3 stage", None),
+        ],
         _ => vec![
+            ("inner centres", Some(inner_centres_solved)),
             ("centres", Some(centres_solved)),
             ("edges", Some(edges_paired)),
             ("3x3 stage", None),
