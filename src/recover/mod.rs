@@ -38,6 +38,11 @@ pub struct Limits {
     /// The most moves the search for a way back onto the path may use
     /// (0 to 5; 3 takes milliseconds, 5 seconds and about 130 MB on a 7x7x7).
     pub resume_depth: usize,
+    /// The most stray moves after one mistake (0 to 3; 2 takes a fraction of a
+    /// second on a 7x7x7). They are the last resort, searched only when
+    /// nothing else explains the cube. Short solutions use at most one,
+    /// because on a 2x2x2 more would explain cubes by chance.
+    pub strays: usize,
     /// Also look for two mistakes (with the likely kinds only).
     pub two_mistakes: bool,
     /// For two mistakes, try every move and every extra move too: slow and
@@ -51,6 +56,7 @@ impl Default for Limits {
     fn default() -> Limits {
         Limits {
             resume_depth: 3,
+            strays: 2,
             two_mistakes: true,
             thorough: false,
             max_time: Some(Duration::from_secs(8)),
@@ -143,6 +149,9 @@ pub enum Finding {
     Mistakes {
         mistakes: Vec<Mistake>,
         done: usize,
+        /// Stray moves made after those `done` steps. Not empty only when no
+        /// other explanation was found: such a finding is less certain.
+        strays: Vec<Move>,
         alternatives: usize,
     },
     /// No simple explanation, but the cube is `away` moves from the cube after
@@ -219,17 +228,29 @@ pub fn diagnose(
     solution: &MoveSequence,
     limits: &Limits,
 ) -> Result<Diagnosis, RecoverError> {
-    diagnose_in(original, current, solution, limits, None)
+    diagnose_in(original, current, solution, limits, Search::Whole)
 }
 
-/// [`diagnose`], with the mistakes held to `window` when there is one. A
-/// windowed search tries no other orientation of the cube.
+/// What [`diagnose_in`] searches.
+#[derive(Clone, Copy)]
+enum Search {
+    /// The whole solution, in every orientation if need be.
+    Whole,
+    /// Only the mistakes inside a window.
+    In(search::Window),
+    /// One mistake and stray moves after it, the last resort; `Some` holds
+    /// the window when the person named the move they stopped at.
+    Strays(Option<search::Window>),
+}
+
+/// [`diagnose`], with the mistakes held to a window or the stray-move search
+/// only. Only a whole search tries other orientations of the cube.
 fn diagnose_in(
     original: &Facelets,
     current: &Facelets,
     solution: &MoveSequence,
     limits: &Limits,
-    window: Option<search::Window>,
+    search: Search,
 ) -> Result<Diagnosis, RecoverError> {
     let kind = original.kind();
     if current.kind() != kind {
@@ -263,14 +284,19 @@ fn diagnose_in(
         printed: &printed,
         trajectory: &trajectory,
         deadline: limits.max_time.map(|t| started + t),
-        window,
+        window: match search {
+            Search::Whole => None,
+            Search::In(w) => Some(w),
+            Search::Strays(w) => w,
+        },
+        strays_only: matches!(search, Search::Strays(_)),
         limits,
     };
     let current = state_of(current);
     let turns = rotations(kind);
     let mut found = ctx.explain(&current, true, limits.resume_depth);
     let mut rotation = None;
-    if found.is_none() && window.is_none() {
+    if found.is_none() && matches!(search, Search::Whole) {
         let turned: Vec<State> = turns
             .iter()
             .map(|r| {
@@ -319,6 +345,8 @@ struct Context<'a> {
     trajectory: &'a [State],
     deadline: Option<Instant>,
     window: Option<search::Window>,
+    /// Search only one mistake with stray moves.
+    strays_only: bool,
     limits: &'a Limits,
 }
 
@@ -341,6 +369,15 @@ impl Context<'_> {
     /// Every search in one orientation, the cheap ones first.
     fn explain(&self, current: &State, with_double: bool, depth: usize) -> Option<Found> {
         let frame = self.frame(current);
+        if self.strays_only {
+            let max = self
+                .limits
+                .strays
+                .min(if self.printed.len() < 16 { 1 } else { 3 });
+            let explained = search::with_strays(&frame, &self.likely, max)?;
+            let fix = resume::search(&frame, depth);
+            return Some(self.found(Some(explained), fix));
+        }
         if let Some(done) = search::on_path(&frame) {
             return Some(Found {
                 finding: Finding::OnPath { done },
@@ -415,6 +452,7 @@ impl Context<'_> {
             finding = Finding::Mistakes {
                 mistakes: e.mistakes.clone(),
                 done: e.done,
+                strays: e.strays.iter().map(|&id| self.perms.mv(id)).collect(),
                 alternatives: e.alternatives,
             };
             routes.push(self.route(&self.perms.undo_of(&e.performed), e.branch, true));

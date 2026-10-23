@@ -9,7 +9,7 @@
 use std::time::{Duration, Instant};
 
 use super::search::Window;
-use super::{diagnose_in, Diagnosis, Finding, Limits, RecoverError};
+use super::{diagnose_in, Diagnosis, Finding, Limits, RecoverError, Search};
 use crate::puzzle::{Facelets, MoveSequence};
 
 /// Printed moves that a mistake itself may add or drop, besides the moves up
@@ -53,6 +53,9 @@ pub enum Widening {
     Prefix,
     /// The whole solution, as without a scope.
     Full,
+    /// One mistake and moves made by hand after it: the last resort, and the
+    /// least certain.
+    Strays,
 }
 
 impl Widening {
@@ -63,6 +66,7 @@ impl Widening {
             Widening::PreviousPhase => "the previous phase as well",
             Widening::Prefix => "all moves up to the stop",
             Widening::Full => "the whole solution",
+            Widening::Strays => "stray moves after the mistake",
         }
     }
 }
@@ -159,7 +163,7 @@ pub fn diagnose_staged(
                 current,
                 solution,
                 &remaining(limits, started),
-                Some(window(scope, first)),
+                Search::In(window(scope, first)),
             )?;
             if explained(&found.finding) {
                 return Ok(Staged {
@@ -176,8 +180,30 @@ pub fn diagnose_staged(
         current,
         solution,
         &remaining(limits, started),
-        None,
+        Search::Whole,
     )?;
+    let strays = (!explained(&diagnosis.finding) && limits.strays > 0).then(|| {
+        tried.push(Widening::Strays);
+        // After the move the person stopped at, the stray moves follow.
+        let window = scope.map(|s| window(s, 0));
+        diagnose_in(
+            original,
+            current,
+            solution,
+            &remaining(limits, started),
+            Search::Strays(window),
+        )
+    });
+    if let Some(found) = strays {
+        let found = found?;
+        if explained(&found.finding) {
+            return Ok(Staged {
+                diagnosis: found,
+                stage: Widening::Strays,
+                tried,
+            });
+        }
+    }
     Ok(Staged {
         diagnosis,
         stage: Widening::Full,

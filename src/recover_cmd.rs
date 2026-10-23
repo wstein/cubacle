@@ -39,6 +39,9 @@ pub(crate) struct RecoverArgs {
     /// Moves the search for a way back onto the path may use, 0 to 5 (default 3)
     #[arg(long, default_value_t = 3, value_parser = clap::value_parser!(u8).range(0..=5))]
     depth: u8,
+    /// Stray moves after a mistake the search allows, 0 to 3 (default 2)
+    #[arg(long, default_value_t = 2, value_parser = clap::value_parser!(u8).range(0..=3))]
+    strays: u8,
     /// Look for one mistake only (default: also two)
     #[arg(long)]
     one_mistake: bool,
@@ -113,6 +116,7 @@ pub(crate) fn run(args: RecoverArgs) -> Result<(), String> {
     }
     let limits = Limits {
         resume_depth: usize::from(args.depth),
+        strays: usize::from(args.strays),
         two_mistakes: !args.one_mistake,
         thorough: args.thorough,
         max_time: (args.max_time > 0).then(|| Duration::from_millis(args.max_time)),
