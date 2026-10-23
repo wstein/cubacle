@@ -88,7 +88,7 @@ On a Kitty-graphics terminal the solution is shown in phases (see below) and the
 | `--icon-size PIXELS` | Icon height; all icons have the same size. Default: 32 per cube layer, at least 96. |
 | `--columns N` | Icons per row. Default: as many as fit. Wide rows are cut off by the terminal, so a large `N` is your own choice. |
 | `--background dark\|light` | What the icons are seen on. Default: asked from the terminal, dark when it does not answer. |
-| `--views both\|urf` | Corners the whole-cube pictures are seen from (see [Two views of a state](#two-views-of-a-state)). Default `both`. |
+| `--views both\|urf\|net\|all` | Pictures of a whole cube: the two corners (`both`, default), URF only (`urf`), the flat net (`net`) or the net and the two corners (`all`). See [Two views of a state](#two-views-of-a-state) and [The flat net](#the-flat-net). |
 
 ### Phases
 
@@ -160,7 +160,36 @@ A move icon shows the cube from the Up-Right-Front corner (URF), so the Left, Ba
 
 The four side faces form one belt from left to right, every face upright (its U edge on top): F and R in the left picture, then B and L in the right one. The right picture is the cube seen from below: B is the large face in front, L the narrow side on its right, and D lies under B. Physically: hold the cube with U up, turn it around its vertical axis (`y2`) so that B faces you and L is on your right, then bend down and look up at it from below. A turn of the cube about the vertical axis keeps U up, so B and L stay upright; seen from underneath, D appears below them. (Turning the cube over, for example with `x2`, would put the side faces upside down, which is why the second view is not drawn that way.) Tests check this against the facelet layout: every sticker of D, L and B lands on a visible face of the `y2`-turned cube, the two views cover each sticker once, the side faces are drawn in the order F, R, B, L with their U edge on top, and every amber mark lies on its sticker.
 
-On a Kitty terminal the two pictures are one image. When that image is wider than the terminal, or `--columns 1` is given, the two views are stacked, one image each. With `--views urf` only the URF picture is drawn. Without graphics `solve --icons` prints no state picture (only the token line), and `recover --icons` prints each state as two text pictures, one below the other, each with a heading that names its corner (`state, seen from URF: ...`, `state, seen from DBL, turned so that B is in front: ...`; the second shows B and L side by side with D below them); `--views urf` leaves out the second.
+On a Kitty terminal the two pictures are one image. When that image is wider than the terminal, or `--columns 1` is given, the two views are stacked, one image each. With `--views urf` only the URF picture is drawn (`net` and `all` add the flat net, below). Without graphics `solve --icons` prints no state picture (only the token line), and `recover --icons` prints each state as two text pictures, one below the other, each with a heading that names its corner (`state, seen from URF: ...`, `state, seen from DBL, turned so that B is in front: ...`; the second shows B and L side by side with D below them); `--views urf` leaves out the second.
+
+### The flat net
+
+`--views net` draws a whole cube as the classic cross, with no projection: all six faces are equally large squares, each seen from outside with U up, and every sticker appears exactly once.
+
+```text
+      U
+   L  F  R  B
+      D
+```
+
+U lies above F and D below F; L, F, R and B form one row. U is drawn with F at its bottom edge and D with F at its top edge, so every edge shared by two faces that touch in the picture continues across the gap. Rings, stripes and point symmetry of a pattern read directly from it, which the corner views cannot show, and it works for every size from 2x2x2 to 7x7x7. A 5x5x5 at the default height of 160 pixels is an image of 211 by 160 pixels (the height is `--icon-size`, as for the other pictures).
+
+`--views all` draws the net first, then the two corners, in one image when they fit the terminal width and `--columns` allows it, otherwise stacked one image each (the same rule as for `both`). For a 3x3x3 at the default height the three pictures are one image of 343 by 96 pixels in a terminal 1600 pixels wide, and three images of 127, 100 and 100 pixels width in one of 240 pixels. Amber marks of `recover --icons` sit on the stickers that differ, as in the corner views; as the net shows every face, each differing sticker is marked once, and the line `Stickers that differ` says so. Tests check each of the 6 n x n stickers is drawn once, with its colour, at its place, that stickers of one cubie meet across the gap on touching faces, and that every differing sticker has exactly one mark.
+
+Without graphics the net is a letter grid, with a heading and one space between faces more than between stickers. This is the text of `recover --icons --views net` for the example of [Recover with icons](#recover-with-icons), as run:
+
+```text
+state, flat view: U above F, L F R B in a row, D below
+       B Y O
+       R W R
+       Y R B
+R Y G  O B O  W W G  W B W
+G O O  W G B  O R W  G B O
+B Y W  R B O  Y R R  Y O R
+       G W B
+       G Y G
+       Y Y G
+```
 
 ### Checkpoints
 
@@ -187,7 +216,7 @@ cubacle recover -s "R U2 F' D L2 B R' U' F2 D2 L B'" --now FDDRURLDBRDBLRFFDUUBU
 
 The usual text of `recover` comes first. After it:
 
-1. When a mistake or a nearest cube was found, two pictures of the whole cube: `Should be, after step N (the last correct one)`, the cube of the printed solution after the last correct move, and `Is now`, the cube you typed. Each has its Orbit64 token below it. Compare the two to see what differs: on a Kitty terminal every sticker of `Is now` whose colour differs from `Should be` carries a small amber square, in the view (URF or DBL) that shows its face, so all of them are marked. In every mode the line `Stickers that differ: N of M` counts them over all faces. With `--views urf` the hidden faces are not drawn, so only the stickers of U, R and F are marked and the line says so.
+1. When a mistake or a nearest cube was found, two pictures of the whole cube: `Should be, after step N (the last correct one)`, the cube of the printed solution after the last correct move, and `Is now`, the cube you typed. Each has its Orbit64 token below it. Compare the two to see what differs: on a Kitty terminal every sticker of `Is now` whose colour differs from `Should be` carries a small amber square, in the view (URF or DBL) that shows its face, so all of them are marked. In every mode the line `Stickers that differ: N of M` counts them over all faces. With `--views urf` the hidden faces are not drawn, so only the stickers of U, R and F are marked and the line says so; `net` and `all` mark every one.
 2. The moves to do now (the way back, or the fresh solution when that is recommended), one picture per step as in `solve --icons`, with the quarter-turn note (and the optional frame). Phase headings and `State after phase N as token` lines appear only when the moves are a fresh solution that reports solver stages; a way back has none. In `recover` (not in `solve`) a run of phases with nothing to do is one heading, `Phases 1-5: nothing to do`; a single empty phase keeps its own line.
 
 Without graphics the pictures are the text pictures of `solve --icons`:

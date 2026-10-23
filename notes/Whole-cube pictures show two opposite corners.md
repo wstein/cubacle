@@ -8,5 +8,6 @@ A move icon shows the cube from the Up-Right-Front corner, which hides L, B and 
 ## Links
 
 - [[Quarter turn frame is off by default]]
+- [[A flat net shows every sticker undistorted]]
 
 Source: src/render/pair.rs, lines 1-50
