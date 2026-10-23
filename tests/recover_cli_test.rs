@@ -93,10 +93,7 @@ fn the_move_stopped_at_finds_the_mistake_in_the_first_stage() {
     ]);
     assert!(ok, "{err}");
     assert!(out.contains("step 5 (D') was skipped"), "{out}");
-    assert!(
-        err.contains("answered by the moves up to the stop"),
-        "{err}"
-    );
+    assert!(err.contains("answered by the phase of the stop"), "{err}");
 }
 
 #[test]
@@ -104,4 +101,52 @@ fn a_move_stopped_at_outside_the_solution_is_an_error() {
     let (ok, _, err) = cubacle(&["recover", "-s", ORIGINAL, "--now", NOW, "--at-move", "99"]);
     assert!(!ok);
     assert!(err.contains("move 99 is not in the solution"), "{err}");
+}
+
+#[test]
+fn the_move_you_are_sure_of_is_a_hint_and_the_mistake_names_its_phase() {
+    let run = |sure: &str| {
+        cubacle(&[
+            "recover",
+            "-s",
+            ORIGINAL,
+            "--now",
+            NOW,
+            "--at-move",
+            "7",
+            "--sure-until",
+            sure,
+            "-v",
+        ])
+    };
+    let (ok, out, err) = run("3");
+    assert!(ok, "{err}");
+    assert!(
+        out.contains("mistake at move 5, phase 1 (to the G1 subgroup): step 5 (D') was skipped"),
+        "{out}"
+    );
+    assert!(
+        err.contains("answered by the window from the move you are sure of"),
+        "{err}"
+    );
+}
+
+#[test]
+fn a_sure_move_needs_a_stop_and_lies_before_it() {
+    let (ok, _, err) = cubacle(&["recover", "-s", ORIGINAL, "--now", NOW, "--sure-until", "3"]);
+    assert!(!ok);
+    assert!(err.contains("--at-move"), "{err}");
+    let (ok, _, err) = cubacle(&[
+        "recover",
+        "-s",
+        ORIGINAL,
+        "--now",
+        NOW,
+        "--at-move",
+        "5",
+        "--sure-until",
+        "6",
+    ]);
+    assert!(!ok);
+    assert!(err.contains("which you are sure of"), "{err}");
 }

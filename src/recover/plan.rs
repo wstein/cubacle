@@ -27,9 +27,35 @@ pub struct Plan {
     /// A solution of the current cube from scratch, if one was computed.
     pub fresh: Option<MoveSequence>,
     pub advice: Advice,
+    /// The phases of the printed solution, for naming where a mistake was made.
+    pub phases: Vec<PhaseInfo>,
+}
+
+/// One phase of the printed solution.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PhaseInfo {
+    /// The number among the phases, from 1.
+    pub number: usize,
+    pub name: String,
+    /// The first move (0-based) of the phase.
+    pub start: usize,
 }
 
 impl Plan {
+    /// Names the phase of each mistake in the output. A single phase is not
+    /// worth naming.
+    pub fn with_phases(mut self, phases: Vec<PhaseInfo>) -> Plan {
+        self.phases = if phases.len() > 1 { phases } else { Vec::new() };
+        self
+    }
+
+    /// "move 87, phase 4 (edges)" for a mistake, if phases are known.
+    fn place(&self, m: &Mistake) -> Option<String> {
+        let at = self.phases.iter().rposition(|p| p.start < m.step)?;
+        let p = &self.phases[at];
+        Some(format!("move {}, phase {} ({})", m.step, p.number, p.name))
+    }
+
     /// Picks the cheaper of the best route and the fresh solution; on a tie the
     /// route wins, because it keeps the printed solution in use. Never picks a
     /// longer one.
@@ -52,6 +78,7 @@ impl Plan {
             solution,
             fresh,
             advice,
+            phases: Vec::new(),
         }
     }
 
@@ -183,13 +210,24 @@ impl Plan {
                     format!("Most likely {} mistakes", mistakes.len())
                 };
                 for (i, m) in mistakes.iter().enumerate() {
+                    let place = self.place(m);
                     if mistakes.len() == 1 {
-                        writeln!(f, "{label}: {}.", describe(m, w))?;
+                        match place {
+                            Some(place) => {
+                                writeln!(f, "{label}: mistake at {place}: {}.", describe(m, w))?
+                            }
+                            None => writeln!(f, "{label}: {}.", describe(m, w))?,
+                        }
                     } else {
                         if i == 0 {
                             writeln!(f, "{label}:")?;
                         }
-                        writeln!(f, "  {}. {}.", i + 1, describe(m, w))?;
+                        match place {
+                            Some(place) => {
+                                writeln!(f, "  {}. At {place}: {}.", i + 1, describe(m, w))?
+                            }
+                            None => writeln!(f, "  {}. {}.", i + 1, describe(m, w))?,
+                        }
                     }
                 }
                 writeln!(f, "You had done {done} of {n} steps when you stopped.")?;

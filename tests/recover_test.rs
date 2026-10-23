@@ -281,7 +281,7 @@ fn staged(
     solution: &[Move],
     at_move: usize,
 ) -> cubacle::recover::Staged {
-    let scope = Scope { at_move };
+    let scope = Scope::at(at_move);
     diagnose_staged(original, current, &seq(solution), &limits(), Some(&scope)).unwrap()
 }
 
@@ -319,7 +319,7 @@ fn a_stop_outside_the_solution_is_an_error() {
     let (original, solution) = setup(3, 12, 3);
     let current = run(&original, &solution[..4]);
     for at_move in [0, 13] {
-        let scope = Scope { at_move };
+        let scope = Scope::at(at_move);
         let err = diagnose_staged(
             &original,
             &current,
@@ -338,4 +338,104 @@ fn without_a_scope_the_plain_search_runs() {
     let s = diagnose_staged(&original, &current, &seq(&solution), &limits(), None).unwrap();
     assert_eq!(s.tried, [Widening::Full]);
     assert_eq!(s.diagnosis.finding, Finding::OnPath { done: 4 });
+}
+
+fn phased(at_move: usize, sure_until: Option<usize>) -> Scope {
+    Scope {
+        at_move,
+        sure_until,
+        phase_starts: vec![0, 8, 14, 24],
+    }
+}
+
+fn skipped_at_11() -> (Facelets, Vec<Move>, Facelets) {
+    let (original, solution) = setup(5, 30, 41);
+    let done = go_wrong(&solution, 10, 16, "skip");
+    let current = run(&original, &done);
+    (original, solution, current)
+}
+
+#[test]
+fn the_search_widens_phase_by_phase_until_the_mistake_is_inside() {
+    let (original, solution, current) = skipped_at_11();
+    let s = diagnose_staged(
+        &original,
+        &current,
+        &seq(&solution),
+        &limits(),
+        Some(&phased(16, None)),
+    )
+    .unwrap();
+    // Move 11 is in phase 2, the stop in phase 3.
+    assert_eq!(s.tried, [Widening::Phase, Widening::PreviousPhase]);
+    assert_eq!(s.stage, Widening::PreviousPhase);
+    assert!(matches!(s.diagnosis.finding, Finding::Mistakes { .. }));
+}
+
+#[test]
+fn a_right_sure_move_answers_in_the_first_stage() {
+    let (original, solution, current) = skipped_at_11();
+    let s = diagnose_staged(
+        &original,
+        &current,
+        &seq(&solution),
+        &limits(),
+        Some(&phased(16, Some(9))),
+    )
+    .unwrap();
+    assert_eq!(s.tried, [Widening::Sure]);
+}
+
+#[test]
+fn a_wrong_sure_move_is_a_hint_only() {
+    let (original, solution, current) = skipped_at_11();
+    // Sure until 13, but the mistake is at move 11: widened past the hint.
+    let s = diagnose_staged(
+        &original,
+        &current,
+        &seq(&solution),
+        &limits(),
+        Some(&phased(16, Some(13))),
+    )
+    .unwrap();
+    assert_eq!(s.tried, [Widening::Sure, Widening::PreviousPhase]);
+    let Finding::Mistakes { mistakes, .. } = &s.diagnosis.finding else {
+        panic!("{:?}", s.diagnosis.finding);
+    };
+    assert_eq!(mistakes[0].step, 11);
+}
+
+#[test]
+fn a_sure_move_after_the_stop_is_an_error() {
+    let (original, solution, current) = skipped_at_11();
+    let err = diagnose_staged(
+        &original,
+        &current,
+        &seq(&solution),
+        &limits(),
+        Some(&phased(16, Some(17))),
+    );
+    assert!(err.is_err());
+}
+
+#[test]
+fn the_plan_names_the_move_and_the_phase_of_the_mistake() {
+    use cubacle::recover::PhaseInfo;
+    let (original, solution, current) = skipped_at_11();
+    let s = staged(&original, &current, &solution, 16);
+    let phases = ["a", "b", "c", "d"]
+        .iter()
+        .zip([0, 8, 14, 24])
+        .enumerate()
+        .map(|(i, (name, start))| PhaseInfo {
+            number: i + 1,
+            name: (*name).to_owned(),
+            start,
+        })
+        .collect();
+    let plan = Plan::new(s.diagnosis, seq(&solution), None).with_phases(phases);
+    assert!(
+        plan.to_string().contains("mistake at move 11, phase 2 (b)"),
+        "{plan}"
+    );
 }

@@ -5,8 +5,9 @@ use std::time::{Duration, Instant};
 
 use clap::Args;
 use cubacle::notation::{parse_cube, parse_expression, Notation};
+use cubacle::phases::{from_stages, phases};
 use cubacle::puzzle::{Facelets, MoveSequence, PuzzleKind};
-use cubacle::recover::{diagnose_staged, locate, Limits, Plan, Scope};
+use cubacle::recover::{diagnose_staged, locate, Limits, PhaseInfo, Plan, Scope};
 
 use crate::{default_options, failure_message, read_cube, solver_for, InputArgs};
 
@@ -28,6 +29,10 @@ pub(crate) struct RecoverArgs {
     /// moves are ignored
     #[arg(long, value_name = "N", value_parser = clap::value_parser!(u32).range(1..))]
     at_move: Option<u32>,
+    /// The move you are sure the cube was still right after (a hint, not a
+    /// fact: the search widens past it when nothing is found). Needs --at-move
+    #[arg(long, value_name = "M", requires = "at_move")]
+    sure_until: Option<u32>,
     /// Skip the search for the mistake and only solve the current cube
     #[arg(long)]
     fresh: bool,
@@ -66,21 +71,39 @@ pub(crate) fn run(args: RecoverArgs) -> Result<(), String> {
     let solver = solver_for(original.kind());
     let options = default_options(original.kind());
     let started = Instant::now();
-    let solve = |cube: &Facelets| {
+    let solve_staged = |cube: &Facelets| {
         let result = solver.solve(cube, &options);
+        let stages = result.stages;
         result
             .outcome
+            .map(|moves| (moves, stages))
             .map_err(|failure| failure_message(failure, result.message))
     };
+    let solve = |cube: &Facelets| solve_staged(cube).map(|(moves, _)| moves);
     if args.fresh {
         println!("{}", notation.write(&solve(&current)?));
         return Ok(());
     }
-    let solution: MoveSequence = match &args.solution {
-        Some(text) => parse_expression(text, original.kind())
-            .map_err(|e| format!("--solution is not valid move notation ({e})"))?,
-        None => solve(&original)?,
+    let (solution, stages): (MoveSequence, Vec<_>) = match &args.solution {
+        Some(text) => (
+            parse_expression(text, original.kind())
+                .map_err(|e| format!("--solution is not valid move notation ({e})"))?,
+            Vec::new(),
+        ),
+        None => solve_staged(&original)?,
     };
+    // The engine's own stages where it reports them, else the state-based cut.
+    let found = from_stages(&stages, solution.len())
+        .or_else(|| phases(&original, &solution).ok())
+        .unwrap_or_default();
+    let infos: Vec<PhaseInfo> = found
+        .iter()
+        .map(|p| PhaseInfo {
+            number: p.number,
+            name: p.name.to_owned(),
+            start: p.moves.start,
+        })
+        .collect();
     if args.verbose {
         eprintln!(
             "solution of {} moves after {:?}",
@@ -96,6 +119,8 @@ pub(crate) fn run(args: RecoverArgs) -> Result<(), String> {
     };
     let hint = args.at_move.map(|n| Scope {
         at_move: n as usize,
+        sure_until: args.sure_until.map(|m| m as usize),
+        phase_starts: infos.iter().map(|p| p.start).collect(),
     });
     // Exactly on the path: nothing to compare with.
     let on_path = locate(&original, &current, &solution).map_err(|e| e.to_string())?;
@@ -144,7 +169,7 @@ pub(crate) fn run(args: RecoverArgs) -> Result<(), String> {
                 .map(|d| (d, fresh.ok()))
         })?
     };
-    let plan = Plan::new(diagnosis, solution, fresh);
+    let plan = Plan::new(diagnosis, solution, fresh).with_phases(infos);
     print!("{}", plan.with(&|mv| notation.write_move(mv)));
     Ok(())
 }

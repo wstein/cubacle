@@ -25,8 +25,8 @@ use std::time::{Duration, Instant};
 
 use crate::puzzle::{Facelets, Move, MoveSequence, PuzzleKind};
 
-pub use plan::{Advice, Plan, PlanText};
-pub use stages::{diagnose_staged, Scope, Staged, Widening};
+pub use plan::{Advice, PhaseInfo, Plan, PlanText};
+pub use stages::{diagnose_staged, phase_index, Scope, Staged, Widening};
 
 use search::{Explained, Frame};
 use state::{permute, rotations, state_of, MoveId, Perms, State};
@@ -69,6 +69,8 @@ pub enum RecoverError {
     NotASolution,
     /// The move the person stopped at is not a move of the solution (move, length).
     AtMoveOutOfRange(usize, usize),
+    /// The move the person is sure of lies after the one they stopped at.
+    SureUntilAfterStop(usize, usize),
 }
 
 impl fmt::Display for RecoverError {
@@ -84,6 +86,10 @@ impl fmt::Display for RecoverError {
             RecoverError::AtMoveOutOfRange(at, len) => {
                 write!(f, "move {at} is not in the solution, which has {len} moves")
             }
+            RecoverError::SureUntilAfterStop(sure, at) => write!(
+                f,
+                "move {sure}, which you are sure of, is after move {at}, where you stopped"
+            ),
             RecoverError::NotASolution => {
                 write!(f, "the solution does not solve the original cube")
             }
