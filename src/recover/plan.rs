@@ -240,6 +240,11 @@ impl Plan {
                         "You had done {done} of {n} steps, then made {} ({list}).",
                         plural(strays.len(), "stray move")
                     )?;
+                    writeln!(
+                        f,
+                        "Less certain: this explanation assumes {} after the mistake; nothing simpler fits the cube.",
+                        plural(strays.len(), "extra move")
+                    )?;
                 }
                 if *alternatives > 0 {
                     writeln!(

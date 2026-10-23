@@ -3,7 +3,9 @@
 
 use cubacle::notation::orbit64;
 use cubacle::puzzle::{Face, Facelets, Move, MoveSequence, PuzzleKind, Turn};
-use cubacle::recover::{diagnose_staged, Finding, Limits, MistakeKind, Scope, Staged, Widening};
+use cubacle::recover::{
+    diagnose_staged, Finding, Limits, MistakeKind, Plan, Scope, Staged, Widening,
+};
 
 /// A scramble of non-commuting neighbours, and the solution that undoes it.
 fn setup(size: usize, len: usize, seed: u64) -> (Facelets, Vec<Move>) {
@@ -198,4 +200,23 @@ fn a_skipped_move_with_a_stray_move_is_found_last_on_a_real_cube() {
         panic!("{:?}", s.diagnosis.finding);
     };
     assert_eq!(mistakes[0].step, 54);
+}
+
+#[test]
+fn an_explanation_that_needs_stray_moves_says_it_is_less_certain() {
+    let (original, current, solution) = real("8-9");
+    let text = |limits: &Limits| {
+        let s = diagnose_staged(&original, &current, &solution, limits, None).unwrap();
+        Plan::new(s.diagnosis, solution.clone(), None).to_string()
+    };
+    let with = text(&Limits::default());
+    assert!(
+        with.contains("Less certain: this explanation assumes 2 extra moves after the mistake"),
+        "{with}"
+    );
+    let without = text(&Limits {
+        strays: 0,
+        ..Limits::default()
+    });
+    assert!(!without.contains("Less certain"), "{without}");
 }
