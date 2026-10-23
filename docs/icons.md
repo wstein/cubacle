@@ -6,7 +6,7 @@ weight: 4
 
 # Move icons
 
-A move icon (a "minicube": a small cube picture with an arrow, also called an arrow diagram) shows one move on the cube. `cubacle icon` draws a move as such a picture, and `cubacle solve --icons` shows every step of a solution that way. The same code is available as the `cubacle::render` module, which returns SVG, RGBA pixels or Kitty graphics escapes for a frontend or a PDF export.
+A move icon (a "minicube": a small cube picture with an arrow, also called an arrow diagram) shows one move on the cube. `cubacle moves --icons` draws moves as such pictures, and `cubacle solve --icons` shows every step of a solution that way. The same code is available as the `cubacle::render` module, which returns SVG, RGBA pixels or Kitty graphics escapes for a frontend or a PDF export.
 
 ## What an icon shows
 
@@ -33,15 +33,16 @@ A prime (`'`) reverses the direction. The direction is derived from the rotation
 
 The notation below the cube is the canonical notation of the move. `Rw` and `Rw2` turn the two outer layers, `2R` and `2R2` turn only the second layer, and `3Rw` turns the three outer layers. Lowercase SiGN spellings such as `r` are read as input (see [Move notations](cli.md#move-notations)); the label is always the WCA one. The arrow is centred on the turning layers, so a wide move has its arrow between its layers.
 
-## Draw an icon
+## Draw moves
 
 ```sh
-cubacle icon R "U'" Rw2 --cube 4
+cubacle moves R "U'" Rw2 --size 4 --icons
 ```
 
-Each move is drawn on its own start cube, the solved cube or the cube from `--from`, as in a move sheet. With `--cumulative`, each move is drawn on the cube left by the moves before it. On a terminal without graphics, the output is text; on a pipe it is plain text without escape sequences:
+The moves are read like those of `convert` and `solve` (groups, commutators, slices, rotations, layer ranges), and `--size` is the cube size. With `--icons` and no `--format` or `--out`, the output is the step pictures of `solve --icons`: each move is drawn on the cube left by the moves before it (starting from the solved cube or `--from`), under a line `step i of n: MOVE`. On a terminal without graphics, the output is text; on a pipe it is plain text without escape sequences:
 
 ```text
+step 1 of 2: R
 R ↑
    w w W
   w w W
@@ -53,11 +54,13 @@ g g G R R R
 
 Moving stickers are uppercase and the others lowercase.
 
+An explicit `--format` or `--out` writes the icons themselves, one per move or rotation, without step lines; each is drawn on its own start cube, as in a move sheet, unless `--cumulative`. All options below need `--icons`.
+
 | Option | Meaning |
 | --- | --- |
-| `--format auto\|svg\|rgba\|kitty\|text` | The output format. `auto` (the default) uses Kitty graphics on a capable terminal and text otherwise. |
-| `--size N` | Icon height in pixels. Default: 32 per cube layer, at least 96 (96 for the 2x2x2 and 3x3x3, 128 for the 4x4x4, 224 for the 7x7x7), so stickers stay readable on larger cubes. The canvas is 114 by 109.2 units, so the width is about 1.04 times the height (100 by 96 pixels by default). |
-| `--cube N` | Cube size, 2 to 7, 3 by default. |
+| `--format auto\|svg\|rgba\|kitty\|text` | The output format. `auto` (the default) shows step pictures (Kitty graphics on a capable terminal, text otherwise); with `--out` it writes SVG. |
+| `--icon-size PIXELS` | Icon height in pixels. Default: 32 per cube layer, at least 96 (96 for the 2x2x2 and 3x3x3, 128 for the 4x4x4, 224 for the 7x7x7), so stickers stay readable on larger cubes. The canvas is 114 by 109.2 units, so the width is about 1.04 times the height (100 by 96 pixels by default). |
+| `--size N` | Cube size, 2 to 7, 3 by default. |
 | `--out FILE` | Write to a file instead of standard output. |
 | `--scheme boy\|jp` | Colour scheme, `boy` by default; six letters in `URFDLB` order also work. |
 | `--from SCRAMBLE` | Start from the cube that this scramble produces. |
@@ -69,7 +72,7 @@ Moving stickers are uppercase and the others lowercase.
 `svg` and `rgba` hold one icon, so they take one move. `rgba` writes `width × height × 4` bytes of straight (not premultiplied) RGBA. Graphics escapes are never written to a standard output that is not a terminal, and raw pixels are never written to a terminal; use `--out FILE` in those cases.
 
 ```sh
-cubacle icon "Rw'" --cube 5 --format svg --out rw.svg
+cubacle moves "Rw'" --size 5 --icons --format svg --out rw.svg
 ```
 
 ## Solve with icons
@@ -213,7 +216,7 @@ D2 → (half turn)
 
 `cubacle` writes Kitty graphics when standard output is a terminal and the environment names a terminal that supports the [Kitty graphics protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/): `KITTY_WINDOW_ID` is set, `TERM` is `xterm-kitty`, or `TERM_PROGRAM` is `ghostty` or `WezTerm`. Other terminals get coloured text, or plain text when `NO_COLOR` is set, `TERM` is `dumb` or standard output is not a terminal.
 
-The Kitty output transmits raw RGBA (`a=T,f=32`) in chunks of at most 4096 base64 bytes, with `m=1` on every chunk but the last. It first erases the terminal rows that the image covers, steps back up, draws the image with `C=1` (the cursor does not move) and then steps down below it, so older text cannot show through and later output does not overlap. The icon background is transparent by default, so it takes the colours of a terminal and does not drift against other backgrounds. `--opaque` paints a solid backdrop of the `--background` colour instead (`icon` only). In `solve --icons` the image is drawn at its own pixel size, without `r`, so a row is as wide as computed; the number of rows to erase is its height divided by the cell height, rounded up. For `icon`, only the height in rows (`r`) is sent, from an assumed 16 pixels per row. See [How the terminal is asked](#how-the-terminal-is-asked) for the width and the background. The encoding is covered by unit tests; the drawing was seen in a Kitty-protocol terminal by the owner.
+The Kitty output transmits raw RGBA (`a=T,f=32`) in chunks of at most 4096 base64 bytes, with `m=1` on every chunk but the last. It first erases the terminal rows that the image covers, steps back up, draws the image with `C=1` (the cursor does not move) and then steps down below it, so older text cannot show through and later output does not overlap. The icon background is transparent by default, so it takes the colours of a terminal and does not drift against other backgrounds. `--opaque` paints a solid backdrop of the `--background` colour instead (`moves --icons` only). In `solve --icons` the image is drawn at its own pixel size, without `r`, so a row is as wide as computed; the number of rows to erase is its height divided by the cell height, rounded up. For `moves --icons` with `--format kitty`, only the height in rows (`r`) is sent, from an assumed 16 pixels per row. See [How the terminal is asked](#how-the-terminal-is-asked) for the width and the background. The encoding is covered by unit tests; the drawing was seen in a Kitty-protocol terminal by the owner.
 
 ## Use the module
 

@@ -6,7 +6,7 @@ weight: 3
 
 # Command-line guide
 
-The `cubacle` tool has seven subcommands: `solve`, `recover`, `convert`, `scramble`, `random`, `facelets` and `icon`. Run `cubacle <command> --help` for the full option list.
+The `cubacle` tool has seven subcommands: `solve`, `recover`, `convert`, `scramble`, `random`, `facelets` and `moves`. Run `cubacle <command> --help` for the full option list.
 
 ## Solve a cube
 
@@ -517,15 +517,25 @@ UULUUFUUFRRUBRRURRFFDFFUFFFDDRDDDDDDBLLLLLLLLBRRBBBBBB
 
 ## Draw moves
 
-`icon` draws moves as small pictures, and `solve --icons` shows each step of a solution with one. See [Move icons](icons.md).
+`moves` prints the plain move sequence an expression stands for (groups, commutators, slices and rotations expanded; `--size N`, `--notation wca|sign`; several words need no quoting, `-` reads stdin):
 
 ```sh
-cubacle icon R "U'" --format text
+cubacle moves --size 7 "(R2 F2 L2)*2"
+```
+
+```text
+R2 F2 L2 R2 F2 L2
+```
+
+With `--icons` it draws the moves as small pictures, as `solve --icons` does for the steps of a solution. See [Move icons](icons.md).
+
+```sh
+cubacle moves R "U'" --icons --format text
 ```
 
 ## Move notations
 
-Every command that reads moves (`solve --scramble`, `facelets`, `convert --scramble`, `icon`) reads WCA and SiGN spellings, token by token and without an option. `solve` and `scramble` write either one with `--notation wca|sign` (default `wca`). The move count and the engines are the same in both: every move counts one. `convert` and `random` print a cube, not moves, so they have no such option.
+Every command that reads moves (`solve --scramble`, `facelets`, `convert --scramble`, `moves`) reads WCA and SiGN spellings, token by token and without an option. `solve` and `scramble` write either one with `--notation wca|sign` (default `wca`). The move count and the engines are the same in both: every move counts one. `convert` and `random` print a cube, not moves, so they have no such option.
 
 | What is turned | WCA | SiGN |
 | --- | --- | --- |
@@ -540,11 +550,11 @@ A turn ends in nothing (clockwise), `2` or `'`, as before (`3r2`, `u'`). The not
 
 SiGN writes the layers a to b of a face as `a-b` before the letter: `2-3r` is the second and third layer from the right, `2-4l2` a half turn of layers 2 to 4 from the left, `1-3r` is `3r`, and `2-2r` is `2R`. A range is expanded when it is read into plain moves, the outer b layers turned together and the outer a-1 layers turned back, so the engines and the move count never see it: `2-3r` is `3Rw R'`, `3-5r` is `5Rw Rw'`, `2-4l2` is `4Lw2 L2`. Layers are counted from the face named, and a is not larger than b. As an extension of this program, which neither source has, the range may be written with `Rw` instead of the lowercase letter: `2-3Rw2` equals `2-3r2`. The tests turn every range of every size from the 2x2x2 to the 7x7x7 and compare it with turning the same layers one by one.
 
-Rejected, with the token in the message: `rw` and `3rw` (a lowercase letter already means a wide turn), `1r` and `0r`, a turn count after the letter that is not 2 or a quote, and ranges that run backwards (`3-2r`), start at 0 (`0-2r`), lack a letter (`2-3`), use a capital without `w` (`2-3R`) or reach a layer the cube lacks. The face letters are `U R F D L B`; the whole-cube rotations `x y z` and the slices `M E S` are read in expressions and by `icon`.
+Rejected, with the token in the message: `rw` and `3rw` (a lowercase letter already means a wide turn), `1r` and `0r`, a turn count after the letter that is not 2 or a quote, and ranges that run backwards (`3-2r`), start at 0 (`0-2r`), lack a letter (`2-3`), use a capital without `w` (`2-3R`) or reach a layer the cube lacks. The face letters are `U R F D L B`; the whole-cube rotations `x y z` and the slices `M E S` are read in expressions and by `moves`.
 
 #### Where moves are read and written
 
-Moves are read as WCA or SiGN, with groups, commutators and ranges, by `solve --scramble`, `convert --scramble` and `facelets`, by `recover --solution`, by `icon` (its moves and `--from`), and by the `scramble` field of the REST API. Moves are written in either notation by `--notation wca|sign` on `solve` (the solution, the `--icons` step lines and the last line; the icon pictures keep WCA letters), `scramble` and `recover` (every move in the explanation and in `Moves now:` and `Fresh solution:`).
+Moves are read as WCA or SiGN, with groups, commutators and ranges, by `solve --scramble`, `convert --scramble` and `facelets`, by `recover --solution`, by `moves` (its moves and `--from`), and by the `scramble` field of the REST API. Moves are written in either notation by `--notation wca|sign` on `solve` (the solution, the `--icons` step lines and the last line; the icon pictures keep WCA letters), `scramble` and `recover` (every move in the explanation and in `Moves now:` and `Fresh solution:`).
 
 ```sh
 cubacle facelets "r U f'"

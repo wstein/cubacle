@@ -19,7 +19,7 @@ PDF export, animation, a frontend, and curved rotation arrows for inner slices (
 
 ## Terminal output
 
-Kitty output erases the covered rows, draws with `C=1` and steps below the image, is transparent unless `--opaque` and sends only `r` so the terminal keeps the aspect ratio. `icon` draws each move on its own start cube; `--cumulative` replays, as `solve --icons` does. Every drawing keeps a 2 px margin, tested for sizes 2 to 7.
+Kitty output erases the covered rows, draws with `C=1` and steps below the image, is transparent unless `--opaque` and sends only `r` so the terminal keeps the aspect ratio. `moves --icons --format ...` draws each move on its own start cube; `--cumulative` replays, as `solve --icons` does. Every drawing keeps a 2 px margin, tested for sizes 2 to 7.
 
 ## Links
 
