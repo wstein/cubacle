@@ -6,32 +6,55 @@ checkerboard | 4 | outer | best-known | 6 | R2 L2 U2 D2 F2 B2
 checkerboard | 4 | range | best-known | 3 | 2-3Rw2 2-3Uw2 2-3Fw2
 checkerboard | 5 | outer | half-turn-optimal | 12 | F2 Fw2 3Fw2 4Fw2 3Rw2 4Rw2 Rw2 R2 4Uw2 3Uw2 Uw2 U2
 checkerboard | 5 | range | optimal | 6 | 2F2 4F2 4R2 2R2 4U2 2U2
+checkerboard | 6 | outer | best-known | 12 | R2 Rw2 4Rw2 5Rw2 U2 Uw2 4Uw2 5Uw2 F2 Fw2 4Fw2 5Fw2
+checkerboard | 6 | range | best-known | 6 | 2R2 2L2 2U2 2D2 2F2 2B2
+checkerboard | 7 | range | best-known | 9 | 2R2 2L2 2U2 4U2 2D2 2F2 4F2 2B2 4R2
 six-spots | 3 | outer | optimal | 8 | Fw' Rw Lw' Dw' Uw Fw' F U
 six-spots | 3 | range | optimal | 6 | 2U' Fw Bw' Lw' Rw 2U'
 six-spots | 4 | outer | optimal | 8 | 3Fw' 3Rw 3Lw' 3Dw' 3Uw 3Fw' F U
 six-spots | 4 | range | optimal | 4 | 2-3Rw' 2-3Uw 2-3Rw 2-3Uw'
 six-spots | 5 | outer | best-known | 8 | B' U D' L' R B' F U
 six-spots | 5 | range | best-known | 8 | R L' F B' U D' R L'
+six-spots | 6 | outer | best-known | 8 | B' U D' L' R B' F U
+six-spots | 6 | range | best-known | 4 | 2-5Rw' 2-5Uw 2-5Rw 2-5Uw'
+six-spots | 7 | outer | best-known | 8 | B' U D' L' R B' F U
+six-spots | 7 | range | best-known | 8 | R L' F B' U D' R L'
 six-centre-spots | 5 | outer | best-known | 8 | Rw Lw' Fw Bw' Uw Dw' Rw Lw'
 six-centre-spots | 5 | range | optimal | 6 | 3U' 3Fw 3Bw' 3Lw' 3Rw 3U'
+six-centre-spots | 6 | outer | best-known | 8 | Rw Lw' Fw Bw' Uw Dw' Rw Lw'
+six-centre-spots | 6 | range | best-known | 4 | 3-4Rw' 3-4Uw 3-4Rw 3-4Uw'
+six-centre-spots | 7 | range | best-known | 8 | 3Rw 3Lw' 3Fw 3Bw' 3Uw 3Dw' 3Rw 3Lw'
 four-spots | 3 | outer | optimal | 8 | D' F2 Fw2 Dw' Uw Rw2 R2 U
 four-spots | 3 | range | optimal | 6 | D2 2R2 2U 2R2 Uw U
 four-spots | 4 | outer | optimal | 8 | D' F2 3Fw2 3Dw' 3Uw 3Rw2 R2 U
 four-spots | 4 | range | optimal | 4 | 2-3Rw2 2-3Uw' 2-3Rw2 2-3Uw
 four-spots | 5 | outer | best-known | 8 | D' F2 B2 D' U L2 R2 U
 four-spots | 5 | range | best-known | 6 | 2-4Rw2 2-4Uw 2-4Rw2 U2 D2 2-4Uw
+four-spots | 6 | outer | best-known | 8 | D' F2 B2 D' U L2 R2 U
+four-spots | 6 | range | best-known | 4 | 2-5Rw2 2-5Uw 2-5Rw2 2-5Uw'
+four-spots | 7 | outer | best-known | 8 | D' F2 B2 D' U L2 R2 U
+four-spots | 7 | range | best-known | 6 | 2-6Rw2 2-6Uw 2-6Rw2 U2 D2 2-6Uw
 four-centre-spots | 5 | outer | best-known | 8 | Uw Dw' Fw2 Bw2 Uw Dw' Rw2 Lw2
 four-centre-spots | 5 | range | best-known | 6 | 3R2 3U 3R2 Uw2 Dw2 3U
+four-centre-spots | 6 | outer | best-known | 8 | Uw Dw' Fw2 Bw2 Uw Dw' Rw2 Lw2
+four-centre-spots | 6 | range | best-known | 4 | 3-4Rw2 3-4Uw 3-4Rw2 3-4Uw'
 cube-in-cube | 3 | outer | best-known | 15 | U2 R2 F2 U B2 D' L' F L' F L' F D B2 U
 cube-in-cube | 4 | outer | best-known | 15 | L2 B2 D2 L' U2 R F D' F D' F D' R' U2 L'
 cube-in-cube | 5 | outer | best-known | 15 | U2 R2 F2 U B2 D' L' F L' F L' F D B2 U
+cube-in-cube | 6 | outer | best-known | 15 | U2 R2 F2 U B2 D' L' F L' F L' F D B2 U
+cube-in-cube | 7 | outer | best-known | 15 | U2 R2 F2 U B2 D' L' F L' F L' F D B2 U
 cube-in-cube-in-cube | 5 | outer | best-known | 44 | F2 R' L' U' B U2 D B U L2 D2 R2 F' R2 B' U2 R2 B' Fw2 D2 R2 U 2B2 U' L2 D2 Lw2 F Rw2 D2 F2 U2 Lw2 F' R' Rw' F' Bw D' Uw L Rw F2 U2
 superflip | 3 | outer | best-known | 20 | U' R2 U' F2 D' R2 U' B F U2 L' B2 R2 F2 D' U F' U2 L' R'
 superflip | 4 | outer | best-known | 20 | U' R2 U' F2 D' R2 U' B F U2 L' B2 R2 F2 D' U F' U2 L' R'
 superflip | 5 | outer | best-known | 20 | U' R2 U' F2 D' R2 U' B F U2 L' B2 R2 F2 D' U F' U2 L' R'
+superflip | 6 | outer | best-known | 20 | U' R2 U' F2 D' R2 U' B F U2 L' B2 R2 F2 D' U F' U2 L' R'
+superflip | 7 | outer | best-known | 20 | U' R2 U' F2 D' R2 U' B F U2 L' B2 R2 F2 D' U F' U2 L' R'
 centres-opposite | 4 | outer | best-known | 14 | U' Uw2 3Uw' F2 3Fw2 U Uw2 3Uw R' L U2 3Uw2 R L'
 centres-opposite | 4 | range | optimal | 6 | 2-3Fw2 2-3Uw' 2R2 2-3Fw2 2R2 2-3Uw
+centres-opposite | 6 | range | best-known | 8 | 2-5Fw 2-5Uw2 2-5Fw' 2-3Rw' 2-3Lw' 2-5Uw2 2-3Rw 2-3Lw
 centres-cycled | 4 | outer | optimal | 8 | U' 3Fw F' 3Uw' U 3Fw' F 3Uw
 centres-cycled | 4 | range | optimal | 4 | 2-3Fw 2-3Uw' 2-3Fw' 2-3Uw
 centres-cycled | 5 | outer | best-known | 8 | U' 4Uw R L' F' 4Fw R' L
 centres-cycled | 5 | range | best-known | 4 | 2-4Uw 2-4Rw' 2-4Uw' 2-4Rw
+centres-cycled | 6 | outer | best-known | 8 | U' 5Uw R L' F' 5Fw R' L
+centres-cycled | 6 | range | best-known | 4 | 2-5Rw 2-5Fw' 2-5Rw' 2-5Fw
