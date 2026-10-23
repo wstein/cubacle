@@ -167,6 +167,7 @@ The output says one of these things.
 
 - **The cube is on the path**: `you are after step j of n`, and which step comes next.
 - **One or two mistakes explain the cube**: the move and the phase of the solution it is in (named when the solution has more than one phase), the printed move, and what was done instead: the step *skipped*, turned by the *wrong amount* (a quarter instead of a half turn or the reverse), the *wrong way*, in *other layers* (`Fw2` for `3Fw2`), on the *wrong face*, *replaced* by some other move, *done twice*, *swapped* with the next step, or an *extra move* made before it. It also says how many steps were done when the cube was entered. When moves that commute give several equal explanations, the earliest step is shown and the number of the others is printed.
+- **One mistake and moves made by hand after it** explain the cube. This is the last resort: it is searched only after every other stage found nothing, so a cube that has a simpler explanation never gets this one. The output then says `then made N stray moves` and `Less certain: this explanation assumes N extra moves after the mistake`; with `--at-move N` the extra moves are taken to follow move N. `-v` shows the stage as `stray moves after the mistake`.
 - **The cube is a few moves away from the path**, but no mistake is named.
 - **Nothing was found** (three or more mistakes, or moves done by hand after the mistake): the fresh solution is printed.
 
@@ -244,6 +245,7 @@ Moves now: R2 D' R U' Fw D2 Fw B2 U2 F2 Dw' D2 F' Dw2 L B' R L' Bw2 Rw2 F' Bw2 R
 | `--sure-until <M>` | Needs `--at-move`. The move after which you are sure the cube was right (M before N). A hint: the search widens past it. |
 | `--fresh` | Skip the search and print the solution of the current cube. |
 | `--depth <N>` | Moves the search for a way back onto the path may use, 0 to 5 (default 3). Measured on a 7x7x7: 3 adds about 20 ms per orientation, 4 makes the whole search take 3 to 5 s, 5 reaches the default time limit and holds about 70 MB. Turned cubes are searched at depth 3 at most. |
+| `--strays <N>` | Stray moves after a mistake the last stage allows, 0 to 3 (default 2; one for solutions under 16 moves). 0 leaves the stage out. |
 | `--one-mistake` | Look for one mistake only. The default also looks for two. |
 | `--thorough` | For two mistakes, try every move instead of it and every extra move. Slow on big cubes (it does not finish within the default time limit on a 7x7x7). |
 | `--max-time <MS>` | Time limit of the search in milliseconds, 0 for none (default 8000). The result then says that the search stopped at its time limit. |
