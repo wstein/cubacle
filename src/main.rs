@@ -50,7 +50,7 @@ enum Command {
         /// Cube size
         #[arg(long, default_value_t = 3)]
         size: usize,
-        /// How to write the moves: wca (Rw, 3Rw) or sign (r, 3r)
+        /// How to write the moves: wca (Rw, 3Rw) sign (r, 3r) or sse (TR, T3R)
         #[arg(long, default_value = "wca")]
         notation: Notation,
     },
@@ -64,7 +64,7 @@ enum Command {
     Convert(ConvertArgs),
     /// Print the facelets reached by applying a scramble to a solved cube
     Facelets {
-        /// Moves in WCA or SiGN notation, e.g. "R U R' U'"
+        /// Moves in WCA, SiGN or SSE notation, e.g. "R U R' U'"
         scramble: String,
         /// Cube size
         #[arg(long, default_value_t = 3)]
@@ -138,7 +138,7 @@ struct SolveArgs {
     /// Also print timing and search statistics to stderr
     #[arg(short, long)]
     verbose: bool,
-    /// How to write the solution: wca (Rw, 3Rw) or sign (r, 3r)
+    /// How to write the solution: wca (Rw, 3Rw) sign (r, 3r) or sse (TR, T3R)
     #[arg(long, default_value = "wca")]
     notation: Notation,
     /// Post-solve compression (no search): `ranges` writes adjacent turns of one axis as

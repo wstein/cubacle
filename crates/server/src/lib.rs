@@ -396,7 +396,7 @@ async fn random(params: Result<Query<RandomParams>, QueryRejection>) -> ApiResul
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ConvertRequest {
     cube: Option<String>,
-    /// Moves in WCA or SiGN notation instead of `cube`.
+    /// Moves in WCA, SiGN or SSE notation instead of `cube`.
     scramble: Option<String>,
     /// Cube size of a `scramble`, 2 to 7 (default 3).
     size: Option<usize>,
@@ -407,7 +407,7 @@ struct ConvertRequest {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct SolveRequest {
     cube: Option<String>,
-    /// Moves in WCA or SiGN notation instead of `cube`.
+    /// Moves in WCA, SiGN or SSE notation instead of `cube`.
     scramble: Option<String>,
     /// Cube size of a `scramble`, 2 to 7 (default 3).
     size: Option<usize>,

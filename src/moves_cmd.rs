@@ -21,7 +21,7 @@ pub struct MovesArgs {
     /// Cube size, 2 to 7
     #[arg(long, default_value_t = 3)]
     size: usize,
-    /// How to write the moves: wca (Rw, 3Rw) or sign (r, 3r)
+    /// How to write the moves: wca (Rw, 3Rw) sign (r, 3r) or sse (TR, T3R)
     #[arg(long, default_value = "wca")]
     notation: Notation,
     #[command(flatten)]
