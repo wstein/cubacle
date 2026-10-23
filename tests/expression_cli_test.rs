@@ -83,6 +83,47 @@ fn the_nested_slice_and_rotation_expression_converts_on_a_7x7() {
 }
 
 #[test]
+fn convert_writes_colours_in_the_chosen_scheme() {
+    let token = "A4ib8aejxj4Y";
+    let (ok, western, _) = cubacle(&["convert", token, "--to", "color"]);
+    assert!(ok);
+    assert_eq!(
+        western,
+        "GWGWWGGGGWWWWRRWRWRRRGGRRGRBYBBYYBBBYOYYOOYYYOBOBBOOOO"
+    );
+    let (ok, named, _) = cubacle(&["convert", token, "--to", "colour", "--scheme", "western"]);
+    assert!(ok);
+    assert_eq!(named, western);
+    let (ok, japanese, _) = cubacle(&["convert", token, "--to", "color", "--scheme", "jp"]);
+    assert!(ok);
+    assert_ne!(japanese, western);
+    // The letters read back to the same cube with the scheme that wrote them.
+    for (letters, scheme) in [(&western, "boy"), (&japanese, "jp")] {
+        let (ok, facelets, _) = cubacle(&["convert", "--scheme", scheme, letters]);
+        assert!(ok);
+        let (_, expected, _) = cubacle(&["convert", token]);
+        assert_eq!(facelets, expected);
+    }
+}
+
+#[test]
+fn colours_cover_the_expression_on_a_7x7_and_survive_a_round_trip() {
+    let expression = "((M' U)*4 y' z')*3";
+    let args = ["convert", "--size", "7", expression];
+    let (ok, colours, error) = cubacle(&[
+        "convert", "--size", "7", expression, "--to", "color", "--scheme", "western",
+    ]);
+    assert!(ok, "{error}");
+    assert_eq!(colours.len(), 6 * 49);
+    assert!(colours.chars().all(|c| "WRGYOB".contains(c)));
+    let (ok, facelets, _) = cubacle(&args);
+    assert!(ok);
+    let (ok, back, error) = cubacle(&["convert", "--scheme", "western", &colours]);
+    assert!(ok, "{error}");
+    assert_eq!(back, facelets);
+}
+
+#[test]
 fn a_broken_expression_is_reported() {
     let (ok, _, error) = cubacle(&["facelets", "(R U"]);
     assert!(!ok);

@@ -1,7 +1,7 @@
 use std::fmt;
 use std::str::FromStr;
 
-use crate::puzzle::Face;
+use crate::puzzle::{Face, Facelets};
 
 /// Which sticker colour sits on which face, in `URFDLB` order.
 ///
@@ -52,6 +52,16 @@ impl ColourScheme {
 
     pub fn letter_of(&self, face: Face) -> char {
         self.letters[face.index()]
+    }
+
+    /// The cube as colour letters, one per sticker in facelet order (the order
+    /// of `Facelets`' own text form), so `parse_cube` reads it back with this
+    /// scheme.
+    pub fn paint(&self, cube: &Facelets) -> String {
+        cube.stickers()
+            .iter()
+            .map(|&face| self.letter_of(face))
+            .collect()
     }
 
     /// Reads the scheme off the six fixed centres of an odd cube, each of which
@@ -168,6 +178,31 @@ mod tests {
             ColourScheme::from_centres(&colours[..24], 2),
             Err(SchemeError::NoCentres(2))
         );
+    }
+
+    #[test]
+    fn painting_a_cube_is_read_back_with_the_same_scheme() {
+        use crate::notation::parse_cube;
+        use crate::puzzle::PuzzleKind;
+        let solved = Facelets::solved(PuzzleKind::Cube3);
+        assert_eq!(
+            ColourScheme::WESTERN_BOY.paint(&solved),
+            "WWWWWWWWWRRRRRRRRRGGGGGGGGGYYYYYYYYYOOOOOOOOOBBBBBBBBB"
+        );
+        assert_eq!(
+            ColourScheme::JAPANESE_BL_WT.paint(&solved),
+            "WWWWWWWWWRRRRRRRRRGGGGGGGGGBBBBBBBBBOOOOOOOOOYYYYYYYYY"
+        );
+        let moves = "R U F' D2".parse().unwrap();
+        for kind in [PuzzleKind::Cube2, PuzzleKind::Cube3, PuzzleKind::Cube5] {
+            let cube = Facelets::solved(kind).apply(&moves).unwrap();
+            for scheme in [ColourScheme::WESTERN_BOY, ColourScheme::JAPANESE_BL_WT] {
+                assert_eq!(
+                    parse_cube(&scheme.paint(&cube), Some(scheme)).unwrap(),
+                    cube
+                );
+            }
+        }
     }
 
     #[test]

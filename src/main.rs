@@ -50,7 +50,7 @@ enum Command {
         #[arg(long, default_value_t = 3)]
         size: usize,
     },
-    /// Translate any supported notation into URFDLB facelets or an Orbit64 token
+    /// Translate any supported notation into URFDLB facelets, colours or an Orbit64 token
     Convert(ConvertArgs),
     /// Print the facelets reached by applying a scramble to a solved cube
     Facelets {
@@ -88,6 +88,10 @@ enum Output {
     Facelets,
     /// An Orbit64 state token
     Token,
+    /// W/R/G/Y/O/B sticker letters in facelet order, written with --scheme
+    /// (default: boy, the western scheme)
+    #[value(name = "color", alias = "colour")]
+    Colour,
 }
 
 #[derive(Args)]
@@ -158,6 +162,10 @@ fn run(cli: Cli) -> Result<(), String> {
             match args.to {
                 Output::Facelets => println!("{cube}"),
                 Output::Token => println!("{}", orbit64::encode(&cube).map_err(|e| e.to_string())?),
+                Output::Colour => {
+                    let scheme = args.input.scheme.unwrap_or(ColourScheme::WESTERN_BOY);
+                    println!("{}", scheme.paint(&cube));
+                }
             }
             Ok(())
         }

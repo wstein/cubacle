@@ -254,6 +254,30 @@ cubacle convert A4ib8aejxj4Y
 FUFUUFFFFUUUURRURURRRFFRRFRBDBBDDBBBDLDDLLDDDLBLBBLLLL
 ```
 
+`--to` picks the output: `facelets` (default), `token` or `color`. `color` (also spelled `colour`) writes one W/R/G/Y/O/B letter per sticker, in the same order as the facelets output, through the colour scheme named by `--scheme` (default: `boy`, the western scheme, white up and yellow down). `--scheme western` is another name for `boy`; `jp` and six letters in URFDLB order work too. The text reads back with `convert --scheme <same>`.
+
+```sh
+cubacle convert A4ib8aejxj4Y --to color
+cubacle convert A4ib8aejxj4Y --to color --scheme jp
+```
+
+```text
+GWGWWGGGGWWWWRRWRWRRRGGRRGRBYBBYYBBBYOYYOOYYYOBOBBOOOO
+GWGWWGGGGWWWWRRWRWRRRGGRRGRYBYYBBYYYBOBBOOBBBOYOYYOOOO
+```
+
+`convert` also takes a move expression (see [Apply a scramble](#apply-a-scramble)); `--size` picks the cube. This nested expression of slices, rotations and repeats on a 7x7x7 gives 294 letters, one per sticker:
+
+```sh
+cubacle convert --size 7 "((M' U)*4 y' z')*3" --to color --scheme western
+```
+
+```text
+WWWBWWWWWWBWWWWWWBWWWOWWWWWRWWWBWWWWWWBW...
+```
+
+The output is shortened here; it ends with `...BBBYBBBBBBYBBBBBBYBBB`.
+
 ## Generate scrambles and cubes
 
 `scramble` prints a random scramble. `-n` sets the number of moves (default: 25) and `--size` the cube size (default: 3). On a 4x4x4 or 5x5x5 the scramble also turns second layers.
