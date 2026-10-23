@@ -9,7 +9,7 @@ use super::style::{face_light, Rgb, Shading, Style, BODY, GREY};
 use crate::puzzle::{locate, Face, Facelets};
 
 /// The colour that marks a differing sticker (amber, as the quarter-turn frame).
-const MARK: Rgb = Rgb(255, 176, 0);
+pub(crate) const MARK: Rgb = Rgb(255, 176, 0);
 
 /// How far one unit of depth shifts a point right and up on screen: a deep
 /// oblique view that makes the Top and Right faces large.
@@ -104,7 +104,7 @@ pub(crate) fn plane_coords(face: Face, p: [f64; 3]) -> [f64; 2] {
 }
 
 /// A square of half-width `h` with rounded corners, counter-clockwise.
-fn rounded_square(centre: [f64; 2], h: f64, radius: f64) -> Vec<[f64; 2]> {
+pub(crate) fn rounded_square(centre: [f64; 2], h: f64, radius: f64) -> Vec<[f64; 2]> {
     let inner = h - radius;
     let mut points = Vec::with_capacity(12);
     for (corner, (sx, sy)) in [(1.0, 1.0), (-1.0, 1.0), (-1.0, -1.0), (1.0, -1.0)]

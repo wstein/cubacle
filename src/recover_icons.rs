@@ -18,11 +18,10 @@ fn after(original: &Facelets, solution: &MoveSequence, count: usize) -> Option<F
 /// The count of differing stickers and where the amber marks show them: with
 /// both views every one is marked, in whichever picture has its face.
 fn differ_line(differ: usize, all: usize, views: Views) -> String {
-    let marked = match views {
-        Views::Both => "all marked amber in graphics rows, in the view that shows them",
-        Views::Urf => {
-            "marked amber in graphics rows on the visible faces only, add --views both for the rest"
-        }
+    let marked = if views.shows_every_face() {
+        "all marked amber in graphics rows, in the view that shows them"
+    } else {
+        "marked amber in graphics rows on the visible faces only, add --views both for the rest"
     };
     format!("Stickers that differ: {differ} of {all} ({marked}).\n")
 }

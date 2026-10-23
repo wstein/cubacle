@@ -10,9 +10,7 @@ use std::io::Write;
 use cubacle::notation::{orbit64, ColourScheme, Notation};
 use cubacle::phases::Phase;
 use cubacle::puzzle::{Facelets, Move, MoveSequence, Turn};
-use cubacle::render::{
-    icon, state_icon_pair, state_icon_pair_against, Action, Icon, Raster, Style,
-};
+use cubacle::render::{icon, Action, Icon, Raster, Style};
 
 use crate::icons::{default_height, detect_stdout, show, style, Background, Graphics};
 use crate::rows;
@@ -162,8 +160,7 @@ pub struct PictureArgs {
     /// Icons per row for --icons (default: as many as fit the terminal width)
     #[arg(long, requires = "icons", value_name = "N", value_parser = clap::value_parser!(u32).range(1..))]
     pub columns: Option<u32>,
-    /// Corners the whole-cube pictures are seen from: both (all six faces) or
-    /// only Up-Right-Front like the move icons
+    /// Pictures of a whole cube: both corners (default), urf only, the flat net, or all
     #[arg(long, requires = "icons", value_enum, default_value_t)]
     pub views: Views,
 }
@@ -255,18 +252,19 @@ impl<'a> Pictures<'a> {
         should: (&str, &Facelets),
         now: (&str, &Facelets),
     ) -> Result<String, String> {
+        let views = self.options.views;
         self.states_with(&[
-            (should.0, state_icon_pair(should.1, &self.style), should.1),
+            (should.0, views.icons(should.1, None, &self.style), should.1),
             (
                 now.0,
-                state_icon_pair_against(now.1, should.1, &self.style),
+                views.icons(now.1, Some(should.1), &self.style),
                 now.1,
             ),
         ])
     }
 
     /// Whole-cube pictures, each under its label and followed by its token.
-    fn states_with(&self, states: &[(&str, [Icon; 2], &Facelets)]) -> Result<String, String> {
+    fn states_with(&self, states: &[(&str, Vec<Icon>, &Facelets)]) -> Result<String, String> {
         let mut out = String::new();
         for (label, drawn, state) in states {
             out.push_str(label);
@@ -276,11 +274,10 @@ impl<'a> Pictures<'a> {
                     drawn,
                     &self.style,
                     &self.terminal,
-                    self.options.views,
                     self.options.columns,
                 ));
             } else {
-                for view in drawn.iter().take(self.options.views.count()) {
+                for view in drawn {
                     out.push_str(&show(view, self.graphics, self.style.size));
                     out.push('\n');
                 }
@@ -403,14 +400,8 @@ fn kitty_steps(
         if named {
             out.push_str(&state_heading(phase));
             out.push('\n');
-            let pair = state_icon_pair(&state, style);
-            out.push_str(&kitty_state(
-                &pair,
-                style,
-                terminal,
-                options.views,
-                options.columns,
-            ));
+            let drawn = options.views.icons(&state, None, style);
+            out.push_str(&kitty_state(&drawn, style, terminal, options.columns));
             out.push_str(&token_line(phase, &state)?);
         }
     }

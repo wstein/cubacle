@@ -82,3 +82,20 @@ fn views_urf_draws_one_picture_and_admits_the_hidden_faces() {
         .unwrap();
     assert!(line.contains("visible faces only"), "{line}");
 }
+
+#[test]
+fn views_net_and_all_draw_the_flat_net_and_count_every_difference_as_marked() {
+    let args = ["recover", "-s", ORIGINAL, "--now", NOW, "--icons"];
+    let net = cubacle(&[&args[..], &["--views", "net"]].concat());
+    assert_eq!(net.matches("state, flat view").count(), 2, "{net}");
+    assert!(!net.contains("seen from"), "{net}");
+    let line = net
+        .lines()
+        .find(|l| l.starts_with("Stickers that differ: "))
+        .unwrap();
+    assert!(line.contains("all marked amber"), "{line}");
+    let all = cubacle(&[&args[..], &["--views", "all"]].concat());
+    assert_eq!(all.matches("state, flat view").count(), 2, "{all}");
+    assert_eq!(all.matches("state, seen from URF").count(), 2, "{all}");
+    assert_eq!(all.matches("state, seen from DBL").count(), 2, "{all}");
+}

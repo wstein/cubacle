@@ -25,6 +25,8 @@ pub(crate) struct Grid {
     pub below: bool,
     /// Faces `U`, `F`, `R` in that order, row-major (`D`, `F`, `R` when `below`).
     pub faces: [Vec<Cell>; 3],
+    /// The flat net: faces `U`, `L`, `F`, `R`, `B`, `D`, row-major. Then the other fields are unused.
+    pub net: Option<Vec<Vec<Cell>>>,
 }
 
 pub(crate) fn grid(state: &Facelets, action: &Action, style: &Style, direction: Direction) -> Grid {
@@ -48,6 +50,7 @@ pub(crate) fn grid(state: &Facelets, action: &Action, style: &Style, direction: 
         header: format!("{action} {}{half}", direction.glyph()),
         below: false,
         faces,
+        net: None,
     }
 }
 
@@ -73,6 +76,7 @@ pub(crate) fn state_grid(state: &Facelets, style: &Style, camera: Camera) -> Gri
         header: "state".to_owned(),
         below: camera == Camera::Below,
         faces,
+        net: None,
     }
 }
 
@@ -94,7 +98,39 @@ fn cell(c: &Cell, face: Face, ansi: bool) -> String {
 }
 
 impl Grid {
+    /// The cross: U above F, then L F R B in a row, D below F; one space
+    /// between two faces.
+    fn render_net(&self, faces: &[Vec<Cell>], ansi: bool) -> String {
+        let n = self.n;
+        let order = [Face::U, Face::L, Face::F, Face::R, Face::B, Face::D];
+        let row = |at: usize, r: usize| -> String {
+            (0..n)
+                .map(|c| cell(&faces[at][r * n + c], order[at], ansi))
+                .collect::<String>()
+        };
+        let width = if ansi { 3 * n } else { 2 * n };
+        let mut out = format!("{}\n", self.header);
+        let strip = |out: &mut String, at: usize, lead: usize| {
+            for r in 0..n {
+                out.push_str(&" ".repeat(lead));
+                out.push_str(row(at, r).trim_end());
+                out.push('\n');
+            }
+        };
+        strip(&mut out, 0, width + 1);
+        for r in 0..n {
+            let line: Vec<String> = (1..5).map(|at| row(at, r)).collect();
+            out.push_str(line.join(" ").trim_end());
+            out.push('\n');
+        }
+        strip(&mut out, 5, width + 1);
+        out
+    }
+
     pub(crate) fn render(&self, ansi: bool) -> String {
+        if let Some(faces) = &self.net {
+            return self.render_net(faces, ansi);
+        }
         let n = self.n;
         let mut out = format!("{}\n", self.header);
         let row = |face: usize, kind: Face, r: usize| -> String {

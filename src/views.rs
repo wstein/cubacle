@@ -1,13 +1,17 @@
 //! Whole-cube pictures on a graphics terminal: one state seen from the
-//! Up-Right-Front corner and from the opposite Down-Left-Back corner, side by
-//! side in one image when they fit the row.
+//! Up-Right-Front corner and from the opposite Down-Left-Back corner, or as a
+//! flat net, side by side in one image when they fit the row.
 
-use cubacle::render::{Icon, KittyPlacement, Raster, Style};
+use cubacle::puzzle::Facelets;
+use cubacle::render::{
+    state_icon_net, state_icon_net_against, state_icon_pair, state_icon_pair_against, Icon,
+    KittyPlacement, Raster, Style,
+};
 
 use crate::rows;
 use crate::terminal::Terminal;
 
-/// The corners a whole-cube picture is seen from.
+/// The pictures a whole-cube state is drawn as.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, clap::ValueEnum)]
 pub enum Views {
     /// Up-Right-Front and the opposite Down-Left-Back corner, so that all six faces show.
@@ -15,14 +19,45 @@ pub enum Views {
     Both,
     /// Up-Right-Front only, as the move icons.
     Urf,
+    /// The flat net: U above F, L F R B in a row, D below; every sticker once, no projection.
+    Net,
+    /// The net and the two corners.
+    All,
 }
 
 impl Views {
-    /// How many of the two pictures of a state are drawn.
-    pub(crate) fn count(self) -> usize {
+    /// Whether every sticker of the cube is in one of the pictures.
+    pub(crate) fn shows_every_face(self) -> bool {
+        self != Views::Urf
+    }
+
+    /// The pictures of `state`, with amber marks on the stickers that differ
+    /// from `reference` when there is one.
+    pub(crate) fn icons(
+        self,
+        state: &Facelets,
+        reference: Option<&Facelets>,
+        style: &Style,
+    ) -> Vec<Icon> {
+        let pair = || match reference {
+            Some(r) => state_icon_pair_against(state, r, style),
+            None => state_icon_pair(state, style),
+        };
+        let net = || match reference {
+            Some(r) => state_icon_net_against(state, r, style),
+            None => state_icon_net(state, style),
+        };
         match self {
-            Views::Both => 2,
-            Views::Urf => 1,
+            Views::Both => pair().into(),
+            Views::Urf => {
+                let [urf, _] = pair();
+                vec![urf]
+            }
+            Views::Net => vec![net()],
+            Views::All => {
+                let [urf, dbl] = pair();
+                vec![net(), urf, dbl]
+            }
         }
     }
 }
@@ -36,15 +71,13 @@ fn pair_fits(width_px: u32, pair_px: u32, columns: Option<usize>) -> bool {
 /// The pictures of one state on a graphics terminal: one image with the views
 /// side by side, or one image per view when they do not fit a row.
 pub(crate) fn kitty_state(
-    pair: &[Icon; 2],
+    icons: &[Icon],
     style: &Style,
     terminal: &Terminal,
-    views: Views,
     columns: Option<usize>,
 ) -> String {
-    let rasters: Vec<Raster> = pair
+    let rasters: Vec<Raster> = icons
         .iter()
-        .take(views.count())
         .map(|drawn| drawn.to_rgba(style.size))
         .collect();
     let joined = Raster::hstack(&rasters, rows::GAP);
@@ -76,6 +109,7 @@ pub(crate) fn kitty_block(raster: &Raster, cell_height: u32) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::terminal::Terminal;
 
     #[test]
     fn two_views_share_a_row_only_when_they_fit_and_columns_allow() {
@@ -87,9 +121,52 @@ mod tests {
     }
 
     #[test]
-    fn one_view_or_two() {
-        assert_eq!(Views::Both.count(), 2);
-        assert_eq!(Views::Urf.count(), 1);
+    fn the_views_draw_one_to_three_pictures() {
+        let cube = Facelets::solved(cubacle::puzzle::PuzzleKind::Cube3);
+        let style = Style::default();
+        let count = |v: Views| v.icons(&cube, None, &style).len();
+        assert_eq!(
+            [
+                count(Views::Both),
+                count(Views::Urf),
+                count(Views::Net),
+                count(Views::All)
+            ],
+            [2, 1, 1, 3]
+        );
         assert_eq!(Views::default(), Views::Both);
+        assert!(!Views::Urf.shows_every_face() && Views::Net.shows_every_face());
+    }
+
+    #[test]
+    fn narrow_terminals_stack_the_net_and_the_corners() {
+        let cube = Facelets::solved(cubacle::puzzle::PuzzleKind::Cube3);
+        let style = Style::default();
+        let icons = Views::All.icons(&cube, None, &style);
+        let wide = Terminal {
+            width_px: 5000,
+            cell: (8, 16),
+            background: None,
+        };
+        let narrow = Terminal {
+            width_px: 200,
+            cell: (8, 16),
+            background: None,
+        };
+        let images = |t: &Terminal, columns| {
+            kitty_state(&icons, &style, t, columns)
+                .matches("a=T")
+                .count()
+        };
+        assert_eq!(images(&wide, None), 1);
+        assert_eq!(images(&wide, Some(1)), 3);
+        assert_eq!(images(&narrow, None), 3);
+        let one = Views::Net.icons(&cube, None, &style);
+        assert_eq!(
+            kitty_state(&one, &style, &narrow, None)
+                .matches("a=T")
+                .count(),
+            1
+        );
     }
 }
