@@ -77,3 +77,31 @@ fn bad_input_is_an_error() {
     assert!(!ok);
     assert!(err.contains("does not solve"), "{err}");
 }
+
+#[test]
+fn the_move_stopped_at_finds_the_mistake_in_the_first_stage() {
+    // The person did 7 moves (one was skipped) and noticed the cube was wrong.
+    let (ok, out, err) = cubacle(&[
+        "recover",
+        "-s",
+        ORIGINAL,
+        "--now",
+        NOW,
+        "--at-move",
+        "7",
+        "-v",
+    ]);
+    assert!(ok, "{err}");
+    assert!(out.contains("step 5 (D') was skipped"), "{out}");
+    assert!(
+        err.contains("answered by the moves up to the stop"),
+        "{err}"
+    );
+}
+
+#[test]
+fn a_move_stopped_at_outside_the_solution_is_an_error() {
+    let (ok, _, err) = cubacle(&["recover", "-s", ORIGINAL, "--now", NOW, "--at-move", "99"]);
+    assert!(!ok);
+    assert!(err.contains("move 99 is not in the solution"), "{err}");
+}

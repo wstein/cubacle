@@ -13,6 +13,7 @@
 mod plan;
 mod resume;
 mod search;
+mod stages;
 mod state;
 mod variants;
 
@@ -25,6 +26,7 @@ use std::time::{Duration, Instant};
 use crate::puzzle::{Facelets, Move, MoveSequence, PuzzleKind};
 
 pub use plan::{Advice, Plan, PlanText};
+pub use stages::{diagnose_staged, Scope, Staged, Widening};
 
 use search::{Explained, Frame};
 use state::{permute, rotations, state_of, MoveId, Perms, State};
@@ -65,6 +67,8 @@ pub enum RecoverError {
     BadMove(Move),
     /// Following the solution from the original cube does not solve it.
     NotASolution,
+    /// The move the person stopped at is not a move of the solution (move, length).
+    AtMoveOutOfRange(usize, usize),
 }
 
 impl fmt::Display for RecoverError {
@@ -77,6 +81,9 @@ impl fmt::Display for RecoverError {
                 b.size()
             ),
             RecoverError::BadMove(mv) => write!(f, "the solution has a move {mv} this cube lacks"),
+            RecoverError::AtMoveOutOfRange(at, len) => {
+                write!(f, "move {at} is not in the solution, which has {len} moves")
+            }
             RecoverError::NotASolution => {
                 write!(f, "the solution does not solve the original cube")
             }
@@ -206,6 +213,18 @@ pub fn diagnose(
     solution: &MoveSequence,
     limits: &Limits,
 ) -> Result<Diagnosis, RecoverError> {
+    diagnose_in(original, current, solution, limits, None)
+}
+
+/// [`diagnose`], with the mistakes held to `window` when there is one. A
+/// windowed search tries no other orientation of the cube.
+fn diagnose_in(
+    original: &Facelets,
+    current: &Facelets,
+    solution: &MoveSequence,
+    limits: &Limits,
+    window: Option<search::Window>,
+) -> Result<Diagnosis, RecoverError> {
     let kind = original.kind();
     if current.kind() != kind {
         return Err(RecoverError::SizeMismatch(kind, current.kind()));
@@ -238,13 +257,14 @@ pub fn diagnose(
         printed: &printed,
         trajectory: &trajectory,
         deadline: limits.max_time.map(|t| started + t),
+        window,
         limits,
     };
     let current = state_of(current);
     let turns = rotations(kind);
     let mut found = ctx.explain(&current, true, limits.resume_depth);
     let mut rotation = None;
-    if found.is_none() {
+    if found.is_none() && window.is_none() {
         let turned: Vec<State> = turns
             .iter()
             .map(|r| {
@@ -292,6 +312,7 @@ struct Context<'a> {
     printed: &'a [MoveId],
     trajectory: &'a [State],
     deadline: Option<Instant>,
+    window: Option<search::Window>,
     limits: &'a Limits,
 }
 
@@ -307,6 +328,7 @@ impl Context<'_> {
             trajectory: self.trajectory,
             current: current.clone(),
             deadline: self.deadline,
+            window: self.window,
         }
     }
 
@@ -319,11 +341,15 @@ impl Context<'_> {
                 routes: Vec::new(),
             });
         }
-        let fix = resume::search(&frame, depth);
         let mut explained = search::single(&frame, &self.any);
         if explained.is_none() && with_double && self.limits.two_mistakes {
             explained = self.double(&frame);
         }
+        // In a window only a named mistake counts, not a near miss.
+        if explained.is_none() && self.window.is_some() {
+            return None;
+        }
+        let fix = resume::search(&frame, depth);
         Some(self.found(explained, fix)).filter(|f| !matches!(f.finding, Finding::Unexplained))
     }
 

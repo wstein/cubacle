@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 use clap::Args;
 use cubacle::notation::{parse_cube, parse_expression, Notation};
 use cubacle::puzzle::{Facelets, MoveSequence, PuzzleKind};
-use cubacle::recover::{diagnose, locate, Limits, Plan};
+use cubacle::recover::{diagnose_staged, locate, Limits, Plan, Scope};
 
 use crate::{default_options, failure_message, read_cube, solver_for, InputArgs};
 
@@ -23,6 +23,11 @@ pub(crate) struct RecoverArgs {
     /// the original cube)
     #[arg(long, value_name = "MOVES")]
     solution: Option<String>,
+    /// The move you stopped at: you did move N (counting from 1) and noticed
+    /// the cube no longer matches. The mistake is at move N or before; later
+    /// moves are ignored
+    #[arg(long, value_name = "N", value_parser = clap::value_parser!(u32).range(1..))]
+    at_move: Option<u32>,
     /// Skip the search for the mistake and only solve the current cube
     #[arg(long)]
     fresh: bool,
@@ -89,17 +94,20 @@ pub(crate) fn run(args: RecoverArgs) -> Result<(), String> {
         thorough: args.thorough,
         max_time: (args.max_time > 0).then(|| Duration::from_millis(args.max_time)),
     };
+    let hint = args.at_move.map(|n| Scope {
+        at_move: n as usize,
+    });
     // Exactly on the path: nothing to compare with.
     let on_path = locate(&original, &current, &solution).map_err(|e| e.to_string())?;
     let (diagnosis, fresh) = if on_path.is_some() {
-        let diagnosis = diagnose(&original, &current, &solution, &limits);
-        (diagnosis.map_err(|e| e.to_string())?, None)
+        let staged = diagnose_staged(&original, &current, &solution, &limits, hint.as_ref());
+        (staged.map_err(|e| e.to_string())?.diagnosis, None)
     } else {
         // The search and the fresh solve run side by side.
         thread::scope(|scope| {
             let search = scope.spawn(|| {
                 let t = Instant::now();
-                let d = diagnose(&original, &current, &solution, &limits);
+                let d = diagnose_staged(&original, &current, &solution, &limits, hint.as_ref());
                 (d, t.elapsed())
             });
             let t = Instant::now();
@@ -107,10 +115,19 @@ pub(crate) fn run(args: RecoverArgs) -> Result<(), String> {
             if args.verbose {
                 eprintln!("fresh solve {:?}", t.elapsed());
             }
-            let (diagnosis, took) = search.join().expect("the search does not panic");
+            let (staged, took) = search.join().expect("the search does not panic");
             if args.verbose {
                 eprintln!("search {took:?}");
+                if let Ok(staged) = &staged {
+                    let tried: Vec<&str> = staged.tried.iter().map(|w| w.describe()).collect();
+                    eprintln!(
+                        "stages tried: {}; answered by {}",
+                        tried.join(", "),
+                        staged.stage.describe()
+                    );
+                }
             }
+            let diagnosis = staged.map(|s| s.diagnosis);
             // Every fresh solution is replayed, as `solve` does (not on the 2x2x2).
             let fresh = fresh.and_then(|moves| {
                 let solves = current.kind() == PuzzleKind::Cube2

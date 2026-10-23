@@ -21,6 +21,27 @@ pub(super) struct Frame<'a> {
     pub(super) trajectory: &'a [State],
     pub(super) current: State,
     pub(super) deadline: Option<Instant>,
+    /// Only explanations inside this window count.
+    pub(super) window: Option<Window>,
+}
+
+/// Where the mistakes of an explanation may lie, for a person who knows the
+/// move they stopped at: the printed positions `first..=last` (0-based) of
+/// the mistakes, and the printed moves used up, `done_lo..=done_hi`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) struct Window {
+    pub(super) first: usize,
+    pub(super) last: usize,
+    pub(super) done_lo: usize,
+    pub(super) done_hi: usize,
+}
+
+impl Window {
+    /// Whether mistakes at positions `a` (first) and `b` (last) that end with
+    /// `done` printed moves used fit.
+    pub(super) fn allows(&self, a: usize, b: usize, done: usize) -> bool {
+        a >= self.first && b <= self.last && (self.done_lo..=self.done_hi).contains(&done)
+    }
 }
 
 impl Frame<'_> {
@@ -29,6 +50,10 @@ impl Frame<'_> {
     }
 
     /// The cube after the printed moves `from..to`, starting from `state`.
+    fn allows(&self, a: usize, b: usize, done: usize) -> bool {
+        self.window.is_none_or(|w| w.allows(a, b, done))
+    }
+
     fn walk(&self, state: &[u8], from: usize, to: usize) -> State {
         self.perms.apply_all(state, &self.printed[from..to])
     }
@@ -103,7 +128,7 @@ pub(super) fn single(frame: &Frame, variants: &[Vec<Variant>]) -> Option<Explain
             }
             for (_, q) in backward.find(hash(&state, r)).filter(|e| e.0 == r) {
                 let after = frame.walk(&state, r, q);
-                if after == frame.current {
+                if after == frame.current && frame.allows(i, i, q) {
                     hits.push((variant.score, i, q, v));
                 }
             }
@@ -165,6 +190,9 @@ pub(super) fn double(frame: &Frame, variants: &[Vec<Variant>]) -> Option<Explain
                     for e in forward[lo..].iter().take_while(|e| e.0 == key) {
                         let (a, v) = (usize::from(e.1), e.2 as usize);
                         let first = &variants[a][v];
+                        if !frame.allows(a, b, q) {
+                            continue;
+                        }
                         hits.push((first.score + second.score, a, b, v, w, q));
                     }
                 }

@@ -4,7 +4,10 @@
 
 use cubacle::engines::three::Min2PhaseSolver;
 use cubacle::puzzle::{Face, Facelets, Move, MoveSequence, PuzzleKind, SolveOptions, Solver, Turn};
-use cubacle::recover::{diagnose, Advice, Diagnosis, Finding, Limits, MistakeKind, Plan};
+use cubacle::recover::{
+    diagnose, diagnose_staged, Advice, Diagnosis, Finding, Limits, MistakeKind, Plan, Scope,
+    Widening,
+};
 
 struct Rng(u64);
 
@@ -270,4 +273,69 @@ fn locate_finds_the_exact_position_only() {
         cubacle::recover::locate(&original, &off, &seq(&solution)),
         Ok(None)
     );
+}
+
+fn staged(
+    original: &Facelets,
+    current: &Facelets,
+    solution: &[Move],
+    at_move: usize,
+) -> cubacle::recover::Staged {
+    let scope = Scope { at_move };
+    diagnose_staged(original, current, &seq(solution), &limits(), Some(&scope)).unwrap()
+}
+
+#[test]
+fn the_move_stopped_at_confines_the_search_to_the_moves_before_it() {
+    let (original, solution) = setup(5, 30, 41);
+    // Skip move 11 (index 10) and stop after printed move 16.
+    let done = go_wrong(&solution, 10, 16, "skip");
+    let current = run(&original, &done);
+    let s = staged(&original, &current, &solution, 16);
+    assert_eq!(s.stage, Widening::Prefix);
+    assert_eq!(s.tried, [Widening::Prefix]);
+    let Finding::Mistakes { mistakes, .. } = &s.diagnosis.finding else {
+        panic!("{:?}", s.diagnosis.finding);
+    };
+    assert_eq!(mistakes[0].step, 11);
+    assert_eq!(mistakes[0].kind, MistakeKind::Skipped);
+    assert_recovers(&s.diagnosis, &current, &solution);
+}
+
+#[test]
+fn a_stop_before_the_mistake_falls_back_to_the_whole_search() {
+    let (original, solution) = setup(5, 30, 41);
+    let done = go_wrong(&solution, 10, 16, "skip");
+    let current = run(&original, &done);
+    // Stopping "at 8" cannot explain a mistake at move 11: widened to the end.
+    let s = staged(&original, &current, &solution, 8);
+    assert_eq!(s.stage, Widening::Full);
+    assert_eq!(s.tried, [Widening::Prefix, Widening::Full]);
+    assert!(matches!(s.diagnosis.finding, Finding::Mistakes { .. }));
+}
+
+#[test]
+fn a_stop_outside_the_solution_is_an_error() {
+    let (original, solution) = setup(3, 12, 3);
+    let current = run(&original, &solution[..4]);
+    for at_move in [0, 13] {
+        let scope = Scope { at_move };
+        let err = diagnose_staged(
+            &original,
+            &current,
+            &seq(&solution),
+            &limits(),
+            Some(&scope),
+        );
+        assert!(err.is_err(), "{at_move}");
+    }
+}
+
+#[test]
+fn without_a_scope_the_plain_search_runs() {
+    let (original, solution) = setup(3, 12, 3);
+    let current = run(&original, &solution[..4]);
+    let s = diagnose_staged(&original, &current, &seq(&solution), &limits(), None).unwrap();
+    assert_eq!(s.tried, [Widening::Full]);
+    assert_eq!(s.diagnosis.finding, Finding::OnPath { done: 4 });
 }
