@@ -35,6 +35,7 @@ mod geometry;
 mod glyphs;
 mod kitty;
 mod label;
+mod pair;
 mod raster;
 mod round;
 mod scene;
@@ -46,6 +47,7 @@ mod text;
 pub use action::{Action, Axis, RenderError};
 pub use arrow::Direction;
 pub use kitty::KittyPlacement;
+pub use pair::{opposite_view, state_icon_pair, state_icon_pair_against};
 pub use raster::Raster;
 pub use style::{Backdrop, Palette, Rgb, Shading, Style};
 
