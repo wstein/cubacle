@@ -1,6 +1,7 @@
 mod icons;
 mod improve;
 mod recover_cmd;
+mod recover_icons;
 mod rows;
 mod steps;
 mod terminal;

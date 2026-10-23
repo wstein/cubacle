@@ -9,6 +9,8 @@ use cubacle::phases::{from_stages, phases};
 use cubacle::puzzle::{Facelets, MoveSequence, PuzzleKind};
 use cubacle::recover::{diagnose_staged, locate, Limits, PhaseInfo, Plan, Scope};
 
+use crate::recover_icons;
+use crate::steps::PictureArgs;
 use crate::{default_options, failure_message, read_cube, solver_for, InputArgs};
 
 #[derive(Args)]
@@ -58,6 +60,8 @@ pub(crate) struct RecoverArgs {
     /// How to write the moves: wca (Rw, 3Rw) or sign (r, 3r)
     #[arg(long, default_value = "wca")]
     notation: Notation,
+    #[command(flatten)]
+    pictures: PictureArgs,
 }
 
 pub(crate) fn run(args: RecoverArgs) -> Result<(), String> {
@@ -82,9 +86,16 @@ pub(crate) fn run(args: RecoverArgs) -> Result<(), String> {
             .map(|moves| (moves, stages))
             .map_err(|failure| failure_message(failure, result.message))
     };
-    let solve = |cube: &Facelets| solve_staged(cube).map(|(moves, _)| moves);
     if args.fresh {
-        println!("{}", notation.write(&solve(&current)?));
+        let (moves, stages) = solve_staged(&current)?;
+        println!("{}", notation.write(&moves));
+        if args.pictures.icons {
+            let options = args.pictures.options(args.input.scheme, notation);
+            print!(
+                "{}",
+                recover_icons::render_fresh(&options, &current, &moves, &stages)?
+            );
+        }
         return Ok(());
     }
     let (solution, stages): (MoveSequence, Vec<_>) = match &args.solution {
@@ -128,6 +139,7 @@ pub(crate) fn run(args: RecoverArgs) -> Result<(), String> {
     });
     // Exactly on the path: nothing to compare with.
     let on_path = locate(&original, &current, &solution).map_err(|e| e.to_string())?;
+    let mut fresh_stages = Vec::new();
     let (diagnosis, fresh) = if on_path.is_some() {
         let staged = diagnose_staged(&original, &current, &solution, &limits, hint.as_ref());
         (staged.map_err(|e| e.to_string())?.diagnosis, None)
@@ -140,7 +152,7 @@ pub(crate) fn run(args: RecoverArgs) -> Result<(), String> {
                 (d, t.elapsed())
             });
             let t = Instant::now();
-            let fresh = solve(&current);
+            let fresh = solve_staged(&current);
             if args.verbose {
                 eprintln!("fresh solve {:?}", t.elapsed());
             }
@@ -158,7 +170,8 @@ pub(crate) fn run(args: RecoverArgs) -> Result<(), String> {
             }
             let diagnosis = staged.map(|s| s.diagnosis);
             // Every fresh solution is replayed, as `solve` does (not on the 2x2x2).
-            let fresh = fresh.and_then(|moves| {
+            let fresh = fresh.and_then(|(moves, stages)| {
+                fresh_stages = stages;
                 let solves = current.kind() == PuzzleKind::Cube2
                     || current.apply(&moves).is_ok_and(|end| end.is_solved());
                 solves
@@ -175,5 +188,12 @@ pub(crate) fn run(args: RecoverArgs) -> Result<(), String> {
     };
     let plan = Plan::new(diagnosis, solution, fresh).with_phases(infos);
     print!("{}", plan.with(&|mv| notation.write_move(mv)));
+    if args.pictures.icons {
+        let options = args.pictures.options(args.input.scheme, notation);
+        print!(
+            "{}",
+            recover_icons::render(&options, &original, &current, &plan, &fresh_stages)?
+        );
+    }
     Ok(())
 }

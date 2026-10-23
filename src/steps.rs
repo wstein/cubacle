@@ -207,6 +207,28 @@ impl<'a> Pictures<'a> {
             )
         }
     }
+
+    /// Whole-cube pictures, each under its label and followed by its token.
+    pub fn states(&self, states: &[(&str, &Facelets)]) -> Result<String, String> {
+        let mut out = String::new();
+        for (label, state) in states {
+            out.push_str(label);
+            out.push('\n');
+            let drawn = state_icon(state, &self.style);
+            if self.graphics == Graphics::Kitty {
+                out.push_str(&kitty_block(
+                    &drawn.to_rgba(self.style.size),
+                    self.terminal.cell.1,
+                ));
+            } else {
+                out.push_str(&show(&drawn, self.graphics, self.style.size));
+                out.push('\n');
+            }
+            let token = orbit64::encode(state).map_err(|error| error.to_string())?;
+            out.push_str(&format!("token: {token}\n"));
+        }
+        Ok(out)
+    }
 }
 
 /// Each step of the solution with the picture of the cube before it.
