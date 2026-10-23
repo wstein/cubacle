@@ -219,7 +219,10 @@ impl FourSolver {
             }
         };
         match outcome {
-            Ok((solution, probes)) => done(Ok(solution), None, probes),
+            Ok(finished) => SolveResult {
+                stages: finished.stages,
+                ..done(Ok(finished.solution), None, finished.probes)
+            },
             Err(miss) => done(Err(miss.failure), Some(miss.message), miss.probes),
         }
     }

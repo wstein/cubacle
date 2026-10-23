@@ -11,9 +11,10 @@ use super::facelets;
 use super::output::{of_face_turn, to_move, to_real};
 use super::reduce::{after, Reduction};
 use super::solver::FourSolver;
+use super::stages::stages;
 use super::tables::Tables;
 use crate::puzzle::normalise;
-use crate::puzzle::{Face, Facelets, Failure, Move, MoveSequence, SolveOptions};
+use crate::puzzle::{Face, Facelets, Failure, Move, MoveSequence, SolveOptions, SolveStage};
 use crate::reduction::improve::Plan;
 
 /// The longest 3x3x3 hand-off asked for (the reference asks for 21).
@@ -25,6 +26,13 @@ const HAND_OFF_BUDGET: Duration = Duration::from_secs(10);
 /// the 3x3x3 solver searching until the budget ends. A tail that can meet
 /// the limit is found in a few milliseconds.
 const LIMITED_HAND_OFF_BUDGET: Duration = Duration::from_secs(1);
+
+/// A finished answer: the solution, the 3x3x3 probes made and the stages.
+pub(super) struct Finished {
+    pub solution: MoveSequence,
+    pub probes: Option<u64>,
+    pub stages: Vec<SolveStage>,
+}
 
 /// Why a reduction could not be finished.
 pub(super) struct Miss {
@@ -62,7 +70,7 @@ impl FourSolver {
         reduction: &Reduction,
         options: &SolveOptions,
         deadline: Option<Instant>,
-    ) -> Result<(MoveSequence, Option<u64>), Miss> {
+    ) -> Result<Finished, Miss> {
         let model_moves = reduction.model_moves();
         let model = after(t, cube, &model_moves);
         let Some(three) = facelets::three_by_three(&model) else {
@@ -87,7 +95,20 @@ impl FourSolver {
             else {
                 return Err(miss(Failure::Internal, "the reduced centres are not home"));
             };
-            return Ok((MoveSequence::new(normalise(4, &head, false)), None));
+            let fin = normalise(4, &head, false);
+            let stages = stages(
+                &self.rotations,
+                facelets,
+                reduction,
+                &head_moves,
+                &fin,
+                false,
+            );
+            return Ok(Finished {
+                solution: MoveSequence::new(fin),
+                probes: None,
+                stages,
+            });
         }
         let Ok(reduced) = facelets.apply(&MoveSequence::new(head_moves.clone())) else {
             return Err(miss(
@@ -188,15 +209,17 @@ impl FourSolver {
             all.push(code);
         }
         let real = to_real(&t.syms, &all, length1, add1, sym);
-        let moves: Vec<Move> = real.iter().map(|&c| to_move(c)).collect();
-        let moves = normalise(4, &moves, false);
+        let raw: Vec<Move> = real.iter().map(|&c| to_move(c)).collect();
+        let moves = normalise(4, &raw, false);
         let Some(moves) = self.swaps.finish(&self.rotations, facelets, &moves) else {
             return Err(miss(
                 Failure::Internal,
                 "the solution does not solve the cube (the 3x3x3 stage was given an unsolvable state?)",
             ));
         };
-        let solution = MoveSequence::new(normalise(4, &moves, options.slices));
+        let fin = normalise(4, &moves, options.slices);
+        let stages = stages(&self.rotations, facelets, reduction, &raw, &fin, true);
+        let solution = MoveSequence::new(fin);
         if limit.is_some_and(|max| solution.len() > max) {
             return Err(miss(
                 Failure::Exhausted,
@@ -209,7 +232,11 @@ impl FourSolver {
                 "the solution does not solve the cube",
             ));
         }
-        Ok((solution, probes))
+        Ok(Finished {
+            solution,
+            probes,
+            stages,
+        })
     }
 }
 
@@ -228,26 +255,32 @@ impl FourSolver {
         options: &SolveOptions,
         deadline: Option<Instant>,
         plan: Plan,
-    ) -> Result<(MoveSequence, Option<u64>), Miss> {
+    ) -> Result<Finished, Miss> {
         let tail_options = SolveOptions {
             min_probes: Some(plan.probes.max(self.hand_off_probes)),
             ..*options
         };
-        let mut best: Option<MoveSequence> = None;
+        let mut best: Option<Finished> = None;
         let mut probes = 0u64;
         for (n, reduction) in reductions.iter().enumerate() {
             match self.finish(t, cube, facelets, reduction, &tail_options, deadline) {
-                Ok((solution, used)) => {
-                    probes += used.unwrap_or(0);
-                    if best.as_ref().is_none_or(|b| solution.len() < b.len()) {
-                        best = Some(solution);
+                Ok(done) => {
+                    probes += done.probes.unwrap_or(0);
+                    if best
+                        .as_ref()
+                        .is_none_or(|b| done.solution.len() < b.solution.len())
+                    {
+                        best = Some(done);
                     }
                 }
                 Err(miss) if n == 0 => return Err(miss),
                 Err(_) => break,
             }
         }
-        best.map(|solution| (solution, Some(probes)))
-            .ok_or_else(|| miss(Failure::Internal, "no reduction to finish"))
+        best.map(|done| Finished {
+            probes: Some(probes),
+            ..done
+        })
+        .ok_or_else(|| miss(Failure::Internal, "no reduction to finish"))
     }
 }

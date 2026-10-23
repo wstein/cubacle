@@ -106,6 +106,55 @@ fn scrambled_cubes_are_solved_and_the_answer_replays() {
     }
 }
 
+/// Whether the four centre stickers of every face show one colour.
+fn centres_uniform(cube: &Facelets) -> bool {
+    let s = cube.stickers();
+    (0..6).all(|f| [6, 9, 10].iter().all(|&i| s[f * 16 + i] == s[f * 16 + 5]))
+}
+
+#[test]
+fn the_stages_cover_the_answer_and_the_reduction_ends_with_solved_centres() {
+    let four = solver(2);
+    let names = [
+        "centres staged",
+        "centres sorted",
+        "centres and wings paired",
+        "3x3 stage",
+    ];
+    for seed in 1..=8 {
+        let cube = scrambled(seed, 40);
+        for slices in [false, true] {
+            let options = SolveOptions::default().with_slices(slices);
+            let result = four.solve(&cube, &options);
+            let solution = result.solution().expect("a solution");
+            let got: Vec<&str> = result.stages.iter().map(|s| s.name).collect();
+            assert_eq!(got, names, "seed {seed}");
+            let ends: Vec<usize> = result.stages.iter().map(|s| s.end).collect();
+            assert!(ends.windows(2).all(|w| w[0] <= w[1]), "{ends:?}");
+            assert_eq!(ends[3], solution.len(), "seed {seed}");
+            let reduced = cube
+                .apply(&MoveSequence::new(solution.moves()[..ends[2]].to_vec()))
+                .unwrap();
+            assert!(
+                centres_uniform(&reduced),
+                "seed {seed} slices {slices}: {ends:?}"
+            );
+            // the first stage is real work on a scrambled cube
+            assert!(ends[0] > 0, "seed {seed}");
+        }
+    }
+}
+
+#[test]
+fn a_reduction_only_answer_has_the_three_reduction_stages() {
+    let cube = scrambled(3, 40);
+    let result = solver(2).solve(&cube, &SolveOptions::default().with_reduce_only(true));
+    let solution = result.solution().expect("a reduction");
+    let got: Vec<(&str, usize)> = result.stages.iter().map(|s| (s.name, s.end)).collect();
+    assert_eq!(got.len(), 3);
+    assert_eq!(got[2], ("centres and wings paired", solution.len()));
+}
+
 #[test]
 fn slices_are_only_written_when_asked_for_and_never_lengthen_the_answer() {
     let four = solver(2);

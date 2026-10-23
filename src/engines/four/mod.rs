@@ -33,6 +33,7 @@ mod rotation;
 mod solver;
 #[cfg(test)]
 mod solver_tests;
+mod stages;
 mod swap;
 mod sym;
 mod tables;
