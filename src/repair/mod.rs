@@ -24,7 +24,7 @@ use std::time::{Duration, Instant};
 
 use crate::puzzle::{Facelets, Move, MoveSequence, PuzzleKind};
 
-pub use plan::{Advice, Plan};
+pub use plan::{Advice, Plan, PlanText};
 
 use search::{Explained, Frame};
 use state::{permute, rotations, state_of, MoveId, Perms, State};

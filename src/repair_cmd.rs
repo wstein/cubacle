@@ -4,7 +4,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use clap::Args;
-use cubacle::notation::parse_cube;
+use cubacle::notation::{parse_cube, parse_expression, Notation};
 use cubacle::puzzle::{Facelets, MoveSequence, PuzzleKind};
 use cubacle::repair::{diagnose, locate, Limits, Plan};
 
@@ -45,9 +45,13 @@ pub(crate) struct RepairArgs {
     /// Print timings to standard error
     #[arg(short, long)]
     verbose: bool,
+    /// How to write the moves: wca (Rw, 3Rw) or sign (r, 3r)
+    #[arg(long, default_value = "wca")]
+    notation: Notation,
 }
 
 pub(crate) fn run(args: RepairArgs) -> Result<(), String> {
+    let notation = args.notation;
     let original = read_cube(&args.input)?;
     let current = parse_cube(&args.now, args.input.scheme).map_err(|e| format!("--now: {e}"))?;
     if current.kind() != original.kind() {
@@ -67,12 +71,11 @@ pub(crate) fn run(args: RepairArgs) -> Result<(), String> {
             .map_err(|failure| failure_message(failure, result.message))
     };
     if args.fresh {
-        println!("{}", solve(&current)?);
+        println!("{}", notation.write(&solve(&current)?));
         return Ok(());
     }
     let solution: MoveSequence = match &args.solution {
-        Some(text) => text
-            .parse()
+        Some(text) => parse_expression(text, original.kind())
             .map_err(|e| format!("--solution is not valid move notation ({e})"))?,
         None => solve(&original)?,
     };
@@ -128,6 +131,7 @@ pub(crate) fn run(args: RepairArgs) -> Result<(), String> {
                 .map(|d| (d, fresh.ok()))
         })?
     };
-    print!("{}", Plan::new(diagnosis, solution, fresh));
+    let plan = Plan::new(diagnosis, solution, fresh);
+    print!("{}", plan.with(&|mv| notation.write_move(mv)));
     Ok(())
 }

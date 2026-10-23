@@ -2,7 +2,7 @@
 
 use std::fmt;
 
-use crate::puzzle::MoveSequence;
+use crate::puzzle::{Move, MoveSequence};
 
 use super::{Diagnosis, Finding, Mistake, MistakeKind, Route};
 
@@ -65,43 +65,62 @@ impl Plan {
     }
 }
 
-fn describe(m: &Mistake) -> String {
+fn describe(m: &Mistake, w: Writer) -> String {
     let step = m.step;
-    let printed = m.printed.map(|p| p.to_string()).unwrap_or_default();
+    let printed = m.printed.map(|p| w(&p)).unwrap_or_default();
     match &m.kind {
         MistakeKind::Skipped => format!("step {step} ({printed}) was skipped"),
         MistakeKind::WrongAmount { done } => {
+            let done = w(done);
             format!("step {step} ({printed}) was turned as {done} instead")
         }
         MistakeKind::WrongDirection { done } => {
+            let done = w(done);
             format!("step {step} ({printed}) was turned the wrong way ({done})")
         }
         MistakeKind::WrongLayers { done } => {
+            let done = w(done);
             format!("step {step} ({printed}) turned other layers ({done})")
         }
         MistakeKind::WrongFace { done } => {
+            let done = w(done);
             format!("step {step} ({printed}) was done on the wrong face ({done})")
         }
         MistakeKind::Different { done } => {
+            let done = w(done);
             format!("step {step} ({printed}) was replaced by {done}")
         }
-        MistakeKind::Swapped { next } => format!(
+        MistakeKind::Swapped { next } => {
+            let next = w(next);
+            format!(
             "steps {step} and {} ({printed} {next}) were done in the wrong order ({next} {printed})",
             step + 1
-        ),
+        )
+        }
         MistakeKind::Repeated => format!("step {step} ({printed}) was done twice"),
         MistakeKind::Extra { done } if m.printed.is_some() => {
+            let done = w(done);
             format!("the extra move {done} was made before step {step} ({printed})")
         }
-        MistakeKind::Extra { done } => format!("the extra move {done} was made after the last step"),
+        MistakeKind::Extra { done } => {
+            format!("the extra move {} was made after the last step", w(done))
+        }
     }
 }
 
-fn step_of(solution: &MoveSequence, done: usize) -> String {
+fn step_of(solution: &MoveSequence, done: usize, w: Writer) -> String {
     match solution.moves().get(done) {
-        Some(m) => format!("step {} ({m})", done + 1),
+        Some(m) => format!("step {} ({})", done + 1, w(m)),
         None => "the end".to_owned(),
     }
+}
+
+/// Writes one move; the caller picks the notation.
+type Writer<'a> = &'a dyn Fn(&Move) -> String;
+
+fn words(moves: &MoveSequence, w: Writer) -> String {
+    let words: Vec<String> = moves.moves().iter().map(w).collect();
+    words.join(" ")
 }
 
 fn plural(n: usize, word: &str) -> String {
@@ -114,6 +133,30 @@ fn plural(n: usize, word: &str) -> String {
 
 impl fmt::Display for Plan {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.write(f, &|mv| mv.to_string())
+    }
+}
+
+/// A plan written with a chosen way of spelling moves; see [`Plan::with`].
+pub struct PlanText<'a> {
+    plan: &'a Plan,
+    write: Writer<'a>,
+}
+
+impl fmt::Display for PlanText<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.plan.write(f, self.write)
+    }
+}
+
+impl Plan {
+    /// The plan in words, with every move spelled by `write` (the library
+    /// does not know the notations; the application passes one).
+    pub fn with<'a>(&'a self, write: &'a dyn Fn(&Move) -> String) -> PlanText<'a> {
+        PlanText { plan: self, write }
+    }
+
+    fn write(&self, f: &mut fmt::Formatter<'_>, w: Writer) -> fmt::Result {
         let d = &self.diagnosis;
         let n = d.solution_len;
         match &d.finding {
@@ -142,18 +185,18 @@ impl fmt::Display for Plan {
                 };
                 for (i, m) in mistakes.iter().enumerate() {
                     if mistakes.len() == 1 {
-                        writeln!(f, "{label}: {}.", describe(m))?;
+                        writeln!(f, "{label}: {}.", describe(m, w))?;
                     } else {
                         if i == 0 {
                             writeln!(f, "{label}:")?;
                         }
-                        writeln!(f, "  {}. {}.", i + 1, describe(m))?;
+                        writeln!(f, "  {}. {}.", i + 1, describe(m, w))?;
                     }
                 }
                 if strays.is_empty() {
                     writeln!(f, "You had done {done} of {n} steps when you stopped.")?;
                 } else {
-                    let list: MoveSequence = strays.iter().copied().collect();
+                    let list = words(&strays.iter().copied().collect(), w);
                     writeln!(
                         f,
                         "You had done {done} of {n} steps, then made {} ({list}).",
@@ -195,7 +238,7 @@ impl fmt::Display for Plan {
                     _ => 0,
                 };
                 if done < n {
-                    writeln!(f, "Continue with {}.", step_of(&self.solution, done))?;
+                    writeln!(f, "Continue with {}.", step_of(&self.solution, done, w))?;
                 }
                 return Ok(());
             }
@@ -212,8 +255,8 @@ impl fmt::Display for Plan {
             writeln!(
                 f,
                 "Repair: {what} {}, then continue with {}. That is {} moves in all.",
-                route.moves,
-                step_of(&self.solution, route.continue_after),
+                words(&route.moves, w),
+                step_of(&self.solution, route.continue_after, w),
                 route.total(n)
             )?;
         }
@@ -241,11 +284,11 @@ impl fmt::Display for Plan {
                 if d.rotation.is_some() {
                     writeln!(f, "The moves assume the cube is turned like the original.")?;
                 }
-                writeln!(f, "Moves now: {}", route.moves)?;
+                writeln!(f, "Moves now: {}", words(&route.moves, w))?;
                 writeln!(
                     f,
                     "Then continue with {} of the printed solution.",
-                    step_of(&self.solution, route.continue_after)
+                    step_of(&self.solution, route.continue_after, w)
                 )?;
             }
             Advice::Fresh => {
@@ -257,7 +300,7 @@ impl fmt::Display for Plan {
                         None => "no way back onto the path was found".to_owned(),
                     };
                     writeln!(f, "Recommended: solve fresh, {why}.")?;
-                    writeln!(f, "Moves now: {fresh}")?;
+                    writeln!(f, "Moves now: {}", words(fresh, w))?;
                 }
             }
             _ => {}

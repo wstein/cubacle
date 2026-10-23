@@ -8,7 +8,7 @@ use std::path::PathBuf;
 
 use clap::{Args, ValueEnum};
 use cubacle::notation::ColourScheme;
-use cubacle::notation::{parse_moves, to_wca_token};
+use cubacle::notation::{parse_expression, to_wca_token};
 use cubacle::puzzle::{Facelets, PuzzleKind};
 use cubacle::render::{icon, Action, Backdrop, Icon, KittyPlacement, Palette, Rgb, Shading, Style};
 
@@ -175,28 +175,36 @@ pub(crate) fn show(icon: &Icon, graphics: Graphics, size: u32) -> String {
     }
 }
 
+/// The icons one argument stands for: a move or rotation (WCA or SiGN), else
+/// an expression (layer range, group, commutator), which may be several.
+fn actions_of(token: &str, kind: PuzzleKind) -> Result<Vec<Action>, String> {
+    if let Ok(action) = to_wca_token(token)
+        .map_err(|e| e.to_string())
+        .and_then(|wca| {
+            wca.parse::<Action>()
+                .map_err(|_| format!("{token:?} is not a move or rotation"))
+        })
+    {
+        return Ok(vec![action]);
+    }
+    let moves = parse_expression(token, kind).map_err(|error| format!("{token:?}: {error}"))?;
+    Ok(moves.moves().iter().map(|mv| Action::Layer(*mv)).collect())
+}
+
 pub fn run(args: IconArgs) -> Result<(), String> {
     let kind = PuzzleKind::of_size(args.cube)
         .ok_or_else(|| format!("cube size {} is not between 2 and 7", args.cube))?;
     let mut start = Facelets::solved(kind);
     if let Some(from) = &args.from {
-        let moves = parse_moves(from)
+        let moves = parse_expression(from, kind)
             .map_err(|error| format!("--from is not valid move notation ({error})"))?;
         start = start.apply(&moves).map_err(|error| error.to_string())?;
     }
     let mut state = start.clone();
-    let actions: Vec<Action> = args
-        .moves
-        .iter()
-        .map(|token| {
-            to_wca_token(token)
-                .map_err(|error| error.to_string())
-                .and_then(|wca| {
-                    wca.parse()
-                        .map_err(|_| format!("{token:?} is not a move or rotation"))
-                })
-        })
-        .collect::<Result<_, _>>()?;
+    let mut actions: Vec<Action> = Vec::new();
+    for token in &args.moves {
+        actions.extend(actions_of(token, kind)?);
+    }
     let height = args.size.unwrap_or_else(|| default_height(args.cube));
     let mut style = style(args.scheme, height, args.grey, args.background);
     let to_stdout = args.out.is_none();
