@@ -15,7 +15,7 @@ use super::font;
 use super::geometry::{plane_coords, plane_point, Projection};
 use super::label::LABEL_SCALE;
 use super::round::{disc, rounded_triangle};
-use super::scene::{Part, Shape};
+use super::scene::{Part, Shape, HEIGHT, WIDTH};
 use super::style::{ARROW_VIOLET, WHITE};
 use crate::puzzle::Face;
 
@@ -287,6 +287,14 @@ pub(crate) fn shapes(
     shapes
 }
 
+/// The `2x` mark relative to the notation: its digit is this much taller than
+/// the capitals of the label (cap heights 14.6 against 11.2 units).
+const HALF_MARK_SCALE: f64 = 1.3;
+/// The white outline of the mark, in canvas units.
+const HALO: f64 = 1.2;
+/// Distance kept between any drawing and the canvas edge.
+const EDGE: f64 = 2.0;
+
 /// An upright `2x`, not in perspective, in the arrow colour with a white
 /// outline: right of a vertical arrow, above a horizontal one (right of it
 /// when above does not fit).
@@ -296,20 +304,21 @@ fn half_text(plan: &Plan, nf: f64, projection: &Projection, width: f64) -> Vec<S
     let dir = sub(tip, tail);
     let vertical = dir[1].abs() > dir[0].abs();
     let point = [(tail[0] + tip[0]) / 2.0, (tail[1] + tip[1]) / 2.0];
-    let (w, h) = (
-        font::measure("2x") * LABEL_SCALE,
-        font::GLYPH_HEIGHT * LABEL_SCALE,
-    );
+    let scale = LABEL_SCALE * HALF_MARK_SCALE;
+    let (w, h) = (font::measure("2x") * scale, font::GLYPH_HEIGHT * scale);
     let shaft = width * projection.scale * foreshortening(plan.face, nf, projection).max(0.7) / 2.0;
     let gap = 3.0;
     let right = [point[0] + shaft + gap, point[1] - h / 2.0];
     let above = [point[0] - w / 2.0, point[1] - shaft - gap - h];
-    let (x, y) = if vertical || above[1] < 1.0 {
+    let (x, y) = if vertical || above[1] < EDGE + HALO {
         (right[0], right[1])
     } else {
         (above[0], above[1])
     };
-    let mut shapes = font::halo("2x", (x, y), h, 1.2, WHITE, Part::Halo);
+    // Every drawing stays `EDGE` units inside the canvas, halo included.
+    let x = x.clamp(EDGE + HALO, WIDTH - EDGE - HALO - w);
+    let y = y.clamp(EDGE + HALO, HEIGHT - EDGE - HALO - h);
+    let mut shapes = font::halo("2x", (x, y), h, HALO, WHITE, Part::Halo);
     shapes.extend(font::text("2x", (x, y), h, ARROW_VIOLET, Part::Mark));
     shapes
 }
@@ -326,6 +335,78 @@ mod tests {
     fn centre(kind: PuzzleKind, index: usize) -> [f64; 3] {
         let (p, nrm) = locate(kind, index);
         [0, 1, 2].map(|i| f64::from(p[i] + nrm[i]))
+    }
+
+    fn bounds(shapes: &[Shape], part: Part) -> [f64; 4] {
+        let mut b = [f64::MAX, f64::MAX, f64::MIN, f64::MIN];
+        for p in shapes
+            .iter()
+            .filter(|s| s.part == part)
+            .flat_map(|s| &s.points)
+        {
+            b = [
+                b[0].min(p[0]),
+                b[1].min(p[1]),
+                b[2].max(p[0]),
+                b[3].max(p[1]),
+            ];
+        }
+        b
+    }
+
+    fn drawn(kind: PuzzleKind, text: &str) -> Vec<Shape> {
+        let state = Facelets::solved(kind);
+        let style = crate::render::Style::default();
+        crate::render::icon(&state, &act(text), &style)
+            .unwrap()
+            .shapes
+    }
+
+    /// The `2x` is at least as tall as the capitals of the notation.
+    #[test]
+    fn the_mark_is_not_smaller_than_the_label() {
+        for kind in [PuzzleKind::Cube3, PuzzleKind::Cube5, PuzzleKind::Cube7] {
+            let shapes = drawn(kind, "R2");
+            let (m, l) = (bounds(&shapes, Part::Mark), bounds(&shapes, Part::Label));
+            assert!(m[3] - m[1] >= l[3] - l[1], "{kind:?}: {m:?} {l:?}");
+        }
+    }
+
+    /// The mark, with its halo, stays 2 units inside the canvas and clear of the label.
+    #[test]
+    fn the_mark_is_never_clipped() {
+        let moves = [
+            "R2", "L2", "U2", "D2", "F2", "B2", "2R2", "3Rw2", "Rw2", "x2", "2U2",
+        ];
+        for kind in [
+            PuzzleKind::Cube2,
+            PuzzleKind::Cube3,
+            PuzzleKind::Cube5,
+            PuzzleKind::Cube7,
+        ] {
+            for text in moves {
+                if !act(text).fits(kind) {
+                    continue;
+                }
+                let shapes = drawn(kind, text);
+                let all: Vec<Shape> = shapes
+                    .iter()
+                    .filter(|s| s.part == Part::Halo)
+                    .cloned()
+                    .collect();
+                let m = bounds(&shapes, Part::Mark);
+                let h = bounds(&all, Part::Halo);
+                assert!(
+                    m[0] >= EDGE + HALO - 0.01 && m[1] >= EDGE + HALO - 0.01,
+                    "{kind:?} {text} {m:?}"
+                );
+                assert!(
+                    m[2] <= WIDTH - EDGE - HALO + 0.01 && m[3] <= HEIGHT - EDGE - HALO + 0.01,
+                    "{kind:?} {text} {m:?}"
+                );
+                assert!(h[0] >= 0.0 && h[2] <= WIDTH, "{kind:?} {text}");
+            }
+        }
     }
 
     fn kinds() -> [PuzzleKind; 3] {
