@@ -65,6 +65,34 @@ pub(crate) fn rasterise_canvas(
     }
 }
 
+impl Raster {
+    /// Places `rasters` side by side, top-aligned, with `gap` transparent
+    /// pixels between neighbours. The result is as tall as the tallest one;
+    /// where a raster is shorter, the rest of its column is transparent.
+    /// An empty list gives an empty raster.
+    pub fn hstack(rasters: &[Raster], gap: u32) -> Raster {
+        let height = rasters.iter().map(|r| r.height).max().unwrap_or(0);
+        let gaps = u32::try_from(rasters.len().saturating_sub(1)).unwrap_or(u32::MAX);
+        let width = rasters.iter().map(|r| r.width).sum::<u32>() + gap * gaps;
+        let (w, h) = (width as usize, height as usize);
+        let mut data = vec![0u8; w * h * 4];
+        let mut x = 0usize;
+        for raster in rasters {
+            let rw = raster.width as usize;
+            for (y, row) in raster.data.chunks_exact(rw * 4).enumerate() {
+                let at = (y * w + x) * 4;
+                data[at..at + rw * 4].copy_from_slice(row);
+            }
+            x += rw + gap as usize;
+        }
+        Raster {
+            width,
+            height,
+            data,
+        }
+    }
+}
+
 fn fill(buf: &mut [f32], w: usize, h: usize, points: &[[f64; 2]], colour: Rgb, opacity: f32) {
     if points.len() < 3 {
         return;
@@ -187,5 +215,22 @@ mod tests {
         assert_eq!(pixel(&raster, 36, 24)[3], 255);
         assert_eq!(pixel(&raster, 37, 24)[3], 128);
         assert_eq!(pixel(&raster, 38, 24)[3], 0);
+    }
+
+    #[test]
+    fn hstack_joins_with_transparent_gaps() {
+        let one = |v: u8, w: u32, h: u32| Raster {
+            width: w,
+            height: h,
+            data: vec![v; (w * h * 4) as usize],
+        };
+        let joined = Raster::hstack(&[one(1, 2, 2), one(2, 1, 3)], 3);
+        assert_eq!((joined.width, joined.height), (2 + 3 + 1, 3));
+        assert_eq!(pixel(&joined, 1, 1), [1; 4]);
+        assert_eq!(pixel(&joined, 2, 1), [0; 4]);
+        assert_eq!(pixel(&joined, 5, 2), [2; 4]);
+        assert_eq!(pixel(&joined, 0, 2), [0; 4]);
+        let empty = Raster::hstack(&[], 5);
+        assert_eq!((empty.width, empty.height, empty.data.len()), (0, 0, 0));
     }
 }
