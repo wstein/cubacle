@@ -158,9 +158,9 @@ There is no command-line option or environment variable for it.
 
 A move icon shows the cube from the Up-Right-Front corner (URF), so the Left, Back and Down faces are hidden. The picture of a whole state (`State after phase N - compare it with your cube` in `solve --icons`, `Should be` and `Is now` in `recover --icons`) is therefore drawn twice, side by side in one image: the URF view on the left and the view from the opposite Down-Left-Back corner (DBL) on the right. Together they show every sticker of the six faces exactly once. Move icons stay URF only.
 
-The DBL view is the cube turned with `x2 y'`: the D face is on top, the L face is the large flat face in front, the B face is the oblique face on the right. To get that grip from the usual one (U up, F towards you), turn the cube over front to back (`x2`) and then a quarter turn like `U'` (`y'`): D is up, L towards you and B on your right. A test checks this against the facelet layout: every sticker of D, L and B lands on a visible face of the turned cube, and the two views cover each sticker once.
+The four side faces form one belt from left to right, every face upright (its U edge on top): F and R in the left picture, then B and L in the right one. The right picture is the cube seen from below: B is the large face in front, L the narrow side on its right, and D lies under B. Physically: hold the cube with U up, turn it around its vertical axis (`y2`) so that B faces you and L is on your right, then bend down and look up at it from below. A turn of the cube about the vertical axis keeps U up, so B and L stay upright; seen from underneath, D appears below them. (Turning the cube over, for example with `x2`, would put the side faces upside down, which is why the second view is not drawn that way.) Tests check this against the facelet layout: every sticker of D, L and B lands on a visible face of the `y2`-turned cube, the two views cover each sticker once, the side faces are drawn in the order F, R, B, L with their U edge on top, and every amber mark lies on its sticker.
 
-On a Kitty terminal the two pictures are one image. When that image is wider than the terminal, or `--columns 1` is given, the two views are stacked, one image each. With `--views urf` only the URF picture is drawn. Without graphics `solve --icons` prints no state picture (only the token line), and `recover --icons` prints each state as two text pictures, one below the other, each with a heading that names its corner (`state, seen from URF: ...`, `state, seen from DBL: ...`); `--views urf` leaves out the second.
+On a Kitty terminal the two pictures are one image. When that image is wider than the terminal, or `--columns 1` is given, the two views are stacked, one image each. With `--views urf` only the URF picture is drawn. Without graphics `solve --icons` prints no state picture (only the token line), and `recover --icons` prints each state as two text pictures, one below the other, each with a heading that names its corner (`state, seen from URF: ...`, `state, seen from DBL, turned so that B is in front: ...`; the second shows B and L side by side with D below them); `--views urf` leaves out the second.
 
 ### Checkpoints
 
@@ -202,13 +202,13 @@ O B O W W G
 W G B O R W
 R B O Y R R
 
-state, seen from DBL: D up, L towards you, B on your right
-   B G G
-  W Y Y
- G G Y
-W Y B R O Y
-O O G O B G
-G Y R W B W
+state, seen from DBL, turned so that B is in front: B, L, D below
+W B W R Y G
+G B O G O O
+Y O R B Y W
+ G Y Y
+  G Y G
+   B W G
 
 token: Enl7Pqxeueao
 Is now
@@ -220,13 +220,13 @@ W B W R Y B
 W G B O R G
 O B O G Y W
 
-state, seen from DBL: D up, L towards you, B on your right
-   Y G G
-  R Y W
- B G B
-W R Y O B R
-O O W G B O
-G W R Y O R
+state, seen from DBL, turned so that B is in front: B, L, D below
+R O Y R W G
+O B G W O O
+R B O Y R W
+ G W B
+  G Y G
+   Y R B
 
 token: FpkdfDU1GuT4
 Stickers that differ: 31 of 54 (all marked amber in graphics rows, in the view that shows them).
