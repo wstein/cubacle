@@ -146,6 +146,39 @@ fn a_target_with_the_centres_moved_is_refused_on_a_4x4() {
 }
 
 #[test]
+fn named_targets_are_reached() {
+    for (name, moves) in [
+        (
+            "superflip",
+            "U R2 F B R B2 R U2 L B2 R U' D' R2 F R' L B2 U2 F2",
+        ),
+        ("checkerboard", "U2 D2 R2 L2 F2 B2"),
+        ("cube-in-cube", "F L F U' R U F2 L2 U' L' B D' B' L2 U"),
+    ] {
+        solves_to("3", "R U F2 D' L", name, &cube(PuzzleKind::Cube3, moves));
+    }
+}
+
+#[test]
+fn the_names_are_refused_on_other_sizes() {
+    for name in ["superflip", "checkerboard", "cube-in-cube"] {
+        let (ok, _, error) = cubacle(&["solve", "--size", "4", "R U", "--to", name]);
+        assert!(!ok);
+        assert!(
+            error.contains("3x3x3") && error.contains("4x4x4"),
+            "{error}"
+        );
+    }
+}
+
+#[test]
+fn a_name_inside_a_longer_text_is_no_name() {
+    let (ok, _, error) = cubacle(&["solve", "R U", "--to", "superflip R"]);
+    assert!(!ok);
+    assert!(error.contains("not a cube"), "{error}");
+}
+
+#[test]
 fn a_garbage_target_names_the_option() {
     let (ok, _, error) = cubacle(&["solve", "R U", "--to", "not a cube"]);
     assert!(!ok);

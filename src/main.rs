@@ -21,7 +21,9 @@ use cubacle::engines::three::Min2PhaseSolver;
 use cubacle::engines::two::PocketSolver;
 use cubacle::generate;
 use cubacle::notation::orbit64;
-use cubacle::notation::{colour_scheme_of, parse_cube, parse_expression, ColourScheme, Notation};
+use cubacle::notation::{
+    colour_scheme_of, named_target, parse_cube, parse_expression, ColourScheme, Notation,
+};
 use cubacle::phases::{from_stages, phases};
 use cubacle::puzzle::{
     reaches, relative_state, Facelets, Failure, PuzzleKind, SolveOptions, Solver,
@@ -152,8 +154,9 @@ struct SolveArgs {
     slices: bool,
     /// Solve to this state instead of to the solved cube: an Orbit64 token,
     /// URFDLB facelets, W/R/G/Y/O/B colours or a move expression applied to the
-    /// solved cube of the start's size (one argument: quote it). The moves
-    /// printed take the start to the target.
+    /// solved cube of the start's size (one argument: quote it), or one of the
+    /// names superflip, checkerboard, cube-in-cube. The moves printed take the
+    /// start to the target.
     #[arg(long, value_name = "TARGET")]
     to: Option<String>,
     #[command(flatten)]
@@ -281,6 +284,10 @@ fn parse_text(
 /// The state `--to` names, read like the start; a move expression is applied
 /// to the solved cube of the start's size.
 fn read_target(text: &str, args: &SolveArgs, start: &Facelets) -> Result<Facelets, String> {
+    // A pattern name is taken only when the whole text is that name.
+    if let Some(named) = named_target(text, start.kind()) {
+        return named.map_err(|error| format!("--to: {error}"));
+    }
     let (target, _) = parse_text(text, args.input.scheme, start.kind().size())
         .map_err(|error| format!("--to: {error}"))?;
     Ok(target)
