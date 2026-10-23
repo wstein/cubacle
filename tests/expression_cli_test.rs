@@ -45,6 +45,44 @@ fn convert_takes_an_expression_as_the_cube_with_size() {
 }
 
 #[test]
+fn slices_and_rotations_follow_the_documented_identities() {
+    for (short, long) in [
+        ("x", "R M' L'"),
+        ("y", "U E' D'"),
+        ("z", "F S B'"),
+        ("M", "2L"),
+        ("E'", "2D'"),
+        ("S2", "2F2"),
+    ] {
+        let (ok, a, _) = cubacle(&["facelets", short]);
+        assert!(ok);
+        let (ok, b, _) = cubacle(&["facelets", long]);
+        assert!(ok);
+        assert_eq!(a, b, "{short} against {long}");
+    }
+}
+
+#[test]
+fn an_even_cube_refuses_a_middle_slice() {
+    let (ok, _, error) = cubacle(&["facelets", "--size", "4", "M"]);
+    assert!(!ok);
+    assert!(error.contains("middle layer"), "{error}");
+}
+
+#[test]
+fn the_nested_slice_and_rotation_expression_converts_on_a_7x7() {
+    let expression = "((M' U)*4 y' z')*3";
+    let (ok, facelets, error) = cubacle(&["convert", "--size", "7", expression]);
+    assert!(ok, "{error}");
+    assert_eq!(facelets.len(), 6 * 49);
+    let (ok, token, _) = cubacle(&["convert", "--size", "7", "--to", "token", expression]);
+    assert!(ok);
+    let (ok, back, _) = cubacle(&["convert", &token]);
+    assert!(ok);
+    assert_eq!(back, facelets);
+}
+
+#[test]
 fn a_broken_expression_is_reported() {
     let (ok, _, error) = cubacle(&["facelets", "(R U"]);
     assert!(!ok);

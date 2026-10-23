@@ -305,6 +305,33 @@ cubacle facelets "(R U R' U')*6"
 UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB
 ```
 
+### Middle slices and whole-cube rotations
+
+| Written | Meaning |
+| --- | --- |
+| `M`, `E`, `S` | The middle layer of an odd cube, turned like `L`, like `D` and like `F`. On a 3x3x3 `M` is `2L`; on a 7x7x7 it is `4L`. |
+| `x`, `y`, `z` | The whole cube turned like `R`, like `U` and like `F`. |
+
+All of them take `'`, `2` and the aliases above, and `*N`. An even cube (2x2x2, 4x4x4, 6x6x6) has no middle layer and refuses `M`, `E` and `S` with an error; `x`, `y` and `z` work on every size. Wide forms such as `Mw` and prefixed forms such as `2M` are not accepted. The expression is expanded into plain layer turns: a rotation becomes a wide turn of all layers but one plus the opposite outer face turned the same way round the axis, so `x` on a 3x3x3 is `2Rw L'`. The standard identities hold and are tested: `x = R M' L'`, `y = U E' D'`, `z = F S B'`.
+
+A rotation moves the centres, so the state after it is a rotated cube, not a solved-looking one: after `x` a solved 3x3x3 shows `F` on the up face.
+
+```sh
+cubacle facelets "x"
+```
+
+```text
+FFFFFFFFFRRRRRRRRRDDDDDDDDDBBBBBBBBBLLLLLLLLLUUUUUUUUU
+```
+
+```sh
+cubacle facelets "M"
+```
+
+```text
+UBUUBUUBURRRRRRRRRFUFFUFFUFDFDDFDDFDLLLLLLLLLBDBBDBBDB
+```
+
 `facelets` and `--scramble` read the same notation. `convert` and `solve` also take an expression in place of a cube when the text is not a cube; `--size` picks the cube:
 
 ```sh

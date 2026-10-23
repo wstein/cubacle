@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::puzzle::{Move, MoveSequence, NotationError, PuzzleKind};
+use crate::puzzle::{Face, Move, MoveSequence, NotationError, PuzzleKind, Turn};
 
 /// The most moves an expression may expand to.
 pub const MAX_EXPANDED_MOVES: usize = 100_000;
@@ -16,6 +16,8 @@ pub enum ExprError {
     BadRepeat { position: usize },
     /// A move turns a layer the cube does not have.
     DoesNotFit { mv: Move, kind: PuzzleKind },
+    /// A middle-slice move (`M`, `E`, `S`) on a cube without a middle layer.
+    NoMiddleLayer { word: String, kind: PuzzleKind },
     /// The expression expands to more than [`MAX_EXPANDED_MOVES`] moves.
     TooLong,
 }
@@ -34,6 +36,13 @@ impl fmt::Display for ExprError {
             ExprError::DoesNotFit { mv, kind } => {
                 let size = kind.size();
                 write!(f, "move {mv} does not exist on a {size}x{size}x{size}")
+            }
+            ExprError::NoMiddleLayer { word, kind } => {
+                let size = kind.size();
+                write!(
+                    f,
+                    "{word} turns the middle layer, which a {size}x{size}x{size} does not have"
+                )
             }
             ExprError::TooLong => write!(
                 f,
@@ -58,6 +67,12 @@ impl From<NotationError> for ExprError {
 /// `((R U)*2 F)*3` is valid. Parentheses need no spaces around them, but `*N`
 /// must follow its group or move directly. The result is the plain list of
 /// layer turns; every move must exist on the cube.
+///
+/// Besides layer turns the words `M E S` and `x y z` are read. `M`, `E` and `S`
+/// turn the middle layer of an odd cube in the direction of `L`, `D` and `F`
+/// (on a 3x3x3 `M` is `2L`); an even cube has no middle layer and refuses them.
+/// `x`, `y` and `z` turn the whole cube like `R`, `U` and `F`. All take the
+/// suffixes `'`, `2` and the aliases of ordinary moves, and a following `*N`.
 pub fn parse_expression(text: &str, kind: PuzzleKind) -> Result<MoveSequence, ExprError> {
     let mut reader = Reader {
         chars: text.chars().collect(),
@@ -124,6 +139,9 @@ impl Reader {
             self.at += 1;
         }
         let word: String = self.chars[start..self.at].iter().collect();
+        if let Some(moves) = self.special(&word)? {
+            return Ok(moves);
+        }
         let mv: Move = word.parse()?;
         if !mv.fits(self.kind) {
             return Err(ExprError::DoesNotFit {
@@ -132,6 +150,56 @@ impl Reader {
             });
         }
         Ok(vec![mv])
+    }
+
+    /// `M E S` (middle slice) and `x y z` (whole-cube rotation), as plain moves.
+    fn special(&self, word: &str) -> Result<Option<Vec<Move>>, ExprError> {
+        let mut chars = word.chars();
+        let letter = chars.next().unwrap_or(' ');
+        if !"MESxyz".contains(letter) {
+            return Ok(None);
+        }
+        let turn = format!("R{}", chars.as_str())
+            .parse::<Move>()
+            .ok()
+            .filter(|mv| !mv.wide && mv.depth == 1)
+            .map(|mv| mv.turn)
+            .ok_or_else(|| NotationError {
+                token: word.to_owned(),
+            })?;
+        let n = self.kind.size();
+        let layers = u8::try_from(n).expect("sizes are small");
+        let moves = match letter {
+            'M' | 'E' | 'S' => {
+                if n % 2 == 0 {
+                    return Err(ExprError::NoMiddleLayer {
+                        word: word.to_owned(),
+                        kind: self.kind,
+                    });
+                }
+                let face = match letter {
+                    'M' => Face::L,
+                    'E' => Face::D,
+                    _ => Face::F,
+                };
+                vec![Move::new(face, layers / 2 + 1, false, turn)]
+            }
+            _ => {
+                let (front, back) = match letter {
+                    'x' => (Face::R, Face::L),
+                    'y' => (Face::U, Face::D),
+                    _ => (Face::F, Face::B),
+                };
+                // All layers but the last as one wide turn, the last layer
+                // the opposite face turns the same way round the axis.
+                let wide = layers - 1;
+                vec![
+                    Move::new(front, wide, wide >= 2, turn),
+                    Move::new(back, 1, false, opposite(turn)),
+                ]
+            }
+        };
+        Ok(Some(moves))
     }
 
     /// Applies a directly following `*N` to `item`.
@@ -159,9 +227,18 @@ impl Reader {
     }
 }
 
+fn opposite(turn: Turn) -> Turn {
+    match turn {
+        Turn::Clockwise => Turn::CounterClockwise,
+        Turn::CounterClockwise => Turn::Clockwise,
+        Turn::Half => Turn::Half,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::puzzle::Facelets;
 
     fn expand(text: &str, kind: PuzzleKind) -> Result<String, ExprError> {
         parse_expression(text, kind).map(|moves| moves.to_string())
@@ -228,6 +305,128 @@ mod tests {
         assert_eq!(
             expand("((R)*1000)*1000", PuzzleKind::Cube3),
             Err(ExprError::TooLong)
+        );
+    }
+
+    fn cube(text: &str, kind: PuzzleKind) -> Facelets {
+        let moves = parse_expression(text, kind).unwrap_or_else(|e| panic!("{text}: {e}"));
+        Facelets::solved(kind).apply(&moves).unwrap()
+    }
+
+    fn sticker(cube: &Facelets, face: Face, index: usize) -> char {
+        cube.to_string()
+            .chars()
+            .nth(face.index() * 9 + index)
+            .unwrap()
+    }
+
+    #[test]
+    fn middle_slices_on_a_3x3_are_the_inner_layer_of_l_d_f() {
+        let kind = PuzzleKind::Cube3;
+        for (slice, layer) in [("M", "2L"), ("E", "2D"), ("S", "2F")] {
+            for suffix in ["", "'", "2"] {
+                assert_eq!(
+                    cube(&format!("{slice}{suffix}"), kind),
+                    cube(&format!("{layer}{suffix}"), kind),
+                    "{slice}{suffix}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn slices_follow_l_d_and_f() {
+        let kind = PuzzleKind::Cube3;
+        // L carries the top to the front, D the left to the front, F the top to the right.
+        assert_eq!(sticker(&cube("M", kind), Face::F, 4), 'U');
+        assert_eq!(sticker(&cube("E", kind), Face::F, 4), 'L');
+        assert_eq!(sticker(&cube("S", kind), Face::R, 4), 'U');
+    }
+
+    #[test]
+    fn rotations_follow_r_u_and_f() {
+        let kind = PuzzleKind::Cube3;
+        assert_eq!(sticker(&cube("x", kind), Face::U, 4), 'F');
+        assert_eq!(sticker(&cube("y", kind), Face::L, 4), 'F');
+        assert_eq!(sticker(&cube("z", kind), Face::R, 4), 'U');
+    }
+
+    #[test]
+    fn rotations_are_a_face_and_slices() {
+        let kind = PuzzleKind::Cube3;
+        assert_eq!(cube("x", kind), cube("R M' L'", kind));
+        assert_eq!(cube("y", kind), cube("U E' D'", kind));
+        assert_eq!(cube("z", kind), cube("F S B'", kind));
+        for size in [
+            PuzzleKind::Cube2,
+            kind,
+            PuzzleKind::Cube4,
+            PuzzleKind::Cube5,
+        ] {
+            assert_eq!(cube("x2", size), cube("x x", size));
+            assert_eq!(cube("y'", size), cube("y y y", size));
+            assert_eq!(cube("z2'", size), cube("z2", size));
+        }
+    }
+
+    #[test]
+    fn a_rotation_and_its_inverse_cancel_on_every_size() {
+        for kind in [
+            PuzzleKind::Cube2,
+            PuzzleKind::Cube3,
+            PuzzleKind::Cube4,
+            PuzzleKind::Cube5,
+            PuzzleKind::Cube6,
+            PuzzleKind::Cube7,
+        ] {
+            assert!(cube("x y z z' y' x'", kind).is_solved(), "{kind:?}");
+            assert!(cube("(x y z)*4 (z' y' x')*4", kind).is_solved());
+            assert!(cube("x*4 y2*2 z'*4", kind).is_solved());
+        }
+    }
+
+    #[test]
+    fn slice_turns_cancel_on_odd_cubes() {
+        for kind in [PuzzleKind::Cube3, PuzzleKind::Cube5, PuzzleKind::Cube7] {
+            assert!(cube("M*4 E' E S2 S2", kind).is_solved(), "{kind:?}");
+        }
+        // The middle layer of a 7x7x7 is its fourth.
+        assert_eq!(cube("M", PuzzleKind::Cube7), cube("4L", PuzzleKind::Cube7));
+    }
+
+    #[test]
+    fn even_cubes_refuse_slices() {
+        for kind in [PuzzleKind::Cube2, PuzzleKind::Cube4, PuzzleKind::Cube6] {
+            for word in ["M", "E'", "S2"] {
+                assert!(matches!(
+                    expand(word, kind),
+                    Err(ExprError::NoMiddleLayer { .. })
+                ));
+            }
+        }
+    }
+
+    #[test]
+    fn bad_slice_and_rotation_words_are_rejected() {
+        for text in ["Mw", "M3'", "xw", "2M", "x4", "M''", "m", "X"] {
+            assert!(expand(text, PuzzleKind::Cube5).is_err(), "{text:?}");
+        }
+    }
+
+    #[test]
+    fn a_nested_expression_with_slices_and_rotations_is_a_valid_cube() {
+        let text = "((M' U)*4 y' z')*3";
+        let kind = PuzzleKind::Cube7;
+        let moves = parse_expression(text, kind).unwrap();
+        // Each rotation is two turns: 3 * (4 * 2 + 2 * 2) moves.
+        assert_eq!(moves.len(), 3 * (4 * 2 + 2 * 2));
+        let state = cube(text, kind);
+        assert!(!state.is_solved());
+        let token = crate::notation::orbit64::encode(&state).unwrap();
+        assert_eq!(crate::notation::orbit64::decode(&token).unwrap(), state);
+        assert_eq!(
+            crate::notation::parse_cube(&state.to_string(), None).unwrap(),
+            state
         );
     }
 }
