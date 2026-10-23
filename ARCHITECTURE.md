@@ -11,7 +11,7 @@ src/
                   SolveOptions/SolveResult/Failure, Facelets::apply
   notation/       Orbit64, colour schemes, input detection and parsing
   generate/       random states and scrambles
-  phases/         the phases of a solution, cut by the cube state
+  phases/         the phases of a solution, from the engine's stages or the cube state
   render/         move icons (SVG, RGBA, Kitty graphics, text) from puzzle types
   reduction/      crate-private parts shared by reduction engines (4x4x4,
                   5x5x5): combinatorics, 4-bit pruning tables with a parallel

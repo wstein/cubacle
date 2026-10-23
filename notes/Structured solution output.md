@@ -4,7 +4,7 @@ aliases: []
 tags: ["type/idea", "status/open", "category/open-items"]
 ---
 
-A JSON form of a solution would carry each move as data (face, depth, wide, turns) with its phase and the number of moves per phase, next to the plain string. It is for further processing: documents, other tools and the REST backend. It follows the phase headings of the icon output, which are found from the cube state by replaying the solution, so they do not depend on an engine.
+A JSON form of a solution would carry each move as data (face, depth, wide, turns) with its phase and the number of moves per phase, next to the plain string. It is for further processing: documents, other tools and the REST backend. It follows the phase headings of the icon output, which come from the engine's own stages where it reports them and from the cube state otherwise.
 
 ## Links
 

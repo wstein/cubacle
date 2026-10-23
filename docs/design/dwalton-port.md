@@ -83,6 +83,19 @@ Step 50 of the 6x6x6 is shorter here because the edge orientation of the inside
 edges is not required (the wings are paired by an engine); the later stages are
 not longer for it.
 
+## Stages in the answer
+
+`SolveResult::stages` carries six stages that group the steps above (the table
+is in [Move icons](../icons.md#phases)). The engine records the length of the
+raw move list at the end of each step, and the ends of the six stages are then
+matched to the normalised answer by the cube state they leave. The match is
+by colours, so a stage can end a few moves before its raw end when the
+rewriting has shortened the moves before it. On eight random 6x6x6 and eight
+7x7x7 cubes, 79 of the 80 ends found a state of the final answer equal to the
+engine's; the last took the closest state (see `stage_ends`). On three cubes of
+each size the state-based phases ended at the end of `inner wings and centres`
+and `outer wings and centres`.
+
 ## Differences from the reference
 
 - Tables are searched, not read: no 7.3 GB of lookup files. The 5x5x5 edge

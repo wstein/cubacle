@@ -107,21 +107,34 @@ Phase 3: 3x3 stage (19 moves)
 
 The state picture has no arrow, no notation and no dimming: every sticker is in full colour inside a thin frame, so that it cannot be mistaken for a move. Compare it with your own cube before you go on.
 
-The phases are read from the cube, not from the engine: the solution is replayed and a phase ends at the first move after which its condition holds for the rest of the solution. A phase that is true from its start is empty; it keeps its number and its heading reads `nothing to do`, with no icons and no picture.
+For the 4x4x4 to 7x7x7 the phases are the stages of the engine that solved the cube: the engine notes where each stage ends and the program carries those ends through the rewriting of the answer, so a phase ends where the engine's stage ended (matched by the state of the cube; when the rewriting leaves no such state, at the closest one). For the 2x2x2 and 3x3x3 the phases are read from the cube: the solution is replayed and a phase ends at the first move after which its condition holds for the rest of the solution. A phase with no moves keeps its number and its heading reads `nothing to do`, with no icons and no picture. A phase that no answer of an engine ever needs is not in its list: the big cubes have no `edges` phase, because their engines pair the wings together with the centres.
 
 | Cube | Phases |
 | --- | --- |
 | 2x2x2 | `solve` |
 | 3x3x3 | `to the G1 subgroup` (corners and edges oriented, the four middle-layer edges in the middle layer: the Kociemba domino state), `solve` |
-| 4x4x4, 5x5x5 | `centres` (every face has centres of one colour), `edges` (all wings of an edge paired, centres solved), `3x3 stage` |
-| 6x6x6, 7x7x7 | `inner centres` (the centres inside the outermost ring of a face are one colour per face), `centres`, `edges`, `3x3 stage` |
+| 4x4x4 | `centres staged` (each pair of opposite colours has its centres on one axis), `centres sorted`, `centres and wings paired` (the cube is now a 3x3x3), `3x3 stage` |
+| 5x5x5 | `centres staged` (the same, in two searches), `wings staged` (the wings in slots where they can be paired), `centres and wings paired` (a 3x3x3), `3x3 stage` |
+| 6x6x6, 7x7x7 | `left/right centres staged`, `up/down centres staged`, `centres prepared`, `inner wings and centres`, `outer wings and centres` (a 3x3x3), `3x3 stage` |
 
-The engines of the big cubes make the centres and the edges true at the same move, so `edges` is usually empty (`nothing to do`). On a 7x7x7 the `inner centres` phase is still the longest, about two thirds of the moves: the state alone cannot see the staging steps inside it, because they are undone and redone on the way. With `--verbose`, the phases are also written to standard error, for every cube and with or without `--icons`:
+The 6x6x6 and 7x7x7 engine follows dwalton76/rubiks-cube-NxNxN-solver, whose many small steps are grouped into the six phases like this:
+
+| Phase | 6x6x6 steps | 7x7x7 steps |
+| --- | --- | --- |
+| `left/right centres staged` | inner x-centres staged and obliques paired; centres staged | inner centres staged; obliques paired; centres staged |
+| `up/down centres staged` | the same for up and down | the same for up and down |
+| `centres prepared` | the two last centre steps ("reducible") | the three last centre steps (bars, daisy) |
+| `inner wings and centres` | the 4x4x4 engine on the inner wings and centres | the 5x5x5 engine on the inner wings and centres |
+| `outer wings and centres` | the 5x5x5 engine on the outer wings and centres | the 5x5x5 engine on the outer wings and centres |
+| `3x3 stage` | the 3x3x3 solver | the 3x3x3 solver |
+
+Measured on three random 7x7x7 cubes (183 to 190 moves) the phases take 30 to 33, 28 to 31, 30 to 33, 35 to 40, 32 to 42 and 21 moves, so none dominates. At the end of `inner wings and centres` the centres inside the outermost ring are one colour per face; at the end of `outer wings and centres` all centres are solved and all wings are paired. With `--verbose`, the phases are also written to standard error, for every cube and with or without `--icons`:
 
 ```text
-phase 1: centres, moves 1-25
-phase 2: edges, nothing to do
-phase 3: 3x3 stage, moves 26-44
+phase 1: centres staged, moves 1-19
+phase 2: wings staged, moves 20-25
+phase 3: centres and wings paired, moves 26-51
+phase 4: 3x3 stage, moves 52-70
 ```
 
 Without graphics there are no phase headings: the text output is one picture per step, as before.
