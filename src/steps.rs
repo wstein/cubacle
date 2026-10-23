@@ -10,7 +10,7 @@ use std::io::Write;
 use cubacle::notation::{orbit64, ColourScheme};
 use cubacle::phases::Phase;
 use cubacle::puzzle::{Facelets, Move, MoveSequence, Turn};
-use cubacle::render::{icon, state_icon, Action, KittyPlacement, Raster, Style};
+use cubacle::render::{icon, state_icon, Action, KittyPlacement, Raster, Rgb, Style};
 
 use crate::icons::{default_height, detect_stdout, show, style, Background, Graphics};
 use crate::rows;
@@ -95,6 +95,9 @@ pub(crate) fn token_line(phase: &Phase, state: &Facelets) -> Result<String, Stri
 /// The text marker for a quarter turn that stands between two half turns, the
 /// easiest one to do as a half turn.
 const QUARTER_NOTE: &str = "   <-- quarter turn, not a half turn";
+
+/// The frame colour of a lone quarter turn in the Kitty rows (amber).
+const QUARTER_FRAME: Rgb = Rgb(255, 176, 0);
 
 /// Whether each move is a quarter turn with a half turn right before and right
 /// after it.
@@ -197,6 +200,7 @@ fn kitty_steps(
         }
         None => 0,
     };
+    let lone = lone_quarters(moves);
     let per_row = rows::per_row(terminal.width_px, width, rows::GAP, columns);
     for phase in found {
         out.push_str(&phase_heading(phase));
@@ -206,10 +210,16 @@ fn kitty_steps(
         }
         for row in rows::rows(phase.moves.clone(), per_row) {
             let mut rasters = Vec::with_capacity(row.len());
-            for mv in &moves[row.clone()] {
+            for (at, mv) in row.clone().zip(&moves[row.clone()]) {
                 let action = Action::Layer(*mv);
                 let drawn = icon(&state, &action, style).map_err(|error| error.to_string())?;
-                rasters.push(drawn.to_rgba(style.size));
+                let raster = drawn.to_rgba(style.size);
+                // a quarter turn between half turns gets an amber frame
+                rasters.push(if lone[at] {
+                    raster.framed(QUARTER_FRAME)
+                } else {
+                    raster
+                });
                 state = action.apply(&state).map_err(|error| error.to_string())?;
             }
             out.push_str(&rows::heading(&row, total));

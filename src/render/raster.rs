@@ -66,6 +66,22 @@ pub(crate) fn rasterise_canvas(
 }
 
 impl Raster {
+    /// Draws a frame of `colour` along the border of the raster, over what is
+    /// there. The thickness is 3 px at 109 px height and grows with the height.
+    pub fn framed(mut self, colour: Rgb) -> Raster {
+        let (w, h) = (self.width as usize, self.height as usize);
+        let t = (h / 36).max(2).min(w / 2).min(h / 2);
+        let px = [colour.0, colour.1, colour.2, 255];
+        for y in 0..h {
+            for x in 0..w {
+                if x < t || y < t || x >= w - t || y >= h - t {
+                    self.data[(y * w + x) * 4..(y * w + x) * 4 + 4].copy_from_slice(&px);
+                }
+            }
+        }
+        self
+    }
+
     /// Places `rasters` side by side, top-aligned, with `gap` transparent
     /// pixels between neighbours. The result is as tall as the tallest one;
     /// where a raster is shorter, the rest of its column is transparent.
@@ -232,5 +248,18 @@ mod tests {
         assert_eq!(pixel(&joined, 0, 2), [0; 4]);
         let empty = Raster::hstack(&[], 5);
         assert_eq!((empty.width, empty.height, empty.data.len()), (0, 0, 0));
+    }
+
+    #[test]
+    fn framed_paints_the_border_and_keeps_the_inside() {
+        let plain = Raster {
+            width: 40,
+            height: 40,
+            data: vec![7; 40 * 40 * 4],
+        };
+        let framed = plain.framed(Rgb(255, 176, 0));
+        assert_eq!(pixel(&framed, 0, 20), [255, 176, 0, 255]);
+        assert_eq!(pixel(&framed, 20, 39), [255, 176, 0, 255]);
+        assert_eq!(pixel(&framed, 20, 20), [7; 4]);
     }
 }
