@@ -40,6 +40,7 @@ use cubacle::generate;
 use cubacle::notation::orbit64;
 use cubacle::notation::{parse_cube, ColourScheme, Notation};
 use cubacle::puzzle::{Facelets, Failure, PuzzleKind, SolveOptions, Solver};
+use cubacle::ranges::{compressed_text, Optimise};
 use serde::{Deserialize, Serialize};
 use tokio::sync::Semaphore;
 use tower_http::catch_panic::CatchPanicLayer;
@@ -412,6 +413,9 @@ struct SolveRequest {
     slices: bool,
     /// How the solution is written: `wca` (default) or `sign`.
     notation: Option<String>,
+    /// Post-solve compression: `ranges` also returns the solution with layer
+    /// ranges (`2-3r`) as `compressed` and its move count as `compressedLength`.
+    optimise: Option<String>,
 }
 
 /// Requires `Content-Type: application/json`. Without this a web page could
@@ -473,6 +477,10 @@ struct SolveBody {
     kind: String,
     solution: String,
     length: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    compressed: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    compressed_length: Option<usize>,
     elapsed_micros: u64,
 }
 
@@ -493,6 +501,12 @@ async fn solve(
 ) -> ApiResult<SolveBody> {
     let request: SolveRequest = read_body(&headers, body)?;
     let notation = read_notation(request.notation.as_deref())?;
+    let optimise: Option<Optimise> = request
+        .optimise
+        .as_deref()
+        .map(str::parse)
+        .transpose()
+        .map_err(ApiError::bad_input)?;
     let facelets = read_cube(&request.cube, request.scheme.as_deref())?;
     let kind = facelets.kind();
     engine_kind(kind.size())?;
@@ -610,12 +624,18 @@ async fn solve(
             .unwrap_or_else(|| fallback.to_owned())
     };
     match &result.outcome {
-        Ok(solution) => Ok(Json(SolveBody {
-            kind: kind_name(kind),
-            solution: notation.write(solution),
-            length: solution.len(),
-            elapsed_micros: u64::try_from(result.metrics.elapsed.as_micros()).unwrap_or(u64::MAX),
-        })),
+        Ok(solution) => {
+            let packed = optimise.map(|_| compressed_text(notation, kind, solution));
+            Ok(Json(SolveBody {
+                kind: kind_name(kind),
+                solution: notation.write(solution),
+                length: solution.len(),
+                compressed: packed.as_ref().map(|(text, _)| text.clone()),
+                compressed_length: packed.map(|(_, count)| count),
+                elapsed_micros: u64::try_from(result.metrics.elapsed.as_micros())
+                    .unwrap_or(u64::MAX),
+            }))
+        }
         Err(Failure::InvalidInput) => Err(ApiError::new(
             StatusCode::UNPROCESSABLE_ENTITY,
             "impossible_cube",

@@ -148,5 +148,33 @@ pub fn write(notation: Notation, moves: &[LayerMove]) -> String {
     words.join(" ")
 }
 
+/// The opt-in post-solve optimisations (`--optimise`, the `optimise` request field).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Optimise {
+    /// Write adjacent same-axis turns as layer ranges.
+    Ranges,
+}
+
+impl std::str::FromStr for Optimise {
+    type Err = String;
+
+    fn from_str(text: &str) -> Result<Optimise, String> {
+        match text {
+            "ranges" => Ok(Optimise::Ranges),
+            _ => Err(format!("optimise must be ranges, not {text:?}")),
+        }
+    }
+}
+
+/// A solution compressed and written: the text and its move count.
+pub fn compressed_text(
+    notation: Notation,
+    kind: PuzzleKind,
+    solution: &MoveSequence,
+) -> (String, usize) {
+    let packed = compress(kind, solution);
+    (write(notation, &packed), packed.len())
+}
+
 #[cfg(test)]
 mod tests;

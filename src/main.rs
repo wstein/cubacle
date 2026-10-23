@@ -21,6 +21,7 @@ use cubacle::notation::orbit64;
 use cubacle::notation::{colour_scheme_of, parse_cube, parse_expression, ColourScheme, Notation};
 use cubacle::phases::{from_stages, phases};
 use cubacle::puzzle::{Facelets, Failure, PuzzleKind, SolveOptions, Solver};
+use cubacle::ranges::{compressed_text, Optimise};
 
 /// Rubik's cube solver and generator.
 #[derive(Parser)]
@@ -137,6 +138,10 @@ struct SolveArgs {
     /// How to write the solution: wca (Rw, 3Rw) or sign (r, 3r)
     #[arg(long, default_value = "wca")]
     notation: Notation,
+    /// Post-solve compression (no search): `ranges` writes adjacent turns of one axis as
+    /// layer ranges (2-3r in sign, 2-3Rw in wca) and reports both move counts
+    #[arg(long, value_name = "WHAT", conflicts_with = "icons")]
+    optimise: Option<Optimise>,
     /// Allow single inner layers (2R) in 4x4x4 and 5x5x5 answers where they make them shorter
     #[arg(long)]
     slices: bool,
@@ -387,6 +392,12 @@ fn solve(args: SolveArgs) -> Result<(), String> {
                         notation: args.notation,
                     },
                 );
+            }
+            if args.optimise == Some(Optimise::Ranges) {
+                let (text, count) = compressed_text(args.notation, facelets.kind(), &solution);
+                eprintln!("compressed moves {count}");
+                println!("{text}");
+                return Ok(());
             }
             println!("{}", args.notation.write(&solution));
             Ok(())
