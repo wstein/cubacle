@@ -88,7 +88,7 @@ fn rounded_square(centre: [f64; 2], h: f64, radius: f64) -> Vec<[f64; 2]> {
 /// The dark body behind the stickers and the flat stickers.
 pub(crate) fn cube_shapes(
     state: &Facelets,
-    action: &Action,
+    action: Option<&Action>,
     style: &Style,
     projection: &Projection,
     pixels_per_model: f64,
@@ -125,17 +125,18 @@ pub(crate) fn cube_shapes(
     shapes
 }
 
+/// With no action nothing is dimmed and nothing is grey: a plain picture of the state.
 fn sticker_colour(
     state: &Facelets,
-    action: &Action,
+    action: Option<&Action>,
     style: &Style,
     index: usize,
     face: Face,
     position: [i32; 3],
 ) -> Rgb {
     let base = style.palette.colour(state.stickers()[index]);
-    let moving = action.moves(state.kind(), position);
-    let whole = matches!(action, Action::Rotate { .. });
+    let moving = action.is_none_or(|a| a.moves(state.kind(), position));
+    let whole = matches!(action, Some(Action::Rotate { .. }));
     let shown = match style.shading {
         Shading::GreyMoving if moving && !whole => GREY,
         _ => base,
@@ -164,7 +165,7 @@ mod tests {
         let action: Action = text.parse().unwrap();
         let ppm = projection.scale * 0.96;
         (
-            cube_shapes(&state, &action, &Style::default(), &projection, ppm),
+            cube_shapes(&state, Some(&action), &Style::default(), &projection, ppm),
             projection,
         )
     }

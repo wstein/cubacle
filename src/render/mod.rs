@@ -5,7 +5,8 @@
 //! (or the moving layers turn grey, see [`Shading`]); a soft violet arrow with
 //! a white outline lies on the face where the layer is visible, an upright
 //! violet "2x" marks half turns, whole-cube rotations get a curved arrow, and
-//! the notation is written below the cube in Quicksand Bold. The [`Backdrop`]
+//! the notation is written below the cube in Quicksand Bold. [`state_icon`]
+//! draws a state alone, framed, for the result of a group of moves. The [`Backdrop`]
 //! decides how strongly the resting pieces are dimmed and the colour of the
 //! notation.
 //!
@@ -37,6 +38,7 @@ mod label;
 mod raster;
 mod round;
 mod scene;
+mod state;
 mod style;
 mod svg;
 mod text;
@@ -59,7 +61,7 @@ pub struct Icon {
     background: Option<Rgb>,
     canvas: (f64, f64),
     grid: text::Grid,
-    direction: Direction,
+    direction: Option<Direction>,
 }
 
 /// Draws `action` on `state`.
@@ -78,7 +80,8 @@ pub fn icon(state: &Facelets, action: &Action, style: &Style) -> Result<Icon, Re
     let pixels_per_unit = f64::from(style.size.max(16)) / scene::HEIGHT;
     let projection = geometry::Projection::new(n, 10.0, 9.0, 80.0, 76.0);
     let pixels_per_model = projection.scale * pixels_per_unit;
-    let mut shapes = geometry::cube_shapes(state, action, style, &projection, pixels_per_model);
+    let mut shapes =
+        geometry::cube_shapes(state, Some(action), style, &projection, pixels_per_model);
     let plan = arrow::plan(action, n);
     shapes.extend(arrow::shapes(
         &plan,
@@ -90,7 +93,7 @@ pub fn icon(state: &Facelets, action: &Action, style: &Style) -> Result<Icon, Re
     shapes.extend(label::shapes(&label, style.backdrop));
     Ok(Icon {
         grid: text::grid(state, action, style, plan.direction),
-        direction: plan.direction,
+        direction: Some(plan.direction),
         shapes,
         label,
         size: style.size,
@@ -99,14 +102,36 @@ pub fn icon(state: &Facelets, action: &Action, style: &Style) -> Result<Icon, Re
     })
 }
 
+/// Draws the cube `state` and nothing else: no arrow, no notation, no dimming,
+/// every sticker in full colour, inside a thin frame so that it cannot be
+/// mistaken for a move. It has the size of a move icon, so the two sit in one
+/// row. [`Icon::label`] is `"state"` and [`Icon::direction`] is `None`.
+pub fn state_icon(state: &Facelets, style: &Style) -> Icon {
+    let n = state.kind().size();
+    let pixels_per_unit = f64::from(style.size.max(16)) / scene::HEIGHT;
+    let projection = geometry::Projection::new(n, 10.0, 9.0, 80.0, 76.0);
+    let pixels_per_model = projection.scale * pixels_per_unit;
+    let mut shapes = geometry::cube_shapes(state, None, style, &projection, pixels_per_model);
+    shapes.extend(state::frame(style.backdrop));
+    Icon {
+        grid: text::state_grid(state, style),
+        direction: None,
+        shapes,
+        label: "state".to_owned(),
+        size: style.size,
+        background: style.background,
+        canvas: (scene::WIDTH, scene::HEIGHT),
+    }
+}
+
 impl Icon {
     /// The notation shown beside the cube, e.g. `Rw2` or `2R2`.
     pub fn label(&self) -> &str {
         &self.label
     }
 
-    /// Which way the arrow points on the screen.
-    pub fn direction(&self) -> Direction {
+    /// Which way the arrow points on the screen; `None` for a [`state_icon`].
+    pub fn direction(&self) -> Option<Direction> {
         self.direction
     }
 

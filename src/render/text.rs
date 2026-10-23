@@ -47,6 +47,30 @@ pub(crate) fn grid(state: &Facelets, action: &Action, style: &Style, direction: 
     }
 }
 
+/// A picture of the state with nothing marked: every cell is "moving", so
+/// the letters are upper case and the colours are not darkened.
+pub(crate) fn state_grid(state: &Facelets, style: &Style) -> Grid {
+    let kind = state.kind();
+    let faces = [Face::U, Face::F, Face::R].map(|face| {
+        let start = face as usize * kind.face_len();
+        (start..start + kind.face_len())
+            .map(|index| {
+                let sticker = state.stickers()[index];
+                Cell {
+                    letter: style.palette.letter(sticker),
+                    moving: true,
+                    colour: style.palette.colour(sticker),
+                }
+            })
+            .collect()
+    });
+    Grid {
+        n: kind.size(),
+        header: "state".to_owned(),
+        faces,
+    }
+}
+
 fn cell(c: &Cell, face: Face, ansi: bool) -> String {
     if !ansi {
         let letter = if c.moving {
