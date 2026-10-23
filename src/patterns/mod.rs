@@ -164,10 +164,14 @@ impl Pattern {
     }
 
     /// The shortest generator for a size, in `metric` or (None) in either metric.
+    /// Every outer-block sequence is also a range sequence, so a `Range`
+    /// request can be answered by an `Outer` generator.
     pub fn generator(&self, size: usize, metric: Option<Metric>) -> Option<&Generator> {
         self.generators
             .iter()
-            .filter(|g| g.size == size && metric.is_none_or(|m| g.metric == m))
+            .filter(|g| {
+                g.size == size && metric.is_none_or(|m| g.metric == m || m == Metric::Range)
+            })
             .min_by_key(|g| g.length)
     }
 

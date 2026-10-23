@@ -1,6 +1,7 @@
 mod icons;
 mod improve;
 mod moves_cmd;
+mod patterns_cmd;
 mod recover_cmd;
 mod recover_icons;
 mod rows;
@@ -47,6 +48,8 @@ enum Command {
     Recover(recover_cmd::RecoverArgs),
     /// Print the plain move sequence an expression stands for
     Moves(moves_cmd::MovesArgs),
+    /// List the pretty patterns (checkerboard, cube in a cube, ...) or show one with its generator
+    Patterns(patterns_cmd::PatternsArgs),
     /// Print a random scramble
     Scramble {
         /// Number of moves
@@ -179,6 +182,7 @@ fn run(cli: Cli) -> Result<(), String> {
         Command::Solve(args) => solve(args),
         Command::Recover(args) => recover_cmd::run(args),
         Command::Moves(args) => moves_cmd::run(args),
+        Command::Patterns(args) => patterns_cmd::run(args),
         Command::Convert(args) => {
             let (cube, detected) = read_input(&args.input)?;
             match args.to {
