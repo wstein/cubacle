@@ -12,12 +12,14 @@ A solver accepts a cube as typed facelets and returns a typed move sequence. The
 
 ## Command line
 
+**Made a mistake following a solution? Do not try to fix it by hand.** Rescan the cube and run `cubacle recover`, with `--at-move N` for the move you stopped at ([docs/cli.md](docs/cli.md#recover-a-mistake)).
+
 ```
 cubacle solve A4ib8aejxj4Y                       # Orbit64 token
 cubacle solve FUFUUFFFF UUUURRURU RRRFFRRFR BDBBDDBBB DLDDLLDDD LBLBBLLLL
 cubacle solve GWGWWGGGG WWWWRRWRW RRRGGRRGR BYBBYYBBB YOYYOOYYY OBOBBOOOO
 cubacle solve --scramble "R U R' U'" --max-moves 20 --budget-ms 500 --verbose
-cubacle recover -s "R U R' U'" --now FACELETS     # after a mistake in a printed solution
+cubacle recover -s "R U R' U'" --now FACELETS --at-move 3   # after a mistake in a printed solution
 cubacle convert --scheme jp WWWW RRRR GGGG BBBB OOOO YYYY
 cubacle random | cubacle solve -
 cubacle scramble -n 25

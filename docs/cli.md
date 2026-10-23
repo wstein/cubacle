@@ -142,6 +142,8 @@ The first 5x5x5 solve prints `preparing the 5x5x5 tables (cache directory ...)` 
 
 ## Recover a mistake
 
+**Made a mistake? Do not try to fix it by hand.** Moves made to repair the cube (building centres again, undoing a few turns from memory) only move it further from the printed path, and the search can no longer name the mistake. Stop, rescan the cube and run `cubacle recover`, with `--at-move N` for the move you did last before you noticed.
+
 `recover` helps a person who followed a printed solution and made a mistake. Give it the original cube (the one the solution was made for, written as `solve` takes it), the cube as it is now with `--now`, and optionally the solution that was handed out with `--solution`. Without `--solution` it derives the solution with the same defaults as `solve`; the solver is deterministic for the same cube, so this gives the printed one. It works for every size from the 2x2x2 to the 7x7x7.
 
 The cube below is the one of the first example after `B L' U2 B2 U2 B2 D2`: the person skipped step 5 (`D'`) and went on to step 8.
@@ -152,7 +154,7 @@ cubacle recover -s "R U2 F' D L2 B R' U' F2 D2 L B'" --now FDDRURLDBRDBLRFFDUUBU
 
 ```text
 Your cube is off the path of the solution.
-Most likely: step 5 (D') was skipped.
+Most likely: mistake at move 5, phase 1 (to the G1 subgroup): step 5 (D') was skipped.
 You had done 8 of 21 steps when you stopped.
 Recover: do 3 moves D2 B2 D', then continue with step 7 (B2). That is 18 moves in all.
 Fresh: solve your cube again from where it is, 18 moves.
@@ -164,9 +166,40 @@ Then continue with step 7 (B2) of the printed solution.
 The output says one of these things.
 
 - **The cube is on the path**: `you are after step j of n`, and which step comes next.
-- **One or two mistakes explain the cube**: the step and the printed move, and what was done instead: the step *skipped*, turned by the *wrong amount* (a quarter instead of a half turn or the reverse), the *wrong way*, in *other layers* (`Fw2` for `3Fw2`), on the *wrong face*, *replaced* by some other move, *done twice*, *swapped* with the next step, or an *extra move* made before it. It also says how many steps were done when the cube was entered. When moves that commute give several equal explanations, the earliest step is shown and the number of the others is printed.
+- **One or two mistakes explain the cube**: the move and the phase of the solution it is in (named when the solution has more than one phase), the printed move, and what was done instead: the step *skipped*, turned by the *wrong amount* (a quarter instead of a half turn or the reverse), the *wrong way*, in *other layers* (`Fw2` for `3Fw2`), on the *wrong face*, *replaced* by some other move, *done twice*, *swapped* with the next step, or an *extra move* made before it. It also says how many steps were done when the cube was entered. When moves that commute give several equal explanations, the earliest step is shown and the number of the others is printed.
 - **The cube is a few moves away from the path**, but no mistake is named.
 - **Nothing was found** (three or more mistakes, or moves done by hand after the mistake): the fresh solution is printed.
+
+Tell `recover` where you stopped and it searches there first. `--at-move N` says you did move N (counting from 1) and then noticed that the cube no longer matches, so the mistake is at move N or before it and the moves after N are ignored. `--sure-until M` (M below N) adds that you were sure the cube was still right after move M. It is a hint, not a fact, because checking a big cube by eye is unreliable. The search is staged and goes on only when a stage explains nothing:
+
+1. the moves after M (only with `--sure-until`);
+2. the moves from the start of the phase that contains move N;
+3. the same, from the start of the previous phase;
+4. all moves 1 to N;
+5. the whole solution, as without `--at-move`.
+
+The phases are the ones `solve -v` reports (for a `--solution` that was not made by `solve`, they are read from the cube). A stop that is a move or two off is tolerated: a skipped move or an extra move shifts the count. `-v` prints which stage answered. On the 7x7x7 attempts of `tests/fixtures/recover_7x7_runs.txt`, the stop alone found the answer in the phase of the stop for four of six explainable cases and one phase earlier for the other two; with a correct `--sure-until` the first stage answered all six.
+
+```sh
+cubacle recover -s "R U2 F' D L2 B R' U' F2 D2 L B'" --now FDDRURLDBRDBLRFFDUUBUUFBLBLBRDFDFBUFRUFULLDRURLDLBFRBL --at-move 7 --sure-until 3 -v
+```
+
+```text
+solution of 21 moves after 41.408208ms
+fresh solve 11.25µs
+search 277.208µs
+stages tried: the window from the move you are sure of; answered by the window from the move you are sure of
+Your cube is off the path of the solution.
+Most likely: mistake at move 5, phase 1 (to the G1 subgroup): step 5 (D') was skipped.
+You had done 8 of 21 steps when you stopped.
+Recover: do 3 moves D2 B2 D', then continue with step 7 (B2). That is 18 moves in all.
+Fresh: solve your cube again from where it is, 18 moves.
+Recommended: recover, as short as solving fresh and it keeps your printed solution.
+Moves now: D2 B2 D'
+Then continue with step 7 (B2) of the printed solution.
+```
+
+(The timings on standard error differ from run to run.)
 
 Then two ways forward are compared: the *recover* (the moves that bring the cube back onto the printed path, followed by the rest of the printed solution) and a *fresh* solution of the cube as it is, which runs beside the search. The recover is either `undo N moves` (the inverse of what was done since the mistake) or a shorter correction found by a search of up to `--depth` moves (default 3) from the cube to any cube of the printed path. The shorter total wins, a tie goes to the recover, and a recover is never recommended when it is longer than the fresh solution. The chosen moves follow `Moves now:` in the notation of `solve`. With `--solution` of the same 3x3x3 and the search limited to undoing, the fresh solution wins:
 
@@ -176,7 +209,7 @@ cubacle recover -s "R U2 F' D L2 B R' U' F2 D2 L B'" --now FDDRURLDBRDBLRFFDUUBU
 
 ```text
 Your cube is off the path of the solution.
-Most likely: step 5 (D') was skipped.
+Most likely: mistake at move 5, phase 1 (to the G1 subgroup): step 5 (D') was skipped.
 You had done 8 of 21 steps when you stopped.
 Recover: undo 3 moves by turning D2 B2 U2, then continue with step 5 (D'). That is 20 moves in all.
 Fresh: solve your cube again from where it is, 18 moves.
@@ -192,7 +225,7 @@ cubacle recover --size 4 -s "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F Uw Rw' F2 Lw" --
 
 ```text
 Your cube is off the path of the solution.
-Most likely: step 4 (F') was turned the wrong way (F).
+Most likely: mistake at move 4, phase 1 (centres staged): step 4 (F') was turned the wrong way (F).
 You had done 9 of 43 steps when you stopped.
 Recover: undo 6 moves by turning B' Uw L2 F Lw' F', then continue with step 4 (F'). That is 46 moves in all.
 Fresh: solve your cube again from where it is, 42 moves.
@@ -207,6 +240,8 @@ Moves now: R2 D' R U' Fw D2 Fw B2 U2 F2 Dw' D2 F' Dw2 L B' R L' Bw2 Rw2 F' Bw2 R
 | `--now <CUBE>` | The cube as it is now, an Orbit64 token, facelets or colours (quote it when it has spaces). Required. |
 | `--solution <MOVES>` | The solution the person followed, in WCA or SiGN, groups and ranges allowed (see [Move notations](#move-notations)). Default: the one `solve` prints for the original cube. |
 | `--notation <wca\|sign>` | How the moves in the explanation and in `Moves now:` are written. Default `wca`. |
+| `--at-move <N>` | The move you did last before you noticed the mismatch, counting from 1. The mistake is at move N or before; later moves are ignored. |
+| `--sure-until <M>` | Needs `--at-move`. The move after which you are sure the cube was right (M before N). A hint: the search widens past it. |
 | `--fresh` | Skip the search and print the solution of the current cube. |
 | `--depth <N>` | Moves the search for a way back onto the path may use, 0 to 5 (default 3). Measured on a 7x7x7: 3 adds about 20 ms per orientation, 4 makes the whole search take 3 to 5 s, 5 reaches the default time limit and holds about 70 MB. Turned cubes are searched at depth 3 at most. |
 | `--one-mistake` | Look for one mistake only. The default also looks for two. |

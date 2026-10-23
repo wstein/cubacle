@@ -14,3 +14,4 @@ Raw-material notes, category architecture.
 - [[Phases come from the solver's stages]]
 - [[Recover searches sticker permutations along the solution]]
 - [[Recover advises the shorter way]]
+- [[Recover searches the stop first and widens]]

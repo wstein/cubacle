@@ -8,6 +8,7 @@ tags: ["type/design", "status/decided", "category/architecture"]
 ## Links
 
 - [[Recover advises the shorter way]]
+- [[Recover searches the stop first and widens]]
 - [[Crate roles and dependency direction]]
 
 Source: src/recover/mod.rs, lines 1-10
