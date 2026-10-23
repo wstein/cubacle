@@ -295,6 +295,10 @@ fn solve(args: SolveArgs) -> Result<(), String> {
             if args.verbose {
                 if let Ok(found) = phases(&facelets, &solution) {
                     for phase in found {
+                        if phase.moves.is_empty() {
+                            eprintln!("phase {}: {}, nothing to do", phase.number, phase.name);
+                            continue;
+                        }
                         eprintln!(
                             "phase {}: {}, moves {}-{}",
                             phase.number,

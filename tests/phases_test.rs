@@ -23,7 +23,7 @@ fn covered(found: &[Phase], total: usize) {
     let mut at = 0;
     for phase in found {
         assert_eq!(phase.moves.start, at, "{found:?}");
-        assert!(phase.moves.end > at, "{found:?}");
+        assert!(phase.moves.end >= at, "{found:?}");
         at = phase.moves.end;
     }
     assert_eq!(at, total, "{found:?}");
@@ -65,7 +65,6 @@ fn a_3x3_solution_is_cut_into_g1_and_a_g1_tail() {
         let tail = moves.iter().rposition(|m| !g1_move(m)).map_or(0, |i| i + 1);
         match found.as_slice() {
             [] => assert!(solution.is_empty()),
-            [only] => assert!(only.number == 2 || only.moves.end == solution.len()),
             [one, two] => {
                 assert_eq!((one.number, two.number), (1, 2));
                 assert!(one.moves.end <= tail.max(1), "{found:?} tail {tail}");
@@ -87,16 +86,11 @@ fn a_4x4_solution_has_its_reduction_then_a_3x3_stage() {
         let solution = result.solution().expect("solved");
         let found = phases(&cube, solution).expect("replays");
         covered(&found, solution.len());
-        // this engine makes the centres and the edges true at the same move;
-        // now and then nothing is left for the 3x3x3 stage
+        // this engine makes the centres and the edges true at the same move,
+        // so the edges phase is empty
         let names: Vec<&str> = found.iter().map(|p| p.name).collect();
-        assert!(
-            matches!(
-                names.as_slice(),
-                ["centres and edges", "3x3 stage"] | ["centres and edges"]
-            ),
-            "{found:?}"
-        );
+        assert_eq!(names, ["centres", "edges", "3x3 stage"], "{found:?}");
+        assert!(found[1].moves.is_empty(), "{found:?}");
         let moves = solution.moves();
         let cut = found[0].moves.end;
         assert!(centres_uniform(&state_after(&cube, moves, cut)));
@@ -124,16 +118,7 @@ fn a_5x5_solution_is_cut_by_the_state() {
     let found = phases(&cube, solution).expect("replays");
     covered(&found, solution.len());
     let names: Vec<&str> = found.iter().map(|p| p.name).collect();
-    assert!(
-        matches!(
-            names.as_slice(),
-            ["centres", "edges", "3x3 stage"]
-                | ["centres and edges", "3x3 stage"]
-                | ["centres", "edges"]
-                | ["centres and edges"]
-        ),
-        "{found:?}"
-    );
+    assert_eq!(names, ["centres", "edges", "3x3 stage"], "{found:?}");
     let moves = solution.moves();
     let cut = found[0].moves.end;
     assert!(centres_uniform(&state_after(&cube, moves, cut)));

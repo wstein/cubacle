@@ -14,10 +14,9 @@
 //!
 //! Each predicate includes the ones before it. A phase ends at the first move
 //! after which its predicate holds in every later state, including the final one;
-//! a phase that is already true at its start is empty and left out, and the
-//! others are numbered from 1 on. The 4x4x4 engine, for one, makes the centres
-//! and the edges true at the same move; then `edges` is empty and the first
-//! phase is named `centres and edges`.
+//! a phase that is already true at its start is empty, and still counted. The
+//! 4x4x4 engine, for one, makes the centres and the edges true at the same move;
+//! then `edges` is an empty phase 2.
 //!
 //! * **G1** (3x3x3): the state is reachable with `U D R2 L2 F2 B2`, the
 //!   Kociemba domino state: corners oriented, edges oriented and the four
@@ -41,7 +40,7 @@ use crate::puzzle::{locate, ApplyError, Face, Facelets, MoveSequence, PuzzleKind
 /// One phase of a solution.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Phase {
-    /// The number among the phases that are not empty, from 1.
+    /// The number of the phase among all of its cube, from 1; empty ones count.
     pub number: usize,
     /// A short name such as `edges`.
     pub name: &'static str,
@@ -150,7 +149,8 @@ fn stages(kind: PuzzleKind) -> Vec<(&'static str, Option<Predicate>)> {
 
 /// Cuts `solution` into phases by replaying it on `start`.
 ///
-/// The phases are in order, cover the solution without gaps and none is empty.
+/// The phases are in order and cover the solution without gaps; a phase that
+/// is already true at its start is empty. A solution of no moves has no phases.
 /// A solution that does not end in a state that satisfies a predicate puts
 /// that phase's end at the end of the solution.
 pub fn phases(start: &Facelets, solution: &MoveSequence) -> Result<Vec<Phase>, ApplyError> {
@@ -164,6 +164,9 @@ pub fn phases(start: &Facelets, solution: &MoveSequence) -> Result<Vec<Phase>, A
     for mv in solution.moves() {
         state = state.apply(&MoveSequence::new(vec![*mv]))?;
         states.push(state.clone());
+    }
+    if total == 0 {
+        return Ok(Vec::new());
     }
     let mut out = Vec::new();
     let mut from = 0;
@@ -183,19 +186,12 @@ pub fn phases(start: &Facelets, solution: &MoveSequence) -> Result<Vec<Phase>, A
                 }
             }
         };
-        if end > from {
-            out.push(Phase {
-                number: out.len() + 1,
-                name,
-                moves: from..end,
-            });
-        }
+        out.push(Phase {
+            number: out.len() + 1,
+            name,
+            moves: from..end,
+        });
         from = end;
-    }
-    if out.iter().all(|p| p.name != "edges") {
-        for phase in out.iter_mut().filter(|p| p.name == "centres") {
-            phase.name = "centres and edges";
-        }
     }
     Ok(out)
 }

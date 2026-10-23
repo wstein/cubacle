@@ -46,6 +46,9 @@ fn kitty_block(raster: &Raster, cell_height: u32) -> String {
 /// The line above the icons of a phase: `Phase 2: edges (14 moves)`.
 pub(crate) fn phase_heading(phase: &Phase) -> String {
     let count = phase.moves.len();
+    if count == 0 {
+        return format!("Phase {}: {} (nothing to do)", phase.number, phase.name);
+    }
     let unit = if count == 1 { "move" } else { "moves" };
     format!("Phase {}: {} ({count} {unit})", phase.number, phase.name)
 }
@@ -136,6 +139,9 @@ fn kitty_steps(
     for phase in &found {
         out.push_str(&phase_heading(phase));
         out.push('\n');
+        if phase.moves.is_empty() {
+            continue;
+        }
         for row in rows::rows(phase.moves.clone(), per_row) {
             let mut rasters = Vec::with_capacity(row.len());
             for mv in &moves[row.clone()] {

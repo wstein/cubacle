@@ -91,7 +91,7 @@ On a Kitty-graphics terminal the solution is shown in phases (see below) and the
 The solution is cut into phases, and each phase has a heading line, its rows of icons and then a picture of the cube after it. A row never spans two phases.
 
 ```text
-Phase 1: centres and edges (25 moves)
+Phase 1: centres (25 moves)
 steps 1-10 of 44
 (a row of 10 icons)
 steps 11-20 of 44
@@ -100,13 +100,14 @@ steps 21-25 of 44
 (a row of 5 icons)
 State after phase 1 - compare it with your cube
 (a framed picture of the cube)
-Phase 2: 3x3 stage (19 moves)
+Phase 2: edges (nothing to do)
+Phase 3: 3x3 stage (19 moves)
 ...
 ```
 
 The state picture has no arrow, no notation and no dimming: every sticker is in full colour inside a thin frame, so that it cannot be mistaken for a move. Compare it with your own cube before you go on.
 
-The phases are read from the cube, not from the engine: the solution is replayed and a phase ends at the first move after which its condition holds for the rest of the solution. A phase that is true from its start is left out, and the others are numbered from 1 on.
+The phases are read from the cube, not from the engine: the solution is replayed and a phase ends at the first move after which its condition holds for the rest of the solution. A phase that is true from its start is empty; it keeps its number and its heading reads `nothing to do`, with no icons and no picture.
 
 | Cube | Phases |
 | --- | --- |
@@ -114,11 +115,12 @@ The phases are read from the cube, not from the engine: the solution is replayed
 | 3x3x3 | `to the G1 subgroup` (corners and edges oriented, the four middle-layer edges in the middle layer: the Kociemba domino state), `solve` |
 | 4x4x4 to 7x7x7 | `centres` (every face has centres of one colour), `edges` (all wings of an edge paired, centres solved), `3x3 stage` |
 
-The 4x4x4, 5x5x5 and 6x6x6 engines make the centres and the edges true at the same move, so that the first phase is `centres and edges`; `centres` and `edges` appear on their own when a solution makes them true at different moves. With `--verbose`, the phases are also written to standard error, for every cube and with or without `--icons`:
+The 4x4x4, 5x5x5 and 6x6x6 engines make the centres and the edges true at the same move, so that phase 2, `edges`, is empty for them (`nothing to do`) unless a solution makes the centres and the edges true at different moves. With `--verbose`, the phases are also written to standard error, for every cube and with or without `--icons`:
 
 ```text
-phase 1: centres and edges, moves 1-25
-phase 2: 3x3 stage, moves 26-44
+phase 1: centres, moves 1-25
+phase 2: edges, nothing to do
+phase 3: 3x3 stage, moves 26-44
 ```
 
 Without graphics there are no phase headings: the text output is one picture per step, as before.

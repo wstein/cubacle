@@ -565,11 +565,13 @@ fn verbose_names_the_phases_on_stderr_and_stdout_stays_the_move_string() {
     let phases: Vec<&str> = err.lines().filter(|l| l.starts_with("phase ")).collect();
     assert!(!phases.is_empty(), "{err}");
     assert!(phases[0].starts_with("phase 1: "), "{phases:?}");
-    // the phases cover the solution to its last move
-    assert!(
-        phases.last().unwrap().ends_with(&format!("-{count}")),
-        "{phases:?}"
-    );
+    // the phases cover the solution to its last move; an empty one says so
+    let last = phases
+        .iter()
+        .rev()
+        .find(|l| !l.ends_with("nothing to do"))
+        .expect("a phase with moves");
+    assert!(last.ends_with(&format!("-{count}")), "{phases:?}");
 }
 
 #[test]
@@ -578,7 +580,7 @@ fn a_4x4_verbose_solve_reports_its_reduction() {
     assert!(ok, "{err}");
     let phases: Vec<&str> = err.lines().filter(|l| l.starts_with("phase ")).collect();
     assert!(phases.iter().any(|l| l.contains("centres")), "{phases:?}");
-    assert!(phases.last().unwrap().contains("3x3 stage") || phases.len() == 1);
+    assert!(phases.last().unwrap().contains("3x3 stage"), "{phases:?}");
 }
 
 #[test]

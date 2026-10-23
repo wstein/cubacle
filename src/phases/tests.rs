@@ -97,19 +97,22 @@ fn a_3x3_solution_is_cut_where_it_enters_g1_for_good() {
 }
 
 #[test]
-fn an_empty_phase_is_skipped_and_the_others_are_numbered_on() {
+fn an_empty_phase_is_kept_and_counted() {
     // a 4x4 that has its centres and edges: only the 3x3 stage is left
     let solution = "R U R'";
     let start = after(PuzzleKind::Cube4, &inverse(solution).to_string());
     let found = phases(&start, &seq(solution)).unwrap();
-    assert_eq!(found.len(), 1, "{found:?}");
-    assert_eq!((found[0].number, found[0].name), (1, "3x3 stage"));
-    assert_eq!(found[0].moves, 0..3);
-    // a cube that is already in G1 has no phase 1
+    assert_eq!(found.len(), 3, "{found:?}");
+    assert_eq!((found[0].number, found[0].moves.clone()), (1, 0..0));
+    assert_eq!((found[1].number, found[1].moves.clone()), (2, 0..0));
+    assert_eq!((found[2].number, found[2].name), (3, "3x3 stage"));
+    assert_eq!(found[2].moves, 0..3);
+    // a cube that is already in G1 has an empty phase 1
     let start = after(PuzzleKind::Cube3, "R2 U");
     let found = phases(&start, &seq("U' R2")).unwrap();
-    assert_eq!(found.len(), 1);
-    assert_eq!((found[0].number, found[0].name), (1, "solve"));
+    assert_eq!(found.len(), 2);
+    assert!(found[0].moves.is_empty());
+    assert_eq!((found[1].number, found[1].name), (2, "solve"));
 }
 
 #[test]
@@ -135,7 +138,7 @@ fn the_phases_cover_the_solution_without_gaps() {
     let mut at = 0;
     for phase in &found {
         assert_eq!(phase.moves.start, at);
-        assert!(phase.moves.end > at);
+        assert!(phase.moves.end >= at);
         at = phase.moves.end;
     }
     assert_eq!(at, 9);
