@@ -5,7 +5,8 @@ use cubacle::engines::five::FiveSolver;
 use cubacle::engines::four::FourSolver;
 use cubacle::engines::three::Min2PhaseSolver;
 use cubacle::generate;
-use cubacle::puzzle::{Facelets, Failure, PuzzleKind, SolveOptions, Solver};
+use cubacle::phases::phases;
+use cubacle::puzzle::{Facelets, Failure, PuzzleKind, SolveOptions, SolveResult, Solver};
 
 fn solver() -> DwaltonSolver {
     let three = Arc::new(Min2PhaseSolver::new());
@@ -17,6 +18,36 @@ fn solver() -> DwaltonSolver {
     )
 }
 
+/// The stages of an answer: six, in order, covering the moves, with the
+/// engine's own state facts at their ends (checked against the cube state).
+fn check_stages(cube: &Facelets, result: &SolveResult) {
+    let moves = result.solution().expect("a solution");
+    let got: Vec<&str> = result.stages.iter().map(|s| s.name).collect();
+    assert_eq!(
+        got,
+        [
+            "left/right centres staged",
+            "up/down centres staged",
+            "centres prepared",
+            "inner wings and centres",
+            "outer wings and centres",
+            "3x3 stage",
+        ]
+    );
+    let ends: Vec<usize> = result.stages.iter().map(|s| s.end).collect();
+    assert!(ends.windows(2).all(|w| w[0] <= w[1]), "{ends:?}");
+    assert_eq!(ends[5], moves.len());
+    // the 3x3 stage turns outer faces only
+    assert!(moves.moves()[ends[4]..]
+        .iter()
+        .all(|m| m.depth == 1 && !m.wide));
+    // the state facts hold from the engine's ends on, so the state-based
+    // phases cannot end later
+    let found = phases(cube, moves).unwrap();
+    assert!(found[0].moves.end <= ends[3], "{found:?} {ends:?}");
+    assert!(found[1].moves.end <= ends[4], "{found:?} {ends:?}");
+}
+
 #[test]
 fn six_by_six_scrambles_are_solved_and_replay() {
     let solver = solver();
@@ -26,6 +57,8 @@ fn six_by_six_scrambles_are_solved_and_replay() {
             .unwrap();
         let (result, tally) = solver.solve_tallied(&cube);
         println!("{tally:?}");
+        assert!(result.is_solved(), "{:?}", result.message);
+        check_stages(&cube, &result);
         let moves = result
             .outcome
             .unwrap_or_else(|f| panic!("{f:?} {:?}", result.message));
@@ -79,6 +112,8 @@ fn seven_by_seven_scrambles_are_solved_and_replay() {
             .unwrap();
         let (result, tally) = solver.solve_tallied(&cube);
         println!("{tally:?}");
+        assert!(result.is_solved(), "{:?}", result.message);
+        check_stages(&cube, &result);
         let moves = result
             .outcome
             .unwrap_or_else(|f| panic!("{f:?} {:?}", result.message));

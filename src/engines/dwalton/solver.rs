@@ -4,6 +4,7 @@
 use std::sync::{Arc, OnceLock};
 use std::time::Instant;
 
+use super::groups;
 use super::seven::Seven;
 use super::six::Six;
 use super::wings;
@@ -103,6 +104,8 @@ impl DwaltonSolver {
             return fail(Failure::InvalidInput, error.to_string(), &tally);
         }
         let mut all: Vec<Move> = Vec::new();
+        // each step of the engine with the length of `all` at its end
+        let mut marks: Vec<(&'static str, usize)> = Vec::new();
         let mut cur = cube.clone();
         let note = |tally: &mut StageTally, name: &str, moves: &[Move]| {
             tally.stages.push((name.to_owned(), moves.len()));
@@ -126,10 +129,11 @@ impl DwaltonSolver {
             let seq: MoveSequence = names.join(" ").parse().expect("catalogue moves");
             note(&mut tally, name, seq.moves());
             all.extend_from_slice(seq.moves());
+            marks.push((name, all.len()));
         }
         cur = after;
 
-        let stages: Vec<(&str, WingStage<'_>)> = if self.kind == PuzzleKind::Cube6 {
+        let stages: Vec<(&'static str, WingStage<'_>)> = if self.kind == PuzzleKind::Cube6 {
             vec![
                 (
                     "inner wings (4x4x4)",
@@ -160,6 +164,7 @@ impl DwaltonSolver {
                     cur = cur.apply(&MoveSequence::new(moves.clone())).expect("fits");
                     note(&mut tally, name, &moves);
                     all.extend(moves);
+                    marks.push((name, all.len()));
                 }
                 Err(r) => {
                     return fail(
@@ -196,6 +201,7 @@ impl DwaltonSolver {
                 &tally,
             );
         }
+        let stages = groups::stages(cube, &all, &marks, &solution);
         (
             SolveResult {
                 outcome: Ok(MoveSequence::new(solution)),
@@ -204,7 +210,7 @@ impl DwaltonSolver {
                     elapsed: started.elapsed(),
                     probes: None,
                 },
-                stages: Vec::new(),
+                stages,
             },
             tally,
         )
