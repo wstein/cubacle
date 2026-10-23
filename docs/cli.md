@@ -6,7 +6,7 @@ weight: 3
 
 # Command-line guide
 
-The `cubacle` tool has seven subcommands: `solve`, `recover`, `convert`, `scramble`, `random`, `facelets` and `moves`. Run `cubacle <command> --help` for the full option list.
+The `cubacle` tool has eight subcommands: `solve`, `recover`, `convert`, `scramble`, `random`, `facelets`, `moves` and `patterns` (see [Patterns](patterns.md)). Run `cubacle <command> --help` for the full option list.
 
 ## Solve a cube
 
