@@ -77,6 +77,20 @@ fn the_long_sequence_round_trips() {
 }
 
 #[test]
+fn picture_options_need_icons_and_rotations_keep_their_icon() {
+    let (ok, _, err) = cubacle(&["moves", "R", "--format", "svg"]);
+    assert!(!ok && err.contains("--icons"), "{err}");
+    let (ok, _, err) = cubacle(&["moves", "R", "--icon-size", "40"]);
+    assert!(!ok && err.contains("--icons"), "{err}");
+    let (ok, out, err) = cubacle(&["moves", "x", "--icons", "--format", "text"]);
+    assert!(ok, "{err}");
+    assert!(out.starts_with("x "), "{out}");
+    let (ok, out, err) = cubacle(&["moves", "[R: U]", "--icons", "--format", "text"]);
+    assert!(ok, "{err}");
+    assert_eq!(out.matches("\n\n").count(), 2, "three icons: {out}");
+}
+
+#[test]
 fn wca_and_sign_round_trip_on_every_size() {
     for size in ["2", "3", "4", "5", "6", "7"] {
         let (ok, scramble, err) = cubacle(&["scramble", "--size", size, "-n", "60"]);

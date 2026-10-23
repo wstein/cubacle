@@ -39,8 +39,6 @@ enum Command {
     Solve(SolveArgs),
     /// Explain a mistake made while following a solution and the way back
     Recover(recover_cmd::RecoverArgs),
-    /// Draw moves as small pictures (SVG, pixels, Kitty graphics or text)
-    Icon(icons::IconArgs),
     /// Print the plain move sequence an expression stands for
     Moves(moves_cmd::MovesArgs),
     /// Print a random scramble
@@ -167,7 +165,6 @@ fn run(cli: Cli) -> Result<(), String> {
     match cli.command {
         Command::Solve(args) => solve(args),
         Command::Recover(args) => recover_cmd::run(args),
-        Command::Icon(args) => icons::run(args),
         Command::Moves(args) => moves_cmd::run(args),
         Command::Convert(args) => {
             let (cube, detected) = read_input(&args.input)?;

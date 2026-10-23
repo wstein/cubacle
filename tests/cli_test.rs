@@ -327,40 +327,43 @@ fn a_5x5_failure_is_reported_and_never_replayed_wrongly() {
 }
 
 #[test]
-fn icon_text_on_a_pipe_has_no_escape_sequences() {
-    let (ok, out, _) = cubacle(&["icon", "R", "U'", "--format", "text"]);
+fn moves_icons_text_on_a_pipe_has_no_escape_sequences() {
+    let (ok, out, _) = cubacle(&["moves", "R", "U'", "--icons", "--format", "text"]);
     assert!(ok);
     assert!(!out.contains('\x1b'));
     assert!(out.starts_with("R \u{2191}"));
     assert!(out.contains("U' \u{2192}"));
-    let (ok, auto, _) = cubacle(&["icon", "R", "U'"]);
+    let (ok, auto, _) = cubacle(&["moves", "R", "U'", "--icons"]);
     assert!(ok);
-    assert_eq!(auto, out);
+    assert!(!auto.contains('\x1b'));
+    assert!(auto.starts_with("step 1 of 2: R\nR \u{2191}"), "{auto}");
+    assert!(auto.contains("step 2 of 2: U'\nU' \u{2192}"), "{auto}");
 }
 
 #[test]
-fn icon_svg_goes_to_stdout_and_graphics_are_refused_on_a_pipe() {
-    let (ok, out, _) = cubacle(&["icon", "Rw2", "--cube", "4", "--format", "svg"]);
+fn moves_icons_svg_goes_to_stdout_and_graphics_are_refused_on_a_pipe() {
+    let (ok, out, _) = cubacle(&["moves", "Rw2", "--size", "4", "--icons", "--format", "svg"]);
     assert!(ok);
     assert!(out.starts_with("<svg ") && out.contains("<title>Rw2</title>"));
-    let (ok, out, err) = cubacle(&["icon", "R", "--format", "kitty"]);
+    let (ok, out, err) = cubacle(&["moves", "R", "--icons", "--format", "kitty"]);
     assert!(!ok);
     assert!(!out.contains('\x1b'));
     assert!(err.contains("terminal"), "{err}");
-    let (ok, _, err) = cubacle(&["icon", "R", "U", "--format", "svg"]);
+    let (ok, _, err) = cubacle(&["moves", "R", "U", "--icons", "--format", "svg"]);
     assert!(!ok && err.contains("one icon"), "{err}");
-    let (ok, _, err) = cubacle(&["icon", "3R"]);
+    let (ok, _, err) = cubacle(&["moves", "3R", "--icons"]);
     assert!(!ok && err.contains("does not exist"), "{err}");
 }
 
 #[test]
-fn icon_writes_graphics_to_a_file() {
+fn moves_icons_write_graphics_to_a_file() {
     let dir = std::env::temp_dir().join(format!("cubacle-icon-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let kitty = dir.join("r.kitty");
     let (ok, _, err) = cubacle(&[
-        "icon",
+        "moves",
         "R",
+        "--icons",
         "--format",
         "kitty",
         "--out",
@@ -379,8 +382,9 @@ fn icon_writes_graphics_to_a_file() {
     assert!(text.ends_with("\x1b\\\x1b[6B\r"));
     let clear = dir.join("opaque.kitty");
     let (ok, _, err) = cubacle(&[
-        "icon",
+        "moves",
         "R",
+        "--icons",
         "--format",
         "kitty",
         "--opaque",
@@ -395,9 +399,10 @@ fn icon_writes_graphics_to_a_file() {
     );
     let rgba = dir.join("r.rgba");
     let (ok, _, err) = cubacle(&[
-        "icon",
+        "moves",
         "R",
-        "--size",
+        "--icons",
+        "--icon-size",
         "32",
         "--format",
         "rgba",
@@ -478,19 +483,29 @@ fn an_impossible_token_is_an_error() {
 }
 
 #[test]
-fn icon_draws_each_move_on_its_own_start_cube_unless_cumulative() {
-    let (_, both, _) = cubacle(&["icon", "R", "U", "--format", "text"]);
-    let (_, second, _) = cubacle(&["icon", "U", "--format", "text"]);
+fn moves_icons_draw_each_move_on_its_own_start_cube_unless_cumulative() {
+    let (_, both, _) = cubacle(&["moves", "R", "U", "--icons", "--format", "text"]);
+    let (_, second, _) = cubacle(&["moves", "U", "--icons", "--format", "text"]);
     assert!(
         both.ends_with(&second),
         "U must be drawn on the solved cube"
     );
-    let (_, chained, _) = cubacle(&["icon", "R", "U", "--format", "text", "--cumulative"]);
+    let (_, chained, _) = cubacle(&[
+        "moves",
+        "R",
+        "U",
+        "--icons",
+        "--format",
+        "text",
+        "--cumulative",
+    ]);
     assert_ne!(chained, both);
     assert!(!chained.ends_with(&second));
     // --from sets the start cube of every icon.
-    let (_, from, _) = cubacle(&["icon", "U", "U", "--from", "R", "--format", "text"]);
-    let (_, one, _) = cubacle(&["icon", "U", "--from", "R", "--format", "text"]);
+    let (_, from, _) = cubacle(&[
+        "moves", "U", "U", "--icons", "--from", "R", "--format", "text",
+    ]);
+    let (_, one, _) = cubacle(&["moves", "U", "--icons", "--from", "R", "--format", "text"]);
     assert_eq!(from, format!("{one}\n\n{one}"));
 }
 
@@ -529,9 +544,9 @@ fn solve_always_reports_the_move_count() {
 }
 
 #[test]
-fn icon_background_sets_the_notation_colour_and_opaque_paints_it() {
+fn moves_icons_background_sets_the_notation_colour_and_opaque_paints_it() {
     let svg = |extra: &[&str]| {
-        let mut args = vec!["icon", "R", "--format", "svg"];
+        let mut args = vec!["moves", "R", "--icons", "--format", "svg"];
         args.extend_from_slice(extra);
         let (ok, out, err) = cubacle(&args);
         assert!(ok, "{err}");
@@ -545,7 +560,7 @@ fn icon_background_sets_the_notation_colour_and_opaque_paints_it() {
         svg(&["--opaque"]).contains("<rect width=\"114.00\" height=\"109.20\" fill=\"#20242b\"/>")
     );
     assert!(svg(&["--opaque", "--background", "light"]).contains("fill=\"#ffffff\"/>"));
-    let (ok, _, err) = cubacle(&["icon", "R", "--background", "grey"]);
+    let (ok, _, err) = cubacle(&["moves", "R", "--icons", "--background", "grey"]);
     assert!(!ok && err.contains("invalid value"), "{err}");
 }
 
@@ -640,7 +655,7 @@ fn a_4x4_icons_solve_on_a_pipe_is_still_plain_text() {
 fn icons_of_larger_cubes_are_drawn_larger() {
     let bytes = |cube: &str| {
         Command::new(env!("CARGO_BIN_EXE_cubacle"))
-            .args(["icon", "--format", "rgba", "--cube", cube, "U"])
+            .args(["moves", "--icons", "--format", "rgba", "--size", cube, "U"])
             .output()
             .expect("cubacle runs")
             .stdout

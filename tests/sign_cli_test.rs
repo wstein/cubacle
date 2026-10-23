@@ -90,10 +90,10 @@ fn a_4x4_solution_in_sign_replays_and_has_no_w() {
 }
 
 #[test]
-fn icon_takes_sign_moves_and_keeps_its_labels() {
-    let (ok, sign, error) = cubacle(&["icon", "--cube", "4", "--format", "svg", "r"]);
+fn moves_icons_take_sign_moves_and_keeps_its_labels() {
+    let (ok, sign, error) = cubacle(&["moves", "--icons", "--size", "4", "--format", "svg", "r"]);
     assert!(ok, "{error}");
-    let (ok, wca, _) = cubacle(&["icon", "--cube", "4", "--format", "svg", "Rw"]);
+    let (ok, wca, _) = cubacle(&["moves", "--icons", "--size", "4", "--format", "svg", "Rw"]);
     assert!(ok);
     assert_eq!(sign, wca);
 }

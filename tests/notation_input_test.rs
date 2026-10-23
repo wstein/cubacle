@@ -145,17 +145,21 @@ fn recover_writes_wide_moves_in_sign_on_request() {
 }
 
 #[test]
-fn icon_reads_ranges_and_expressions() {
-    let (ok, one, err) = cubacle(&["icon", "--cube", "5", "--format", "text", "3Rw"]);
+fn moves_icons_read_ranges_and_expressions() {
+    let (ok, one, err) = cubacle(&["moves", "--icons", "--size", "5", "--format", "text", "3Rw"]);
     assert!(ok, "{err}");
-    let (ok, range, err) = cubacle(&["icon", "--cube", "5", "--format", "text", "2-3r"]);
+    let (ok, range, err) = cubacle(&[
+        "moves", "--icons", "--size", "5", "--format", "text", "2-3r",
+    ]);
     assert!(ok, "{err}");
     assert!(range.len() > one.len());
     let (ok, from, err) = cubacle(&[
-        "icon", "--cube", "5", "--format", "text", "--from", "[r: U]", "R",
+        "moves", "--icons", "--size", "5", "--format", "text", "--from", "[r: U]", "R",
     ]);
     assert!(ok, "{err}");
     assert!(!from.is_empty());
-    let (ok, _, err) = cubacle(&["icon", "--cube", "3", "--format", "text", "2-3r"]);
+    let (ok, _, err) = cubacle(&[
+        "moves", "--icons", "--size", "3", "--format", "text", "2-3r",
+    ]);
     assert!(!ok && err.contains("does not exist"), "{err}");
 }
