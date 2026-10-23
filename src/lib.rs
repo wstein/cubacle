@@ -11,6 +11,7 @@
 //! | [`notation`] | Orbit64, colour schemes, input detection | `puzzle` |
 //! | [`generate`] | random states and scrambles | `puzzle` |
 //! | [`engines`] | the 2x2x2 and 3x3x3 solvers | `puzzle` (and `notation` for the 2x2x2) |
+//! | [`phases`] | the phases of a solution, cut by the cube state | `puzzle` |
 //! | [`render`] | move icons as SVG, pixels, Kitty escapes and text | `puzzle` |
 //!
 //! ```
@@ -29,6 +30,7 @@
 pub mod engines;
 pub mod generate;
 pub mod notation;
+pub mod phases;
 pub mod puzzle;
 mod reduction;
 pub mod render;
