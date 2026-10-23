@@ -43,6 +43,8 @@ pub(super) struct Explained {
     pub(super) done: usize,
     /// Everything done after `branch`, in order.
     pub(super) performed: Vec<MoveId>,
+    /// Stray moves made after the last printed move used (part of `performed`).
+    pub(super) strays: Vec<MoveId>,
     /// Other explanations of equal plausibility.
     pub(super) alternatives: usize,
 }
@@ -120,6 +122,62 @@ pub(super) fn single(frame: &Frame, variants: &[Vec<Variant>]) -> Option<Explain
         branch: i,
         done: q,
         performed,
+        strays: Vec::new(),
+        alternatives,
+    })
+}
+
+/// One mistake, then the printed moves, then up to `max` stray moves.
+pub(super) fn with_strays(
+    frame: &Frame,
+    variants: &[Vec<Variant>],
+    max: usize,
+) -> Option<Explained> {
+    let n = frame.printed.len();
+    let near = super::resume::near_table(frame, &frame.current, max);
+    // (strays, score, position, variant, printed moves used, fingerprint)
+    let mut hits: Vec<(usize, u8, usize, usize, usize, u64)> = Vec::new();
+    for (i, list) in variants.iter().enumerate() {
+        if frame.expired() {
+            break;
+        }
+        for (v, variant) in list.iter().enumerate() {
+            let mut state = frame.perms.apply_all(&frame.trajectory[i], &variant.moves);
+            for b in i + variant.span..=n {
+                let wanted = super::resume::key(&state);
+                for strays in super::resume::lookup(&near, wanted).filter(|&d| d > 0) {
+                    hits.push((strays, variant.score, i, v, b, wanted));
+                }
+                if b < n {
+                    state = frame.perms.apply(&state, frame.printed[b]);
+                }
+            }
+        }
+    }
+    hits.sort_unstable();
+    let &(strays, score, i, v, b, wanted) = hits.first()?;
+    let variant = &variants[i][v];
+    let walked = super::resume::find_path(frame, &frame.current, strays, wanted);
+    let stray_moves = frame.perms.undo_of(&walked);
+    let mut performed = variant.moves.clone();
+    performed.extend_from_slice(&frame.printed[i + variant.span..b]);
+    performed.extend_from_slice(&stray_moves);
+    if walked.len() != strays
+        || frame.perms.apply_all(&frame.trajectory[i], &performed) != frame.current
+    {
+        return None;
+    }
+    let alternatives = hits
+        .iter()
+        .filter(|h| h.0 == strays && h.1 == score)
+        .count()
+        - 1;
+    Some(Explained {
+        mistakes: vec![variant.mistake.clone()],
+        branch: i,
+        done: b,
+        performed,
+        strays: stray_moves,
         alternatives,
     })
 }
@@ -201,6 +259,7 @@ pub(super) fn double(frame: &Frame, variants: &[Vec<Variant>]) -> Option<Explain
         branch: a,
         done: q,
         performed,
+        strays: Vec::new(),
         alternatives,
     })
 }

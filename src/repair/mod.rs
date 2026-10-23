@@ -17,6 +17,9 @@ mod state;
 mod variants;
 
 use std::fmt;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Mutex;
+use std::thread;
 use std::time::{Duration, Instant};
 
 use crate::puzzle::{Facelets, Move, MoveSequence, PuzzleKind};
@@ -33,6 +36,10 @@ pub struct Limits {
     /// The most moves the search for a way back onto the path may use
     /// (0 to 5; 3 takes milliseconds, 5 seconds and about 130 MB on a 7x7x7).
     pub resume_depth: usize,
+    /// The most stray moves after one mistake (0 to 3; 2 takes a fraction of a
+    /// second on a 7x7x7). Short solutions use at most one, because on a 2x2x2
+    /// more would explain cubes by chance.
+    pub strays: usize,
     /// Also look for two mistakes (with the likely kinds only).
     pub two_mistakes: bool,
     /// For two mistakes, try every move and every extra move too: slow and
@@ -46,6 +53,7 @@ impl Default for Limits {
     fn default() -> Limits {
         Limits {
             resume_depth: 3,
+            strays: 2,
             two_mistakes: true,
             thorough: false,
             max_time: Some(Duration::from_secs(8)),
@@ -127,6 +135,8 @@ pub enum Finding {
     Mistakes {
         mistakes: Vec<Mistake>,
         done: usize,
+        /// Stray moves made after those `done` steps (up to two).
+        strays: Vec<Move>,
         alternatives: usize,
     },
     /// No simple explanation, but the cube is `away` moves from the cube after
@@ -239,7 +249,7 @@ pub fn diagnose(
     };
     let current = state_of(current);
     let turns = rotations(kind);
-    let mut found = ctx.explain(&current, true);
+    let mut found = ctx.explain(&current, true, limits.resume_depth);
     let mut rotation = None;
     if found.is_none() {
         let turned: Vec<State> = turns
@@ -255,14 +265,10 @@ pub fn diagnose(
             if double && !limits.two_mistakes {
                 break;
             }
-            for (i, state) in turned.iter().enumerate().skip(1) {
-                if found.is_some() {
-                    break;
-                }
-                found = ctx.explain_pass(state, double);
-                if found.is_some() {
-                    rotation = Some(turns[i].word.clone());
-                }
+            if let Some((i, f)) = ctx.first_found(&turned[1..], double) {
+                rotation = Some(turns[i + 1].word.clone());
+                found = Some(f);
+                break;
             }
         }
     }
@@ -312,7 +318,7 @@ impl Context<'_> {
     }
 
     /// Every search in one orientation, the cheap ones first.
-    fn explain(&self, current: &State, with_double: bool) -> Option<Found> {
+    fn explain(&self, current: &State, with_double: bool, depth: usize) -> Option<Found> {
         let frame = self.frame(current);
         if let Some(done) = search::on_path(&frame) {
             return Some(Found {
@@ -320,8 +326,15 @@ impl Context<'_> {
                 routes: Vec::new(),
             });
         }
-        let fix = resume::search(&frame, self.limits.resume_depth);
+        let fix = resume::search(&frame, depth);
         let mut explained = search::single(&frame, &self.any);
+        if explained.is_none() && self.limits.strays > 0 {
+            let strays = self
+                .limits
+                .strays
+                .min(if self.printed.len() < 16 { 1 } else { 3 });
+            explained = search::with_strays(&frame, &self.likely, strays);
+        }
         if explained.is_none() && with_double && self.limits.two_mistakes {
             explained = self.double(&frame);
         }
@@ -331,15 +344,41 @@ impl Context<'_> {
     /// One pass over a rotated cube: without (`false`) or with (`true`) the
     /// two-mistake search.
     fn explain_pass(&self, current: &State, double: bool) -> Option<Found> {
+        // A turned cube is searched with a shallow resume only.
+        let depth = self.limits.resume_depth.min(3);
         if !double {
-            return self.explain(current, false);
+            return self.explain(current, false, depth);
         }
         let frame = self.frame(current);
         let explained = self.double(&frame)?;
-        Some(self.found(
-            Some(explained),
-            resume::search(&frame, self.limits.resume_depth),
-        ))
+        Some(self.found(Some(explained), resume::search(&frame, depth)))
+    }
+
+    /// The first orientation in `states` (lowest index) with a finding, the
+    /// orientations being searched on several threads.
+    fn first_found(&self, states: &[State], double: bool) -> Option<(usize, Found)> {
+        let workers = thread::available_parallelism()
+            .map_or(1, |n| n.get())
+            .min(8);
+        let next = AtomicUsize::new(0);
+        let best = AtomicUsize::new(usize::MAX);
+        let results = Mutex::new(Vec::new());
+        thread::scope(|scope| {
+            for _ in 0..workers {
+                scope.spawn(|| loop {
+                    let i = next.fetch_add(1, Ordering::Relaxed);
+                    if i >= states.len() || i > best.load(Ordering::Relaxed) || self.expired() {
+                        break;
+                    }
+                    if let Some(f) = self.explain_pass(&states[i], double) {
+                        best.fetch_min(i, Ordering::Relaxed);
+                        results.lock().expect("no panic").push((i, f));
+                    }
+                });
+            }
+        });
+        let found = results.into_inner().expect("no panic");
+        found.into_iter().min_by_key(|(i, _)| *i)
     }
 
     fn double(&self, frame: &Frame) -> Option<Explained> {
@@ -358,6 +397,7 @@ impl Context<'_> {
             finding = Finding::Mistakes {
                 mistakes: e.mistakes.clone(),
                 done: e.done,
+                strays: e.strays.iter().map(|&id| self.perms.mv(id)).collect(),
                 alternatives: e.alternatives,
             };
             routes.push(self.route(&self.perms.undo_of(&e.performed), e.branch, true));

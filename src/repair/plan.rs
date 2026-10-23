@@ -131,6 +131,7 @@ impl fmt::Display for Plan {
             Finding::Mistakes {
                 mistakes,
                 done,
+                strays,
                 alternatives,
             } => {
                 writeln!(f, "Your cube is off the path of the solution.")?;
@@ -149,11 +150,16 @@ impl fmt::Display for Plan {
                         writeln!(f, "  {}. {}.", i + 1, describe(m))?;
                     }
                 }
-                writeln!(
-                    f,
-                    "You had done {} of {n} steps when you stopped.",
-                    done
-                )?;
+                if strays.is_empty() {
+                    writeln!(f, "You had done {done} of {n} steps when you stopped.")?;
+                } else {
+                    let list: MoveSequence = strays.iter().copied().collect();
+                    writeln!(
+                        f,
+                        "You had done {done} of {n} steps, then made {} ({list}).",
+                        plural(strays.len(), "stray move")
+                    )?;
+                }
                 if *alternatives > 0 {
                     writeln!(
                         f,

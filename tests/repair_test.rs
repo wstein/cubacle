@@ -188,7 +188,12 @@ fn two_mistakes_are_found_when_asked_for() {
     done.extend_from_slice(&solution[9..12]);
     done.extend_from_slice(&solution[13..15]);
     let current = run(&original, &done);
-    let d = diagnose(&original, &current, &seq(&solution), &limits()).unwrap();
+    // Stray moves would explain this cube as well; ask for mistakes only.
+    let two = Limits {
+        strays: 0,
+        ..limits()
+    };
+    let d = diagnose(&original, &current, &seq(&solution), &two).unwrap();
     match &d.finding {
         Finding::Mistakes { mistakes, .. } => assert_eq!(mistakes.len(), 2, "{mistakes:?}"),
         other => panic!("{other:?}"),
@@ -197,6 +202,7 @@ fn two_mistakes_are_found_when_asked_for() {
     let one = Limits {
         two_mistakes: false,
         resume_depth: 1,
+        strays: 0,
         ..limits()
     };
     let d = diagnose(&original, &current, &seq(&solution), &one).unwrap();
@@ -287,4 +293,32 @@ fn locate_finds_the_exact_position_only() {
         cubacle::repair::locate(&original, &off, &seq(&solution)),
         Ok(None)
     );
+}
+
+#[test]
+fn a_mistake_followed_by_stray_moves_is_found() {
+    for size in [3, 5] {
+        let (original, solution) = setup(size, 30, 77 + size as u64);
+        let mut done = go_wrong(&solution, 10, 16, "skip");
+        done.push(Move::new(Face::R, 1, false, Turn::Clockwise));
+        done.push(Move::new(Face::D, 1, false, Turn::Half));
+        let current = run(&original, &done);
+        let d = diagnose(&original, &current, &seq(&solution), &limits()).unwrap();
+        let Finding::Mistakes {
+            mistakes, strays, ..
+        } = &d.finding
+        else {
+            panic!("{size}x{size}: {:?}", d.finding);
+        };
+        assert_eq!(mistakes.len(), 1);
+        assert!(mistakes[0].step <= 11, "{:?}", mistakes[0]);
+        assert!(strays.len() <= 2);
+        assert_repairs(&d, &current, &solution);
+        let none = Limits {
+            strays: 0,
+            ..limits()
+        };
+        let d = diagnose(&original, &current, &seq(&solution), &none).unwrap();
+        assert!(!matches!(&d.finding, Finding::Mistakes { strays, .. } if !strays.is_empty()));
+    }
 }
