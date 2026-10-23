@@ -12,3 +12,5 @@ Raw-material notes, category architecture.
 - [[Shared reduction module]]
 - [[Terminal probing uses rustix and own parsing]]
 - [[Phases come from the solver's stages]]
+- [[Repair searches sticker permutations along the solution]]
+- [[Repair advises the shorter way]]

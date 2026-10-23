@@ -17,6 +17,7 @@ cubacle solve A4ib8aejxj4Y                       # Orbit64 token
 cubacle solve FUFUUFFFF UUUURRURU RRRFFRRFR BDBBDDBBB DLDDLLDDD LBLBBLLLL
 cubacle solve GWGWWGGGG WWWWRRWRW RRRGGRRGR BYBBYYBBB YOYYOOYYY OBOBBOOOO
 cubacle solve --scramble "R U R' U'" --max-moves 20 --budget-ms 500 --verbose
+cubacle repair -s "R U R' U'" --now FACELETS     # after a mistake in a printed solution
 cubacle convert --scheme jp WWWW RRRR GGGG BBBB OOOO YYYY
 cubacle random | cubacle solve -
 cubacle scramble -n 25
