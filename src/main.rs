@@ -17,6 +17,7 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use cubacle::engines::dwalton::DwaltonSolver;
 use cubacle::engines::five::FiveSolver;
 use cubacle::engines::four::FourSolver;
+use cubacle::engines::pattern::PatternShortcut;
 use cubacle::engines::three::Min2PhaseSolver;
 use cubacle::engines::two::PocketSolver;
 use cubacle::generate;
@@ -293,8 +294,18 @@ fn read_target(text: &str, args: &SolveArgs, start: &Facelets) -> Result<Facelet
     Ok(target)
 }
 
-/// The engine for a cube size, prepared; progress goes to standard error.
+/// The engine for a cube size, prepared; progress goes to standard error. From
+/// the 4x4x4 up it also tries known patterns and answers with the shorter solution.
 fn solver_for(kind: PuzzleKind) -> Box<dyn Solver> {
+    let engine = engine_for(kind);
+    if kind.size() >= 4 {
+        Box::new(PatternShortcut::new(engine))
+    } else {
+        engine
+    }
+}
+
+fn engine_for(kind: PuzzleKind) -> Box<dyn Solver> {
     match kind {
         PuzzleKind::Cube2 => Box::new(PocketSolver::new()),
         PuzzleKind::Cube3 => Box::new(Min2PhaseSolver::new()),
@@ -387,6 +398,11 @@ fn solve(args: SolveArgs) -> Result<(), String> {
                 .probes
                 .map_or_else(|| "-".into(), |p| p.to_string())
         );
+    }
+    if args.verbose {
+        if let Some(message) = &result.message {
+            eprintln!("{message}");
+        }
     }
     match result.outcome {
         Ok(solution) => {

@@ -51,6 +51,7 @@ const APP_ALLOWED: &[&str] = &[
     "engines::five",
     "engines::dwalton",
     "engines::four",
+    "engines::pattern",
 ];
 
 fn rust_files(dir: &Path, out: &mut Vec<PathBuf>) {
