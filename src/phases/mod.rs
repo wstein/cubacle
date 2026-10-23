@@ -1,10 +1,13 @@
-//! The phases of a solution, read from the cube and not from the engine.
+//! The phases of a solution: the engine's own stages where it reports them,
+//! else read from the cube.
 //!
-//! An engine's own phase boundaries are not trusted: the answers are merged and
-//! normalised after the search, and the engines differ. Instead the solution is
-//! replayed on the start cube and cut where a state predicate becomes true for
-//! good, so the same rule works for every engine and for a solution from any
-//! source.
+//! The 4x4x4 to 7x7x7 engines report their stages with the answer
+//! ([`SolveResult::stages`](crate::puzzle::SolveResult::stages), the ends
+//! already carried through the engines' normalising); [`from_stages`] turns
+//! them into phases. For an answer without stages (the 2x2x2 and 3x3x3, or a
+//! solution from any other source) [`phases`] replays the solution on the
+//! start cube and cuts it where a state predicate becomes true for good. The
+//! table below is that fallback; the stages of each engine are in its module.
 //!
 //! | Cube | Phases |
 //! | --- | --- |
@@ -38,7 +41,7 @@
 use std::collections::BTreeMap;
 use std::ops::Range;
 
-use crate::puzzle::{locate, ApplyError, Face, Facelets, MoveSequence, PuzzleKind};
+use crate::puzzle::{locate, ApplyError, Face, Facelets, MoveSequence, PuzzleKind, SolveStage};
 
 /// One phase of a solution.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -49,6 +52,30 @@ pub struct Phase {
     pub name: &'static str,
     /// The moves of the phase, as indices into the solution.
     pub moves: Range<usize>,
+}
+
+/// The phases of an answer of `total` moves from the stages its engine
+/// reported, numbered from 1 in order; a stage with no moves is an empty
+/// phase. `None` if the stages do not cover exactly `total` moves in order,
+/// or if `total` is 0, so that the caller can fall back to [`phases`].
+pub fn from_stages(stages: &[SolveStage], total: usize) -> Option<Vec<Phase>> {
+    if total == 0 || stages.is_empty() {
+        return None;
+    }
+    let mut out = Vec::with_capacity(stages.len());
+    let mut from = 0;
+    for stage in stages {
+        if stage.end < from {
+            return None;
+        }
+        out.push(Phase {
+            number: out.len() + 1,
+            name: stage.name,
+            moves: from..stage.end,
+        });
+        from = stage.end;
+    }
+    (from == total).then_some(out)
 }
 
 type Predicate = fn(&Layout, &[Face]) -> bool;

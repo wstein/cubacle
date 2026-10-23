@@ -18,7 +18,7 @@ use cubacle::engines::two::PocketSolver;
 use cubacle::generate;
 use cubacle::notation::orbit64;
 use cubacle::notation::{parse_cube, ColourScheme};
-use cubacle::phases::phases;
+use cubacle::phases::{from_stages, phases};
 use cubacle::puzzle::{Facelets, Failure, MoveSequence, PuzzleKind, SolveOptions, Solver};
 
 /// Rubik's cube solver and generator.
@@ -292,27 +292,24 @@ fn solve(args: SolveArgs) -> Result<(), String> {
                 return Err("internal error: solution does not solve the cube".into());
             }
             eprintln!("moves {}", solution.len());
+            // The engine's own stages where it reports them, else the state-based cut.
+            let found = if args.verbose || args.icons {
+                from_stages(&result.stages, solution.len())
+                    .or_else(|| phases(&facelets, &solution).ok())
+                    .unwrap_or_default()
+            } else {
+                Vec::new()
+            };
             if args.verbose {
-                if let Ok(found) = phases(&facelets, &solution) {
-                    for phase in found {
-                        if phase.moves.is_empty() {
-                            eprintln!("phase {}: {}, nothing to do", phase.number, phase.name);
-                            continue;
-                        }
-                        eprintln!(
-                            "phase {}: {}, moves {}-{}",
-                            phase.number,
-                            phase.name,
-                            phase.moves.start + 1,
-                            phase.moves.end
-                        );
-                    }
+                for phase in &found {
+                    eprintln!("{}", steps::phase_line(phase));
                 }
             }
             if args.icons {
                 return steps::print_solution(
                     &facelets,
                     &solution,
+                    &found,
                     &steps::SolutionIcons {
                         scheme: args.input.scheme,
                         height: args.icon_size,

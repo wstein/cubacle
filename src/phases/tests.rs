@@ -143,3 +143,38 @@ fn the_phases_cover_the_solution_without_gaps() {
     }
     assert_eq!(at, 9);
 }
+
+fn stage(name: &'static str, end: usize) -> SolveStage {
+    SolveStage { name, end }
+}
+
+#[test]
+fn engine_stages_become_numbered_phases_and_empty_ones_stay() {
+    let stages = [stage("a", 0), stage("b", 4), stage("c", 4), stage("d", 9)];
+    let found = from_stages(&stages, 9).unwrap();
+    let got: Vec<(usize, &str, Range<usize>)> = found
+        .iter()
+        .map(|p| (p.number, p.name, p.moves.clone()))
+        .collect();
+    assert_eq!(
+        got,
+        vec![
+            (1, "a", 0..0),
+            (2, "b", 0..4),
+            (3, "c", 4..4),
+            (4, "d", 4..9)
+        ]
+    );
+}
+
+#[test]
+fn stages_that_do_not_cover_the_answer_are_refused() {
+    let ok = [stage("a", 3), stage("b", 9)];
+    assert!(from_stages(&ok, 9).is_some());
+    assert!(from_stages(&ok, 10).is_none(), "ends short");
+    assert!(from_stages(&ok, 8).is_none(), "ends long");
+    assert!(from_stages(&[stage("a", 5), stage("b", 3)], 3).is_none());
+    assert!(from_stages(&[], 4).is_none());
+    // nothing to solve: the caller falls back to the state-based answer
+    assert!(from_stages(&[stage("a", 0)], 0).is_none());
+}

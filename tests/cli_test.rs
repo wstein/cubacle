@@ -581,6 +581,38 @@ fn a_4x4_verbose_solve_reports_its_reduction() {
     let phases: Vec<&str> = err.lines().filter(|l| l.starts_with("phase ")).collect();
     assert!(phases.iter().any(|l| l.contains("centres")), "{phases:?}");
     assert!(phases.last().unwrap().contains("3x3 stage"), "{phases:?}");
+    // the engine's own stages: four, numbered in order, no `edges` phase
+    assert_eq!(phases.len(), 4, "{phases:?}");
+    let names = [
+        "centres staged",
+        "centres sorted",
+        "centres and wings paired",
+        "3x3 stage",
+    ];
+    for (i, (line, name)) in phases.iter().zip(names).enumerate() {
+        assert!(
+            line.starts_with(&format!("phase {}: {name}, ", i + 1)),
+            "{phases:?}"
+        );
+    }
+    assert!(!err.contains("edges"), "{err}");
+}
+
+#[test]
+fn a_4x4_icons_solve_on_a_pipe_is_still_plain_text() {
+    let args = ["solve", "--size", "4", "-s", "R U Rw Fw2 U' 2R B"];
+    let (ok, plain, _) = cubacle(&args);
+    assert!(ok);
+    let mut with = args.to_vec();
+    with.extend(["--icons", "-v"]);
+    let (ok, icons, err) = cubacle(&with);
+    assert!(ok, "{err}");
+    assert!(
+        !icons.contains('\x1b') && !icons.contains("Phase "),
+        "{icons}"
+    );
+    assert!(icons.contains("step 1 of "));
+    assert!(icons.trim_end().ends_with(&plain));
 }
 
 #[test]

@@ -8,7 +8,7 @@
 use std::io::Write;
 
 use cubacle::notation::ColourScheme;
-use cubacle::phases::{phases, Phase};
+use cubacle::phases::Phase;
 use cubacle::puzzle::{Facelets, MoveSequence};
 use cubacle::render::{icon, state_icon, Action, KittyPlacement, Raster, Style};
 
@@ -53,6 +53,21 @@ pub(crate) fn phase_heading(phase: &Phase) -> String {
     format!("Phase {}: {} ({count} {unit})", phase.number, phase.name)
 }
 
+/// The `--verbose` line of a phase: `phase 2: edges, moves 15-27`, or
+/// `phase 2: edges, nothing to do`. It says what `phase_heading` says.
+pub(crate) fn phase_line(phase: &Phase) -> String {
+    if phase.moves.is_empty() {
+        return format!("phase {}: {}, nothing to do", phase.number, phase.name);
+    }
+    format!(
+        "phase {}: {}, moves {}-{}",
+        phase.number,
+        phase.name,
+        phase.moves.start + 1,
+        phase.moves.end
+    )
+}
+
 /// The line above the picture of the cube after a phase.
 pub(crate) fn state_heading(phase: &Phase) -> String {
     format!(
@@ -65,6 +80,7 @@ pub(crate) fn state_heading(phase: &Phase) -> String {
 pub fn print_solution(
     start: &Facelets,
     solution: &MoveSequence,
+    found: &[Phase],
     options: &SolutionIcons,
 ) -> Result<(), String> {
     let graphics = detect_stdout();
@@ -82,7 +98,7 @@ pub fn print_solution(
         .unwrap_or_else(|| default_height(start.kind().size()));
     let style = style(options.scheme, height, false, background);
     let out = if graphics == Graphics::Kitty {
-        kitty_steps(start, solution, options.columns, &terminal, &style)?
+        kitty_steps(start, solution, found, options.columns, &terminal, &style)?
     } else {
         text_steps(start, solution, graphics, &style)?
     };
@@ -116,13 +132,13 @@ fn text_steps(
 fn kitty_steps(
     start: &Facelets,
     solution: &MoveSequence,
+    found: &[Phase],
     columns: Option<usize>,
     terminal: &Terminal,
     style: &Style,
 ) -> Result<String, String> {
     let total = solution.len();
     let moves = solution.moves();
-    let found = phases(start, solution).map_err(|error| error.to_string())?;
     let mut state = start.clone();
     let mut out = String::new();
     // all icons have one size; the first one tells the width
@@ -136,7 +152,7 @@ fn kitty_steps(
         None => 0,
     };
     let per_row = rows::per_row(terminal.width_px, width, rows::GAP, columns);
-    for phase in &found {
+    for phase in found {
         out.push_str(&phase_heading(phase));
         out.push('\n');
         if phase.moves.is_empty() {
@@ -168,6 +184,34 @@ fn kitty_steps(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn verbose_lines_and_headings_agree() {
+        let stages = [
+            cubacle::puzzle::SolveStage { name: "a", end: 0 },
+            cubacle::puzzle::SolveStage { name: "b", end: 4 },
+            cubacle::puzzle::SolveStage { name: "c", end: 9 },
+        ];
+        let found = cubacle::phases::from_stages(&stages, 9).unwrap();
+        let lines: Vec<String> = found.iter().map(phase_line).collect();
+        assert_eq!(
+            lines,
+            [
+                "phase 1: a, nothing to do",
+                "phase 2: b, moves 1-4",
+                "phase 3: c, moves 5-9"
+            ]
+        );
+        let headings: Vec<String> = found.iter().map(phase_heading).collect();
+        assert_eq!(
+            headings,
+            [
+                "Phase 1: a (nothing to do)",
+                "Phase 2: b (4 moves)",
+                "Phase 3: c (5 moves)"
+            ]
+        );
+    }
 
     #[test]
     fn headings_name_the_phase_and_count_its_moves() {
