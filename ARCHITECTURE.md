@@ -12,6 +12,7 @@ src/
   notation/       Orbit64, colour schemes, input detection and parsing
   generate/       random states and scrambles
   phases/         the phases of a solution, from the engine's stages or the cube state
+  ranges/         post-solve compression of axis runs into layer ranges (2-3r)
   render/         move icons (SVG, RGBA, Kitty graphics, text) from puzzle types
   repair/         where a cube went wrong in a printed solution, and the way back
                   (sticker permutations along the solution; the fresh solution is passed in)
@@ -45,6 +46,7 @@ puzzle  <-  notation  <-  engines  <-  apps (CLI, server)
 ```
 
 - `puzzle` depends on nothing else in the crate.
+- `ranges` depends on `puzzle` and `notation` (it writes its moves in a `Notation`).
 - `notation`, `generate`, `phases`, `repair` and `render` depend only on `puzzle`. `render` is pure
   (no I/O, no global state) and never names `notation`: the CLI maps a colour
   scheme to a `render::Palette`. Terminal detection lives in the CLI.
