@@ -8,7 +8,8 @@ use std::path::PathBuf;
 
 use clap::{Args, ValueEnum};
 use cubacle::notation::ColourScheme;
-use cubacle::puzzle::{Facelets, MoveSequence, PuzzleKind};
+use cubacle::notation::{parse_moves, to_wca_token};
+use cubacle::puzzle::{Facelets, PuzzleKind};
 use cubacle::render::{icon, Action, Backdrop, Icon, KittyPlacement, Palette, Rgb, Shading, Style};
 
 #[derive(Clone, Copy, PartialEq, Eq, ValueEnum)]
@@ -179,8 +180,7 @@ pub fn run(args: IconArgs) -> Result<(), String> {
         .ok_or_else(|| format!("cube size {} is not between 2 and 7", args.cube))?;
     let mut start = Facelets::solved(kind);
     if let Some(from) = &args.from {
-        let moves: MoveSequence = from
-            .parse()
+        let moves = parse_moves(from)
             .map_err(|error| format!("--from is not valid move notation ({error})"))?;
         start = start.apply(&moves).map_err(|error| error.to_string())?;
     }
@@ -189,9 +189,12 @@ pub fn run(args: IconArgs) -> Result<(), String> {
         .moves
         .iter()
         .map(|token| {
-            token
-                .parse()
-                .map_err(|_| format!("{token:?} is not a move or rotation"))
+            to_wca_token(token)
+                .map_err(|error| error.to_string())
+                .and_then(|wca| {
+                    wca.parse()
+                        .map_err(|_| format!("{token:?} is not a move or rotation"))
+                })
         })
         .collect::<Result<_, _>>()?;
     let height = args.size.unwrap_or_else(|| default_height(args.cube));

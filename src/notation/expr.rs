@@ -13,6 +13,8 @@ pub const MAX_DEPTH: usize = 100;
 pub enum ExprError {
     /// A word is not a move.
     Move(NotationError),
+    /// A word is not a move in SiGN notation.
+    Sign(super::sign::MovesError),
     /// A `(` or `)` has no partner.
     Unbalanced { position: usize },
     /// `*` is not followed by a repeat count of at least 1, or follows nothing.
@@ -31,6 +33,7 @@ impl fmt::Display for ExprError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ExprError::Move(error) => error.fmt(f),
+            ExprError::Sign(error) => error.fmt(f),
             ExprError::Unbalanced { position } => {
                 write!(f, "unbalanced parenthesis at character {position}")
             }
@@ -151,7 +154,8 @@ impl Reader {
         if let Some(moves) = self.special(&word)? {
             return Ok(moves);
         }
-        let mv: Move = word.parse()?;
+        let wca = super::sign::to_wca_token(&word).map_err(ExprError::Sign)?;
+        let mv: Move = wca.parse()?;
         if !mv.fits(self.kind) {
             return Err(ExprError::DoesNotFit {
                 mv,

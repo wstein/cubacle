@@ -7,7 +7,7 @@
 
 use std::io::Write;
 
-use cubacle::notation::{orbit64, ColourScheme};
+use cubacle::notation::{orbit64, ColourScheme, Notation};
 use cubacle::phases::Phase;
 use cubacle::puzzle::{Facelets, Move, MoveSequence, Turn};
 use cubacle::render::{icon, state_icon, Action, KittyPlacement, Raster, Rgb, Style};
@@ -25,6 +25,9 @@ pub struct SolutionIcons {
     pub background: Option<Background>,
     /// Icons per row; `None`: as many as fit.
     pub columns: Option<usize>,
+    /// How the step lines and the final solution line write moves (the icon
+    /// labels stay as they are).
+    pub notation: Notation,
 }
 
 /// A raster as a block of terminal rows: the rows are cleared so that older
@@ -112,7 +115,7 @@ pub(crate) fn lone_quarters(moves: &[Move]) -> Vec<bool> {
 
 /// The line above the text picture of a step: `step 3 of 9: F`, with a note
 /// when the move is a lone quarter turn.
-pub(crate) fn step_line(index: usize, total: usize, mv: &Move, lone: bool) -> String {
+pub(crate) fn step_line(index: usize, total: usize, mv: &str, lone: bool) -> String {
     let note = if lone { QUARTER_NOTE } else { "" };
     format!("step {} of {total}: {mv}{note}\n", index + 1)
 }
@@ -142,12 +145,12 @@ pub fn print_solution(
     out.push_str(&if graphics == Graphics::Kitty {
         kitty_steps(start, solution, found, options.columns, &terminal, &style)?
     } else {
-        text_steps(start, solution, found, graphics, &style)?
+        text_steps(start, solution, found, graphics, &style, options.notation)?
     });
     let mut stdout = std::io::stdout().lock();
     stdout
         .write_all(out.as_bytes())
-        .and_then(|()| writeln!(stdout, "{solution}"))
+        .and_then(|()| writeln!(stdout, "{}", options.notation.write(solution)))
         .map_err(|e| format!("cannot write to standard output: {e}"))
 }
 
@@ -157,6 +160,7 @@ fn text_steps(
     found: &[Phase],
     graphics: Graphics,
     style: &Style,
+    notation: Notation,
 ) -> Result<String, String> {
     let mut state = start.clone();
     let total = solution.len();
@@ -165,7 +169,12 @@ fn text_steps(
     for (index, mv) in solution.moves().iter().enumerate() {
         let action = Action::Layer(*mv);
         let drawn = icon(&state, &action, style).map_err(|error| error.to_string())?;
-        out.push_str(&step_line(index, total, mv, lone[index]));
+        out.push_str(&step_line(
+            index,
+            total,
+            &notation.write_move(mv),
+            lone[index],
+        ));
         out.push_str(&show(&drawn, graphics, style.size));
         out.push('\n');
         state = action.apply(&state).map_err(|error| error.to_string())?;
@@ -276,13 +285,13 @@ mod tests {
         let lone = lone_quarters(seq.moves());
         let flagged: Vec<usize> = (0..lone.len()).filter(|&i| lone[i]).collect();
         assert_eq!(flagged, [2, 7]);
-        let line = step_line(2, 10, &seq.moves()[2], true);
+        let line = step_line(2, 10, &seq.moves()[2].to_string(), true);
         assert_eq!(
             line,
             "step 3 of 10: F   <-- quarter turn, not a half turn\n"
         );
         assert_eq!(
-            step_line(0, 10, &seq.moves()[0], false),
+            step_line(0, 10, &seq.moves()[0].to_string(), false),
             "step 1 of 10: 3Rw2\n"
         );
     }

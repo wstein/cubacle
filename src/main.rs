@@ -18,7 +18,7 @@ use cubacle::engines::three::Min2PhaseSolver;
 use cubacle::engines::two::PocketSolver;
 use cubacle::generate;
 use cubacle::notation::orbit64;
-use cubacle::notation::{colour_scheme_of, parse_cube, parse_expression, ColourScheme};
+use cubacle::notation::{colour_scheme_of, parse_cube, parse_expression, ColourScheme, Notation};
 use cubacle::phases::{from_stages, phases};
 use cubacle::puzzle::{Facelets, Failure, PuzzleKind, SolveOptions, Solver};
 
@@ -46,6 +46,9 @@ enum Command {
         /// Cube size
         #[arg(long, default_value_t = 3)]
         size: usize,
+        /// How to write the moves: wca (Rw, 3Rw) or sign (r, 3r)
+        #[arg(long, default_value = "wca")]
+        notation: Notation,
     },
     /// Print a random cube state as facelets
     Random {
@@ -57,7 +60,7 @@ enum Command {
     Convert(ConvertArgs),
     /// Print the facelets reached by applying a scramble to a solved cube
     Facelets {
-        /// Moves in standard notation, e.g. "R U R' U'"
+        /// Moves in WCA or SiGN notation, e.g. "R U R' U'"
         scramble: String,
         /// Cube size
         #[arg(long, default_value_t = 3)]
@@ -131,6 +134,9 @@ struct SolveArgs {
     /// Also print timing and search statistics to stderr
     #[arg(short, long)]
     verbose: bool,
+    /// How to write the solution: wca (Rw, 3Rw) or sign (r, 3r)
+    #[arg(long, default_value = "wca")]
+    notation: Notation,
     /// Allow single inner layers (2R) in 4x4x4 and 5x5x5 answers where they make them shorter
     #[arg(long)]
     slices: bool,
@@ -180,8 +186,15 @@ fn run(cli: Cli) -> Result<(), String> {
             }
             Ok(())
         }
-        Command::Scramble { moves, size } => {
-            println!("{}", generate::scramble(kind_of(size)?, moves));
+        Command::Scramble {
+            moves,
+            size,
+            notation,
+        } => {
+            println!(
+                "{}",
+                notation.write(&generate::scramble(kind_of(size)?, moves))
+            );
             Ok(())
         }
         Command::Random { size } => {
@@ -371,10 +384,11 @@ fn solve(args: SolveArgs) -> Result<(), String> {
                         height: args.icon_size,
                         background: args.background,
                         columns: args.columns.map(|c| c as usize),
+                        notation: args.notation,
                     },
                 );
             }
-            println!("{solution}");
+            println!("{}", args.notation.write(&solution));
             Ok(())
         }
         Err(failure) => Err(failure_message(failure, result.message)),
