@@ -39,6 +39,7 @@ The first two lines go to standard error. `moves N` is always printed there, `el
 | `-s`, `--scramble <MOVES>` | Solve the cube produced by this scramble instead of reading one. |
 | `--size <N>` | Cube size for `--scramble`: 2 to 7, default 3. A cube given as text has its size already. |
 | `--scheme <SCHEME>` | Colour scheme for colour input. See [Colour schemes](#colour-schemes). |
+| `--to <TARGET>` | Solve to a state other than the solved cube. See [Solve to a target](#solve-to-a-target). |
 | `-m`, `--max-moves <N>` | Longest solution to accept. Default: 21 for the 2x2x2 and 3x3x3, none for the 4x4x4 and 5x5x5. |
 | `-b`, `--budget-ms <MS>` | Hard time limit in milliseconds. |
 | `--probes <N>` | 3x3x3 only. Keep improving the solution until N probes were made. Counts work, not time, so the answer is the same on every machine. |
@@ -59,6 +60,33 @@ A cube argument of `-` reads the cube from standard input:
 ```sh
 cubacle random | cubacle solve -
 ```
+
+### Solve to a target
+
+`--to <TARGET>` makes `solve` print the moves that take the start cube to the target instead of to the solved cube. The target is one argument (quote it) and is read like the start: an Orbit64 token, URFDLB facelets, W/R/G/Y/O/B colours (with `--scheme`), or, when the text is no cube, a move expression applied to the solved cube of the start's size. A text that is exactly `superflip`, `checkerboard` or `cube-in-cube` is the pattern of that name instead; these are 3x3x3 patterns, and other sizes get `--to: superflip is a 3x3x3 pattern, not a 4x4x4 one`. Longer texts such as `superflip R` are not names.
+
+```sh
+cubacle solve "R U F2 D' L" --to superflip
+cubacle solve --scramble "R U R' U'" --to "F2 B2"
+```
+
+```text
+moves 20
+L' U' F B' R U D' F L2 D2 F' U2 F' R2 L2 F' R2 F2 U2 L
+moves 15
+U R U R F2 R L' U2 R' B2 R' D2 R' L F2
+```
+
+Start followed by the printed moves shows the target; the tool replays every answer and exits with an error if it does not. No engine changes: the tool builds the state that is left of the start once the target is taken out and solves that. A target of `UUUU...` (the solved cube) gives the same moves as no `--to`. On 20 random 3x3x3 pairs the answers had 20.6 moves on average against 20.75 for 20 plain solves of other random cubes; on the 4x4x4 (6 pairs) 45.2 against 44.5 and on the 5x5x5 (4 pairs) 68.8 against 68.3, where the targets were 40 random outer turns and the plain 4x4x4 answer includes its final whole-cube rotation.
+
+Rules and limits:
+
+- Start and target must have the same size: `the start is a 3x3x3 but the target is a 2x2x2`.
+- An impossible start or target is rejected: `the start or the target state is impossible`.
+- 4x4x4 and larger: the target holds exactly, with orientation, but its centres must be on their own faces, because the solvers cannot tell centres of one colour apart and so cannot aim for a scrambled arrangement. Turns of the outer layer (`R`, `U'`) keep them there, wide and inner turns do not; `--to Rw` fails with `the target has centres out of place`.
+- 2x2x2: it has no centres to fix its frame, and its solver ends in any of the 24 orientations, so the target counts as reached when the cube shows it after a rotation of the whole cube.
+- With `--icons` the output has `Target state: TOKEN` below `Start state: TOKEN`, and the step pictures end in the target.
+- A target is one argument, so `--to` does not read standard input.
 
 ### Shorter solutions
 

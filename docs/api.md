@@ -34,7 +34,7 @@ The server binds to the local machine by default. It has no authentication, so d
 | `GET /v1/scramble?moves=25&size=3` | `moves`: 1 to 200; `size`: 2 to 7; `notation`?: `wca`, `sign` or `sse` | `{"scramble":"U' L2 F2 D U2"}` |
 | `GET /v1/random?size=3` | `size`: 2 to 7 (only 2 to 5 have engines) | `{"kind":"2x2x2","facelets":"...","token":"..."}` |
 | `POST /v1/convert` | `{"cube" or "scramble","size"?,"scheme"?}` | `{"kind","facelets","token"?}` |
-| `POST /v1/solve` | `{"cube" or "scramble","size"?,"scheme"?,"maxMoves"?,"budgetMs"?,"minProbes"?,"improve"?,"slices"?,"notation"?,"optimise"?}` | `{"kind","solution","length","compressed"?,"compressedLength"?,"elapsedMicros"}` |
+| `POST /v1/solve` | `{"cube" or "scramble","size"?,"scheme"?,"maxMoves"?,"budgetMs"?,"minProbes"?,"improve"?,"slices"?,"notation"?,"optimise"?,"target"?}` | `{"kind","solution","length","compressed"?,"compressedLength"?,"elapsedMicros"}` |
 
 For `POST` requests, send the header `Content-Type: application/json`.
 
@@ -52,11 +52,32 @@ For `POST` requests, send the header `Content-Type: application/json`.
 | `notation` | Optional, `wca` (default), `sign` or `sse`. How the `solution` is written: `Rw`, `3Rw` or `r`, `3r` or `TR`, `T3R` (see [Move notations](cli.md#move-notations)). Also a query parameter of `/v1/scramble`. Anything else is a 400. |
 | `optimise` | Optional, `ranges`. Adds `compressed` (the solution with layer ranges such as `2-3r`, in the chosen `notation`) and `compressedLength` to the answer; `solution` and `length` are unchanged. Anything else is a 400. See [`--optimise`](cli.md). |
 
+| `target` | Optional, `/v1/solve` only. Solve to this state instead of to the solved cube; the `solution` takes the start (`cube` or `scramble`) to it. How the server reads the text: if it is exactly `superflip`, `checkerboard` or `cube-in-cube` it is that pattern (3x3x3 only); otherwise, if it parses as a cube (an Orbit64 token, URFDLB facelets or colours, read with `scheme`), it is that cube; otherwise it is read as a move expression applied to the solved cube of the start's size. Cube text always wins over a move expression, as it does for the start on the command line. See [Solve to a target](cli.md#solve-to-a-target). |
+
 Other sizes answer 400 to `minProbes` and `improve`.
 
 Unknown fields are rejected with a 400 error.
 
 Instead of `cube`, `/v1/convert` and `/v1/solve` take a `scramble`: moves in WCA, SiGN or SSE spelling, with layer ranges (`2-3r`, `N2-4R`), groups (`(R U)3`, `(R U)'`, `(R U)*3`) and commutators and conjugates (`[A, B]`, `[A: B]`), exactly as the command line reads them (see [Move notations](cli.md#move-notations)). `size` (2 to 7, default 3) says which cube the scramble is applied to. Send `cube` or `scramble`, not both; `size` goes only with `scramble` and `scheme` only with `cube`. A scramble that does not parse is a 400 whose message names the character, such as `scramble: character 7: a [ ] has one comma or colon; nest another [ ] for more`. `notation` chooses how the answer is written; it has the same moves and the same `length` in both.
+
+A `target` is solved to like this (the first request is the `superflip` pattern, the second a scramble as target, the third a mismatched size):
+
+```sh
+curl -s -XPOST localhost:8080/v1/solve -H 'Content-Type: application/json' \
+  -d '{"scramble":"R U F2 D'"'"' L","target":"superflip"}'
+curl -s -XPOST localhost:8080/v1/solve -H 'Content-Type: application/json' \
+  -d '{"scramble":"R U R'"'"' U'"'"'","target":"F2 B2"}'
+curl -s -XPOST localhost:8080/v1/solve -H 'Content-Type: application/json' \
+  -d '{"scramble":"R U","target":"UUUU RRRR FFFF DDDD LLLL BBBB"}'
+```
+
+```json
+{"kind":"3x3x3","solution":"L' U' F B' R U D' F L2 D2 F' U2 F' R2 L2 F' R2 F2 U2 L","length":20,"elapsedMicros":162}
+{"kind":"3x3x3","solution":"U R U R F2 R L' U2 R' B2 R' D2 R' L F2","length":15,"elapsedMicros":16}
+{"error":{"code":"bad_input","message":"the start is a 3x3x3 but the target is a 2x2x2"}}
+```
+
+A target of another size is a 400. A target with an impossible piece is a 422 `impossible_cube`; a state the engine finds impossible only while solving says `the start or the target state is impossible`. On a 4x4x4 or larger, a target whose centres are out of place (reached by wide or inner turns) is a 422 `unreachable_target`: the solvers cannot aim for it. The 2x2x2 reaches the target up to a rotation of the whole cube. `/v1/convert` has no `target` and answers 400 to it, like any unknown field.
 
 ### Examples
 
@@ -131,6 +152,7 @@ Errors have this shape:
 | 413 | `payload_too_large` | Body larger than `--max-body-bytes`. |
 | 415 | `unsupported_media_type` | `POST` without `Content-Type: application/json`. |
 | 422 | `impossible_cube` | The cube state cannot be reached by legal moves. |
+| 422 | `unreachable_target` | A `target` of a 4x4x4 or larger has its centres out of place. |
 | 422 | `no_solution_within_limit` | No solution within `maxMoves`. |
 | 429 | `busy` | All solver slots are in use. The response has `Retry-After: 1`. |
 | 500 | `internal` | A handler or solver thread panicked, or an engine reached a state it cannot explain. |

@@ -30,3 +30,4 @@ Raw-material notes, category engines.
 - [[Spread solves over cores for throughput]]
 - [[Improve modes trade time for moves]]
 - [[Bisect over max_moves is unsound under a time budget]]
+- [[A target is solved as a relative state]]
