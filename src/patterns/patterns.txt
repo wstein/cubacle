@@ -43,7 +43,7 @@ name Cube in a cube
 alias cube in a cube
 alias cube in cube
 desc A cube of the face colours seems to sit in the corner of a shell: on every face the block at two opposite corners keeps the face colour, the L-shaped rest shows the next colour round a corner.
-def 3,4,5,6,7 blocks cw id
+def 2,3,4,5,6,7 blocks cw id
 
 id cube-in-cube-in-cube
 name Cube in a cube in a cube

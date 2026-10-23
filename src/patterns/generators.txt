@@ -38,6 +38,8 @@ four-centre-spots | 5 | outer | best-known | 8 | Uw Dw' Fw2 Bw2 Uw Dw' Rw2 Lw2
 four-centre-spots | 5 | range | best-known | 6 | 3R2 3U 3R2 Uw2 Dw2 3U
 four-centre-spots | 6 | outer | best-known | 8 | Uw Dw' Fw2 Bw2 Uw Dw' Rw2 Lw2
 four-centre-spots | 6 | range | best-known | 4 | 3-4Rw2 3-4Uw 3-4Rw2 3-4Uw'
+cube-in-cube | 2 | outer | optimal | 10 | R' F2 R U2 R' U F2 U' R2 U
+cube-in-cube | 2 | range | optimal | 10 | R' F2 R U2 R' U F2 U' R2 U
 cube-in-cube | 3 | outer | best-known | 15 | U2 R2 F2 U B2 D' L' F L' F L' F D B2 U
 cube-in-cube | 4 | outer | best-known | 15 | L2 B2 D2 L' U2 R F D' F D' F D' R' U2 L'
 cube-in-cube | 5 | outer | best-known | 15 | U2 R2 F2 U B2 D' L' F L' F L' F D B2 U
