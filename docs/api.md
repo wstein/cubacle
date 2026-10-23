@@ -31,7 +31,7 @@ The server binds to the local machine by default. It has no authentication, so d
 | Method and path | Input | Success response |
 | --- | --- | --- |
 | `GET /health` | None | `{"status":"ok"}` |
-| `GET /v1/scramble?moves=25&size=3` | `moves`: 1 to 200; `size`: 2 to 7; `notation`?: `wca` or `sign` | `{"scramble":"U' L2 F2 D U2"}` |
+| `GET /v1/scramble?moves=25&size=3` | `moves`: 1 to 200; `size`: 2 to 7; `notation`?: `wca`, `sign` or `sse` | `{"scramble":"U' L2 F2 D U2"}` |
 | `GET /v1/random?size=3` | `size`: 2 to 7 (only 2 to 5 have engines) | `{"kind":"2x2x2","facelets":"...","token":"..."}` |
 | `POST /v1/convert` | `{"cube" or "scramble","size"?,"scheme"?}` | `{"kind","facelets","token"?}` |
 | `POST /v1/solve` | `{"cube" or "scramble","size"?,"scheme"?,"maxMoves"?,"budgetMs"?,"minProbes"?,"improve"?,"slices"?,"notation"?,"optimise"?}` | `{"kind","solution","length","compressed"?,"compressedLength"?,"elapsedMicros"}` |
@@ -49,14 +49,14 @@ For `POST` requests, send the header `Content-Type: application/json`.
 | `budgetMs` | Optional. Time limit in milliseconds, 1 to 600000. Defaults to, and is capped by, `--request-timeout-ms`. |
 | `minProbes` | Optional, 3x3x3 only. Keep improving the solution until this many probes were made, 1 to 100000000. Counts work, not time, so the answer is the same on every machine. See [3x3x3 performance](engines/3x3.md). |
 | `improve` | Optional, 3x3x3 only. Keep improving until `budgetMs` is spent and return the best solution found; `budgetMs` is required and `minProbes` cannot be combined with it. Spending the budget is not an error once a solution exists. |
-| `notation` | Optional, `wca` (default) or `sign`. How the `solution` is written: `Rw`, `3Rw` or `r`, `3r` (see [Move notations](cli.md#move-notations)). Also a query parameter of `/v1/scramble`. Anything else is a 400. |
+| `notation` | Optional, `wca` (default), `sign` or `sse`. How the `solution` is written: `Rw`, `3Rw` or `r`, `3r` or `TR`, `T3R` (see [Move notations](cli.md#move-notations)). Also a query parameter of `/v1/scramble`. Anything else is a 400. |
 | `optimise` | Optional, `ranges`. Adds `compressed` (the solution with layer ranges such as `2-3r`, in the chosen `notation`) and `compressedLength` to the answer; `solution` and `length` are unchanged. Anything else is a 400. See [`--optimise`](cli.md). |
 
 Other sizes answer 400 to `minProbes` and `improve`.
 
 Unknown fields are rejected with a 400 error.
 
-Instead of `cube`, `/v1/convert` and `/v1/solve` take a `scramble`: moves in WCA or SiGN spelling, with layer ranges (`2-3r`), groups (`(R U)3`, `(R U)'`, `(R U)*3`) and commutators and conjugates (`[A, B]`, `[A: B]`), exactly as the command line reads them (see [Move notations](cli.md#move-notations)). `size` (2 to 7, default 3) says which cube the scramble is applied to. Send `cube` or `scramble`, not both; `size` goes only with `scramble` and `scheme` only with `cube`. A scramble that does not parse is a 400 whose message names the character, such as `scramble: character 7: a [ ] has one comma or colon; nest another [ ] for more`. `notation` chooses how the answer is written; it has the same moves and the same `length` in both.
+Instead of `cube`, `/v1/convert` and `/v1/solve` take a `scramble`: moves in WCA, SiGN or SSE spelling, with layer ranges (`2-3r`, `N2-4R`), groups (`(R U)3`, `(R U)'`, `(R U)*3`) and commutators and conjugates (`[A, B]`, `[A: B]`), exactly as the command line reads them (see [Move notations](cli.md#move-notations)). `size` (2 to 7, default 3) says which cube the scramble is applied to. Send `cube` or `scramble`, not both; `size` goes only with `scramble` and `scheme` only with `cube`. A scramble that does not parse is a 400 whose message names the character, such as `scramble: character 7: a [ ] has one comma or colon; nest another [ ] for more`. `notation` chooses how the answer is written; it has the same moves and the same `length` in both.
 
 ### Examples
 
@@ -168,5 +168,17 @@ A 7x7x7 solved with `"notation":"wca"` (the default) and `"notation":"sign"`, th
 An unknown value answers 400:
 
 ```json
-{"error":{"code":"bad_input","message":"notation must be wca or sign, not \"ruwix\""}}
+{"error":{"code":"bad_input","message":"notation must be wca, sign or sse, not \"ruwix\""}}
+```
+
+`sse` writes Superset ENG (`TR`, `T3R`, `NL`, `MR`, `N2-4R`; see [Move notations](cli.md#move-notations)), and the `scramble` field reads it. Run against the server, with a random scramble in the first answer:
+
+```sh
+curl -s 'localhost:8080/v1/scramble?size=7&moves=8&notation=sse'
+curl -s -X POST localhost:8080/v1/convert -H 'content-type: application/json' -d '{"scramble":"R N2R","size":4}'
+```
+
+```json
+{"scramble":"N3L2 U2 NR' NB' ND' R ND2 NL'"}
+{"error":{"code":"bad_input","message":"scramble: character 2: invalid move \"N2R\" (N twists exist from the 5x5 on; use M, W or T on smaller cubes)"}}
 ```

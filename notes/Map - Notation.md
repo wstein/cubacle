@@ -16,4 +16,5 @@ Raw-material notes, category notation.
 - [[Orbit64 slot tables from the size]]
 - [[Orbit64 sizes 6 and 7 verified]]
 - [[SiGN notation as an output option]]
+- [[SSE notation is read and written]]
 - [[Move input rules are WCA and SiGN]]

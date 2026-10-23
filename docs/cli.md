@@ -45,8 +45,8 @@ The first two lines go to standard error. `moves N` is always printed there, `el
 | `--improve` | 3x3x3 only. Keep improving until the time budget (`-b`, default 1000 ms) is spent, then print the best solution found. |
 | `--parallel` | 3x3x3 only, with `--improve` and `-b`: search the six orientations at once. Measured no better than plain `--improve`. |
 | `--slices` | 4x4x4 and 5x5x5: allow single inner layers (`2R`) in the answer where they make it shorter. Default: outer layers and two-layer turns only. See [the move metric](performance.md#move-metric). |
-| `--notation <wca\|sign>` | How the solution is written. Default `wca` (`Rw`, `3Rw`); `sign` writes `r`, `3r` (see [Move notations](#move-notations)). With `--icons` it also sets the step lines and the last line; the icon labels stay WCA. |
-| `--optimise ranges` | After the solve, with no search: adjacent turns of one axis are written as layer ranges where that is shorter (`2-3r` in sign, `2-3Rw` in wca; only contiguous layers). Off by default. The solution is the same state; stderr reports `moves N` (as solved) and `compressed moves M`, and stdout holds the compressed text. Not combined with `--icons`. On 20 random 4x4x4 to 7x7x7 solutions it saved 0 to 2 moves (2 of 20 saved any, both 7x7x7), on 14 human 4x4x4+ states 0 to 5, because the solvers already merge most axis runs. |
+| `--notation <wca\|sign\|sse>` | How the solution is written. Default `wca` (`Rw`, `3Rw`); `sign` writes `r`, `3r`; `sse` writes `TR`, `T3R`, `MR` (see [Move notations](#move-notations)). With `--icons` it also sets the step lines and the last line; the icon labels stay WCA. |
+| `--optimise ranges` | After the solve, with no search: adjacent turns of one axis are written as layer ranges where that is shorter (`2-3r` in sign, `2-3Rw` in wca, `V2R`, `M2R` or `N2-4R` in sse; only contiguous layers). Off by default. The solution is the same state; stderr reports `moves N` (as solved) and `compressed moves M`, and stdout holds the compressed text. Not combined with `--icons`. On 20 random 4x4x4 to 7x7x7 solutions it saved 0 to 2 moves (2 of 20 saved any, both 7x7x7), on 14 human 4x4x4+ states 0 to 5, because the solvers already merge most axis runs. |
 | `--icons` | Show each step as an icon. The output begins with `Start state: TOKEN` and has a line `State after phase N as token: TOKEN` after each phase, so that a checkpoint can be compared with your cube. See [Move icons](icons.md#checkpoints). |
 | `--icon-size <PIXELS>` | With `--icons`: icon height in pixels. Default: 32 per cube layer, at least 96. |
 | `--background <dark\|light>` | With `--icons`: what the icons are seen on. It sets the notation colour and the dimming. Default: the terminal is asked (`OSC 11`), dark when it does not answer. |
@@ -242,8 +242,8 @@ Fresh solution: R2 D' R U' Fw D2 Fw B2 U2 F2 Dw' D2 F' Dw2 L B' R L' Bw2 Rw2 F' 
 | Option | Meaning |
 | --- | --- |
 | `--now <CUBE>` | The cube as it is now, an Orbit64 token, facelets or colours (quote it when it has spaces). Required. |
-| `--solution <MOVES>` | The solution the person followed, in WCA or SiGN, groups and ranges allowed (see [Move notations](#move-notations)). Default: the one `solve` prints for the original cube. |
-| `--notation <wca\|sign>` | How the moves in the explanation and in `Moves now:` are written. Default `wca`. |
+| `--solution <MOVES>` | The solution the person followed, in WCA, SiGN or SSE, groups and ranges allowed (see [Move notations](#move-notations)). Default: the one `solve` prints for the original cube. |
+| `--notation <wca\|sign\|sse>` | How the moves in the explanation and in `Moves now:` are written. Default `wca`. |
 | `--at-move <N>` | The move you did last before you noticed the mismatch, counting from 1. The mistake is at move N or before; later moves are ignored. |
 | `--sure-until <M>` | Needs `--at-move`. The move after which you are sure the cube was right (M before N). A hint: the search widens past it. |
 | `--fresh` | Skip the search and print the solution of the current cube. |
@@ -398,7 +398,7 @@ The output is shortened here; it ends with `...BBBYBBBBBBYBBBBBBYBBB`.
 
 ## Generate scrambles and cubes
 
-`scramble` prints a random scramble. `-n` sets the number of moves (default: 25) and `--size` the cube size (default: 3). On a 4x4x4 or 5x5x5 the scramble also turns second layers. `--notation sign` writes the moves in SiGN (see [Move notations](#move-notations)); the default is `wca`.
+`scramble` prints a random scramble. `-n` sets the number of moves (default: 25) and `--size` the cube size (default: 3). On a 4x4x4 or 5x5x5 the scramble also turns second layers. `--notation sign` writes the moves in SiGN and `--notation sse` in SSE (see [Move notations](#move-notations)); the default is `wca`.
 
 ```sh
 cubacle scramble -n 8
@@ -425,7 +425,7 @@ This prints the length of the solution of a random 4x4x4 (rotation included), be
 
 ## Apply a scramble
 
-A scramble is move notation in WCA or SiGN spelling (see [Move notations](#move-notations)) with the moves separated by whitespace. Besides the canonical forms (`R`, `R2`, `R'`, and wide or inner-layer moves such as `Rw` or `2R`), these whole-token aliases are accepted:
+A scramble is move notation in WCA, SiGN or SSE spelling (see [Move notations](#move-notations)) with the moves separated by whitespace. Besides the canonical forms (`R`, `R2`, `R'`, and wide or inner-layer moves such as `Rw` or `2R`), these whole-token aliases are accepted:
 
 | Written | Read as |
 | --- | --- |
@@ -518,7 +518,7 @@ UULUUFUUFRRUBRRURRFFDFFUFFFDDRDDDDDDBLLLLLLLLBRRBBBBBB
 
 ## Draw moves
 
-`moves` prints the plain move sequence an expression stands for (groups, commutators, slices and rotations expanded; `--size N`, `--notation wca|sign`; several words need no quoting, `-` reads stdin):
+`moves` prints the plain move sequence an expression stands for (groups, commutators, slices and rotations expanded; `--size N`, `--notation wca|sign|sse`; several words need no quoting, `-` reads stdin):
 
 ```sh
 cubacle moves --size 7 "(R2 F2 L2)*2"
@@ -536,7 +536,7 @@ cubacle moves R "U'" --icons --format text
 
 ## Move notations
 
-Every command that reads moves (`solve --scramble`, `facelets`, `convert --scramble`, `moves`) reads WCA and SiGN spellings, token by token and without an option. `solve` and `scramble` write either one with `--notation wca|sign` (default `wca`). The move count and the engines are the same in both: every move counts one. `convert` and `random` print a cube, not moves, so they have no such option.
+Every command that reads moves (`solve --scramble`, `facelets`, `convert --scramble`, `moves`) reads WCA, SiGN and SSE spellings, token by token and without an option. `solve`, `scramble`, `moves` and `recover` write any one with `--notation wca|sign|sse` (default `wca`). The move count and the engines are the same in both: every move counts one. `convert` and `random` print a cube, not moves, so they have no such option.
 
 | What is turned | WCA | SiGN |
 | --- | --- | --- |
@@ -555,7 +555,7 @@ Rejected, with the token in the message: `rw` and `3rw` (a lowercase letter alre
 
 #### Where moves are read and written
 
-Moves are read as WCA or SiGN, with groups, commutators and ranges, by `solve --scramble`, `convert --scramble` and `facelets`, by `recover --solution`, by `moves` (its moves and `--from`), and by the `scramble` field of the REST API. Moves are written in either notation by `--notation wca|sign` on `solve` (the solution, the `--icons` step lines and the last line; the icon pictures keep WCA letters), `scramble` and `recover` (every move in the explanation and in `Moves now:` and `Fresh solution:`).
+Moves are read as WCA, SiGN or SSE, with groups, commutators and ranges, by `solve --scramble`, `convert --scramble` and `facelets`, by `recover --solution`, by `moves` (its moves and `--from`), and by the `scramble` field of the REST API. Moves are written in any of the three by `--notation wca|sign|sse` on `solve` (the solution, the `--icons` step lines and the last line; the icon pictures keep WCA letters), `scramble` and `recover` (every move in the explanation and in `Moves now:` and `Fresh solution:`).
 
 ```sh
 cubacle facelets "r U f'"
@@ -571,9 +571,86 @@ D' l f2 F u' d
 
 The first line is the same cube as `cubacle facelets "Rw U Fw'"`. The scramble is random. A 7x7x7 answer reads `U 3Uw 3Lw' B' 3Rw ...` in WCA and `U 3u 3l' B' 3r ...` in SiGN.
 
+#### SSE (Superset ENG)
+
+SSE is the notation of Werner Randelshofer's cube pages, one page per size (2x2 to 7x7). It is read like the others, token by token, and written with `--notation sse`. Only the notation as the six pages describe it was used (read 2026-10-23); no code from the site. Faces are `U R F L D B`, a turn ends in nothing, `2`, `'` or `-` (`R-` is `R'`). Every twist below is expanded into plain moves when it is read, so the engines and the move count never see it.
+
+| Prefix | Twist | Layers turned, counted from the face named (1 is its own layer) | Examples |
+| --- | --- | --- | --- |
+| none | face | 1 | `R`, `U'`, `F2` |
+| `T` | tier | 1 to d, d from 2 (default 2) | `TR`, `T3R'` |
+| `N` | numbered layer | layer k (default 2) | `NL`, `N4R` |
+| `N` | numbered range | layers a to b | `N2-4R` |
+| `V` | void | 2 to d+1, d from 1 (default 2) | `VR`, `V3R` |
+| `M` | mid-layer | k layers in the middle (default 1) | `MR`, `M2R` |
+| `W` | wide-layer | all but the two outer faces, `M` of n-2 layers | `WR` |
+| `S` | slice | 1 to d from the face and from the opposite face (default 1), both the same way round the axis | `SR` (is `R L'`), `S2R` |
+| `S` | slice range | a to b from both faces | `S2-4R` |
+| `C` | cube rotation | all | `CR`, `CU'` |
+
+What exists on each size follows the six pages, and anything else is refused with the position and the reason:
+
+| Size | Face | `T` | `M` | `W` | `S` (examples) | `N`, `V`, `N` ranges | `C` |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 2x2x2 | yes | no (a 2-layer tier is the cube) | no | no | no (would turn every layer) | no | yes |
+| 3x3x3 | yes | `TR` only | `MR` | no (use `MR`) | `SR` | no | yes |
+| 4x4x4 | yes | `TR`, `T3R` | `MR`, `M2R` | `WR` (is `M2R`) | `SR`, `S2-2R` | no | yes |
+| 5x5x5 | yes | up to `T4R` | up to `M3R` | `WR` (is `M3R`) | `SR`, `S2R`, `S2-3R` | yes | yes |
+| 6x6x6 | yes | up to `T5R` | up to `M4R` | `WR` (is `M4R`) | `S2R`, `S2-4R` | yes | yes |
+| 7x7x7 | yes | up to `T6R` | up to `M5R` | `WR` (is `M5R`) | `S3R`, `S2-5R` | yes | yes |
+
+The same moves in the three notations (each row was run with `cubacle moves --size N --notation wca|sign|sse`):
+
+| Size | WCA | SiGN | SSE |
+| --- | --- | --- | --- |
+| 2x2x2 | `R'` | `R'` | `R'` |
+| 3x3x3 | `Rw` | `r` | `TR` |
+| 3x3x3 | `2L'` | `2L'` | `ML'` |
+| 4x4x4 | `3Rw'` | `3r'` | `T3R'` |
+| 4x4x4 | `2R`, `3R` | `2R`, `3R` | `MR`, `ML'` |
+| 5x5x5 | `2R`, `3R`, `4R2` | `2R`, `3R`, `4R2` | `NR`, `MR`, `N4R2` |
+| 6x6x6 | `3R`, `4R` | `3R`, `4R` | `MR`, `N4R` |
+| 7x7x7 | `2R`, `4R` | `2R`, `4R` | `NR`, `MR` |
+| 7x7x7 | `2-4Rw` | `2-4r` | `T4R R'` (`moves` writes plain moves; `--optimise ranges` writes `V3R`) |
+
+```sh
+cubacle moves --size 7 --notation wca "TR T3R NL N4R V3U MR WF N2-5R'"
+cubacle moves --size 5 "SR S2R S2-3R CR"
+cubacle moves --size 3 "x M S' E2"
+cubacle facelets --size 3 "MR SU CF2 R-"
+cubacle facelets --size 3 "2R U D' z2 R'"
+cubacle solve --size 4 -s "R U 2R 2U' f 2L' B2 D" --notation sse --optimise ranges
+cubacle facelets --size 4 "R N2R"
+```
+
+```text
+Rw 3Rw 2L 4R 4Uw U' 4R 6Fw F' 5Rw' R
+R L' Rw Lw' 4Rw R' 4Rw L'
+Rw L' 2L 2F' 2D2
+DDLBBBDDLFLFDLDFLFRRDFDBRRDUURFFFUURBUBRRRBUBULLFUBULL
+DDLBBBDDLFLFDLDFLFRRDFDBRRDUURFFFUURBUBRRRBUBULLFUBULL
+D' B2 ML TF' MU MR' U' R'
+error: scramble is not valid move notation (character 2: invalid move "N2R" (N twists exist from the 5x5 on; use M, W or T on smaller cubes))
+```
+
+The two `facelets` lines print the same cube, as do the spellings. The `solve` line also prints `moves 11` and `compressed moves 8` on stderr.
+
+How the three notations are told apart, and the decisions that were needed:
+
+- A word is SSE when it starts with one of `T N V M S W C`, has optional numbers, and then a face letter. `M`, `M2`, `S'`, `S2`, `E` and `x y z` have no face letter after the prefix, so they keep their WCA meaning (the middle slices of an odd cube and the whole-cube rotations). `SR` and `MR` were not WCA spellings before, so nothing changed meaning. SSE uses capitals only; SiGN's lowercase letters and ranges that start with a digit (`2-3r`) cannot be mistaken for it.
+- `(R U F)3`, `(R U)'`, `(R U)*3` and `[A, B]` are the groups that already existed; SSE's `(R U F)3` is the same.
+- `S` takes the layers from both faces as one set, turned the same way round the axis: `SR` is `R L'`, not `R L`. Where the two ends of a slice range meet, the layer is turned once (`S2-3R` on a 5x5 is layers 2 to 4). `S2R` is the layers 1 and 2 of both faces, not layer 2 alone; this is read off the 4x4 page, which lists `S2-2R` but no `S2R`.
+- The pages write a twist that "is equivalent" in a shorter form (`S2-4F2` is written `SF2`). Such pairs differ by a rotation of the whole cube, which changes the state, so this program reads each as the layers it names and does not swap them. On the other hand, a range that starts at layer 1 or ends at the last layer, a one-layer range, and the forms the pages call never used (`T1R`, `T2R`, `N2R`, `M1R`, `V2R`) are read as the layers they name, so non-canonical spellings are accepted and written back in the canonical one.
+- On a cube with an even number of layers the middle layers closer to the face named are meant: `MR` is layer 2 of a 4x4 and layer 3 of a 6x6 counted from `R`, and `M3R` on a 6x6 is layers 2 to 4. The 4x4 has no `N`, so layer 3 from `R` is written from the other side, `ML'`.
+- A void twist `V3R` and a numbered range `N2-4R` name the same layers (both appear in the 7x7 page). The writer keeps the shorter form in this order: a tier (layers from layer 1, or to the last layer from the opposite face, turned the other way), `WR`, a void twist, `MR`/`M2R` in the middle, `N`, then `N2-4R`. So `N2-4R` is read, `V3R` is written.
+- Writing is per turn. `R L'` stays two moves; `S` is only read. `--optimise ranges` writes the merged blocks (`VR`, `M2R`, `N3-5R`, `T4L'`).
+- The pages also describe permutation and orientation cycles of individual cubies. They are not supported: such text is rejected with the position of the first token that is not a move (`(UFR,URB) R` gives `character 1: invalid move "UFR"`).
+- `parse_moves` (the library function with no cube size) reads the twists that do not depend on the size (`T`, `N`, `V`, `-`); `M`, `W`, `S` and `C` need the size and are read by `parse_expression`, which every command uses.
+
 Sources read for these rules (2026-10-23):
 
 - WCA Regulations, Article 12a2 (<https://www.worldcubeassociation.org/regulations/#article-12-notation>): `nRw` moves the n outer layers, `Rw` is `2Rw`, `1Rw` is invalid, `3Rw` is valid from the 4x4x4. The article defines no `2R` and no lowercase big-cube letters (lowercase only for Pyraminx vertices).
+- Werner Randelshofer's Superset ENG pages, one per size (<https://www.randelshofer.ch/rubik/pocket/doc/supersetENG_2x2.html>, <https://www.randelshofer.ch/rubik/patterns/doc/supersetENG_3x3.html>, <https://www.randelshofer.ch/rubik/revenge/doc/supersetENG_4x4.html>, <https://www.randelshofer.ch/rubik/professor/doc/supersetENG_5x5.html>, <https://www.randelshofer.ch/rubik/vcube6/doc/supersetENG_6x6.html>, <https://www.randelshofer.ch/rubik/vcube7/doc/supersetENG_7x7.html>): the twists, their defaults and which exist on which size, as in the SSE section above.
 - The SiGN description on mzrg.com (<https://mzrg.com/rubik/nota.shtml>): capital letters turn a single layer, lowercase letters several layers; a number before the letter names the layer, or for lowercase the deepest layer of a turn that includes the outer one, with `u` for `2u`; a range such as `2-5r` is written with a dash.
 
 Depth conventions: the sources agree on `2R` (only the second layer) and `3r` (the three outer layers), so there was no choice to make. `3R` (only the third layer) is the same in both. The one choice is `2r`, which mzrg writes `r`: it is accepted on input and written `r`. The speedsolving.com wiki could not be fetched (HTTP 403), and a forum proposal for `r3` was not taken as a convention.
