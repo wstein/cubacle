@@ -192,7 +192,7 @@ O B O G Y W
 
 token: FpkdfDU1GuT4
 step 1 of 3: D2
-D2 -> (half turn)
+D2 → (half turn)
 ...
 ```
 
