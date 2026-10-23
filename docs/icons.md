@@ -10,12 +10,13 @@ A move icon (a "minicube": a small cube picture with an arrow, also called an ar
 
 ## What an icon shows
 
-An icon shows the Front, Up and Right faces of the cube in an oblique view, with every sticker of the N×N×N grid (2 to 7) in the real colours of the cube state before the move.
+An icon shows the Front, Up and Right faces of the cube in a deep oblique view, with every flat, bright sticker of the N×N×N grid (2 to 7) in the real colours of the cube state before the move.
 
-- **Moving layers** keep their colours at full brightness and everything else is darkened to 45 percent. With `--grey`, the moving layers turn grey instead.
-- **A red arrow with a white halo** lies on the face where the moving layer is visible, along the whole layer. A "2" badge on the arrow marks a half turn.
-- **A curved cyan arrow** over the whole cube marks the rotations `x`, `y` and `z`.
-- **The notation** is written beside the cube.
+- **Moving layers** keep their colours at full brightness and everything else is darkened: to 25 percent on a dark background and to 40 percent on a light one (see `--background`). With `--grey`, the moving layers turn grey instead.
+- **A soft violet arrow with a white outline** lies on the face where the moving layer is visible, along the layer with a margin of 12 percent of the face width at both ends. It has a round tail and a head about twice as long as wide with rounded corners. Its size stays the same on the canvas for a given cube size: 4.0 canvas units wide on the 2x2x2, narrowing to 2.8 on the 7x7x7. On the Right face it is foreshortened like the face.
+- **An upright violet "2x"** with a white outline, the same height as the notation, marks a half turn. It sits right of a vertical arrow and above a horizontal one.
+- **A curved violet arrow** over the whole cube marks the rotations `x`, `y` and `z`.
+- **The notation** is written below the cube in Quicksand Bold, always in the same size and on the same baseline. It is light on a dark background and dark on a light one.
 
 | Move | Arrow lies on | Direction |
 | --- | --- | --- |
@@ -28,9 +29,9 @@ An icon shows the Front, Up and Right faces of the cube in an oblique view, with
 
 A prime (`'`) reverses the direction. The direction is derived from the rotation itself and is tested against `Facelets::apply`; it is not drawn by eye.
 
-### Notation in captions
+### Notation
 
-The caption is the canonical notation of the move. `Rw` and `Rw2` turn the two outer layers, `2R` and `2R2` turn only the second layer, and `3Rw` turns the three outer layers. Lowercase `r` is not accepted. The arrow is centred on the turning layers, so a wide move has its arrow between its layers.
+The notation below the cube is the canonical notation of the move. `Rw` and `Rw2` turn the two outer layers, `2R` and `2R2` turn only the second layer, and `3Rw` turns the three outer layers. Lowercase `r` is not accepted. The arrow is centred on the turning layers, so a wide move has its arrow between its layers.
 
 ## Draw an icon
 
@@ -55,12 +56,13 @@ Moving stickers are uppercase and the others lowercase.
 | Option | Meaning |
 | --- | --- |
 | `--format auto\|svg\|rgba\|kitty\|text` | The output format. `auto` (the default) uses Kitty graphics on a capable terminal and text otherwise. |
-| `--size N` | Icon height in pixels. Default: 32 per cube layer, at least 96 (96 for the 2x2x2 and 3x3x3, 128 for the 4x4x4, 224 for the 7x7x7), so stickers stay readable on larger cubes. The width is 1.5 times the height. |
+| `--size N` | Icon height in pixels. Default: 32 per cube layer, at least 96 (96 for the 2x2x2 and 3x3x3, 128 for the 4x4x4, 224 for the 7x7x7), so stickers stay readable on larger cubes. The canvas is 114 by 109.2 units, so the width is about 1.04 times the height (100 by 96 pixels by default). |
 | `--cube N` | Cube size, 2 to 7, 3 by default. |
 | `--out FILE` | Write to a file instead of standard output. |
 | `--scheme boy\|jp` | Colour scheme, `boy` by default; six letters in `URFDLB` order also work. |
 | `--from SCRAMBLE` | Start from the cube that this scramble produces. |
-| `--opaque` | Give the Kitty picture a dark opaque background (transparent by default, so it takes the colours of the terminal). |
+| `--background dark\|light` | What the icon is seen on, `dark` by default. It sets the dimming (25 or 40 percent) and the colour of the notation (light or dark). |
+| `--opaque` | Paint a solid background of the `--background` colour (`#20242b` for dark, white for light) behind SVG, RGBA and Kitty output. The default is transparent, so the picture takes the colours of the terminal or page. |
 | `--cumulative` | Draw each move on the cube left by the moves before it. |
 | `--grey` | Grey the moving layers instead of darkening the rest. |
 
@@ -76,13 +78,13 @@ cubacle icon "Rw'" --cube 5 --format svg --out rw.svg
 cubacle solve --scramble "R U" --icons
 ```
 
-Each step prints `step i of n: MOVE` and then the icon of the cube before that step. Without `--icons`, the output of `solve` does not change. The colours come from `--scheme` (`boy` by default).
+Each step prints `step i of n: MOVE` and then the icon of the cube before that step. Without `--icons`, the output of `solve` does not change. The colours come from `--scheme` (`boy` by default). `--background dark|light` (dark by default) chooses the dimming and the notation colour as for `icon`; it needs `--icons`.
 
 ## Terminal support
 
 `cubacle` writes Kitty graphics when standard output is a terminal and the environment names a terminal that supports the [Kitty graphics protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/): `KITTY_WINDOW_ID` is set, `TERM` is `xterm-kitty`, or `TERM_PROGRAM` is `ghostty` or `WezTerm`. Other terminals get coloured text, or plain text when `NO_COLOR` is set, `TERM` is `dumb` or standard output is not a terminal.
 
-The Kitty output transmits raw RGBA (`a=T,f=32`) in chunks of at most 4096 base64 bytes, with `m=1` on every chunk but the last. It first erases the terminal rows that the image covers, steps back up, draws the image with `C=1` (the cursor does not move) and then steps down below it, so older text cannot show through and later output does not overlap. The icon background is transparent by default, so it takes the colours of the terminal and does not drift against other backgrounds; the covered rows are erased first, so older text cannot show through. `--opaque` draws a dark backdrop instead, for light terminals where the white letters would vanish. Only the height in rows (`r`) is sent, so the terminal keeps the aspect ratio whatever its cell shape; the row count assumes about 16 pixels per row, which is an estimate and not queried. The encoding is covered by unit tests; the drawing was seen in a Kitty-protocol terminal by the owner.
+The Kitty output transmits raw RGBA (`a=T,f=32`) in chunks of at most 4096 base64 bytes, with `m=1` on every chunk but the last. It first erases the terminal rows that the image covers, steps back up, draws the image with `C=1` (the cursor does not move) and then steps down below it, so older text cannot show through and later output does not overlap. The icon background is transparent by default, so it takes the colours of the terminal and does not drift against other backgrounds; the covered rows are erased first, so older text cannot show through. `--opaque` paints a solid backdrop of the `--background` colour instead. On a light terminal use `--background light`, so that the notation is dark and the dimming suits the backdrop; the choice is not detected from the terminal. Only the height in rows (`r`) is sent, so the terminal keeps the aspect ratio whatever its cell shape; the row count assumes about 16 pixels per row, which is an estimate and not queried. The encoding is covered by unit tests; the drawing was seen in a Kitty-protocol terminal by the owner.
 
 ## Use the module
 
@@ -99,7 +101,9 @@ let escapes = pixels.to_kitty(&KittyPlacement::default());
 assert!(svg.starts_with("<svg") && escapes.starts_with("\x1b_G"));
 ```
 
-`render` depends only on `puzzle`, does no I/O and keeps no state. The SVG is built from filled polygons with two-decimal numbers, so the same input always gives the same text. The `Style` sets the palette, the shading and a target size in pixels; the size only widens gaps and arrows so that icons at 64 to 128 pixels stay crisp, and the SVG scales freely.
+`render` depends only on `puzzle`, does no I/O and keeps no state. The SVG is built from filled polygons with two-decimal numbers, so the same input always gives the same text. The `Style` sets the palette, the shading, the `Backdrop` (dark or light), an optional solid background and a target size in pixels; the size only widens gaps and arrows so that icons at 64 to 128 pixels stay crisp, and the SVG scales freely.
+
+The notation and the `2x` are glyph outlines of Quicksand Bold, converted to polygons and embedded in the program, so SVG, pixels and Kitty graphics look the same and no font is needed. The font is under the SIL Open Font License; see `NOTICE.md` in the repository.
 
 Examples of the SVG output are in `tests/fixtures/icons/`.
 
