@@ -3,6 +3,7 @@
 use cubacle::phases::{from_stages, phases};
 use cubacle::puzzle::{Facelets, MoveSequence, SolveStage};
 use cubacle::recover::{Advice, Finding, Plan};
+use cubacle::render::differing_stickers;
 
 use crate::steps::{Pictures, SolutionIcons};
 
@@ -33,12 +34,17 @@ pub(crate) fn render(
     plan: &Plan,
     fresh_stages: &[SolveStage],
 ) -> Result<String, String> {
-    let pictures = Pictures::new(original.kind().size(), options);
+    let pictures = Pictures::new(original.kind().size(), options).collapsing_empty_phases();
     let mut out = String::new();
     if let Some(right) = right_moves(plan) {
         if let Some(should) = after(original, &plan.solution, right) {
             let was = format!("Should be, after step {right} (the last correct one)");
-            out.push_str(&pictures.states(&[(&was, &should), ("Is now", current)])?);
+            out.push_str(&pictures.states_against((&was, &should), ("Is now", current))?);
+            let differ = differing_stickers(current, &should);
+            let all = current.stickers().len();
+            out.push_str(&format!(
+                "Stickers that differ: {differ} of {all} (marked amber in graphics rows, on the visible faces).\n"
+            ));
         }
     }
     let Some(moves) = plan.moves() else {

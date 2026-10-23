@@ -10,7 +10,9 @@ use std::io::Write;
 use cubacle::notation::{orbit64, ColourScheme, Notation};
 use cubacle::phases::Phase;
 use cubacle::puzzle::{Facelets, Move, MoveSequence, Turn};
-use cubacle::render::{icon, state_icon, Action, KittyPlacement, Raster, Rgb, Style};
+use cubacle::render::{
+    icon, state_icon, state_icon_against, Action, Icon, KittyPlacement, Raster, Rgb, Style,
+};
 
 use crate::icons::{default_height, detect_stdout, show, style, Background, Graphics};
 use crate::rows;
@@ -54,6 +56,31 @@ pub(crate) fn phase_heading(phase: &Phase) -> String {
     }
     let unit = if count == 1 { "move" } else { "moves" };
     format!("Phase {}: {} ({count} {unit})", phase.number, phase.name)
+}
+
+/// The heading of `found[at]`. With `collapse`, a run of empty phases gets one
+/// line, `Phases 1-5: nothing to do`, on its first phase and none on the
+/// others (`None`); a lone empty phase keeps its own heading.
+pub(crate) fn heading_at(found: &[Phase], at: usize, collapse: bool) -> Option<String> {
+    let phase = &found[at];
+    if !collapse || !phase.moves.is_empty() {
+        return Some(phase_heading(phase));
+    }
+    if at > 0 && found[at - 1].moves.is_empty() {
+        return None;
+    }
+    let run = found[at..]
+        .iter()
+        .take_while(|p| p.moves.is_empty())
+        .count();
+    if run == 1 {
+        return Some(phase_heading(phase));
+    }
+    Some(format!(
+        "Phases {}-{}: nothing to do",
+        phase.number,
+        found[at + run - 1].number
+    ))
 }
 
 /// The `--verbose` line of a phase: `phase 2: edges, moves 15-27`, or
@@ -156,6 +183,7 @@ pub struct Pictures<'a> {
     terminal: Terminal,
     style: Style,
     options: &'a SolutionIcons,
+    collapse_empty: bool,
 }
 
 impl<'a> Pictures<'a> {
@@ -177,7 +205,14 @@ impl<'a> Pictures<'a> {
             terminal,
             style,
             options,
+            collapse_empty: false,
         }
+    }
+
+    /// Runs of phases with nothing to do get one heading line (`recover`).
+    pub fn collapsing_empty_phases(mut self) -> Pictures<'a> {
+        self.collapse_empty = true;
+        self
     }
 
     /// The step pictures of a solution (no start line, no final moves line).
@@ -195,6 +230,7 @@ impl<'a> Pictures<'a> {
                 self.options.columns,
                 &self.terminal,
                 &self.style,
+                self.collapse_empty,
             )
         } else {
             text_steps(
@@ -208,20 +244,36 @@ impl<'a> Pictures<'a> {
         }
     }
 
+    /// The cube as it should be and as it is, the second marked where it
+    /// differs from the first.
+    pub fn states_against(
+        &self,
+        should: (&str, &Facelets),
+        now: (&str, &Facelets),
+    ) -> Result<String, String> {
+        self.states_with(&[
+            (should.0, state_icon(should.1, &self.style), should.1),
+            (
+                now.0,
+                state_icon_against(now.1, should.1, &self.style),
+                now.1,
+            ),
+        ])
+    }
+
     /// Whole-cube pictures, each under its label and followed by its token.
-    pub fn states(&self, states: &[(&str, &Facelets)]) -> Result<String, String> {
+    fn states_with(&self, states: &[(&str, Icon, &Facelets)]) -> Result<String, String> {
         let mut out = String::new();
-        for (label, state) in states {
+        for (label, drawn, state) in states {
             out.push_str(label);
             out.push('\n');
-            let drawn = state_icon(state, &self.style);
             if self.graphics == Graphics::Kitty {
                 out.push_str(&kitty_block(
                     &drawn.to_rgba(self.style.size),
                     self.terminal.cell.1,
                 ));
             } else {
-                out.push_str(&show(&drawn, self.graphics, self.style.size));
+                out.push_str(&show(drawn, self.graphics, self.style.size));
                 out.push('\n');
             }
             let token = orbit64::encode(state).map_err(|error| error.to_string())?;
@@ -288,6 +340,7 @@ fn kitty_steps(
     columns: Option<usize>,
     terminal: &Terminal,
     style: &Style,
+    collapse_empty: bool,
 ) -> Result<String, String> {
     let total = solution.len();
     let moves = solution.moves();
@@ -313,10 +366,13 @@ fn kitty_steps(
         moves: 0..total,
     }];
     let named = !found.is_empty();
-    for phase in if named { found } else { &whole } {
+    let phases = if named { found } else { &whole };
+    for (at, phase) in phases.iter().enumerate() {
         if named {
-            out.push_str(&phase_heading(phase));
-            out.push('\n');
+            if let Some(heading) = heading_at(phases, at, collapse_empty) {
+                out.push_str(&heading);
+                out.push('\n');
+            }
         }
         if phase.moves.is_empty() {
             continue;
@@ -382,6 +438,35 @@ mod tests {
                 "Phase 2: b (4 moves)",
                 "Phase 3: c (5 moves)"
             ]
+        );
+    }
+
+    #[test]
+    fn empty_phases_collapse_into_one_line() {
+        let stages = [
+            cubacle::puzzle::SolveStage { name: "a", end: 0 },
+            cubacle::puzzle::SolveStage { name: "b", end: 0 },
+            cubacle::puzzle::SolveStage { name: "c", end: 0 },
+            cubacle::puzzle::SolveStage { name: "d", end: 4 },
+            cubacle::puzzle::SolveStage { name: "e", end: 4 },
+            cubacle::puzzle::SolveStage { name: "f", end: 9 },
+        ];
+        let found = cubacle::phases::from_stages(&stages, 9).unwrap();
+        let lines: Vec<Option<String>> = (0..found.len())
+            .map(|i| heading_at(&found, i, true))
+            .collect();
+        let want = [
+            Some("Phases 1-3: nothing to do"),
+            None,
+            None,
+            Some("Phase 4: d (4 moves)"),
+            Some("Phase 5: e (nothing to do)"),
+            Some("Phase 6: f (5 moves)"),
+        ];
+        assert_eq!(lines, want.map(|l| l.map(str::to_owned)));
+        assert_eq!(
+            heading_at(&found, 0, false).as_deref(),
+            Some("Phase 1: a (nothing to do)")
         );
     }
 
