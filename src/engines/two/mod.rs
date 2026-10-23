@@ -416,6 +416,7 @@ impl Solver for PocketSolver {
                     elapsed: started.elapsed(),
                     probes: None,
                 },
+                stages: Vec::new(),
             };
 
         if facelets.kind() != PuzzleKind::Cube2 {

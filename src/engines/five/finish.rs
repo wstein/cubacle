@@ -6,9 +6,10 @@
 
 use std::time::{Duration, Instant};
 
+use super::reduction::Reduction;
 use super::solver::{join, move_of, three_by_three, FiveSolver};
-use crate::puzzle::normalise;
-use crate::puzzle::{Facelets, Failure, Move, MoveSequence, SolveOptions};
+use crate::puzzle::{normalise, stage_ends};
+use crate::puzzle::{Facelets, Failure, Move, MoveSequence, SolveOptions, SolveStage};
 use crate::reduction::improve::Plan;
 
 /// The longest 3x3x3 hand-off the search is asked for.
@@ -21,6 +22,58 @@ const HAND_OFF_BUDGET: Duration = Duration::from_secs(10);
 /// Phase 2 probes the 3x3x3 stage makes at least, unless the caller asks for
 /// another number (as the 4x4x4 does).
 const HAND_OFF_PROBES: u64 = 500;
+
+/// The stages of the answer as a learner sees them, each with the last of the
+/// five phases it ends with. Phases 1 and 2 bring each pair of opposite
+/// colours onto its own axis, phase 3 puts the wings into slots, phases 4 and
+/// 5 pair them and finish the centres. The 3x3x3 stage follows.
+const GROUPS: [(&str, usize); 3] = [
+    ("centres staged", 2),
+    ("wings staged", 3),
+    ("centres and wings paired", 5),
+];
+
+/// The name of the stage that the 3x3x3 solver makes.
+const THREE_STAGE: &str = "3x3 stage";
+
+/// A finished answer: the solution, the probes made and the stages.
+pub(super) struct Finished {
+    pub solution: MoveSequence,
+    pub probes: Option<u64>,
+    pub stages: Vec<SolveStage>,
+}
+
+/// The stages of an answer: the learner-level groups of the five phases and,
+/// if the 3x3x3 stage ran, that one. `raw` is the reduction followed by the
+/// 3x3x3 tail, unmerged, so that the phase ends in it are exact; `fin` is the
+/// answer after normalising.
+fn stages(
+    start: &Facelets,
+    raw: &[Move],
+    phase_ends: &[usize],
+    fin: &[Move],
+    three: bool,
+) -> Vec<SolveStage> {
+    let head = phase_ends.last().copied().unwrap_or(0);
+    let mut names: Vec<&'static str> = GROUPS.iter().map(|&(name, _)| name).collect();
+    let mut ends: Vec<usize> = GROUPS
+        .iter()
+        .map(|&(_, last)| phase_ends.get(last - 1).copied().unwrap_or(head))
+        .collect();
+    if three {
+        names.push(THREE_STAGE);
+        ends.push(raw.len());
+    } else if let Some(last) = ends.last_mut() {
+        // the reduction alone ends with the last group
+        *last = raw.len();
+    }
+    let mapped = stage_ends(start, raw, &ends, fin, &[]);
+    names
+        .into_iter()
+        .zip(mapped)
+        .map(|(name, end)| SolveStage { name, end })
+        .collect()
+}
 
 /// Why a reduction could not be finished.
 pub(super) struct Miss {
@@ -42,13 +95,19 @@ impl FiveSolver {
     pub(super) fn finish(
         &self,
         facelets: &Facelets,
-        reduction: &[u8],
+        reduction: &Reduction,
         options: &SolveOptions,
         deadline: Option<Instant>,
-    ) -> Result<(MoveSequence, Option<u64>), Miss> {
-        let head: Vec<Move> = reduction.iter().map(|&code| move_of(code)).collect();
+    ) -> Result<Finished, Miss> {
+        let head: Vec<Move> = reduction.moves.iter().map(|&c| move_of(c)).collect();
         if options.reduce_only {
-            return Ok((MoveSequence::new(normalise(5, &head, false)), None));
+            let fin = normalise(5, &head, false);
+            let stages = stages(facelets, &head, &reduction.ends, &fin, false);
+            return Ok(Finished {
+                solution: MoveSequence::new(fin),
+                probes: None,
+                stages,
+            });
         }
         let Ok(reduced) = facelets.apply(&MoveSequence::new(head.clone())) else {
             return Err(miss(
@@ -113,7 +172,11 @@ impl FiveSolver {
                 "the 3x3x3 stage returned a move this cube cannot make as a 3x3x3 turn",
             ));
         }
-        let solution = MoveSequence::new(normalise(5, &join(head, tail.moves()), options.slices));
+        let fin = normalise(5, &join(head.clone(), tail.moves()), options.slices);
+        let mut raw = head;
+        raw.extend_from_slice(tail.moves());
+        let stages = stages(facelets, &raw, &reduction.ends, &fin, true);
+        let solution = MoveSequence::new(fin);
         if !facelets.apply(&solution).is_ok_and(|end| end.is_solved()) {
             return Err(miss(
                 Failure::Internal,
@@ -126,7 +189,11 @@ impl FiveSolver {
                 "the solution is longer than the move limit",
             ));
         }
-        Ok((solution, probes))
+        Ok(Finished {
+            solution,
+            probes,
+            stages,
+        })
     }
 
     /// The shortest solution through any of `reductions`, each finished with
@@ -136,30 +203,36 @@ impl FiveSolver {
     pub(super) fn finish_best(
         &self,
         facelets: &Facelets,
-        reductions: &[Vec<u8>],
+        reductions: &[Reduction],
         options: &SolveOptions,
         deadline: Option<Instant>,
         plan: Plan,
-    ) -> Result<(MoveSequence, Option<u64>), Miss> {
+    ) -> Result<Finished, Miss> {
         let tail_options = SolveOptions {
             min_probes: Some(plan.probes.max(HAND_OFF_PROBES)),
             ..*options
         };
-        let mut best: Option<MoveSequence> = None;
+        let mut best: Option<Finished> = None;
         let mut probes = 0u64;
         for (n, reduction) in reductions.iter().enumerate() {
             match self.finish(facelets, reduction, &tail_options, deadline) {
-                Ok((solution, used)) => {
-                    probes += used.unwrap_or(0);
-                    if best.as_ref().is_none_or(|b| solution.len() < b.len()) {
-                        best = Some(solution);
+                Ok(done) => {
+                    probes += done.probes.unwrap_or(0);
+                    if best
+                        .as_ref()
+                        .is_none_or(|b| done.solution.len() < b.solution.len())
+                    {
+                        best = Some(done);
                     }
                 }
                 Err(miss) if n == 0 => return Err(miss),
                 Err(_) => break,
             }
         }
-        best.map(|solution| (solution, Some(probes)))
-            .ok_or_else(|| miss(Failure::Internal, "no reduction to finish"))
+        best.map(|done| Finished {
+            probes: Some(probes),
+            ..done
+        })
+        .ok_or_else(|| miss(Failure::Internal, "no reduction to finish"))
     }
 }

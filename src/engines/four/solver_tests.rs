@@ -82,6 +82,7 @@ impl Solver for Stub {
             outcome: self.reply.map(|text| text.parse().expect("stub moves")),
             message: None,
             metrics: SolveMetrics::default(),
+            stages: Vec::new(),
         }
     }
 }

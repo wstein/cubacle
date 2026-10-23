@@ -228,6 +228,7 @@ impl FiveSolver {
                 elapsed: started.elapsed(),
                 probes,
             },
+            stages: Vec::new(),
         };
         let fail =
             |failure: Failure, message: &str| done(Err(failure), Some(message.to_owned()), None);
@@ -296,7 +297,10 @@ impl FiveSolver {
             Some(plan) => self.finish_best(facelets, &reductions, options, deadline, plan),
         };
         match outcome {
-            Ok((solution, probes)) => done(Ok(solution), None, probes),
+            Ok(finished) => SolveResult {
+                stages: finished.stages,
+                ..done(Ok(finished.solution), None, finished.probes)
+            },
             Err(miss) => done(Err(miss.failure), Some(miss.message), None),
         }
     }

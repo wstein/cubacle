@@ -59,6 +59,7 @@ impl Solver for Stub {
                 .map(|text| text.parse::<MoveSequence>().unwrap()),
             message: None,
             metrics: SolveMetrics::default(),
+            stages: Vec::new(),
         }
     }
 }
@@ -138,6 +139,47 @@ fn scrambled_cubes_are_solved_and_replay() {
         assert!(cube.apply(solution).unwrap().is_solved(), "seed {seed}");
         assert!(solution.moves().iter().all(|m| m.depth <= 2));
     }
+}
+
+/// Whether the centre stickers of every face show one colour.
+fn centres_uniform(cube: &Facelets) -> bool {
+    let s = cube.stickers();
+    (0..6).all(|f| (1..4).all(|r| (1..4).all(|c| s[f * 25 + r * 5 + c] == s[f * 25 + 12])))
+}
+
+#[test]
+fn the_stages_cover_the_answer_and_the_reduction_ends_reduced() {
+    let solver = real();
+    let names = [
+        "centres staged",
+        "wings staged",
+        "centres and wings paired",
+        "3x3 stage",
+    ];
+    for seed in 0..12 {
+        let cube = scrambled(seed + 40, 6);
+        let result = solver.solve(&cube, &SolveOptions::default());
+        let solution = result.solution().expect("a solution");
+        let got: Vec<&str> = result.stages.iter().map(|s| s.name).collect();
+        assert_eq!(got, names, "seed {seed}");
+        let ends: Vec<usize> = result.stages.iter().map(|s| s.end).collect();
+        assert!(ends.windows(2).all(|w| w[0] <= w[1]), "{ends:?}");
+        assert_eq!(ends[3], solution.len(), "seed {seed}");
+        let reduced = cube
+            .apply(&MoveSequence::new(solution.moves()[..ends[2]].to_vec()))
+            .unwrap();
+        assert!(centres_uniform(&reduced), "seed {seed}: {ends:?}");
+    }
+}
+
+#[test]
+fn a_reduction_only_answer_has_the_three_reduction_stages() {
+    let cube = scrambled(77, 6);
+    let result = real().solve(&cube, &SolveOptions::default().with_reduce_only(true));
+    let solution = result.solution().expect("a reduction");
+    let got: Vec<(&str, usize)> = result.stages.iter().map(|s| (s.name, s.end)).collect();
+    assert_eq!(got.len(), 3);
+    assert_eq!(got[2], ("centres and wings paired", solution.len()));
 }
 
 #[test]

@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use super::{Facelets, MoveSequence, PuzzleKind};
+use super::{Facelets, MoveSequence, PuzzleKind, SolveStage};
 
 /// Limits for one solve. The defaults impose none beyond the engine's own.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -86,6 +86,10 @@ pub struct SolveResult {
     pub outcome: Result<MoveSequence, Failure>,
     pub message: Option<String>,
     pub metrics: SolveMetrics,
+    /// The engine's own stages, in order, covering the solution exactly (see
+    /// [`SolveStage`]); empty when the engine reports none. Their ends are
+    /// positions in the final `solution`, after the engine's normalising.
+    pub stages: Vec<SolveStage>,
 }
 
 impl SolveResult {

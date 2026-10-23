@@ -156,6 +156,7 @@ impl FourSolver {
                 elapsed: started.elapsed(),
                 probes,
             },
+            stages: Vec::new(),
         };
         let fail =
             |failure: Failure, message: &str| done(Err(failure), Some(message.to_owned()), None);

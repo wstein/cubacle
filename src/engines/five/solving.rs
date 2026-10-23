@@ -13,6 +13,8 @@ pub(super) struct Solving {
     conj: usize,
     /// The moves made, in the orientation of the original cube.
     pub moves: Vec<u8>,
+    /// The number of moves made when each phase ended, in order.
+    pub ends: Vec<usize>,
 }
 
 impl Solving {
@@ -21,6 +23,7 @@ impl Solving {
             cube,
             conj: 0,
             moves: Vec::new(),
+            ends: Vec::new(),
         }
     }
 

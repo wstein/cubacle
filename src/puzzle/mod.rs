@@ -11,6 +11,7 @@ mod kind;
 mod moves;
 mod orbits;
 mod solver;
+mod stages;
 
 pub use apply::ApplyError;
 pub(crate) use apply::{destinations, locate};
@@ -21,3 +22,5 @@ pub use kind::PuzzleKind;
 pub use moves::{Move, MoveSequence, NotationError, Turn};
 pub(crate) use orbits::{centre_orbits, wing_orbits};
 pub use solver::{Failure, SolveMetrics, SolveOptions, SolveResult, Solver};
+pub(crate) use stages::stage_ends;
+pub use stages::SolveStage;

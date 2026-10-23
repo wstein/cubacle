@@ -233,6 +233,7 @@ fn into_result(stats: SolveStats, started: Instant) -> SolveResult {
                 outcome: Ok(solution),
                 message: None,
                 metrics: metrics(started, probes),
+                stages: Vec::new(),
             },
             Err(error) => failed(
                 Failure::InvalidInput,
@@ -293,6 +294,7 @@ fn failed(failure: Failure, message: String, started: Instant, probes: Option<u6
         outcome: Err(failure),
         message: Some(message),
         metrics: metrics(started, probes),
+        stages: Vec::new(),
     }
 }
 

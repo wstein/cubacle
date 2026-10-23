@@ -21,6 +21,22 @@ use crate::reduction::par;
 
 const KEEP: [usize; 5] = [200, 500, 500, 500, 1];
 
+/// A reduction: its moves (numbers 0 to 35) and, for each of the five
+/// phases, the number of moves made when it ended.
+pub(super) struct Reduction {
+    pub moves: Vec<u8>,
+    pub ends: Vec<usize>,
+}
+
+impl Reduction {
+    fn of(sc: Solving) -> Reduction {
+        Reduction {
+            moves: sc.moves,
+            ends: sc.ends,
+        }
+    }
+}
+
 /// Why the reduction gave no result.
 #[derive(Debug, PartialEq, Eq)]
 pub(super) enum Stuck {
@@ -42,6 +58,7 @@ impl<F: Fn(Solving, &mut Vec<Solving>) + Sync> Collector for Step<'_, F> {
     fn collect(&self, owner: usize, moves: &[u8], out: &mut Vec<Solving>) {
         let mut sc = self.bases[owner].clone();
         sc.do_moves(self.syms, moves);
+        sc.ends.push(sc.moves.len());
         (self.finish)(sc, out);
     }
 }
@@ -98,13 +115,13 @@ pub(super) fn reduce(
     cube: &Cubie,
     threads: usize,
     deadline: Option<Instant>,
-) -> Result<Vec<u8>, Stuck> {
+) -> Result<Reduction, Stuck> {
     let sols4 = first_four(tables, cube, threads, deadline)?;
     let sols5 = last(tables, &sols4, 1, threads, deadline)?;
     sols5
         .into_iter()
         .next()
-        .map(|sc| sc.moves)
+        .map(Reduction::of)
         .ok_or(Stuck::NoWay)
 }
 
@@ -120,7 +137,7 @@ pub(super) fn reduce_many(
     threads: usize,
     (deadline, early): (Option<Instant>, Option<Instant>),
     n: usize,
-) -> Result<Vec<Vec<u8>>, Stuck> {
+) -> Result<Vec<Reduction>, Stuck> {
     let sols4 = first_four(tables, cube, threads, deadline)?;
     let sols5 = match last(tables, &sols4, n, threads, early) {
         Err(Stuck::TimedOut)
@@ -133,7 +150,7 @@ pub(super) fn reduce_many(
     if sols5.is_empty() {
         return Err(Stuck::NoWay);
     }
-    Ok(sols5.into_iter().take(n).map(|sc| sc.moves).collect())
+    Ok(sols5.into_iter().take(n).map(Reduction::of).collect())
 }
 
 fn last(
@@ -296,7 +313,9 @@ mod tests {
                 if threads == 1 && n >= 6 {
                     continue;
                 }
-                let got = reduce(&tables, &cube, threads, None).expect("a reduction");
+                let got = reduce(&tables, &cube, threads, None)
+                    .expect("a reduction")
+                    .moves;
                 assert_eq!(got, expected, "cube {n} with {threads} threads");
             }
         }

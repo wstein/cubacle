@@ -85,6 +85,7 @@ impl DwaltonSolver {
                         elapsed: started.elapsed(),
                         probes: None,
                     },
+                    stages: Vec::new(),
                 },
                 tally.clone(),
             )
@@ -203,6 +204,7 @@ impl DwaltonSolver {
                     elapsed: started.elapsed(),
                     probes: None,
                 },
+                stages: Vec::new(),
             },
             tally,
         )
