@@ -9,7 +9,7 @@ use std::io::Write;
 
 use cubacle::notation::{orbit64, ColourScheme};
 use cubacle::phases::Phase;
-use cubacle::puzzle::{Facelets, MoveSequence};
+use cubacle::puzzle::{Facelets, Move, MoveSequence, Turn};
 use cubacle::render::{icon, state_icon, Action, KittyPlacement, Raster, Style};
 
 use crate::icons::{default_height, detect_stdout, show, style, Background, Graphics};
@@ -92,6 +92,28 @@ pub(crate) fn token_line(phase: &Phase, state: &Facelets) -> Result<String, Stri
     ))
 }
 
+/// The text marker for a quarter turn that stands between two half turns, the
+/// easiest one to do as a half turn.
+const QUARTER_NOTE: &str = "   <-- quarter turn, not a half turn";
+
+/// Whether each move is a quarter turn with a half turn right before and right
+/// after it.
+pub(crate) fn lone_quarters(moves: &[Move]) -> Vec<bool> {
+    let half = |mv: Option<&Move>| mv.is_some_and(|m| m.turn == Turn::Half);
+    (0..moves.len())
+        .map(|i| {
+            moves[i].turn != Turn::Half && i > 0 && half(moves.get(i - 1)) && half(moves.get(i + 1))
+        })
+        .collect()
+}
+
+/// The line above the text picture of a step: `step 3 of 9: F`, with a note
+/// when the move is a lone quarter turn.
+pub(crate) fn step_line(index: usize, total: usize, mv: &Move, lone: bool) -> String {
+    let note = if lone { QUARTER_NOTE } else { "" };
+    format!("step {} of {total}: {mv}{note}\n", index + 1)
+}
+
 /// Each step of the solution with the picture of the cube before it.
 pub fn print_solution(
     start: &Facelets,
@@ -136,10 +158,11 @@ fn text_steps(
     let mut state = start.clone();
     let total = solution.len();
     let mut out = String::new();
+    let lone = lone_quarters(solution.moves());
     for (index, mv) in solution.moves().iter().enumerate() {
         let action = Action::Layer(*mv);
         let drawn = icon(&state, &action, style).map_err(|error| error.to_string())?;
-        out.push_str(&format!("step {} of {total}: {mv}\n", index + 1));
+        out.push_str(&step_line(index, total, mv, lone[index]));
         out.push_str(&show(&drawn, graphics, style.size));
         out.push('\n');
         state = action.apply(&state).map_err(|error| error.to_string())?;
@@ -234,6 +257,23 @@ mod tests {
                 "Phase 2: b (4 moves)",
                 "Phase 3: c (5 moves)"
             ]
+        );
+    }
+
+    #[test]
+    fn a_quarter_turn_between_half_turns_is_flagged() {
+        let seq: MoveSequence = "3Rw2 3Dw2 F 3Uw2 R U R2 B R2 F".parse().unwrap();
+        let lone = lone_quarters(seq.moves());
+        let flagged: Vec<usize> = (0..lone.len()).filter(|&i| lone[i]).collect();
+        assert_eq!(flagged, [2, 7]);
+        let line = step_line(2, 10, &seq.moves()[2], true);
+        assert_eq!(
+            line,
+            "step 3 of 10: F   <-- quarter turn, not a half turn\n"
+        );
+        assert_eq!(
+            step_line(0, 10, &seq.moves()[0], false),
+            "step 1 of 10: 3Rw2\n"
         );
     }
 
