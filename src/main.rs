@@ -251,10 +251,9 @@ fn read_input(input: &InputArgs) -> Result<(Facelets, Option<ColourScheme>), Str
     }
 }
 
-fn solve(args: SolveArgs) -> Result<(), String> {
-    let facelets = read_cube(&args.input)?;
-    improve::check(&args, facelets.kind())?;
-    let solver: Box<dyn Solver> = match facelets.kind() {
+/// The engine for a cube size, prepared; progress goes to standard error.
+fn solver_for(kind: PuzzleKind) -> Box<dyn Solver> {
+    match kind {
         PuzzleKind::Cube2 => Box::new(PocketSolver::new()),
         PuzzleKind::Cube3 => Box::new(Min2PhaseSolver::new()),
         PuzzleKind::Cube4 => {
@@ -278,7 +277,7 @@ fn solve(args: SolveArgs) -> Result<(), String> {
             }
             Box::new(five)
         }
-        kind @ (PuzzleKind::Cube6 | PuzzleKind::Cube7) => {
+        PuzzleKind::Cube6 | PuzzleKind::Cube7 => {
             let three = Arc::new(Min2PhaseSolver::new());
             let four = FourSolver::new(three.clone());
             let five = FiveSolver::new(three.clone());
@@ -294,13 +293,25 @@ fn solve(args: SolveArgs) -> Result<(), String> {
                 Arc::new(five),
             ))
         }
-    };
+    }
+}
 
-    let mut options = SolveOptions::default();
-    match (args.max_moves, facelets.kind()) {
-        (Some(moves), _) => options = options.with_max_moves(moves),
-        (None, PuzzleKind::Cube2 | PuzzleKind::Cube3) => options = options.with_max_moves(21),
-        (None, _) => {}
+/// The limits `solve` applies without options: 21 moves for the 2x2x2 and 3x3x3.
+fn default_options(kind: PuzzleKind) -> SolveOptions {
+    match kind {
+        PuzzleKind::Cube2 | PuzzleKind::Cube3 => SolveOptions::default().with_max_moves(21),
+        _ => SolveOptions::default(),
+    }
+}
+
+fn solve(args: SolveArgs) -> Result<(), String> {
+    let facelets = read_cube(&args.input)?;
+    improve::check(&args, facelets.kind())?;
+    let solver = solver_for(facelets.kind());
+
+    let mut options = default_options(facelets.kind());
+    if let Some(moves) = args.max_moves {
+        options = options.with_max_moves(moves);
     }
     if let Some(millis) = args.budget_ms {
         options = options.with_time_budget(Duration::from_millis(millis));
