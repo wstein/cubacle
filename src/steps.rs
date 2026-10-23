@@ -120,6 +120,95 @@ pub(crate) fn step_line(index: usize, total: usize, mv: &str, lone: bool) -> Str
     format!("step {} of {total}: {mv}{note}\n", index + 1)
 }
 
+/// The picture options `solve` and `recover` share.
+#[derive(clap::Args)]
+pub struct PictureArgs {
+    /// Show each step with a picture of the cube (graphics on a capable terminal)
+    #[arg(long)]
+    pub icons: bool,
+    /// Icon height in pixels for --icons (default: 32 per cube layer, at least 96)
+    #[arg(long, requires = "icons", value_name = "PIXELS")]
+    pub icon_size: Option<u32>,
+    /// What the --icons pictures are seen on: sets the notation colour and the
+    /// dimming (default: ask the terminal, dark when it does not answer)
+    #[arg(long, requires = "icons", value_enum)]
+    pub background: Option<Background>,
+    /// Icons per row for --icons (default: as many as fit the terminal width)
+    #[arg(long, requires = "icons", value_name = "N", value_parser = clap::value_parser!(u32).range(1..))]
+    pub columns: Option<u32>,
+}
+
+impl PictureArgs {
+    pub fn options(&self, scheme: Option<ColourScheme>, notation: Notation) -> SolutionIcons {
+        SolutionIcons {
+            scheme,
+            height: self.icon_size,
+            background: self.background,
+            columns: self.columns.map(|c| c as usize),
+            notation,
+        }
+    }
+}
+
+/// The terminal, the style and the options of one run, set up once.
+pub struct Pictures<'a> {
+    graphics: Graphics,
+    terminal: Terminal,
+    style: Style,
+    options: &'a SolutionIcons,
+}
+
+impl<'a> Pictures<'a> {
+    pub fn new(cube_size: usize, options: &'a SolutionIcons) -> Pictures<'a> {
+        let graphics = detect_stdout();
+        let terminal = if graphics == Graphics::Kitty {
+            terminal::probe(options.background.is_none())
+        } else {
+            Terminal::default()
+        };
+        let background = options.background.unwrap_or(match terminal.background {
+            Some(colour) if colour.is_light() => Background::Light,
+            _ => Background::Dark,
+        });
+        let height = options.height.unwrap_or_else(|| default_height(cube_size));
+        let style = style(options.scheme, height, false, background);
+        Pictures {
+            graphics,
+            terminal,
+            style,
+            options,
+        }
+    }
+
+    /// The step pictures of a solution (no start line, no final moves line).
+    pub fn steps(
+        &self,
+        start: &Facelets,
+        solution: &MoveSequence,
+        found: &[Phase],
+    ) -> Result<String, String> {
+        if self.graphics == Graphics::Kitty {
+            kitty_steps(
+                start,
+                solution,
+                found,
+                self.options.columns,
+                &self.terminal,
+                &self.style,
+            )
+        } else {
+            text_steps(
+                start,
+                solution,
+                found,
+                self.graphics,
+                &self.style,
+                self.options.notation,
+            )
+        }
+    }
+}
+
 /// Each step of the solution with the picture of the cube before it.
 pub fn print_solution(
     start: &Facelets,
@@ -127,26 +216,9 @@ pub fn print_solution(
     found: &[Phase],
     options: &SolutionIcons,
 ) -> Result<(), String> {
-    let graphics = detect_stdout();
-    let terminal = if graphics == Graphics::Kitty {
-        terminal::probe(options.background.is_none())
-    } else {
-        Terminal::default()
-    };
-    let background = options.background.unwrap_or(match terminal.background {
-        Some(colour) if colour.is_light() => Background::Light,
-        _ => Background::Dark,
-    });
-    let height = options
-        .height
-        .unwrap_or_else(|| default_height(start.kind().size()));
-    let style = style(options.scheme, height, false, background);
+    let pictures = Pictures::new(start.kind().size(), options);
     let mut out = start_line(start)?;
-    out.push_str(&if graphics == Graphics::Kitty {
-        kitty_steps(start, solution, found, options.columns, &terminal, &style)?
-    } else {
-        text_steps(start, solution, found, graphics, &style, options.notation)?
-    });
+    out.push_str(&pictures.steps(start, solution, found)?);
     let mut stdout = std::io::stdout().lock();
     stdout
         .write_all(out.as_bytes())
@@ -211,9 +283,19 @@ fn kitty_steps(
     };
     let lone = lone_quarters(moves);
     let per_row = rows::per_row(terminal.width_px, width, rows::GAP, columns);
-    for phase in found {
-        out.push_str(&phase_heading(phase));
-        out.push('\n');
+    // Without phases (a route that is not from solver stages) the moves form
+    // one segment that has no heading and no state picture.
+    let whole = [Phase {
+        number: 0,
+        name: "",
+        moves: 0..total,
+    }];
+    let named = !found.is_empty();
+    for phase in if named { found } else { &whole } {
+        if named {
+            out.push_str(&phase_heading(phase));
+            out.push('\n');
+        }
         if phase.moves.is_empty() {
             continue;
         }
@@ -236,13 +318,15 @@ fn kitty_steps(
             let strip = Raster::hstack(&rasters, rows::GAP);
             out.push_str(&kitty_block(&strip, terminal.cell.1));
         }
-        out.push_str(&state_heading(phase));
-        out.push('\n');
-        out.push_str(&kitty_block(
-            &state_icon(&state, style).to_rgba(style.size),
-            terminal.cell.1,
-        ));
-        out.push_str(&token_line(phase, &state)?);
+        if named {
+            out.push_str(&state_heading(phase));
+            out.push('\n');
+            out.push_str(&kitty_block(
+                &state_icon(&state, style).to_rgba(style.size),
+                terminal.cell.1,
+            ));
+            out.push_str(&token_line(phase, &state)?);
+        }
     }
     Ok(out)
 }

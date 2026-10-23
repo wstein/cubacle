@@ -145,19 +145,8 @@ struct SolveArgs {
     /// Allow single inner layers (2R) in 4x4x4 and 5x5x5 answers where they make them shorter
     #[arg(long)]
     slices: bool,
-    /// Show each step with a picture of the cube (graphics on a capable terminal)
-    #[arg(long)]
-    icons: bool,
-    /// Icon height in pixels for --icons (default: 32 per cube layer, at least 96)
-    #[arg(long, requires = "icons", value_name = "PIXELS")]
-    icon_size: Option<u32>,
-    /// What the --icons pictures are seen on: sets the notation colour and the
-    /// dimming (default: ask the terminal, dark when it does not answer)
-    #[arg(long, requires = "icons", value_enum)]
-    background: Option<icons::Background>,
-    /// Icons per row for --icons (default: as many as fit the terminal width)
-    #[arg(long, requires = "icons", value_name = "N", value_parser = clap::value_parser!(u32).range(1..))]
-    columns: Option<u32>,
+    #[command(flatten)]
+    pictures: steps::PictureArgs,
 }
 
 fn main() -> ExitCode {
@@ -367,7 +356,7 @@ fn solve(args: SolveArgs) -> Result<(), String> {
             }
             eprintln!("moves {}", solution.len());
             // The engine's own stages where it reports them, else the state-based cut.
-            let found = if args.verbose || args.icons {
+            let found = if args.verbose || args.pictures.icons {
                 from_stages(&result.stages, solution.len())
                     .or_else(|| phases(&facelets, &solution).ok())
                     .unwrap_or_default()
@@ -379,18 +368,12 @@ fn solve(args: SolveArgs) -> Result<(), String> {
                     eprintln!("{}", steps::phase_line(phase));
                 }
             }
-            if args.icons {
+            if args.pictures.icons {
                 return steps::print_solution(
                     &facelets,
                     &solution,
                     &found,
-                    &steps::SolutionIcons {
-                        scheme: args.input.scheme,
-                        height: args.icon_size,
-                        background: args.background,
-                        columns: args.columns.map(|c| c as usize),
-                        notation: args.notation,
-                    },
+                    &args.pictures.options(args.input.scheme, args.notation),
                 );
             }
             if args.optimise == Some(Optimise::Ranges) {
