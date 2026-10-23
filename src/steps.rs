@@ -7,7 +7,7 @@
 
 use std::io::Write;
 
-use cubacle::notation::ColourScheme;
+use cubacle::notation::{orbit64, ColourScheme};
 use cubacle::phases::Phase;
 use cubacle::puzzle::{Facelets, MoveSequence};
 use cubacle::render::{icon, state_icon, Action, KittyPlacement, Raster, Style};
@@ -76,6 +76,22 @@ pub(crate) fn state_heading(phase: &Phase) -> String {
     )
 }
 
+/// The line that gives the start state as an Orbit64 token.
+pub(crate) fn start_line(state: &Facelets) -> Result<String, String> {
+    let token = orbit64::encode(state).map_err(|error| error.to_string())?;
+    Ok(format!("Start state: {token}\n"))
+}
+
+/// The line that gives the cube after a phase as an Orbit64 token, for
+/// `cubacle repair --state <start> --current <token>`.
+pub(crate) fn token_line(phase: &Phase, state: &Facelets) -> Result<String, String> {
+    let token = orbit64::encode(state).map_err(|error| error.to_string())?;
+    Ok(format!(
+        "State after phase {} as token: {token}\n",
+        phase.number
+    ))
+}
+
 /// Each step of the solution with the picture of the cube before it.
 pub fn print_solution(
     start: &Facelets,
@@ -97,11 +113,12 @@ pub fn print_solution(
         .height
         .unwrap_or_else(|| default_height(start.kind().size()));
     let style = style(options.scheme, height, false, background);
-    let out = if graphics == Graphics::Kitty {
+    let mut out = start_line(start)?;
+    out.push_str(&if graphics == Graphics::Kitty {
         kitty_steps(start, solution, found, options.columns, &terminal, &style)?
     } else {
-        text_steps(start, solution, graphics, &style)?
-    };
+        text_steps(start, solution, found, graphics, &style)?
+    });
     let mut stdout = std::io::stdout().lock();
     stdout
         .write_all(out.as_bytes())
@@ -112,6 +129,7 @@ pub fn print_solution(
 fn text_steps(
     start: &Facelets,
     solution: &MoveSequence,
+    found: &[Phase],
     graphics: Graphics,
     style: &Style,
 ) -> Result<String, String> {
@@ -125,6 +143,11 @@ fn text_steps(
         out.push_str(&show(&drawn, graphics, style.size));
         out.push('\n');
         state = action.apply(&state).map_err(|error| error.to_string())?;
+        for phase in found.iter().filter(|p| p.moves.end == index + 1) {
+            if !phase.moves.is_empty() {
+                out.push_str(&token_line(phase, &state)?);
+            }
+        }
     }
     Ok(out)
 }
@@ -177,6 +200,7 @@ fn kitty_steps(
             &state_icon(&state, style).to_rgba(style.size),
             terminal.cell.1,
         ));
+        out.push_str(&token_line(phase, &state)?);
     }
     Ok(out)
 }

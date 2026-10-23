@@ -7,6 +7,7 @@ Raw-material notes, category notation.
 
 - [[Input notations]]
 - [[Orbit64 tokens]]
+- [[Solve icons checkpoints are Orbit64 tokens]]
 - [[Colour schemes]]
 - [[Orbit64 slot numbering caveat]]
 - [[Orbit64 verification by size]]

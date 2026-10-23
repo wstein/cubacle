@@ -100,6 +100,7 @@ steps 21-25 of 44
 (a row of 5 icons)
 State after phase 1 - compare it with your cube
 (a framed picture of the cube)
+State after phase 1 as token: (an Orbit64 token)
 Phase 2: edges (nothing to do)
 Phase 3: 3x3 stage (19 moves)
 ...
@@ -137,7 +138,11 @@ phase 3: centres and wings paired, moves 26-51
 phase 4: 3x3 stage, moves 52-70
 ```
 
-Without graphics there are no phase headings: the text output is one picture per step, as before.
+Without graphics there are no phase headings: the text output is one picture per step, as before, and the token line of a phase follows the last step of that phase.
+
+### Checkpoints
+
+`solve --icons` writes the cube as an [Orbit64 token](cli.md) (the text `convert --to token` writes) at these places: the line `Start state: TOKEN` once at the top, and the line `State after phase N as token: TOKEN` after each phase that has moves, below the state picture on a graphics terminal and after its last step otherwise. A phase with nothing to do has no line. The last token is the solved cube. Keep the start token; after a phase, the token of your own cube can be compared with the printed one. Plain `solve` without `--icons` prints no token.
 
 ### How the terminal is asked
 

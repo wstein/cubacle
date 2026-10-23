@@ -422,6 +422,27 @@ fn solve_icons_on_a_pipe_is_plain_text_and_plain_solve_is_unchanged() {
 }
 
 #[test]
+fn solve_icons_prints_the_start_token_and_a_token_after_each_phase() {
+    let (ok, start, _) = cubacle(&["convert", "--to", "token", "-s", "R U F"]);
+    assert!(ok);
+    let (ok, icons, _) = cubacle(&["solve", "-s", "R U F", "--icons"]);
+    assert!(ok);
+    let first = icons.lines().next().unwrap();
+    assert_eq!(first, format!("Start state: {}", start.trim_end()));
+    let (_, solved, _) = cubacle(&["convert", "--to", "token", "-s", ""]);
+    let last = icons
+        .lines()
+        .rfind(|l| l.starts_with("State after phase "))
+        .unwrap();
+    assert!(
+        last.ends_with(&format!(" as token: {}", solved.trim_end())),
+        "{last}"
+    );
+    let (_, plain, _) = cubacle(&["solve", "-s", "R U F"]);
+    assert!(!plain.contains("token") && !plain.contains("Start"));
+}
+
+#[test]
 fn convert_writes_orbit64_tokens_for_every_size() {
     for (size, width) in [(2, 5), (3, 12), (4, 27), (5, 43), (6, 66), (7, 90)] {
         let scramble = if size < 4 {
