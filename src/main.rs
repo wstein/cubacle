@@ -1,5 +1,6 @@
 mod icons;
 mod improve;
+mod repair_cmd;
 mod rows;
 mod steps;
 mod terminal;
@@ -33,6 +34,8 @@ struct Cli {
 enum Command {
     /// Solve a cube given as facelets or as a scramble
     Solve(SolveArgs),
+    /// Explain a mistake made while following a solution and the way back
+    Repair(repair_cmd::RepairArgs),
     /// Draw moves as small pictures (SVG, pixels, Kitty graphics or text)
     Icon(icons::IconArgs),
     /// Print a random scramble
@@ -159,6 +162,7 @@ fn main() -> ExitCode {
 fn run(cli: Cli) -> Result<(), String> {
     match cli.command {
         Command::Solve(args) => solve(args),
+        Command::Repair(args) => repair_cmd::run(args),
         Command::Icon(args) => icons::run(args),
         Command::Convert(args) => {
             let (cube, detected) = read_input(&args.input)?;
@@ -373,19 +377,20 @@ fn solve(args: SolveArgs) -> Result<(), String> {
             println!("{solution}");
             Ok(())
         }
-        Err(failure) => {
-            let reason = match failure {
-                Failure::InvalidInput => "the cube state is impossible",
-                Failure::BudgetExhausted => "the time budget ran out",
-                Failure::Exhausted => "no solution within the move limit",
-                Failure::Internal => "internal error",
-            };
-            Err(format!(
-                "{reason}{}",
-                result
-                    .message
-                    .map_or_else(String::new, |m| format!(" ({m})"))
-            ))
-        }
+        Err(failure) => Err(failure_message(failure, result.message)),
     }
+}
+
+/// The text of a failed solve, as `solve` and `repair` print it.
+fn failure_message(failure: Failure, message: Option<String>) -> String {
+    let reason = match failure {
+        Failure::InvalidInput => "the cube state is impossible",
+        Failure::BudgetExhausted => "the time budget ran out",
+        Failure::Exhausted => "no solution within the move limit",
+        Failure::Internal => "internal error",
+    };
+    format!(
+        "{reason}{}",
+        message.map_or_else(String::new, |m| format!(" ({m})"))
+    )
 }
