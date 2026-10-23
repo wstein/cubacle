@@ -12,7 +12,7 @@
 //! | [`generate`] | random states and scrambles | `puzzle` |
 //! | [`engines`] | the 2x2x2 and 3x3x3 solvers | `puzzle` (and `notation` for the 2x2x2) |
 //! | [`phases`] | the phases of a solution, from the engine's stages or the cube state | `puzzle` |
-//! | [`repair`] | where a cube went wrong in a printed solution, and the cheapest way back | `puzzle` |
+//! | [`recover`] | where a cube went wrong in a printed solution, and the cheapest way back | `puzzle` |
 //! | [`ranges`] | opt-in compression of a solution into layer ranges | `puzzle`, `notation` |
 //! | [`render`] | move icons as SVG, pixels, Kitty escapes and text | `puzzle` |
 //!
@@ -35,6 +35,6 @@ pub mod notation;
 pub mod phases;
 pub mod puzzle;
 pub mod ranges;
+pub mod recover;
 mod reduction;
 pub mod render;
-pub mod repair;

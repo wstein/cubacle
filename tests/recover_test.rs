@@ -1,10 +1,10 @@
-//! `repair` on synthetic mistakes: a printed solution is the inverse of a
+//! `recover` on synthetic mistakes: a printed solution is the inverse of a
 //! scramble, a mistake is introduced at a chosen step, and the diagnosis and
 //! the route back are checked by replaying them.
 
 use cubacle::engines::three::Min2PhaseSolver;
 use cubacle::puzzle::{Face, Facelets, Move, MoveSequence, PuzzleKind, SolveOptions, Solver, Turn};
-use cubacle::repair::{diagnose, Advice, Diagnosis, Finding, Limits, MistakeKind, Plan};
+use cubacle::recover::{diagnose, Advice, Diagnosis, Finding, Limits, MistakeKind, Plan};
 
 struct Rng(u64);
 
@@ -64,14 +64,14 @@ fn run(original: &Facelets, moves: &[Move]) -> Facelets {
 
 /// Replays the best route from the current cube and then the rest of the
 /// printed solution: the cube must end up solved.
-fn assert_repairs(diagnosis: &Diagnosis, current: &Facelets, solution: &[Move]) {
+fn assert_recovers(diagnosis: &Diagnosis, current: &Facelets, solution: &[Move]) {
     assert!(!diagnosis.routes.is_empty(), "no route in {diagnosis:?}");
     for route in &diagnosis.routes {
         let after = current.apply(&route.moves).unwrap();
         let end = after
             .apply(&seq(&solution[route.continue_after..]))
             .unwrap();
-        assert!(end.is_solved(), "route {} does not repair", route.moves);
+        assert!(end.is_solved(), "route {} does not recover", route.moves);
     }
 }
 
@@ -124,7 +124,7 @@ fn a_cube_on_the_path_is_recognised() {
 }
 
 #[test]
-fn every_kind_of_mistake_is_named_and_repaired() {
+fn every_kind_of_mistake_is_named_and_recovered() {
     for size in [3, 4, 5] {
         let (original, solution) = setup(size, 24, 31 * size as u64);
         let kinds = ["skip", "amount", "direction", "swap", "repeat"];
@@ -157,7 +157,7 @@ fn every_kind_of_mistake_is_named_and_repaired() {
                 };
                 assert!(wanted, "{how} on {size}x{size}: {:?}", mistakes[0]);
             }
-            assert_repairs(&d, &current, &solution);
+            assert_recovers(&d, &current, &solution);
         }
     }
 }
@@ -175,7 +175,7 @@ fn stray_moves_after_the_last_step_are_found() {
         "{:?}",
         d.finding
     );
-    assert_repairs(&d, &current, &solution);
+    assert_recovers(&d, &current, &solution);
     let shortest = d.routes.iter().map(|r| r.moves.len()).min().unwrap();
     assert!(shortest <= 2);
 }
@@ -198,7 +198,7 @@ fn two_mistakes_are_found_when_asked_for() {
         Finding::Mistakes { mistakes, .. } => assert_eq!(mistakes.len(), 2, "{mistakes:?}"),
         other => panic!("{other:?}"),
     }
-    assert_repairs(&d, &current, &solution);
+    assert_recovers(&d, &current, &solution);
     let one = Limits {
         two_mistakes: false,
         resume_depth: 1,
@@ -238,7 +238,7 @@ fn the_plan_never_recommends_more_moves_than_a_fresh_solution() {
         best + 5
     ]);
     let plan = Plan::new(d.clone(), seq(&solution), Some(long));
-    assert!(matches!(plan.advice, Advice::Repair(_)));
+    assert!(matches!(plan.advice, Advice::Recover(_)));
     let short = seq(&vec![
         Move::new(Face::U, 1, false, Turn::Clockwise);
         best - 1
@@ -285,12 +285,12 @@ fn locate_finds_the_exact_position_only() {
     let (original, solution) = setup(4, 10, 21);
     let at = run(&original, &solution[..7]);
     assert_eq!(
-        cubacle::repair::locate(&original, &at, &seq(&solution)),
+        cubacle::recover::locate(&original, &at, &seq(&solution)),
         Ok(Some(7))
     );
     let off = run(&original, &go_wrong(&solution, 3, 8, "skip"));
     assert_eq!(
-        cubacle::repair::locate(&original, &off, &seq(&solution)),
+        cubacle::recover::locate(&original, &off, &seq(&solution)),
         Ok(None)
     );
 }
@@ -313,7 +313,7 @@ fn a_mistake_followed_by_stray_moves_is_found() {
         assert_eq!(mistakes.len(), 1);
         assert!(mistakes[0].step <= 11, "{:?}", mistakes[0]);
         assert!(strays.len() <= 2);
-        assert_repairs(&d, &current, &solution);
+        assert_recovers(&d, &current, &solution);
         let none = Limits {
             strays: 0,
             ..limits()

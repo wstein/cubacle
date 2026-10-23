@@ -1,4 +1,4 @@
-//! The `repair` command: a person followed a printed solution and went wrong.
+//! The `recover` command: a person followed a printed solution and went wrong.
 
 use std::thread;
 use std::time::{Duration, Instant};
@@ -6,12 +6,12 @@ use std::time::{Duration, Instant};
 use clap::Args;
 use cubacle::notation::{parse_cube, parse_expression, Notation};
 use cubacle::puzzle::{Facelets, MoveSequence, PuzzleKind};
-use cubacle::repair::{diagnose, locate, Limits, Plan};
+use cubacle::recover::{diagnose, locate, Limits, Plan};
 
 use crate::{default_options, failure_message, read_cube, solver_for, InputArgs};
 
 #[derive(Args)]
-pub(crate) struct RepairArgs {
+pub(crate) struct RecoverArgs {
     /// The cube the solution was made for, as `solve` takes it
     #[command(flatten)]
     input: InputArgs,
@@ -50,7 +50,7 @@ pub(crate) struct RepairArgs {
     notation: Notation,
 }
 
-pub(crate) fn run(args: RepairArgs) -> Result<(), String> {
+pub(crate) fn run(args: RecoverArgs) -> Result<(), String> {
     let notation = args.notation;
     let original = read_cube(&args.input)?;
     let current = parse_cube(&args.now, args.input.scheme).map_err(|e| format!("--now: {e}"))?;

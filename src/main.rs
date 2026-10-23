@@ -1,6 +1,6 @@
 mod icons;
 mod improve;
-mod repair_cmd;
+mod recover_cmd;
 mod rows;
 mod steps;
 mod terminal;
@@ -36,7 +36,7 @@ enum Command {
     /// Solve a cube given as facelets or as a scramble
     Solve(SolveArgs),
     /// Explain a mistake made while following a solution and the way back
-    Repair(repair_cmd::RepairArgs),
+    Recover(recover_cmd::RecoverArgs),
     /// Draw moves as small pictures (SVG, pixels, Kitty graphics or text)
     Icon(icons::IconArgs),
     /// Print a random scramble
@@ -173,7 +173,7 @@ fn main() -> ExitCode {
 fn run(cli: Cli) -> Result<(), String> {
     match cli.command {
         Command::Solve(args) => solve(args),
-        Command::Repair(args) => repair_cmd::run(args),
+        Command::Recover(args) => recover_cmd::run(args),
         Command::Icon(args) => icons::run(args),
         Command::Convert(args) => {
             let (cube, detected) = read_input(&args.input)?;
@@ -406,7 +406,7 @@ fn solve(args: SolveArgs) -> Result<(), String> {
     }
 }
 
-/// The text of a failed solve, as `solve` and `repair` print it.
+/// The text of a failed solve, as `solve` and `recover` print it.
 fn failure_message(failure: Failure, message: Option<String>) -> String {
     let reason = match failure {
         Failure::InvalidInput => "the cube state is impossible",

@@ -1,4 +1,4 @@
-//! `repair` on four real 7x7x7 attempts (tests/fixtures/repair_7x7.txt): a
+//! `recover` on four real 7x7x7 attempts (tests/fixtures/repair_7x7.txt): a
 //! person followed the solver's solution and stopped at another cube.
 
 use std::collections::HashMap;
@@ -6,7 +6,7 @@ use std::time::Instant;
 
 use cubacle::notation::orbit64;
 use cubacle::puzzle::{Facelets, MoveSequence};
-use cubacle::repair::{diagnose, Advice, Finding, Limits, MistakeKind, Plan};
+use cubacle::recover::{diagnose, Advice, Finding, Limits, MistakeKind, Plan};
 
 struct Attempt {
     original: Facelets,
@@ -60,8 +60,8 @@ fn plan_of(name: &str) -> Plan {
         assert!(after.apply(&rest).unwrap().is_solved(), "{name}: {route:?}");
     }
     let plan = Plan::new(d, a.solution.clone(), Some(a.fresh.clone()));
-    // A repair is never longer than solving fresh.
-    if let Advice::Repair(route) = &plan.advice {
+    // A recover is never longer than solving fresh.
+    if let Advice::Recover(route) = &plan.advice {
         assert!(route.total(a.solution.len()) <= a.fresh.len());
     }
     plan
@@ -75,7 +75,7 @@ fn mistake_steps(plan: &Plan) -> Vec<usize> {
 }
 
 #[test]
-fn a_skipped_move_costs_more_to_repair_than_to_solve_fresh() {
+fn a_skipped_move_costs_more_to_recover_than_to_solve_fresh() {
     let plan = plan_of("4-5");
     let Finding::Mistakes { mistakes, done, .. } = &plan.diagnosis.finding else {
         panic!("{:?}", plan.diagnosis.finding);
@@ -94,7 +94,7 @@ fn two_mistakes_on_the_way_are_both_named() {
 }
 
 #[test]
-fn a_wrong_amount_and_two_stray_moves_are_repaired_in_three_moves() {
+fn a_wrong_amount_and_two_stray_moves_are_recovered_in_three_moves() {
     let plan = plan_of("8-9");
     let Finding::Mistakes {
         mistakes, strays, ..
@@ -105,16 +105,16 @@ fn a_wrong_amount_and_two_stray_moves_are_repaired_in_three_moves() {
     assert_eq!(mistakes[0].step, 25);
     assert!(matches!(mistakes[0].kind, MistakeKind::WrongAmount { .. }));
     assert_eq!(strays.len(), 2);
-    let Advice::Repair(route) = &plan.advice else {
+    let Advice::Recover(route) = &plan.advice else {
         panic!("{:?}", plan.advice);
     };
     assert_eq!(route.moves.len(), 3);
-    assert!(plan.to_string().contains("Recommended: repair"));
+    assert!(plan.to_string().contains("Recommended: recover"));
 }
 
 #[test]
-fn a_skipped_move_with_a_stray_move_is_repaired_when_that_is_shorter() {
+fn a_skipped_move_with_a_stray_move_is_recovered_when_that_is_shorter() {
     let plan = plan_of("12-13");
     assert_eq!(mistake_steps(&plan), [54]);
-    assert!(matches!(plan.advice, Advice::Repair(_)), "{plan}");
+    assert!(matches!(plan.advice, Advice::Recover(_)), "{plan}");
 }

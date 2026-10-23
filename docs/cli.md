@@ -6,7 +6,7 @@ weight: 3
 
 # Command-line guide
 
-The `cubacle` tool has seven subcommands: `solve`, `repair`, `convert`, `scramble`, `random`, `facelets` and `icon`. Run `cubacle <command> --help` for the full option list.
+The `cubacle` tool has seven subcommands: `solve`, `recover`, `convert`, `scramble`, `random`, `facelets` and `icon`. Run `cubacle <command> --help` for the full option list.
 
 ## Solve a cube
 
@@ -140,23 +140,23 @@ error: no solution within the move limit (the reduction alone is longer than the
 
 The first 5x5x5 solve prints `preparing the 5x5x5 tables (cache directory ...)` on stderr and then reads the tables from the cache directory, or builds them and saves them there (3.3 s on 12 cores, 18 s on one, about 1 s to read them again). If the tables cannot be saved it prints `warning: the tables could not be saved; they are built again next time`. The preparation happens before the time budget starts, so a later `-b 1` fails with `the time budget ran out`, followed by `(the reduction ran out of time before the 3x3x3 stage)` or `(the reduction used up the time budget before the 3x3x3 stage)`, depending on where the clock ran out. `CUBACLE_THREADS` sets the number of threads (at most 256). Without `-b`, the 3x3x3 stage gets at most 10 s; a tight `-m` that it cannot meet in that time ends with `no solution within the move limit (no 3x3x3 solution within the move limit was found in 10 s ...)`.
 
-## Repair a mistake
+## Recover a mistake
 
-`repair` helps a person who followed a printed solution and made a mistake. Give it the original cube (the one the solution was made for, written as `solve` takes it), the cube as it is now with `--now`, and optionally the solution that was handed out with `--solution`. Without `--solution` it derives the solution with the same defaults as `solve`; the solver is deterministic for the same cube, so this gives the printed one. It works for every size from the 2x2x2 to the 7x7x7.
+`recover` helps a person who followed a printed solution and made a mistake. Give it the original cube (the one the solution was made for, written as `solve` takes it), the cube as it is now with `--now`, and optionally the solution that was handed out with `--solution`. Without `--solution` it derives the solution with the same defaults as `solve`; the solver is deterministic for the same cube, so this gives the printed one. It works for every size from the 2x2x2 to the 7x7x7.
 
 The cube below is the one of the first example after `B L' U2 B2 U2 B2 D2`: the person skipped step 5 (`D'`) and went on to step 8.
 
 ```sh
-cubacle repair -s "R U2 F' D L2 B R' U' F2 D2 L B'" --now FDDRURLDBRDBLRFFDUUBUUFBLBLBRDFDFBUFRUFULLDRURLDLBFRBL
+cubacle recover -s "R U2 F' D L2 B R' U' F2 D2 L B'" --now FDDRURLDBRDBLRFFDUUBUUFBLBLBRDFDFBUFRUFULLDRURLDLBFRBL
 ```
 
 ```text
 Your cube is off the path of the solution.
 Most likely: step 5 (D') was skipped.
 You had done 8 of 21 steps when you stopped.
-Repair: do 3 moves D2 B2 D', then continue with step 7 (B2). That is 18 moves in all.
+Recover: do 3 moves D2 B2 D', then continue with step 7 (B2). That is 18 moves in all.
 Fresh: solve your cube again from where it is, 18 moves.
-Recommended: repair, as short as solving fresh and it keeps your printed solution.
+Recommended: recover, as short as solving fresh and it keeps your printed solution.
 Moves now: D2 B2 D'
 Then continue with step 7 (B2) of the printed solution.
 ```
@@ -168,35 +168,35 @@ The output says one of these things.
 - **The cube is a few moves away from the path**, but no mistake is named.
 - **Nothing was found** (three or more mistakes, or more stray moves than the search covers): the fresh solution is printed.
 
-Then two ways forward are compared: the *repair* (the moves that bring the cube back onto the printed path, followed by the rest of the printed solution) and a *fresh* solution of the cube as it is, which runs beside the search. The repair is either `undo N moves` (the inverse of what was done since the mistake) or a shorter correction found by a search of up to `--depth` moves (default 3) from the cube to any cube of the printed path. The shorter total wins, a tie goes to the repair, and a repair is never recommended when it is longer than the fresh solution. The chosen moves follow `Moves now:` in the notation of `solve`. With `--solution` of the same 3x3x3 and the search limited to undoing, the fresh solution wins:
+Then two ways forward are compared: the *recover* (the moves that bring the cube back onto the printed path, followed by the rest of the printed solution) and a *fresh* solution of the cube as it is, which runs beside the search. The recover is either `undo N moves` (the inverse of what was done since the mistake) or a shorter correction found by a search of up to `--depth` moves (default 3) from the cube to any cube of the printed path. The shorter total wins, a tie goes to the recover, and a recover is never recommended when it is longer than the fresh solution. The chosen moves follow `Moves now:` in the notation of `solve`. With `--solution` of the same 3x3x3 and the search limited to undoing, the fresh solution wins:
 
 ```sh
-cubacle repair -s "R U2 F' D L2 B R' U' F2 D2 L B'" --now FDDRURLDBRDBLRFFDUUBUUFBLBLBRDFDFBUFRUFULLDRURLDLBFRBL --solution "B L' U2 B2 D' U2 B2 D2 U' F2 D U' R2 U' R' B' L2 D' F U2 R'" --one-mistake --strays 0 --depth 0
+cubacle recover -s "R U2 F' D L2 B R' U' F2 D2 L B'" --now FDDRURLDBRDBLRFFDUUBUUFBLBLBRDFDFBUFRUFULLDRURLDLBFRBL --solution "B L' U2 B2 D' U2 B2 D2 U' F2 D U' R2 U' R' B' L2 D' F U2 R'" --one-mistake --strays 0 --depth 0
 ```
 
 ```text
 Your cube is off the path of the solution.
 Most likely: step 5 (D') was skipped.
 You had done 8 of 21 steps when you stopped.
-Repair: undo 3 moves by turning D2 B2 U2, then continue with step 5 (D'). That is 20 moves in all.
+Recover: undo 3 moves by turning D2 B2 U2, then continue with step 5 (D'). That is 20 moves in all.
 Fresh: solve your cube again from where it is, 18 moves.
-Recommended: solve fresh, shorter than the repair (20 moves).
+Recommended: solve fresh, shorter than the recover (20 moves).
 Moves now: D2 B2 D' B2 D2 U' F2 D U' R2 U' R' B' L2 D' F U2 R'
 ```
 
 On a 4x4x4, step 4 of the solution (`F'`) turned the wrong way:
 
 ```sh
-cubacle repair --size 4 -s "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F Uw Rw' F2 Lw" --now UDRRDDUUUUUBBLRFDDRUBDUURBRUDFDFDBDLDBFLDLLFRRRLUBBBFBDURLDFDUFULLBRDRFBFBRRRULBFFLBLLRFLFFULLBF
+cubacle recover --size 4 -s "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F Uw Rw' F2 Lw" --now UDRRDDUUUUUBBLRFDDRUBDUURBRUDFDFDBDLDBFLDLLFRRRLUBBBFBDURLDFDUFULLBRDRFBFBRRRULBFFLBLLRFLFFULLBF
 ```
 
 ```text
 Your cube is off the path of the solution.
 Most likely: step 4 (F') was turned the wrong way (F).
 You had done 9 of 43 steps when you stopped.
-Repair: undo 6 moves by turning B' Uw L2 F Lw' F', then continue with step 4 (F'). That is 46 moves in all.
+Recover: undo 6 moves by turning B' Uw L2 F Lw' F', then continue with step 4 (F'). That is 46 moves in all.
 Fresh: solve your cube again from where it is, 42 moves.
-Recommended: solve fresh, shorter than the repair (46 moves).
+Recommended: solve fresh, shorter than the recover (46 moves).
 Moves now: R2 D' R U' Fw D2 Fw B2 U2 F2 Dw' D2 F' Dw2 L B' R L' Bw2 Rw2 F' Bw2 Rw2 D2 F2 R2 F' R2 B R2 L2 B L D R' F2 U' R' B R' L D'
 ```
 
@@ -506,7 +506,7 @@ Rejected, with the token in the message: `rw` and `3rw` (a lowercase letter alre
 
 #### Where moves are read and written
 
-Moves are read as WCA or SiGN, with groups, commutators and ranges, by `solve --scramble`, `convert --scramble` and `facelets`, by `repair --solution`, by `icon` (its moves and `--from`), and by the `scramble` field of the REST API. Moves are written in either notation by `--notation wca|sign` on `solve` (the solution, the `--icons` step lines and the last line; the icon pictures keep WCA letters), `scramble` and `repair` (every move in the explanation and in `Moves now:`).
+Moves are read as WCA or SiGN, with groups, commutators and ranges, by `solve --scramble`, `convert --scramble` and `facelets`, by `recover --solution`, by `icon` (its moves and `--from`), and by the `scramble` field of the REST API. Moves are written in either notation by `--notation wca|sign` on `solve` (the solution, the `--icons` step lines and the last line; the icon pictures keep WCA letters), `scramble` and `recover` (every move in the explanation and in `Moves now:`).
 
 ```sh
 cubacle facelets "r U f'"

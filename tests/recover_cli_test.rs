@@ -18,7 +18,7 @@ fn cubacle(args: &[&str]) -> (bool, String, String) {
 
 #[test]
 fn a_skipped_move_is_named_and_the_route_is_printed() {
-    let (ok, out, _) = cubacle(&["repair", "-s", ORIGINAL, "--now", NOW]);
+    let (ok, out, _) = cubacle(&["recover", "-s", ORIGINAL, "--now", NOW]);
     assert!(ok);
     assert!(out.contains("step 5 (D') was skipped"), "{out}");
     assert!(out.contains("You had done 8 of 21 steps"), "{out}");
@@ -33,7 +33,7 @@ fn a_skipped_move_is_named_and_the_route_is_printed() {
 fn a_given_solution_is_followed_and_the_shorter_route_wins() {
     let solution = "B L' U2 B2 D' U2 B2 D2 U' F2 D U' R2 U' R' B' L2 D' F U2 R'";
     let (ok, out, _) = cubacle(&[
-        "repair",
+        "recover",
         "-s",
         ORIGINAL,
         "--now",
@@ -55,7 +55,7 @@ fn a_given_solution_is_followed_and_the_shorter_route_wins() {
 
 #[test]
 fn fresh_skips_the_search() {
-    let (ok, out, _) = cubacle(&["repair", "-s", ORIGINAL, "--now", NOW, "--fresh"]);
+    let (ok, out, _) = cubacle(&["recover", "-s", ORIGINAL, "--now", NOW, "--fresh"]);
     assert!(ok);
     assert_eq!(out.split(' ').count(), 18, "{out}");
 }
@@ -64,7 +64,7 @@ fn fresh_skips_the_search() {
 fn a_cube_on_the_path_says_where() {
     // The original cube after its first four solution moves, `B L' U2 B2`.
     let (_, now, _) = cubacle(&["facelets", &format!("{ORIGINAL} B L' U2 B2")]);
-    let (ok, out, _) = cubacle(&["repair", "-s", ORIGINAL, "--now", &now]);
+    let (ok, out, _) = cubacle(&["recover", "-s", ORIGINAL, "--now", &now]);
     assert!(ok);
     assert!(out.contains("you are after step 4 of 21"), "{out}");
     assert!(out.contains("Continue with step 5 (D')."), "{out}");
@@ -72,10 +72,10 @@ fn a_cube_on_the_path_says_where() {
 
 #[test]
 fn bad_input_is_an_error() {
-    let (ok, _, err) = cubacle(&["repair", "-s", ORIGINAL, "--now", "UUUU"]);
+    let (ok, _, err) = cubacle(&["recover", "-s", ORIGINAL, "--now", "UUUU"]);
     assert!(!ok);
     assert!(err.starts_with("error:"), "{err}");
-    let (ok, _, err) = cubacle(&["repair", "-s", ORIGINAL, "--now", NOW, "--solution", "R U"]);
+    let (ok, _, err) = cubacle(&["recover", "-s", ORIGINAL, "--now", NOW, "--solution", "R U"]);
     assert!(!ok);
     assert!(err.contains("does not solve"), "{err}");
 }

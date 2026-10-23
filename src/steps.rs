@@ -86,7 +86,7 @@ pub(crate) fn start_line(state: &Facelets) -> Result<String, String> {
 }
 
 /// The line that gives the cube after a phase as an Orbit64 token, for
-/// `cubacle repair --state <start> --current <token>`.
+/// `cubacle recover --state <start> --current <token>`.
 pub(crate) fn token_line(phase: &Phase, state: &Facelets) -> Result<String, String> {
     let token = orbit64::encode(state).map_err(|error| error.to_string())?;
     Ok(format!(

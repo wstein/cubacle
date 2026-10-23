@@ -14,7 +14,7 @@ src/
   phases/         the phases of a solution, from the engine's stages or the cube state
   ranges/         post-solve compression of axis runs into layer ranges (2-3r)
   render/         move icons (SVG, RGBA, Kitty graphics, text) from puzzle types
-  repair/         where a cube went wrong in a printed solution, and the way back
+  recover/         where a cube went wrong in a printed solution, and the way back
                   (sticker permutations along the solution; the fresh solution is passed in)
   reduction/      crate-private parts shared by reduction engines (4x4x4,
                   5x5x5): combinatorics, 4-bit pruning tables with a parallel
@@ -41,13 +41,13 @@ puzzle  <-  notation  <-  engines  <-  apps (CLI, server)
    +--- generate               |
    +--- phases                 |
    +--- render                 |
-   +--- repair                 |
+   +--- recover                 |
    +--- reduction  ------------+   (used by the reduction engines only)
 ```
 
 - `puzzle` depends on nothing else in the crate.
 - `ranges` depends on `puzzle` and `notation` (it writes its moves in a `Notation`).
-- `notation`, `generate`, `phases`, `repair` and `render` depend only on `puzzle`. `render` is pure
+- `notation`, `generate`, `phases`, `recover` and `render` depend only on `puzzle`. `render` is pure
   (no I/O, no global state) and never names `notation`: the CLI maps a colour
   scheme to a `render::Palette`. Terminal detection lives in the CLI.
 - `reduction` depends only on `puzzle`, knows no cube, and is crate-private.

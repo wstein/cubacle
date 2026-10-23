@@ -1,4 +1,4 @@
-//! Choosing between repairing and solving again, and saying it in words.
+//! Choosing between recovering and solving again, and saying it in words.
 
 use std::fmt;
 
@@ -12,7 +12,7 @@ pub enum Advice {
     /// The cube is on the path: carry on with the printed solution.
     Continue,
     /// Do the route's moves, then carry on with the printed solution.
-    Repair(Route),
+    Recover(Route),
     /// Solve the cube again from where it is.
     Fresh,
     /// Nothing is known: no way back was found and no fresh solution given.
@@ -42,9 +42,9 @@ impl Plan {
             .cloned();
         let advice = match (&diagnosis.finding, best, &fresh) {
             (Finding::OnPath { .. }, _, _) => Advice::Continue,
-            (_, Some(route), Some(f)) if route.total(n) <= f.len() => Advice::Repair(route),
+            (_, Some(route), Some(f)) if route.total(n) <= f.len() => Advice::Recover(route),
             (_, _, Some(_)) => Advice::Fresh,
-            (_, Some(route), None) => Advice::Repair(route),
+            (_, Some(route), None) => Advice::Recover(route),
             (_, None, None) => Advice::Nothing,
         };
         Plan {
@@ -58,7 +58,7 @@ impl Plan {
     /// The moves to do now, in the notation of `solve`.
     pub fn moves(&self) -> Option<&MoveSequence> {
         match &self.advice {
-            Advice::Repair(route) => Some(&route.moves),
+            Advice::Recover(route) => Some(&route.moves),
             Advice::Fresh => self.fresh.as_ref(),
             _ => None,
         }
@@ -254,7 +254,7 @@ impl Plan {
             };
             writeln!(
                 f,
-                "Repair: {what} {}, then continue with {}. That is {} moves in all.",
+                "Recover: {what} {}, then continue with {}. That is {} moves in all.",
                 words(&route.moves, w),
                 step_of(&self.solution, route.continue_after, w),
                 route.total(n)
@@ -268,18 +268,18 @@ impl Plan {
             )?;
         }
         match &self.advice {
-            Advice::Repair(route) => {
+            Advice::Recover(route) => {
                 match &self.fresh {
                     Some(fresh) if fresh.len() > route.total(n) => writeln!(
                         f,
-                        "Recommended: repair, {} fewer than solving fresh.",
+                        "Recommended: recover, {} fewer than solving fresh.",
                         plural(fresh.len() - route.total(n), "move")
                     )?,
                     Some(_) => writeln!(
                         f,
-                        "Recommended: repair, as short as solving fresh and it keeps your printed solution."
+                        "Recommended: recover, as short as solving fresh and it keeps your printed solution."
                     )?,
-                    None => writeln!(f, "Recommended: repair.")?,
+                    None => writeln!(f, "Recommended: recover.")?,
                 }
                 if d.rotation.is_some() {
                     writeln!(f, "The moves assume the cube is turned like the original.")?;
@@ -295,7 +295,7 @@ impl Plan {
                 if let Some(fresh) = &self.fresh {
                     let why = match best {
                         Some(route) => {
-                            format!("shorter than the repair ({} moves)", route.total(n))
+                            format!("shorter than the recover ({} moves)", route.total(n))
                         }
                         None => "no way back onto the path was found".to_owned(),
                     };

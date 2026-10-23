@@ -1,4 +1,4 @@
-//! Repairing a cube after a mistake in a printed solution.
+//! Recovering a cube after a mistake in a printed solution.
 //!
 //! A person follows a solution move by move, goes wrong somewhere and holds a
 //! cube that is not on the path any more. [`diagnose`] says where the cube is
@@ -63,7 +63,7 @@ impl Default for Limits {
 
 /// Why nothing could be diagnosed.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum RepairError {
+pub enum RecoverError {
     /// The two cubes have different sizes.
     SizeMismatch(PuzzleKind, PuzzleKind),
     /// A move of the solution does not exist on this cube.
@@ -72,24 +72,24 @@ pub enum RepairError {
     NotASolution,
 }
 
-impl fmt::Display for RepairError {
+impl fmt::Display for RecoverError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            RepairError::SizeMismatch(a, b) => write!(
+            RecoverError::SizeMismatch(a, b) => write!(
                 f,
                 "the original cube is a {0}x{0}x{0} and the current one a {1}x{1}x{1}",
                 a.size(),
                 b.size()
             ),
-            RepairError::BadMove(mv) => write!(f, "the solution has a move {mv} this cube lacks"),
-            RepairError::NotASolution => {
+            RecoverError::BadMove(mv) => write!(f, "the solution has a move {mv} this cube lacks"),
+            RecoverError::NotASolution => {
                 write!(f, "the solution does not solve the original cube")
             }
         }
     }
 }
 
-impl std::error::Error for RepairError {}
+impl std::error::Error for RecoverError {}
 
 /// What went wrong at one step of the printed solution.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -184,10 +184,10 @@ pub fn locate(
     original: &Facelets,
     current: &Facelets,
     solution: &MoveSequence,
-) -> Result<Option<usize>, RepairError> {
+) -> Result<Option<usize>, RecoverError> {
     let kind = original.kind();
     if current.kind() != kind {
-        return Err(RepairError::SizeMismatch(kind, current.kind()));
+        return Err(RecoverError::SizeMismatch(kind, current.kind()));
     }
     let mut cube = original.clone();
     for (done, mv) in std::iter::once(None)
@@ -197,7 +197,7 @@ pub fn locate(
         if let Some(mv) = mv {
             cube = cube
                 .apply(&MoveSequence::new(vec![*mv]))
-                .map_err(|e| RepairError::BadMove(e.mv))?;
+                .map_err(|e| RecoverError::BadMove(e.mv))?;
         }
         if cube == *current {
             return Ok(Some(done));
@@ -212,13 +212,13 @@ pub fn diagnose(
     current: &Facelets,
     solution: &MoveSequence,
     limits: &Limits,
-) -> Result<Diagnosis, RepairError> {
+) -> Result<Diagnosis, RecoverError> {
     let kind = original.kind();
     if current.kind() != kind {
-        return Err(RepairError::SizeMismatch(kind, current.kind()));
+        return Err(RecoverError::SizeMismatch(kind, current.kind()));
     }
     if let Some(mv) = solution.moves().iter().find(|m| !m.fits(kind)) {
-        return Err(RepairError::BadMove(*mv));
+        return Err(RecoverError::BadMove(*mv));
     }
     let outer_only = solution.moves().iter().all(|m| m.depth == 1 && !m.wide);
     let perms = Perms::new(kind, !outer_only);
@@ -235,7 +235,7 @@ pub fn diagnose(
     }
     // A 2x2x2 solution may end turned: only the other sizes are checked.
     if kind != PuzzleKind::Cube2 && trajectory[printed.len()] != state_of(&Facelets::solved(kind)) {
-        return Err(RepairError::NotASolution);
+        return Err(RecoverError::NotASolution);
     }
     let started = Instant::now();
     let ctx = Context {
