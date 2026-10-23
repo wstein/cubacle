@@ -1,8 +1,8 @@
 //! The cube of a request: given as `cube`, or as a `scramble` of moves in WCA
 //! or SiGN notation (layer ranges, groups and commutators included).
 
-use cubacle::notation::parse_expression;
-use cubacle::puzzle::Facelets;
+use cubacle::notation::{named_target, parse_expression};
+use cubacle::puzzle::{Facelets, PuzzleKind};
 
 use crate::{engine_kind, read_cube, ApiError};
 
@@ -45,4 +45,44 @@ pub(crate) async fn read_input(
             .map_err(|_| ApiError::bad_input("the scramble could not be read"))?
         }
     }
+}
+
+/// The target of a solve: a pattern name (`superflip`, `checkerboard`,
+/// `cube-in-cube`, only when that is the whole text), else a cube in any
+/// notation `cube` takes, else (when the text is no cube) a move expression
+/// applied to the solved cube of the start's size. Cube text wins over a
+/// move expression, as for the start of the command line.
+pub(crate) async fn read_target(
+    target: String,
+    scheme: Option<String>,
+    kind: PuzzleKind,
+) -> Result<Facelets, ApiError> {
+    if let Some(named) = named_target(&target, kind) {
+        return named.map_err(|e| ApiError::bad_input(format!("target: {e}")));
+    }
+    let not_a_cube = match read_cube(&target, scheme.as_deref()) {
+        Ok(cube) => return Ok(cube),
+        Err(error) => error,
+    };
+    if target.trim().is_empty() {
+        return Err(ApiError::bad_input(format!(
+            "target: {}",
+            not_a_cube.message
+        )));
+    }
+    // up to 100000 moves are applied: not on the async threads
+    tokio::task::spawn_blocking(move || {
+        let moves = parse_expression(&target, kind).map_err(|e| {
+            let size = kind.size();
+            ApiError::bad_input(format!(
+                "target is not a cube ({}) and not a move expression for a {size}x{size}x{size} ({e})",
+                not_a_cube.message
+            ))
+        })?;
+        Facelets::solved(kind)
+            .apply(&moves)
+            .map_err(|e| ApiError::bad_input(format!("target: {e}")))
+    })
+    .await
+    .map_err(|_| ApiError::bad_input("the target could not be read"))?
 }

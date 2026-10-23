@@ -40,14 +40,16 @@ use cubacle::generate;
 
 use cubacle::notation::orbit64;
 use cubacle::notation::{parse_cube, ColourScheme, Notation};
-use cubacle::puzzle::{Facelets, Failure, PuzzleKind, SolveOptions, Solver};
+use cubacle::puzzle::{
+    reaches, relative_state, Facelets, Failure, PuzzleKind, RelativeError, SolveOptions, Solver,
+};
 use cubacle::ranges::{compressed_text, Optimise};
 use serde::{Deserialize, Serialize};
 use tokio::sync::Semaphore;
 use tower_http::catch_panic::CatchPanicLayer;
 
 mod input;
-use input::read_input;
+use input::{read_input, read_target};
 
 /// Longest time budget a solve may be given (10 minutes).
 pub const MAX_TIMEOUT_MS: u64 = 600_000;
@@ -428,6 +430,11 @@ struct SolveRequest {
     /// Post-solve compression: `ranges` also returns the solution with layer
     /// ranges (`2-3r`) as `compressed` and its move count as `compressedLength`.
     optimise: Option<String>,
+    /// Solve to this state instead of to the solved cube: a cube in any
+    /// notation `cube` takes, else a move expression applied to the solved
+    /// cube of the start's size, or one of the names `superflip`,
+    /// `checkerboard`, `cube-in-cube` (3x3x3).
+    target: Option<String>,
 }
 
 /// Requires `Content-Type: application/json`. Without this a web page could
@@ -519,9 +526,34 @@ async fn solve(
         .map(str::parse)
         .transpose()
         .map_err(ApiError::bad_input)?;
-    let facelets = read_input(request.cube, request.scramble, request.size, request.scheme).await?;
-    let kind = facelets.kind();
+    let scheme = request.scheme.clone();
+    let start = read_input(request.cube, request.scramble, request.size, request.scheme).await?;
+    let kind = start.kind();
     engine_kind(kind.size())?;
+    let target = match request.target {
+        Some(text) => Some(read_target(text, scheme, kind).await?),
+        None => None,
+    };
+    let has_target = target.is_some();
+    // The cube to solve: the start itself, or what is left of it after the
+    // target is taken out.
+    let facelets = match &target {
+        Some(target) => relative_state(&start, target).map_err(|e| match e {
+            RelativeError::SizeMismatch { .. } => ApiError::bad_input(e.to_string()),
+            RelativeError::ImpossiblePiece { .. } => ApiError::new(
+                StatusCode::UNPROCESSABLE_ENTITY,
+                "impossible_cube",
+                e.to_string(),
+            ),
+            RelativeError::CentresMoved => ApiError::new(
+                StatusCode::UNPROCESSABLE_ENTITY,
+                "unreachable_target",
+                e.to_string(),
+            ),
+        })?,
+        None => start.clone(),
+    };
+    let wanted = target.unwrap_or_else(|| Facelets::solved(kind));
     let mut options = SolveOptions::default();
     if let Some(moves) = request.max_moves {
         let most = match kind {
@@ -608,7 +640,7 @@ async fn solve(
         // Defence in depth, in release builds too: never serve a wrong answer.
         let solves = result
             .solution()
-            .is_none_or(|s| facelets.apply(s).is_ok_and(|end| end.is_solved()));
+            .is_none_or(|s| reaches(&start, s, &wanted));
         solves.then_some(result)
     })
     .await
@@ -651,7 +683,11 @@ async fn solve(
         Err(Failure::InvalidInput) => Err(ApiError::new(
             StatusCode::UNPROCESSABLE_ENTITY,
             "impossible_cube",
-            detail("the cube state is impossible"),
+            detail(if has_target {
+                "the start or the target state is impossible"
+            } else {
+                "the cube state is impossible"
+            }),
         )),
         Err(Failure::BudgetExhausted) => Err(ApiError::new(
             StatusCode::GATEWAY_TIMEOUT,
