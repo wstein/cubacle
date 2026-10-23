@@ -11,6 +11,7 @@ mod kind;
 mod layer_move;
 mod moves;
 mod orbits;
+mod relative;
 mod solver;
 mod stages;
 
@@ -23,6 +24,7 @@ pub use kind::PuzzleKind;
 pub use layer_move::LayerMove;
 pub use moves::{Move, MoveSequence, NotationError, Turn};
 pub(crate) use orbits::{centre_orbits, wing_orbits};
+pub use relative::{reaches, relative_state, RelativeError};
 pub use solver::{Failure, SolveMetrics, SolveOptions, SolveResult, Solver};
 pub(crate) use stages::stage_ends;
 pub use stages::SolveStage;

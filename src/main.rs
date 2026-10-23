@@ -23,7 +23,9 @@ use cubacle::generate;
 use cubacle::notation::orbit64;
 use cubacle::notation::{colour_scheme_of, parse_cube, parse_expression, ColourScheme, Notation};
 use cubacle::phases::{from_stages, phases};
-use cubacle::puzzle::{Facelets, Failure, PuzzleKind, SolveOptions, Solver};
+use cubacle::puzzle::{
+    reaches, relative_state, Facelets, Failure, PuzzleKind, SolveOptions, Solver,
+};
 use cubacle::ranges::{compressed_text, Optimise};
 
 /// Rubik's cube solver and generator.
@@ -148,6 +150,12 @@ struct SolveArgs {
     /// Allow single inner layers (2R) in 4x4x4 and 5x5x5 answers where they make them shorter
     #[arg(long)]
     slices: bool,
+    /// Solve to this state instead of to the solved cube: an Orbit64 token,
+    /// URFDLB facelets, W/R/G/Y/O/B colours or a move expression applied to the
+    /// solved cube of the start's size (one argument: quote it). The moves
+    /// printed take the start to the target.
+    #[arg(long, value_name = "TARGET")]
+    to: Option<String>,
     #[command(flatten)]
     pictures: steps::PictureArgs,
 }
@@ -245,14 +253,21 @@ fn read_input(input: &InputArgs) -> Result<(Facelets, Option<ColourScheme>), Str
         }
         parts => parts.join(" "),
     };
-    // Cube text always wins; only text that is no cube is tried as a move
-    // expression for a cube of --size.
-    match parse_cube(&text, input.scheme) {
-        Ok(cube) => Ok((cube, input.scheme.or_else(|| colour_scheme_of(&text)))),
+    parse_text(&text, input.scheme, input.size)
+}
+
+/// Reads cube text: cube text always wins; only text that is no cube is tried
+/// as a move expression for a cube of `size`.
+fn parse_text(
+    text: &str,
+    scheme: Option<ColourScheme>,
+    size: usize,
+) -> Result<(Facelets, Option<ColourScheme>), String> {
+    match parse_cube(text, scheme) {
+        Ok(cube) => Ok((cube, scheme.or_else(|| colour_scheme_of(text)))),
         Err(error) if text.trim().is_empty() => Err(error.to_string()),
         Err(error) => {
-            let size = input.size;
-            let expression = kind_of(size).and_then(|kind| expression_cube(&text, kind));
+            let expression = kind_of(size).and_then(|kind| expression_cube(text, kind));
             match expression {
                 Ok(cube) => Ok((cube, None)),
                 Err(reason) => Err(format!(
@@ -261,6 +276,14 @@ fn read_input(input: &InputArgs) -> Result<(Facelets, Option<ColourScheme>), Str
             }
         }
     }
+}
+
+/// The state `--to` names, read like the start; a move expression is applied
+/// to the solved cube of the start's size.
+fn read_target(text: &str, args: &SolveArgs, start: &Facelets) -> Result<Facelets, String> {
+    let (target, _) = parse_text(text, args.input.scheme, start.kind().size())
+        .map_err(|error| format!("--to: {error}"))?;
+    Ok(target)
 }
 
 /// The engine for a cube size, prepared; progress goes to standard error.
@@ -317,7 +340,18 @@ fn default_options(kind: PuzzleKind) -> SolveOptions {
 }
 
 fn solve(args: SolveArgs) -> Result<(), String> {
-    let facelets = read_cube(&args.input)?;
+    let start = read_cube(&args.input)?;
+    let target = args
+        .to
+        .as_deref()
+        .map(|text| read_target(text, &args, &start))
+        .transpose()?;
+    // The cube to solve: the start itself, or what is left of it after the
+    // target is taken out.
+    let facelets = match &target {
+        Some(target) => relative_state(&start, target).map_err(|error| error.to_string())?,
+        None => start.clone(),
+    };
     improve::check(&args, facelets.kind())?;
     let solver = solver_for(facelets.kind());
 
@@ -350,10 +384,16 @@ fn solve(args: SolveArgs) -> Result<(), String> {
     match result.outcome {
         Ok(solution) => {
             // Every engine's answer is replayed here, whatever the size.
-            if facelets.kind() != PuzzleKind::Cube2
-                && !facelets.apply(&solution).is_ok_and(|end| end.is_solved())
+            let wanted = target
+                .clone()
+                .unwrap_or_else(|| Facelets::solved(start.kind()));
+            if (start.kind() != PuzzleKind::Cube2 || target.is_some())
+                && !reaches(&start, &solution, &wanted)
             {
-                return Err("internal error: solution does not solve the cube".into());
+                return Err(match target {
+                    Some(_) => "internal error: solution does not reach the target".into(),
+                    None => "internal error: solution does not solve the cube".into(),
+                });
             }
             eprintln!("moves {}", solution.len());
             // The engine's own stages where it reports them, else the state-based cut.
@@ -370,12 +410,9 @@ fn solve(args: SolveArgs) -> Result<(), String> {
                 }
             }
             if args.pictures.icons {
-                return steps::print_solution(
-                    &facelets,
-                    &solution,
-                    &found,
-                    &args.pictures.options(args.input.scheme, args.notation),
-                );
+                let mut options = args.pictures.options(args.input.scheme, args.notation);
+                options.target = target;
+                return steps::print_solution(&start, &solution, &found, &options);
             }
             if args.optimise == Some(Optimise::Ranges) {
                 let (text, count) = compressed_text(args.notation, facelets.kind(), &solution);
@@ -386,6 +423,12 @@ fn solve(args: SolveArgs) -> Result<(), String> {
             println!("{}", args.notation.write(facelets.kind(), &solution));
             Ok(())
         }
+        Err(Failure::InvalidInput) if target.is_some() => Err(format!(
+            "the start or the target state is impossible{}",
+            result
+                .message
+                .map_or_else(String::new, |m| format!(" ({m})"))
+        )),
         Err(failure) => Err(failure_message(failure, result.message)),
     }
 }

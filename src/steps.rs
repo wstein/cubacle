@@ -31,6 +31,8 @@ pub struct SolutionIcons {
     /// How the step lines and the final solution line write moves (the icon
     /// labels stay as they are).
     pub notation: Notation,
+    /// The state the solution leads to when it is not the solved cube.
+    pub target: Option<Facelets>,
 }
 
 /// The line above the icons of a phase: `Phase 2: edges (14 moves)`.
@@ -95,6 +97,12 @@ pub(crate) fn state_heading(phase: &Phase) -> String {
 pub(crate) fn start_line(state: &Facelets) -> Result<String, String> {
     let token = orbit64::encode(state).map_err(|error| error.to_string())?;
     Ok(format!("Start state: {token}\n"))
+}
+
+/// The line that names the state a solution leads to, as an Orbit64 token.
+pub(crate) fn target_line(state: &Facelets) -> Result<String, String> {
+    let token = orbit64::encode(state).map_err(|error| error.to_string())?;
+    Ok(format!("Target state: {token}\n"))
 }
 
 /// The line that gives the cube after a phase as an Orbit64 token, for
@@ -174,6 +182,7 @@ impl PictureArgs {
             columns: self.columns.map(|c| c as usize),
             views: self.views,
             notation,
+            target: None,
         }
     }
 }
@@ -298,6 +307,9 @@ pub fn print_solution(
 ) -> Result<(), String> {
     let pictures = Pictures::new(start.kind().size(), options);
     let mut out = start_line(start)?;
+    if let Some(target) = &options.target {
+        out.push_str(&target_line(target)?);
+    }
     out.push_str(&pictures.steps(start, solution, found)?);
     let mut stdout = std::io::stdout().lock();
     stdout
