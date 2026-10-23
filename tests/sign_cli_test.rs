@@ -31,9 +31,9 @@ fn facelets_read_sign_and_wca_alike() {
 
 #[test]
 fn a_bad_sign_token_is_named() {
-    let (ok, _, error) = cubacle(&["facelets", "--size", "5", "R 2-3r"]);
+    let (ok, _, error) = cubacle(&["facelets", "--size", "5", "R 3-2r"]);
     assert!(!ok);
-    assert!(error.contains("2-3r") && error.contains("range"), "{error}");
+    assert!(error.contains("3-2r") && error.contains("range"), "{error}");
     let (ok, _, error) = cubacle(&["facelets", "--size", "5", "rw"]);
     assert!(!ok);
     assert!(error.contains("rw") && error.contains("wide"), "{error}");

@@ -1,83 +1,32 @@
-use std::fmt;
+mod error;
+
+pub use error::ExprError;
 
 use crate::puzzle::{Face, Move, MoveSequence, NotationError, PuzzleKind, Turn};
 
 /// The most moves an expression may expand to.
 pub const MAX_EXPANDED_MOVES: usize = 100_000;
 
-/// The deepest nesting of parentheses an expression may have.
+/// The deepest nesting of brackets an expression may have.
 pub const MAX_DEPTH: usize = 100;
-
-/// Why a move expression could not be read.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ExprError {
-    /// A word is not a move.
-    Move(NotationError),
-    /// A word is not a move in SiGN notation.
-    Sign(super::sign::MovesError),
-    /// A `(` or `)` has no partner.
-    Unbalanced { position: usize },
-    /// `*` is not followed by a repeat count of at least 1, or follows nothing.
-    BadRepeat { position: usize },
-    /// A move turns a layer the cube does not have.
-    DoesNotFit { mv: Move, kind: PuzzleKind },
-    /// A middle-slice move (`M`, `E`, `S`) on a cube without a middle layer.
-    NoMiddleLayer { word: String, kind: PuzzleKind },
-    /// Parentheses are nested deeper than [`MAX_DEPTH`].
-    TooDeep,
-    /// The expression expands to more than [`MAX_EXPANDED_MOVES`] moves.
-    TooLong,
-}
-
-impl fmt::Display for ExprError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ExprError::Move(error) => error.fmt(f),
-            ExprError::Sign(error) => error.fmt(f),
-            ExprError::Unbalanced { position } => {
-                write!(f, "unbalanced parenthesis at character {position}")
-            }
-            ExprError::BadRepeat { position } => write!(
-                f,
-                "character {position}: '*' needs a group or move before it and a count of 1 or more after it"
-            ),
-            ExprError::DoesNotFit { mv, kind } => {
-                let size = kind.size();
-                write!(f, "move {mv} does not exist on a {size}x{size}x{size}")
-            }
-            ExprError::NoMiddleLayer { word, kind } => {
-                let size = kind.size();
-                write!(
-                    f,
-                    "{word} turns the middle layer, which a {size}x{size}x{size} does not have"
-                )
-            }
-            ExprError::TooDeep => {
-                write!(f, "parentheses are nested deeper than {MAX_DEPTH}")
-            }
-            ExprError::TooLong => write!(
-                f,
-                "the expression expands to more than {MAX_EXPANDED_MOVES} moves"
-            ),
-        }
-    }
-}
-
-impl std::error::Error for ExprError {}
-
-impl From<NotationError> for ExprError {
-    fn from(error: NotationError) -> ExprError {
-        ExprError::Move(error)
-    }
-}
 
 /// Reads a move expression for a cube of the given kind.
 ///
-/// Moves are separated by whitespace. `( ... )` groups moves and `*N` repeats
-/// the group or move right before it N times; groups nest, so
-/// `((R U)*2 F)*3` is valid. Parentheses need no spaces around them, but `*N`
-/// must follow its group or move directly. The result is the plain list of
-/// layer turns; every move must exist on the cube.
+/// Moves are separated by whitespace, in WCA or SiGN spelling, plus layer
+/// ranges (`2-3r`, `2-3Rw`) which expand into plain moves. Around them:
+///
+/// - `( ... )` groups moves. After a group, `*N` or a bare `N` repeats it N
+///   times, `'` inverts it (the moves reversed, each inverted), and the two
+///   combine: `(R U)*3`, `(R U)3`, `(R U)'`, `(R U)2'`. After a single move
+///   only `*N` is a repeat (`R2` is a half turn).
+/// - `[A, B]` is the commutator `A B A' B'` and `[A: B]` the conjugate
+///   `A B A'`. A and B are any expression; both may be nested and repeated like
+///   a group.
+///
+/// Parentheses and brackets need no spaces around them, but `*N`, `N` and `'`
+/// must follow their group directly. The result is the plain list of layer
+/// turns; every move must exist on the cube, and at most
+/// [`MAX_EXPANDED_MOVES`] come out.
 ///
 /// Besides layer turns the words `M E S` and `x y z` are read. `M`, `E` and `S`
 /// turn the middle layer of an odd cube in the direction of `L`, `D` and `F`
@@ -90,8 +39,21 @@ pub fn parse_expression(text: &str, kind: PuzzleKind) -> Result<MoveSequence, Ex
         at: 0,
         kind,
     };
-    let moves = reader.sequence(0, 0)?;
-    Ok(MoveSequence::new(moves))
+    let (moves, stop) = reader.sequence(0)?;
+    match stop {
+        Stop::End => Ok(MoveSequence::new(moves)),
+        Stop::Close(_) => Err(ExprError::Unbalanced {
+            position: reader.at,
+        }),
+        Stop::Separator(_) => Err(reader.stray_separator()),
+    }
+}
+
+/// What ended a run of items; the character is not consumed.
+enum Stop {
+    End,
+    Close(char),
+    Separator(char),
 }
 
 struct Reader {
@@ -101,38 +63,42 @@ struct Reader {
 }
 
 impl Reader {
-    /// Items up to the end of the text or an unconsumed `)`.
-    fn sequence(&mut self, depth: usize, open: usize) -> Result<Vec<Move>, ExprError> {
+    fn peek(&self) -> Option<char> {
+        self.chars.get(self.at).copied()
+    }
+
+    fn stray_separator(&self) -> ExprError {
+        ExprError::Syntax {
+            position: self.at,
+            reason: "',' and ':' only separate the two parts of a [ ]",
+        }
+    }
+
+    /// Items up to the end of the text or an unconsumed `)` `]` `,` `:`.
+    fn sequence(&mut self, depth: usize) -> Result<(Vec<Move>, Stop), ExprError> {
         let mut out = Vec::new();
         loop {
-            while self.chars.get(self.at).is_some_and(|c| c.is_whitespace()) {
+            while self.peek().is_some_and(char::is_whitespace) {
                 self.at += 1;
             }
-            let Some(&c) = self.chars.get(self.at) else {
-                return if depth == 0 {
-                    Ok(out)
-                } else {
-                    Err(ExprError::Unbalanced { position: open })
-                };
-            };
-            let item = match c {
-                ')' if depth > 0 => return Ok(out),
-                ')' => return Err(ExprError::Unbalanced { position: self.at }),
-                '(' => {
-                    if depth >= MAX_DEPTH {
-                        return Err(ExprError::TooDeep);
-                    }
-                    let open = self.at;
-                    self.at += 1;
-                    // Returns only at the matching ')', or with an error.
-                    let inner = self.sequence(depth + 1, open)?;
-                    self.at += 1;
-                    inner
+            let item = match self.peek() {
+                None => return Ok((out, Stop::End)),
+                Some(c @ (')' | ']')) => return Ok((out, Stop::Close(c))),
+                Some(c @ (',' | ':')) => return Ok((out, Stop::Separator(c))),
+                Some('(') => {
+                    let group = self.group(depth)?;
+                    self.suffixes(group, true)?
                 }
-                '*' => return Err(ExprError::BadRepeat { position: self.at }),
-                _ => self.word()?,
+                Some('[') => {
+                    let bracket = self.bracket(depth)?;
+                    self.suffixes(bracket, true)?
+                }
+                Some('*') => return Err(ExprError::BadRepeat { position: self.at }),
+                Some(_) => {
+                    let word = self.word()?;
+                    self.suffixes(word, false)?
+                }
             };
-            let item = self.repeated(item)?;
             if out.len() + item.len() > MAX_EXPANDED_MOVES {
                 return Err(ExprError::TooLong);
             }
@@ -140,40 +106,136 @@ impl Reader {
         }
     }
 
-    /// One move word: everything up to whitespace, a parenthesis or `*`.
+    /// `( ... )`, the moves inside.
+    fn group(&mut self, depth: usize) -> Result<Vec<Move>, ExprError> {
+        if depth >= MAX_DEPTH {
+            return Err(ExprError::TooDeep);
+        }
+        let open = self.at;
+        self.at += 1;
+        let (inner, stop) = self.sequence(depth + 1)?;
+        match stop {
+            Stop::Close(')') => {
+                self.at += 1;
+                Ok(inner)
+            }
+            Stop::End => Err(ExprError::Unbalanced { position: open }),
+            Stop::Close(_) => Err(ExprError::Unbalanced { position: self.at }),
+            Stop::Separator(_) => Err(self.stray_separator()),
+        }
+    }
+
+    /// `[A, B]` or `[A: B]`, expanded.
+    fn bracket(&mut self, depth: usize) -> Result<Vec<Move>, ExprError> {
+        if depth >= MAX_DEPTH {
+            return Err(ExprError::TooDeep);
+        }
+        let open = self.at;
+        self.at += 1;
+        let (first, stop) = self.sequence(depth + 1)?;
+        let (separator, at) = match stop {
+            Stop::Separator(c) => (c, self.at),
+            Stop::End => return Err(ExprError::Unbalanced { position: open }),
+            Stop::Close(']') => {
+                return Err(ExprError::Syntax {
+                    position: open,
+                    reason: "[ ] needs a comma or a colon: [A, B] or [A: B]",
+                })
+            }
+            Stop::Close(_) => return Err(ExprError::Unbalanced { position: self.at }),
+        };
+        self.at += 1;
+        let (second, stop) = self.sequence(depth + 1)?;
+        match stop {
+            Stop::Close(']') => self.at += 1,
+            Stop::End => return Err(ExprError::Unbalanced { position: open }),
+            Stop::Separator(_) => {
+                return Err(ExprError::Syntax {
+                    position: self.at,
+                    reason: "a [ ] has one comma or colon; nest another [ ] for more",
+                })
+            }
+            Stop::Close(_) => return Err(ExprError::Unbalanced { position: self.at }),
+        }
+        if first.is_empty() || second.is_empty() {
+            return Err(ExprError::Syntax {
+                position: at,
+                reason: "a [ ] needs moves on both sides of the comma or colon",
+            });
+        }
+        let size = first.len() + second.len();
+        if size.saturating_mul(2) > MAX_EXPANDED_MOVES {
+            return Err(ExprError::TooLong);
+        }
+        let mut out = first.clone();
+        out.extend(second.iter().copied());
+        out.extend(inverse(&first));
+        if separator == ',' {
+            out.extend(inverse(&second));
+        }
+        Ok(out)
+    }
+
+    /// One move word: everything up to whitespace or a bracket, `*`, `,` `:`.
+    /// A layer range is several moves.
     fn word(&mut self) -> Result<Vec<Move>, ExprError> {
         let start = self.at;
         while self
-            .chars
-            .get(self.at)
-            .is_some_and(|c| !c.is_whitespace() && !"()*".contains(*c))
+            .peek()
+            .is_some_and(|c| !c.is_whitespace() && !"()[]*,:".contains(c))
         {
             self.at += 1;
         }
         let word: String = self.chars[start..self.at].iter().collect();
-        if let Some(moves) = self.special(&word)? {
+        if let Some(range) = super::range::expand(&word) {
+            let moves = range.map_err(|error| ExprError::Sign {
+                position: start,
+                error,
+            })?;
+            for mv in &moves {
+                self.check_fit(*mv, start)?;
+            }
             return Ok(moves);
         }
-        let wca = super::sign::to_wca_token(&word).map_err(ExprError::Sign)?;
-        let mv: Move = wca.parse()?;
-        if !mv.fits(self.kind) {
-            return Err(ExprError::DoesNotFit {
-                mv,
-                kind: self.kind,
-            });
+        if let Some(moves) = self.special(&word, start)? {
+            return Ok(moves);
         }
+        let wca = super::sign::to_wca_token(&word).map_err(|error| ExprError::Sign {
+            position: start,
+            error,
+        })?;
+        let mv: Move = wca.parse().map_err(|error| ExprError::Move {
+            position: start,
+            error,
+        })?;
+        self.check_fit(mv, start)?;
         Ok(vec![mv])
     }
 
+    fn check_fit(&self, mv: Move, position: usize) -> Result<(), ExprError> {
+        if mv.fits(self.kind) {
+            Ok(())
+        } else {
+            Err(ExprError::DoesNotFit {
+                position,
+                mv,
+                kind: self.kind,
+            })
+        }
+    }
+
     /// `M E S` (middle slice) and `x y z` (whole-cube rotation), as plain moves.
-    fn special(&self, word: &str) -> Result<Option<Vec<Move>>, ExprError> {
+    fn special(&self, word: &str, position: usize) -> Result<Option<Vec<Move>>, ExprError> {
         let mut chars = word.chars();
         let letter = chars.next().unwrap_or(' ');
         if !"MESxyz".contains(letter) {
             return Ok(None);
         }
-        let turn = Turn::from_suffix(chars.as_str()).ok_or_else(|| NotationError {
-            token: word.to_owned(),
+        let turn = Turn::from_suffix(chars.as_str()).ok_or_else(|| ExprError::Move {
+            position,
+            error: NotationError {
+                token: word.to_owned(),
+            },
         })?;
         let n = self.kind.size();
         let layers = u8::try_from(n).expect("sizes are small");
@@ -181,6 +243,7 @@ impl Reader {
             'M' | 'E' | 'S' => {
                 if n % 2 == 0 {
                     return Err(ExprError::NoMiddleLayer {
+                        position,
                         word: word.to_owned(),
                         kind: self.kind,
                     });
@@ -210,19 +273,53 @@ impl Reader {
         Ok(Some(moves))
     }
 
-    /// Applies a directly following `*N` to `item`.
-    fn repeated(&mut self, item: Vec<Move>) -> Result<Vec<Move>, ExprError> {
-        if self.chars.get(self.at) != Some(&'*') {
-            return Ok(item);
+    /// Applies what directly follows an item: `*N`, and for a group also a bare
+    /// `N` and one `'` (before or after the count).
+    fn suffixes(&mut self, item: Vec<Move>, group: bool) -> Result<Vec<Move>, ExprError> {
+        let mut inverted = false;
+        if group && self.peek() == Some('\'') {
+            self.at += 1;
+            inverted = true;
         }
-        let star = self.at;
-        self.at += 1;
+        let count = match self.peek() {
+            Some('*') => {
+                let star = self.at;
+                self.at += 1;
+                self.count(star)?
+            }
+            Some(c) if group && c.is_ascii_digit() => self.count(self.at)?,
+            _ => 1,
+        };
+        if group && self.peek() == Some('\'') {
+            if inverted {
+                return Err(ExprError::Syntax {
+                    position: self.at,
+                    reason: "a group is inverted by one ' only",
+                });
+            }
+            self.at += 1;
+            inverted = true;
+        }
+        if item.len().saturating_mul(count) > MAX_EXPANDED_MOVES {
+            return Err(ExprError::TooLong);
+        }
+        let repeated = item.repeat(count);
+        Ok(if inverted {
+            inverse(&repeated)
+        } else {
+            repeated
+        })
+    }
+
+    /// The digits at the cursor as a count of at least 1; `blame` is where a
+    /// missing or zero count is reported.
+    fn count(&mut self, blame: usize) -> Result<usize, ExprError> {
         let digits = self.at;
-        while self.chars.get(self.at).is_some_and(char::is_ascii_digit) {
+        while self.peek().is_some_and(|c| c.is_ascii_digit()) {
             self.at += 1;
         }
         if digits == self.at {
-            return Err(ExprError::BadRepeat { position: star });
+            return Err(ExprError::BadRepeat { position: blame });
         }
         let count: usize = self.chars[digits..self.at]
             .iter()
@@ -231,13 +328,19 @@ impl Reader {
             // more digits than a usize holds: certainly too long
             .map_err(|_| ExprError::TooLong)?;
         if count == 0 {
-            return Err(ExprError::BadRepeat { position: star });
+            return Err(ExprError::BadRepeat { position: blame });
         }
-        if item.len().saturating_mul(count) > MAX_EXPANDED_MOVES {
-            return Err(ExprError::TooLong);
-        }
-        Ok(item.repeat(count))
+        Ok(count)
     }
+}
+
+/// The moves undone: reversed, each turned the other way.
+fn inverse(moves: &[Move]) -> Vec<Move> {
+    moves
+        .iter()
+        .rev()
+        .map(|mv| Move::new(mv.face, mv.depth, mv.wide, opposite(mv.turn)))
+        .collect()
 }
 
 fn opposite(turn: Turn) -> Turn {
@@ -248,5 +351,7 @@ fn opposite(turn: Turn) -> Turn {
     }
 }
 
+#[cfg(test)]
+mod bracket_tests;
 #[cfg(test)]
 mod tests;
