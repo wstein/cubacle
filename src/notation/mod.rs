@@ -4,6 +4,7 @@
 mod expr;
 mod input;
 pub mod orbit64;
+mod range;
 mod scheme;
 mod sign;
 

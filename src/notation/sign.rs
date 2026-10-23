@@ -5,6 +5,7 @@
 //! Every other spelling is read as before, because the two notations agree on
 //! it (`R`, `2R`, `Rw`, `3Rw`). A spelling has one meaning only; WCA has none
 //! for a lowercase letter on big cubes, so nothing needs a tie-break.
+//! A layer range (`2-3r`) is expanded by [`super::range`] into plain moves.
 //! Writing is chosen with [`Notation`]; the engines never see it.
 
 use std::borrow::Cow;
@@ -99,9 +100,9 @@ pub fn to_wca_token(token: &str) -> Result<Cow<'_, str>, MovesError> {
                 c.to_ascii_uppercase()
             )))
         }
-        _ if token.contains('-') && token.chars().any(|c| c.is_ascii_alphabetic()) => {
-            Err(fail("layer ranges such as 2-3r are not supported"))
-        }
+        _ if token.contains('-') && token.chars().any(|c| c.is_ascii_alphabetic()) => Err(fail(
+            "a layer range is more than one move; read it as a sequence",
+        )),
         _ => Ok(Cow::Borrowed(token)),
     }
 }
@@ -114,7 +115,15 @@ pub fn parse_move(token: &str) -> Result<Move, MovesError> {
     })
 }
 
-/// Moves separated by whitespace, each in WCA or SiGN spelling (mixing is fine).
+/// Moves separated by whitespace, each in WCA or SiGN spelling (mixing is
+/// fine). A layer range such as `2-3r` is expanded into its plain moves.
 pub fn parse_moves(text: &str) -> Result<MoveSequence, MovesError> {
-    text.split_whitespace().map(parse_move).collect()
+    let mut moves = Vec::new();
+    for word in text.split_whitespace() {
+        match super::range::expand(word) {
+            Some(range) => moves.extend(range?),
+            None => moves.push(parse_move(word)?),
+        }
+    }
+    Ok(MoveSequence::new(moves))
 }

@@ -94,12 +94,12 @@ fn mixed_spellings_in_one_sequence_are_read() {
 #[test]
 fn bad_tokens_are_rejected_with_a_reason() {
     for text in [
-        "rw", "3rw", "1r", "0r", "r4", "2-3r", "2-5r", "x", "R U r!", "r''",
+        "rw", "3rw", "1r", "0r", "r4", "3-2r", "0-2r", "x", "R U r!", "r''",
     ] {
         assert!(parse_moves(text).is_err(), "{text}");
     }
-    let error = parse_moves("R 2-5r").unwrap_err().to_string();
-    assert!(error.contains("2-5r") && error.contains("range"), "{error}");
+    let error = parse_moves("R 5-2r").unwrap_err().to_string();
+    assert!(error.contains("5-2r") && error.contains("range"), "{error}");
     let error = parse_moves("rw").unwrap_err().to_string();
     assert!(error.contains("wide"), "{error}");
 }
