@@ -124,6 +124,34 @@ pub fn state_icon(state: &Facelets, style: &Style) -> Icon {
     }
 }
 
+/// How many stickers of `state` differ in colour from `reference`.
+pub fn differing_stickers(state: &Facelets, reference: &Facelets) -> usize {
+    state
+        .stickers()
+        .iter()
+        .zip(reference.stickers())
+        .filter(|(a, b)| a != b)
+        .count()
+}
+
+/// Like [`state_icon`], with a small amber square on every visible sticker
+/// whose colour differs from `reference`. Stickers on the three faces that are
+/// out of sight cannot be marked; [`differing_stickers`] counts them all.
+pub fn state_icon_against(state: &Facelets, reference: &Facelets, style: &Style) -> Icon {
+    let mut icon = state_icon(state, style);
+    let n = state.kind().size();
+    let projection = geometry::Projection::new(n, 10.0, 9.0, 80.0, 76.0);
+    let marks = geometry::difference_marks(state, reference, &projection);
+    // the marks go under the frame, over the stickers
+    let at = icon
+        .shapes
+        .iter()
+        .position(|s| s.part == scene::Part::Frame);
+    let at = at.unwrap_or(icon.shapes.len());
+    icon.shapes.splice(at..at, marks);
+    icon
+}
+
 impl Icon {
     /// The notation shown beside the cube, e.g. `Rw2` or `2R2`.
     pub fn label(&self) -> &str {
@@ -161,5 +189,38 @@ impl Raster {
     /// Kitty graphics escapes that display the pixels where the cursor is.
     pub fn to_kitty(&self, placement: &KittyPlacement) -> String {
         kitty::encode(self, placement)
+    }
+}
+
+#[cfg(test)]
+mod mark_tests {
+    use super::*;
+    use crate::puzzle::{Facelets, PuzzleKind};
+    use scene::Part;
+
+    fn marks(icon: &Icon) -> usize {
+        icon.shapes.iter().filter(|s| s.part == Part::Mark).count()
+    }
+
+    #[test]
+    fn equal_cubes_have_no_marks() {
+        for kind in [PuzzleKind::Cube3, PuzzleKind::Cube7] {
+            let cube = Facelets::solved(kind);
+            let icon = state_icon_against(&cube, &cube, &Style::default());
+            assert_eq!(marks(&icon), 0);
+            assert_eq!(icon, state_icon(&cube, &Style::default()));
+            assert_eq!(differing_stickers(&cube, &cube), 0);
+        }
+    }
+
+    #[test]
+    fn a_turned_layer_marks_the_stickers_that_changed() {
+        let solved = Facelets::solved(PuzzleKind::Cube3);
+        let turned = Action::Layer("R".parse().unwrap()).apply(&solved).unwrap();
+        let icon = state_icon_against(&turned, &solved, &Style::default());
+        let count = differing_stickers(&turned, &solved);
+        assert_eq!(count, 12);
+        // R changes 3 stickers on each of U, F, D, B; D and B are out of sight
+        assert_eq!(marks(&icon), 6);
     }
 }

@@ -8,6 +8,9 @@ use super::scene::{Part, Shape};
 use super::style::{face_light, Rgb, Shading, Style, BODY, GREY};
 use crate::puzzle::{locate, Face, Facelets};
 
+/// The colour that marks a differing sticker (amber, as the quarter-turn frame).
+const MARK: Rgb = Rgb(255, 176, 0);
+
 /// How far one unit of depth shifts a point right and up on screen: a deep
 /// oblique view that makes the Top and Right faces large.
 pub(crate) const DEPTH: (f64, f64) = (0.5, 0.42);
@@ -121,6 +124,32 @@ pub(crate) fn cube_shapes(
         let colour = sticker_colour(state, action, style, index, face, position);
         let square = rounded_square([u, v], half, radius);
         shapes.push(Shape::new(Part::Sticker, flat(face, square), colour));
+    }
+    shapes
+}
+
+/// A small amber square in the middle of every visible sticker of `state`
+/// whose colour differs from the same place on `reference`.
+pub(crate) fn difference_marks(
+    state: &Facelets,
+    reference: &Facelets,
+    projection: &Projection,
+) -> Vec<Shape> {
+    let kind = state.kind();
+    let n = kind.size() as f64;
+    let mut shapes = Vec::new();
+    for index in 0..kind.facelet_count() {
+        let face = Face::ALL[index / kind.face_len()];
+        if !visible(face) || state.stickers()[index] == reference.stickers()[index] {
+            continue;
+        }
+        let (position, _) = locate(kind, index);
+        let [u, v] = plane_coords(face, position.map(f64::from));
+        let square = rounded_square([u, v], 0.32, 0.08)
+            .into_iter()
+            .map(|[a, b]| projection.project(plane_point(face, n, a, b)))
+            .collect();
+        shapes.push(Shape::new(Part::Mark, square, MARK));
     }
     shapes
 }
