@@ -1,10 +1,11 @@
 ---
 id: 20261023022802
 aliases: []
-tags: ["type/idea", "status/open", "category/open-items"]
+tags: ["type/decision", "status/decided", "category/notation"]
 ---
+Implemented: moves are read in WCA and SiGN spellings and written in either. Input detects the notation per token: a lowercase face letter (`r`, `3u2`) is a SiGN wide turn, every other spelling is shared (`R`, `2R`, `Rw`, `3Rw`). No spelling has two meanings, so nothing needs a tie-break. Output is `--notation wca|sign` on `solve` and `scramble` and a `notation` field of `/v1/solve` and `/v1/scramble` (default `wca`). The code is `src/notation/sign.rs`; it translates at the text boundary, the engines and the metric (every move counts one) are unchanged. Icon labels stay WCA.
 
-Moves are written in WCA notation (`3Lw2`, `2R`, `Rw'`). SiGN notation (lowercase letters for wide turns, a leading number for the layer count) is the other common form on big cubes. An output option, for example `--notation wca|sign`, would translate at the writing step only; the engines and the metric (every move counts one) stay unchanged. WCA stays the default. The input parser reads only the WCA spellings (`Rw`, `3Rw`, `2R`); it rejects `r` and `3r` (checked with `cubacle facelets`), so SiGN would be an input question as well as an output one. The SiGN rules for depths above two need a check before any code.
+Depths follow the SiGN page at mzrg.com and WCA Article 12a2: `2R` is the second layer only, `r` and `2r` the two outer layers, `3r` the three outer layers. Layer ranges (`2-3r`) are rejected. The server reads no move strings, so SiGN input has no REST field.
 
 ## Links
 
@@ -12,3 +13,5 @@ Moves are written in WCA notation (`3Lw2`, `2R`, `Rw'`). SiGN notation (lowercas
 - [[Input notations]]
 
 Source: owner decision of 2026-10-23, lines 1-1
+Source: src/notation/sign.rs, lines 1-9
+Source: docs/cli.md, lines 315-349

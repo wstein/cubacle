@@ -31,7 +31,7 @@ A prime (`'`) reverses the direction. The direction is derived from the rotation
 
 ### Notation
 
-The notation below the cube is the canonical notation of the move. `Rw` and `Rw2` turn the two outer layers, `2R` and `2R2` turn only the second layer, and `3Rw` turns the three outer layers. Lowercase `r` is not accepted. The arrow is centred on the turning layers, so a wide move has its arrow between its layers.
+The notation below the cube is the canonical notation of the move. `Rw` and `Rw2` turn the two outer layers, `2R` and `2R2` turn only the second layer, and `3Rw` turns the three outer layers. Lowercase SiGN spellings such as `r` are read as input (see [Move notations](cli.md#move-notations)); the label is always the WCA one. The arrow is centred on the turning layers, so a wide move has its arrow between its layers.
 
 ## Draw an icon
 

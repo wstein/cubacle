@@ -24,7 +24,7 @@ cubacle scramble -n 25
 cubacle facelets "R U R' U'"
 ```
 
-A scramble is standard move notation with whitespace between the moves (`R U R' U'`, `F2`, `B'`). The aliases `R1` (`R`), `R3` (`R'`), and `R2'` or `R'2` (`R2`) are accepted too, as in the WCA export form; unseparated runs such as `RUR'` and a lone `-` are rejected.
+A scramble is standard move notation with whitespace between the moves (`R U R' U'`, `F2`, `B'`). SiGN spellings (`r`, `3r`) are read too and `--notation sign` writes them; see [docs/cli.md](docs/cli.md#move-notations). The aliases `R1` (`R`), `R3` (`R'`), and `R2'` or `R'2` (`R2`) are accepted too, as in the WCA export form; unseparated runs such as `RUR'` and a lone `-` are rejected.
 
 A cube may be written as an [Orbit64](https://github.com/wstein/flix-orbit64) state token, as `URFDLB` facelets, or as sticker colours `W R G Y O B`. Facelets and colours may be compact or spaced, in any grouping, and need no quoting. Colours are read from the fixed centres of an odd cube, so western and Japanese cubes need no flag. A cube without centres (the 2×2×2) uses `--scheme`:
 

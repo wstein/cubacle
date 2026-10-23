@@ -45,6 +45,7 @@ The first two lines go to standard error. `moves N` is always printed there, `el
 | `--improve` | 3x3x3 only. Keep improving until the time budget (`-b`, default 1000 ms) is spent, then print the best solution found. |
 | `--parallel` | 3x3x3 only, with `--improve` and `-b`: search the six orientations at once. Measured no better than plain `--improve`. |
 | `--slices` | 4x4x4 and 5x5x5: allow single inner layers (`2R`) in the answer where they make it shorter. Default: outer layers and two-layer turns only. See [the move metric](performance.md#move-metric). |
+| `--notation <wca\|sign>` | How the solution is written. Default `wca` (`Rw`, `3Rw`); `sign` writes `r`, `3r` (see [Move notations](#move-notations)). With `--icons` it also sets the step lines and the last line; the icon labels stay WCA. |
 | `--icons` | Show each step as an icon. The output begins with `Start state: TOKEN` and has a line `State after phase N as token: TOKEN` after each phase, so that a checkpoint can be compared with your cube. See [Move icons](icons.md#checkpoints). |
 | `--icon-size <PIXELS>` | With `--icons`: icon height in pixels. Default: 32 per cube layer, at least 96. |
 | `--background <dark\|light>` | With `--icons`: what the icons are seen on. It sets the notation colour and the dimming. Default: the terminal is asked (`OSC 11`), dark when it does not answer. |
@@ -356,7 +357,7 @@ The output is shortened here; it ends with `...BBBYBBBBBBYBBBBBBYBBB`.
 
 ## Generate scrambles and cubes
 
-`scramble` prints a random scramble. `-n` sets the number of moves (default: 25) and `--size` the cube size (default: 3). On a 4x4x4 or 5x5x5 the scramble also turns second layers.
+`scramble` prints a random scramble. `-n` sets the number of moves (default: 25) and `--size` the cube size (default: 3). On a 4x4x4 or 5x5x5 the scramble also turns second layers. `--notation sign` writes the moves in SiGN (see [Move notations](#move-notations)); the default is `wca`.
 
 ```sh
 cubacle scramble -n 8
@@ -383,7 +384,7 @@ This prints the length of the solution of a random 4x4x4 (rotation included), be
 
 ## Apply a scramble
 
-A scramble is standard move notation with the moves separated by whitespace. Besides the canonical forms (`R`, `R2`, `R'`, and wide or inner-layer moves such as `Rw` or `2R`), these whole-token aliases are accepted:
+A scramble is move notation in WCA or SiGN spelling (see [Move notations](#move-notations)) with the moves separated by whitespace. Besides the canonical forms (`R`, `R2`, `R'`, and wide or inner-layer moves such as `Rw` or `2R`), these whole-token aliases are accepted:
 
 | Written | Read as |
 | --- | --- |
@@ -461,3 +462,39 @@ UULUUFUUFRRUBRRURRFFDFFUFFFDDRDDDDDDBLLLLLLLLBRRBBBBBB
 ```sh
 cubacle icon R "U'" --format text
 ```
+
+## Move notations
+
+Every command that reads moves (`solve --scramble`, `facelets`, `convert --scramble`, `icon`) reads WCA and SiGN spellings, token by token and without an option. `solve` and `scramble` write either one with `--notation wca|sign` (default `wca`). The move count and the engines are the same in both: every move counts one. `convert` and `random` print a cube, not moves, so they have no such option.
+
+| What is turned | WCA | SiGN |
+| --- | --- | --- |
+| The outer layer | `R` | `R` |
+| Only layer n (n from 2) | `2R`, `3R` | `2R`, `3R` |
+| The two outer layers | `Rw` (or `2Rw`) | `r` (or `2r`) |
+| The n outer layers (n from 3) | `3Rw`, `4Rw` | `3r`, `4r` |
+
+A turn ends in nothing (clockwise), `2` or `'`, as before (`3r2`, `u'`). The notations agree on every uppercase spelling and WCA has no lowercase one on big cubes, so no spelling has two meanings and nothing needs a tie-break. If a spelling ever did differ between the two, WCA would win; today none does. Mixed input such as `R u 3Rw 2R` is therefore read as it stands. Output in SiGN writes `u` for the two-layer turn (SiGN omits the 2) and `3u` for three.
+
+Rejected, with the token in the message: `rw` and `3rw` (a lowercase letter already means a wide turn), `1r` and `0r`, a turn count after the letter that is not 2 or a quote, and layer ranges such as `2-3r` (SiGN writes layers 2 to 3 so; the move type has no turn that skips the outer layer and is wide). The face letters are `U R F D L B`; the whole-cube rotations `x y z` stay icon-only.
+
+```sh
+cubacle facelets "r U f'"
+cubacle scramble --size 7 -n 6 --notation sign
+cubacle solve --size 4 -s "r 2R f' 3u" --notation sign
+```
+
+```text
+UUUURRURRBBBBBRDDRRDDRDDRFFDLLDLLDBBFFFLFFLFFLLLUUBUUB
+2L 2U2 3F' 3U' L U2 2B2 2L'
+D' l f2 F u' d
+```
+
+The first line is the same cube as `cubacle facelets "Rw U Fw'"`. The scramble is random. A 7x7x7 answer reads `U 3Uw 3Lw' B' 3Rw ...` in WCA and `U 3u 3l' B' 3r ...` in SiGN.
+
+Sources read for these rules (2026-10-23):
+
+- WCA Regulations, Article 12a2 (<https://www.worldcubeassociation.org/regulations/#article-12-notation>): `nRw` moves the n outer layers, `Rw` is `2Rw`, `1Rw` is invalid, `3Rw` is valid from the 4x4x4. The article defines no `2R` and no lowercase big-cube letters (lowercase only for Pyraminx vertices).
+- The SiGN description on mzrg.com (<https://mzrg.com/rubik/nota.shtml>): capital letters turn a single layer, lowercase letters several layers; a number before the letter names the layer, or for lowercase the deepest layer of a turn that includes the outer one, with `u` for `2u`; a range such as `2-5r` is written with a dash.
+
+Depth conventions: the sources agree on `2R` (only the second layer) and `3r` (the three outer layers), so there was no choice to make. `3R` (only the third layer) is the same in both. The one choice is `2r`, which mzrg writes `r`: it is accepted on input and written `r`. The speedsolving.com wiki could not be fetched (HTTP 403), and a forum proposal for `r3` was not taken as a convention.

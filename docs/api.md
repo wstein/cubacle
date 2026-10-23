@@ -31,10 +31,10 @@ The server binds to the local machine by default. It has no authentication, so d
 | Method and path | Input | Success response |
 | --- | --- | --- |
 | `GET /health` | None | `{"status":"ok"}` |
-| `GET /v1/scramble?moves=25&size=3` | `moves`: 1 to 200; `size`: 2, 3 or 5 | `{"scramble":"U' L2 F2 D U2"}` |
+| `GET /v1/scramble?moves=25&size=3` | `moves`: 1 to 200; `size`: 2 to 7; `notation`?: `wca` or `sign` | `{"scramble":"U' L2 F2 D U2"}` |
 | `GET /v1/random?size=3` | `size`: 2 to 7 (only 2 to 5 have engines) | `{"kind":"2x2x2","facelets":"...","token":"..."}` |
 | `POST /v1/convert` | `{"cube","scheme"?}` | `{"kind","facelets","token"?}` |
-| `POST /v1/solve` | `{"cube","scheme"?,"maxMoves"?,"budgetMs"?,"minProbes"?,"improve"?,"slices"?}` | `{"kind","solution","length","elapsedMicros"}` |
+| `POST /v1/solve` | `{"cube","scheme"?,"maxMoves"?,"budgetMs"?,"minProbes"?,"improve"?,"slices"?,"notation"?}` | `{"kind","solution","length","elapsedMicros"}` |
 
 For `POST` requests, send the header `Content-Type: application/json`.
 
@@ -49,16 +49,20 @@ For `POST` requests, send the header `Content-Type: application/json`.
 | `budgetMs` | Optional. Time limit in milliseconds, 1 to 600000. Defaults to, and is capped by, `--request-timeout-ms`. |
 | `minProbes` | Optional, 3x3x3 only. Keep improving the solution until this many probes were made, 1 to 100000000. Counts work, not time, so the answer is the same on every machine. See [3x3x3 performance](engines/3x3.md). |
 | `improve` | Optional, 3x3x3 only. Keep improving until `budgetMs` is spent and return the best solution found; `budgetMs` is required and `minProbes` cannot be combined with it. Spending the budget is not an error once a solution exists. |
+| `notation` | Optional, `wca` (default) or `sign`. How the `solution` is written: `Rw`, `3Rw` or `r`, `3r` (see [Move notations](cli.md#move-notations)). Also a query parameter of `/v1/scramble`. Anything else is a 400. |
 
 Other sizes answer 400 to `minProbes` and `improve`.
 
 Unknown fields are rejected with a 400 error.
+
+The server reads no move strings today (the cube is sent as a token, facelets or colours), so SiGN input has no field to go into; `notation` only chooses how moves are written. The answer has the same moves and the same `length` in both.
 
 ### Examples
 
 ```sh
 curl -s localhost:8080/health
 curl -s 'localhost:8080/v1/scramble?moves=20'
+curl -s 'localhost:8080/v1/scramble?size=5&moves=8&notation=sign'
 curl -s 'localhost:8080/v1/random?size=2'
 curl -s 'localhost:8080/v1/random?size=5'
 curl -s 'localhost:8080/v1/scramble?size=5&moves=8'
@@ -150,3 +154,18 @@ The server logs the method, path, status and latency of every request. It never 
 ## Browsers and CORS
 
 The server has deliberately no CORS layer, and it requires JSON bodies, so cross-site simple requests cannot trigger solves. A browser frontend needs an explicit allow-list CORS layer, which is not available yet.
+
+## Notation of the answer
+
+A 7x7x7 solved with `"notation":"wca"` (the default) and `"notation":"sign"`, the same cube and the same 187 moves (the start and the end of `solution` are shown):
+
+```json
+{"kind":"7x7x7","solution":"U 3Uw 3Lw' B' 3Rw 3Bw 3Uw 3Lw 3Bw2 3Uw Bw2 3Lw F2 ... U' L2 R","length":187}
+{"kind":"7x7x7","solution":"U 3u 3l' B' 3r 3b 3u 3l 3b2 3u b2 3l F2 ... U' L2 R","length":187}
+```
+
+An unknown value answers 400:
+
+```json
+{"error":{"code":"bad_input","message":"notation must be wca or sign, not \"ruwix\""}}
+```

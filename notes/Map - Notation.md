@@ -14,3 +14,4 @@ Raw-material notes, category notation.
 - [[Orbit64 state as mixed-radix digits]]
 - [[Orbit64 slot tables from the size]]
 - [[Orbit64 sizes 6 and 7 verified]]
+- [[SiGN notation as an output option]]
