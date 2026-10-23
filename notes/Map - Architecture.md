@@ -11,3 +11,4 @@ Raw-material notes, category architecture.
 - [[Render design]]
 - [[Shared reduction module]]
 - [[Terminal probing uses rustix and own parsing]]
+- [[Phases are cut by the cube state]]

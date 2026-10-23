@@ -78,13 +78,50 @@ cubacle icon "Rw'" --cube 5 --format svg --out rw.svg
 cubacle solve --scramble "R U" --icons
 ```
 
-On a Kitty-graphics terminal the icons come in rows, as many side by side as fit the width of the terminal, and each row has a line above it such as `steps 9-16 of 128`. A row is one image, with 8 pixels between the icons, and the background stays transparent. The last line is the plain move string. Without graphics (a pipe, `NO_COLOR`, `TERM=dumb` or another terminal), each step prints `step i of n: MOVE` and then its text picture, as before. Without `--icons`, the output of `solve` does not change. The colours come from `--scheme` (`boy` by default).
+On a Kitty-graphics terminal the solution is shown in phases (see below) and the icons come in rows, as many side by side as fit the width of the terminal, and each row has a line above it such as `steps 9-16 of 128`. A row is one image, with 8 pixels between the icons, and the background stays transparent. The last line is the plain move string. Without graphics (a pipe, `NO_COLOR`, `TERM=dumb` or another terminal), each step prints `step i of n: MOVE` and then its text picture, as before. Without `--icons`, the output of `solve` does not change. The colours come from `--scheme` (`boy` by default).
 
 | Option | Meaning |
 | --- | --- |
 | `--icon-size PIXELS` | Icon height; all icons have the same size. Default: 32 per cube layer, at least 96. |
 | `--columns N` | Icons per row. Default: as many as fit. Wide rows are cut off by the terminal, so a large `N` is your own choice. |
 | `--background dark\|light` | What the icons are seen on. Default: asked from the terminal, dark when it does not answer. |
+
+### Phases
+
+The solution is cut into phases, and each phase has a heading line, its rows of icons and then a picture of the cube after it. A row never spans two phases.
+
+```text
+Phase 1: centres and edges (25 moves)
+steps 1-10 of 44
+(a row of 10 icons)
+steps 11-20 of 44
+(a row of 10 icons)
+steps 21-25 of 44
+(a row of 5 icons)
+State after phase 1 - compare it with your cube
+(a framed picture of the cube)
+Phase 2: 3x3 stage (19 moves)
+...
+```
+
+The state picture has no arrow, no notation and no dimming: every sticker is in full colour inside a thin frame, so that it cannot be mistaken for a move. Compare it with your own cube before you go on.
+
+The phases are read from the cube, not from the engine: the solution is replayed and a phase ends at the first move after which its condition holds for the rest of the solution. A phase that is true from its start is left out, and the others are numbered from 1 on.
+
+| Cube | Phases |
+| --- | --- |
+| 2x2x2 | `solve` |
+| 3x3x3 | `to the G1 subgroup` (corners and edges oriented, the four middle-layer edges in the middle layer: the Kociemba domino state), `solve` |
+| 4x4x4 to 7x7x7 | `centres` (every face has centres of one colour), `edges` (all wings of an edge paired, centres solved), `3x3 stage` |
+
+The 4x4x4, 5x5x5 and 6x6x6 engines make the centres and the edges true at the same move, so that the first phase is `centres and edges`; `centres` and `edges` appear on their own when a solution makes them true at different moves. With `--verbose`, the phases are also written to standard error, for every cube and with or without `--icons`:
+
+```text
+phase 1: centres and edges, moves 1-25
+phase 2: 3x3 stage, moves 26-44
+```
+
+Without graphics there are no phase headings: the text output is one picture per step, as before.
 
 ### How the terminal is asked
 
@@ -117,6 +154,8 @@ let pixels = drawn.to_rgba(128);
 let escapes = pixels.to_kitty(&KittyPlacement::default());
 assert!(svg.starts_with("<svg") && escapes.starts_with("\x1b_G"));
 ```
+
+`state_icon(&state, &style)` draws a cube state alone: no arrow, no notation, no dimming, in a thin frame, with the size of a move icon. `Raster::hstack(&rasters, gap)` joins rasters side by side, as `solve --icons` does for a row.
 
 `render` depends only on `puzzle`, does no I/O and keeps no state. The SVG is built from filled polygons with two-decimal numbers, so the same input always gives the same text. The `Style` sets the palette, the shading, the `Backdrop` (dark or light), an optional solid background and a target size in pixels; the size only widens gaps and arrows so that icons at 64 to 128 pixels stay crisp, and the SVG scales freely.
 
