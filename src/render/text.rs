@@ -8,6 +8,7 @@ use crate::puzzle::{locate, Face, Facelets};
 
 use super::action::Action;
 use super::arrow::Direction;
+use super::geometry::Camera;
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Cell {
@@ -20,7 +21,9 @@ pub(crate) struct Cell {
 pub(crate) struct Grid {
     pub n: usize,
     pub header: String,
-    /// Faces `U`, `F`, `R` in that order, row-major.
+    /// Seen from below: the faces are `D`, `F`, `R` and `D` is drawn under the others.
+    pub below: bool,
+    /// Faces `U`, `F`, `R` in that order, row-major (`D`, `F`, `R` when `below`).
     pub faces: [Vec<Cell>; 3],
 }
 
@@ -43,15 +46,16 @@ pub(crate) fn grid(state: &Facelets, action: &Action, style: &Style, direction: 
     Grid {
         n: kind.size(),
         header: format!("{action} {}{half}", direction.glyph()),
+        below: false,
         faces,
     }
 }
 
 /// A picture of the state with nothing marked: every cell is "moving", so
 /// the letters are upper case and the colours are not darkened.
-pub(crate) fn state_grid(state: &Facelets, style: &Style) -> Grid {
+pub(crate) fn state_grid(state: &Facelets, style: &Style, camera: Camera) -> Grid {
     let kind = state.kind();
-    let faces = [Face::U, Face::F, Face::R].map(|face| {
+    let faces = [camera.cap(), Face::F, Face::R].map(|face| {
         let start = face as usize * kind.face_len();
         (start..start + kind.face_len())
             .map(|index| {
@@ -67,6 +71,7 @@ pub(crate) fn state_grid(state: &Facelets, style: &Style) -> Grid {
     Grid {
         n: kind.size(),
         header: "state".to_owned(),
+        below: camera == Camera::Below,
         faces,
     }
 }
@@ -97,10 +102,13 @@ impl Grid {
                 .map(|c| cell(&self.faces[face][r * n + c], kind, ansi))
                 .collect()
         };
-        for r in 0..n {
-            out.push_str(&" ".repeat(n - r));
-            out.push_str(row(0, Face::U, r).trim_end());
-            out.push('\n');
+        let cap = if self.below { Face::D } else { Face::U };
+        if !self.below {
+            for r in 0..n {
+                out.push_str(&" ".repeat(n - r));
+                out.push_str(row(0, cap, r).trim_end());
+                out.push('\n');
+            }
         }
         for r in 0..n {
             out.push_str(&row(1, Face::F, r));
@@ -109,6 +117,14 @@ impl Grid {
             }
             out.push_str(row(2, Face::R, r).trim_end());
             out.push('\n');
+        }
+        if self.below {
+            // the nearest row of D touches F, the others lean away to the right
+            for r in 0..n {
+                out.push_str(&" ".repeat(r + 1));
+                out.push_str(row(0, cap, r).trim_end());
+                out.push('\n');
+            }
         }
         out
     }

@@ -52,6 +52,7 @@ pub use raster::Raster;
 pub use style::{Backdrop, Palette, Rgb, Shading, Style};
 
 use crate::puzzle::Facelets;
+use geometry::Camera;
 use scene::Shape;
 
 /// A drawn icon: shapes in a 114 x 109.2 unit canvas, ready for any writer.
@@ -82,8 +83,14 @@ pub fn icon(state: &Facelets, action: &Action, style: &Style) -> Result<Icon, Re
     let pixels_per_unit = f64::from(style.size.max(16)) / scene::HEIGHT;
     let projection = geometry::Projection::new(n, 10.0, 9.0, 80.0, 76.0);
     let pixels_per_model = projection.scale * pixels_per_unit;
-    let mut shapes =
-        geometry::cube_shapes(state, Some(action), style, &projection, pixels_per_model);
+    let mut shapes = geometry::cube_shapes(
+        state,
+        Some(action),
+        style,
+        Camera::Above,
+        &projection,
+        pixels_per_model,
+    );
     let plan = arrow::plan(action, n);
     shapes.extend(arrow::shapes(
         &plan,
@@ -109,14 +116,20 @@ pub fn icon(state: &Facelets, action: &Action, style: &Style) -> Result<Icon, Re
 /// mistaken for a move. It has the size of a move icon, so the two sit in one
 /// row. [`Icon::label`] is `"state"` and [`Icon::direction`] is `None`.
 pub fn state_icon(state: &Facelets, style: &Style) -> Icon {
+    state_icon_seen(state, style, Camera::Above)
+}
+
+/// [`state_icon`] from above (U, F, R) or from below (D, F, R) the cube.
+fn state_icon_seen(state: &Facelets, style: &Style, camera: Camera) -> Icon {
     let n = state.kind().size();
     let pixels_per_unit = f64::from(style.size.max(16)) / scene::HEIGHT;
-    let projection = geometry::Projection::new(n, 10.0, 9.0, 80.0, 76.0);
+    let projection = geometry::Projection::seen_from(camera, n, 10.0, 9.0, 80.0, 76.0);
     let pixels_per_model = projection.scale * pixels_per_unit;
-    let mut shapes = geometry::cube_shapes(state, None, style, &projection, pixels_per_model);
+    let mut shapes =
+        geometry::cube_shapes(state, None, style, camera, &projection, pixels_per_model);
     shapes.extend(state::frame(style.backdrop));
     Icon {
-        grid: text::state_grid(state, style),
+        grid: text::state_grid(state, style, camera),
         direction: None,
         shapes,
         label: "state".to_owned(),
@@ -140,10 +153,19 @@ pub fn differing_stickers(state: &Facelets, reference: &Facelets) -> usize {
 /// whose colour differs from `reference`. Stickers on the three faces that are
 /// out of sight cannot be marked; [`differing_stickers`] counts them all.
 pub fn state_icon_against(state: &Facelets, reference: &Facelets, style: &Style) -> Icon {
-    let mut icon = state_icon(state, style);
+    state_icon_against_seen(state, reference, style, Camera::Above)
+}
+
+fn state_icon_against_seen(
+    state: &Facelets,
+    reference: &Facelets,
+    style: &Style,
+    camera: Camera,
+) -> Icon {
+    let mut icon = state_icon_seen(state, style, camera);
     let n = state.kind().size();
-    let projection = geometry::Projection::new(n, 10.0, 9.0, 80.0, 76.0);
-    let marks = geometry::difference_marks(state, reference, &projection);
+    let projection = geometry::Projection::seen_from(camera, n, 10.0, 9.0, 80.0, 76.0);
+    let marks = geometry::difference_marks(state, reference, camera, &projection);
     // the marks go under the frame, over the stickers
     let at = icon
         .shapes

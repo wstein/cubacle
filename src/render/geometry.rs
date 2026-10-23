@@ -23,13 +23,45 @@ pub(crate) struct Projection {
     dy: f64,
 }
 
+/// Where the camera is: above the cube, so that its Up face shows over the front
+/// face, or below it, so that its Down face shows under the front face. Both see
+/// the Front and the Right face.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Camera {
+    Above,
+    Below,
+}
+
+impl Camera {
+    /// The face of the top (above) or bottom (below) slot of the picture.
+    pub(crate) fn cap(self) -> Face {
+        match self {
+            Camera::Above => Face::U,
+            Camera::Below => Face::D,
+        }
+    }
+}
+
 impl Projection {
     /// Fits the cube of size `n` into the box `x, y, w, h`, centred.
     pub(crate) fn new(n: usize, x: f64, y: f64, w: f64, h: f64) -> Projection {
+        Projection::seen_from(Camera::Above, n, x, y, w, h)
+    }
+
+    /// Like [`Projection::new`]; from below the depth runs down instead of up.
+    pub(crate) fn seen_from(
+        camera: Camera,
+        n: usize,
+        x: f64,
+        y: f64,
+        w: f64,
+        h: f64,
+    ) -> Projection {
         let (dx, dy) = DEPTH;
+        let dy = if camera == Camera::Below { -dy } else { dy };
         let size = 2.0 * n as f64;
         Projection {
-            scale: (w / (size * (1.0 + dx))).min(h / (size * (1.0 + dy))),
+            scale: (w / (size * (1.0 + dx))).min(h / (size * (1.0 + dy.abs()))),
             ox: x + w / 2.0,
             oy: y + h / 2.0,
             dx,
@@ -46,8 +78,8 @@ impl Projection {
 }
 
 /// Whether a face is one of the three drawn.
-pub(crate) fn visible(face: Face) -> bool {
-    matches!(face, Face::U | Face::R | Face::F)
+pub(crate) fn visible(camera: Camera, face: Face) -> bool {
+    matches!(face, Face::R | Face::F) || face == camera.cap()
 }
 
 /// The model point of plane coordinates `(u, v)` on a visible face of a cube
@@ -56,6 +88,7 @@ pub(crate) fn plane_point(face: Face, n: f64, u: f64, v: f64) -> [f64; 3] {
     match face {
         Face::F => [u, v, n],
         Face::R => [n, v, -u],
+        Face::D => [u, -n, v],
         _ => [u, n, -v],
     }
 }
@@ -65,6 +98,7 @@ pub(crate) fn plane_coords(face: Face, p: [f64; 3]) -> [f64; 2] {
     match face {
         Face::F => [p[0], p[1]],
         Face::R => [-p[2], p[1]],
+        Face::D => [p[0], p[2]],
         _ => [p[0], -p[2]],
     }
 }
@@ -93,6 +127,7 @@ pub(crate) fn cube_shapes(
     state: &Facelets,
     action: Option<&Action>,
     style: &Style,
+    camera: Camera,
     projection: &Projection,
     pixels_per_model: f64,
 ) -> Vec<Shape> {
@@ -106,7 +141,7 @@ pub(crate) fn cube_shapes(
     };
     let mut shapes = Vec::new();
     let rim = n + 0.1;
-    for face in [Face::F, Face::U, Face::R] {
+    for face in [Face::F, camera.cap(), Face::R] {
         let corners = vec![[-rim, -rim], [rim, -rim], [rim, rim], [-rim, rim]];
         shapes.push(Shape::new(Part::Body, flat(face, corners), BODY));
     }
@@ -116,7 +151,7 @@ pub(crate) fn cube_shapes(
     let radius = (0.3_f64).min(half * 0.6);
     for index in 0..kind.facelet_count() {
         let face = Face::ALL[index / kind.face_len()];
-        if !visible(face) {
+        if !visible(camera, face) {
             continue;
         }
         let (position, _) = locate(kind, index);
@@ -133,6 +168,7 @@ pub(crate) fn cube_shapes(
 pub(crate) fn difference_marks(
     state: &Facelets,
     reference: &Facelets,
+    camera: Camera,
     projection: &Projection,
 ) -> Vec<Shape> {
     let kind = state.kind();
@@ -140,7 +176,7 @@ pub(crate) fn difference_marks(
     let mut shapes = Vec::new();
     for index in 0..kind.facelet_count() {
         let face = Face::ALL[index / kind.face_len()];
-        if !visible(face) || state.stickers()[index] == reference.stickers()[index] {
+        if !visible(camera, face) || state.stickers()[index] == reference.stickers()[index] {
             continue;
         }
         let (position, _) = locate(kind, index);
@@ -194,7 +230,14 @@ mod tests {
         let action: Action = text.parse().unwrap();
         let ppm = projection.scale * 0.96;
         (
-            cube_shapes(&state, Some(&action), &Style::default(), &projection, ppm),
+            cube_shapes(
+                &state,
+                Some(&action),
+                &Style::default(),
+                Camera::Above,
+                &projection,
+                ppm,
+            ),
             projection,
         )
     }

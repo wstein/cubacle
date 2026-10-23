@@ -125,7 +125,7 @@ impl Default for Style {
 /// Fixed brightness per visible face, giving the cube its depth.
 pub(crate) fn face_light(face: Face) -> f64 {
     match face {
-        Face::U => 1.0,
+        Face::U | Face::D => 1.0,
         Face::F => 0.93,
         _ => 0.82,
     }
