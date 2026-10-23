@@ -29,3 +29,6 @@ lto = "fat"
 
 [workspace]
 members = ["crates/server"]
+
+[target."cfg(unix)".dependencies]
+rustix = { version = "1.1.5", features = ["termios"] }

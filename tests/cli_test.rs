@@ -538,6 +538,19 @@ fn solve_icons_takes_a_background_and_plain_solve_does_not() {
 }
 
 #[test]
+fn solve_icons_takes_columns_that_a_pipe_does_not_need() {
+    let (ok, out, err) = cubacle(&["solve", "-s", "R U", "--icons", "--columns", "3"]);
+    assert!(ok, "{err}");
+    assert!(out.contains("step 1 of ") && !out.contains('\x1b'));
+    for bad in ["0", "x"] {
+        let (ok, _, err) = cubacle(&["solve", "-s", "R U", "--icons", "--columns", bad]);
+        assert!(!ok && err.contains("invalid value"), "{err}");
+    }
+    let (ok, _, err) = cubacle(&["solve", "-s", "R U", "--columns", "3"]);
+    assert!(!ok && err.contains("--icons"), "{err}");
+}
+
+#[test]
 fn icons_of_larger_cubes_are_drawn_larger() {
     let bytes = |cube: &str| {
         Command::new(env!("CARGO_BIN_EXE_cubacle"))

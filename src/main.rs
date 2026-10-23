@@ -1,5 +1,7 @@
 mod icons;
 mod improve;
+mod rows;
+mod terminal;
 
 use std::io::Read;
 use std::process::ExitCode;
@@ -126,9 +128,13 @@ struct SolveArgs {
     /// Icon height in pixels for --icons (default: 32 per cube layer, at least 96)
     #[arg(long, requires = "icons", value_name = "PIXELS")]
     icon_size: Option<u32>,
-    /// What the --icons pictures are seen on: sets the notation colour and the dimming
-    #[arg(long, requires = "icons", value_enum, default_value = "dark")]
-    background: icons::Background,
+    /// What the --icons pictures are seen on: sets the notation colour and the
+    /// dimming (default: ask the terminal, dark when it does not answer)
+    #[arg(long, requires = "icons", value_enum)]
+    background: Option<icons::Background>,
+    /// Icons per row for --icons (default: as many as fit the terminal width)
+    #[arg(long, requires = "icons", value_name = "N", value_parser = clap::value_parser!(u32).range(1..))]
+    columns: Option<u32>,
 }
 
 fn main() -> ExitCode {
@@ -288,9 +294,12 @@ fn solve(args: SolveArgs) -> Result<(), String> {
                 return icons::print_solution(
                     &facelets,
                     &solution,
-                    args.input.scheme,
-                    args.icon_size,
-                    args.background,
+                    &icons::SolutionIcons {
+                        scheme: args.input.scheme,
+                        height: args.icon_size,
+                        background: args.background,
+                        columns: args.columns.map(|c| c as usize),
+                    },
                 );
             }
             println!("{solution}");
