@@ -76,6 +76,24 @@ fn six_by_six_scrambles_are_solved_and_replay() {
     }
 }
 
+/// A slice turn that closes the wing stages used to be merged into the run of
+/// moves that opens the 3x3 stage, which then turned a second layer (found
+/// by a random scramble in a stress loop; the failure looked load-dependent).
+#[test]
+fn a_slice_turn_at_the_3x3_boundary_stays_out_of_the_3x3_stage() {
+    let scramble: cubacle::puzzle::MoveSequence = "3L F' U 2L 2D2 F D 2L 3B' 2F2 L' 3U 3R B 2F 3U 3R U 3F 3L2 3B2 3D2 3L 3R 3U2 3B' D' 3L2 B 3D2 B D2 R' U' 2L2 2U2 L 2F2 2D 3L' D2 3U' 2L2 3D2 3R B2 3D 3F R' 2B2 2R' 2U 3F' U 2F D R F 2R' 3B 2R2 F' U2 2B 2D 2B D B' 3F L F2 3D' 3B' 2R2 2U2 2F 3D2 3B2 3L' R"
+        .parse()
+        .unwrap();
+    let cube = Facelets::solved(PuzzleKind::Cube6)
+        .apply(&scramble)
+        .unwrap();
+    let (result, _) = solver().solve_tallied(&cube);
+    assert!(result.is_solved(), "{:?}", result.message);
+    check_stages(&cube, &result);
+    let moves = result.solution().unwrap();
+    assert!(cube.apply(moves).unwrap().is_solved());
+}
+
 /// Solves the reference cubes in `$DWALTON_CUBES` (`N-1.txt` ... `N-20.txt`,
 /// N from `$DWALTON_SIZE`, 6 or 7);
 /// run with `--ignored --nocapture`.
@@ -117,9 +135,11 @@ fn solver7() -> DwaltonSolver {
 fn seven_by_seven_scrambles_are_solved_and_replay() {
     let solver = solver7();
     for _ in 0..2 {
+        let scramble = generate::scramble(PuzzleKind::Cube7, 100);
         let cube: Facelets = Facelets::solved(PuzzleKind::Cube7)
-            .apply(&generate::scramble(PuzzleKind::Cube7, 100))
+            .apply(&scramble)
             .unwrap();
+        println!("scramble: {scramble}");
         let (result, tally) = solver.solve_tallied(&cube);
         println!("{tally:?}");
         assert!(result.is_solved(), "{:?}", result.message);

@@ -201,7 +201,14 @@ impl DwaltonSolver {
                 &tally,
             );
         }
-        let stages = groups::stages(cube, &all, &marks, &solution);
+        let mut stages = groups::stages(cube, &all, &marks, &solution);
+        groups::repair(
+            cube,
+            &all,
+            &groups::raw_ends(&marks),
+            &solution,
+            &mut stages,
+        );
         (
             SolveResult {
                 outcome: Ok(MoveSequence::new(solution)),

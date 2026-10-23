@@ -16,7 +16,7 @@
 //! | `outer wings and centres` | the outer wings and centres, by the 5x5x5 engine | the outer wings and centres, by the 5x5x5 engine |
 //! | `3x3 stage` | the 3x3x3 solver | the 3x3x3 solver |
 
-use crate::puzzle::{stage_ends, Facelets, Move, SolveStage};
+use crate::puzzle::{stage_ends, Facelets, Move, MoveSequence, SolveStage};
 
 /// The stages in order.
 pub(super) const GROUPS: [&str; 6] = [
@@ -54,6 +54,67 @@ pub(super) fn stages(
     marks: &[(&'static str, usize)],
     fin: &[Move],
 ) -> Vec<SolveStage> {
+    let ends = raw_ends(marks);
+    let mapped = stage_ends(start, raw, &ends, fin, &[]);
+    GROUPS
+        .iter()
+        .zip(mapped)
+        .map(|(&name, end)| SolveStage { name, end })
+        .collect()
+}
+
+/// Moves a stage end later where normalising merged moves across it, so the
+/// cube is never in the state the engine reached there. The stage end goes to
+/// the first position where every sticker that was in its solved place at the
+/// engine's end is in place again, so the facts of the stage (centres and
+/// wings done, outer faces only in the 3x3 stage) hold at its end. The moves
+/// themselves are not changed.
+pub(super) fn repair(
+    start: &Facelets,
+    raw: &[Move],
+    raw_ends: &[usize],
+    fin: &[Move],
+    stages: &mut [SolveStage],
+) {
+    let solved = Facelets::solved(start.kind());
+    let state = |m: &[Move]| start.apply(&MoveSequence::new(m.to_vec())).ok();
+    for (stage, &raw_end) in stages.iter_mut().zip(raw_ends) {
+        if stage.end >= fin.len() {
+            continue;
+        }
+        let (Some(have), Some(want)) = (state(&fin[..stage.end]), state(&raw[..raw_end])) else {
+            continue;
+        };
+        if have == want {
+            continue;
+        }
+        let kept: Vec<usize> = (0..solved.stickers().len())
+            .filter(|&i| want.stickers()[i] == solved.stickers()[i])
+            .collect();
+        let mut at = stage.end;
+        let mut cur = have;
+        while at < fin.len() {
+            if kept
+                .iter()
+                .all(|&i| cur.stickers()[i] == solved.stickers()[i])
+            {
+                break;
+            }
+            let Ok(next) = cur.apply(&MoveSequence::new(vec![fin[at]])) else {
+                break;
+            };
+            cur = next;
+            at += 1;
+        }
+        stage.end = at;
+    }
+    for i in 1..stages.len() {
+        stages[i].end = stages[i].end.max(stages[i - 1].end);
+    }
+}
+
+/// The end of each stage in the raw moves.
+pub(super) fn raw_ends(marks: &[(&'static str, usize)]) -> Vec<usize> {
     let mut ends = Vec::with_capacity(GROUPS.len());
     let mut at = 0;
     for group in GROUPS {
@@ -64,12 +125,7 @@ pub(super) fn stages(
         }
         ends.push(at);
     }
-    let mapped = stage_ends(start, raw, &ends, fin, &[]);
-    GROUPS
-        .iter()
-        .zip(mapped)
-        .map(|(&name, end)| SolveStage { name, end })
-        .collect()
+    ends
 }
 
 #[cfg(test)]
