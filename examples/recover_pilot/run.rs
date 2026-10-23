@@ -11,6 +11,7 @@ use cubacle::recover::{
 
 use crate::cases::{Case, Kind};
 use crate::data::PilotCube;
+use crate::equiv::same_cube;
 
 /// How well the explanation fits what was injected.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -19,7 +20,10 @@ pub enum Verdict {
     Full,
     /// Some injected step named.
     Partial,
-    /// Mistakes named, none of them an injected step.
+    /// Other steps named, but they give the very cube the person holds
+    /// (commuting moves): as good an explanation as the injected one.
+    Equivalent,
+    /// Mistakes named, none of them an injected step, and not the same cube.
     Wrong,
     /// Near the path, or nothing found.
     NoExplanation,
@@ -28,9 +32,10 @@ pub enum Verdict {
 }
 
 impl Verdict {
-    pub const ALL: [Verdict; 5] = [
+    pub const ALL: [Verdict; 6] = [
         Verdict::Full,
         Verdict::Partial,
+        Verdict::Equivalent,
         Verdict::Wrong,
         Verdict::NoExplanation,
         Verdict::OnPath,
@@ -40,6 +45,7 @@ impl Verdict {
         match self {
             Verdict::Full => "full",
             Verdict::Partial => "partial",
+            Verdict::Equivalent => "equiv",
             Verdict::Wrong => "wrong",
             Verdict::NoExplanation => "none",
             Verdict::OnPath => "on path",
@@ -79,7 +85,7 @@ fn class(kind: &MistakeKind) -> Option<Kind> {
     }
 }
 
-fn judge(case: &Case, staged: &Staged) -> (Verdict, bool) {
+fn judge(case: &Case, pilot: &PilotCube, now: &Facelets, staged: &Staged) -> (Verdict, bool) {
     match &staged.diagnosis.finding {
         Finding::OnPath { .. } => (Verdict::OnPath, false),
         Finding::Mistakes { mistakes, .. } => {
@@ -95,7 +101,16 @@ fn judge(case: &Case, staged: &Staged) -> (Verdict, bool) {
             let agree =
                 !hits.is_empty() && hits.iter().all(|(i, m)| class(&m.kind) == Some(i.kind));
             let verdict = if hits.is_empty() {
-                Verdict::Wrong
+                if same_cube(
+                    &pilot.original,
+                    &pilot.solution,
+                    &staged.diagnosis.finding,
+                    now,
+                ) {
+                    Verdict::Equivalent
+                } else {
+                    Verdict::Wrong
+                }
             } else if hits.len() == mistakes.len() && hits.len() == case.mistakes.len() {
                 Verdict::Full
             } else {
@@ -119,7 +134,7 @@ fn search(
     let time = started.elapsed();
     match staged {
         Ok(staged) => {
-            let (verdict, kinds_agree) = judge(case, &staged);
+            let (verdict, kinds_agree) = judge(case, pilot, now, &staged);
             let n = staged.diagnosis.solution_len;
             Search {
                 verdict,

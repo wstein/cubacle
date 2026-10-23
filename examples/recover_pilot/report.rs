@@ -62,8 +62,8 @@ fn mean(values: impl Iterator<Item = f64>) -> String {
 
 fn header(first: &str) {
     println!(
-        "{first:<10} {:>3} {:>5} {:>7} {:>5} {:>5} {:>7} {:>8} {:>8} {:>7} {:>7} {:>7} {:>7} {:>7} {:>7}",
-        "n", "full", "partial", "wrong", "none", "onpath", "kinds", "ms avg", "ms max", "fresh", "advised", "saved", "rec<fr", "rec=fr"
+        "{first:<10} {:>3} {:>5} {:>7} {:>5} {:>5} {:>5} {:>7} {:>8} {:>8} {:>7} {:>7} {:>7} {:>7} {:>7} {:>7}",
+        "n", "full", "partial", "equiv", "wrong", "none", "onpath", "kinds", "ms avg", "ms max", "fresh", "advised", "saved", "rec<fr", "rec=fr"
     );
 }
 
@@ -106,10 +106,11 @@ fn row(label: &str, group: &[&Result]) {
         })
         .count();
     println!(
-        "{label:<10} {:>3} {:>5} {:>7} {:>5} {:>5} {:>7} {:>8} {:>8} {:>7} {:>7} {:>7} {:>7} {:>7} {:>7}",
+        "{label:<10} {:>3} {:>5} {:>7} {:>5} {:>5} {:>5} {:>7} {:>8} {:>8} {:>7} {:>7} {:>7} {:>7} {:>7} {:>7}",
         group.len(),
         count(Verdict::Full),
         count(Verdict::Partial),
+        count(Verdict::Equivalent),
         count(Verdict::Wrong),
         count(Verdict::NoExplanation),
         count(Verdict::OnPath),
@@ -139,7 +140,7 @@ fn table(title: &str, key: impl Fn(&Result) -> String, results: &[Result]) {
 
 pub fn tables(results: &[Result]) {
     println!("\nColumns: verdict of the explanation against the injected mistakes (full = all");
-    println!("injected steps named and nothing else; partial = some; wrong = other steps;");
+    println!("injected steps named and nothing else; partial = some; equiv = other steps, same cube; wrong = other steps, other cube;");
     println!("none = near/unexplained), kinds = named steps whose kind agrees (of full+partial),");
     println!("search ms, mean fresh length, mean moves still to make with the advice,");
     println!("saved = fresh minus advised, rec<fr / rec=fr = best route shorter than / as long");

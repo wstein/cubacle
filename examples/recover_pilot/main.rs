@@ -8,6 +8,7 @@
 
 mod cases;
 mod data;
+mod equiv;
 mod gen;
 mod report;
 mod rng;
