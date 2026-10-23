@@ -1,0 +1,34 @@
+id checkerboard
+name Checkerboard
+alias chessboard
+alias chess pattern
+desc Every face alternates its own colour and the opposite colour; the corners stay solved.
+def 3 parity
+
+id six-spots
+name Six spots
+alias 6 spots
+alias six dots
+alias 6 dots
+desc Every face has a spot of its own colour in the middle (one sticker on odd cubes, the middle 2x2 on even ones) on a background of the next colour round a corner.
+def 3 classes cw cw id
+
+id four-spots
+name Four spots
+alias 4 spots
+alias four dots
+desc Spots on four faces round one axis, on a background of the opposite colour; the two other faces stay solid.
+def 3 classes:RLFB opp opp id
+
+id cube-in-cube
+name Cube in a cube
+alias cube in a cube
+alias cube in cube
+desc A cube of the face colours seems to sit in the corner of a shell: on every face the block at two opposite corners keeps the face colour, the L-shaped rest shows the next colour round a corner.
+def 3 blocks cw id
+
+id superflip
+name Superflip
+alias flipped edges
+desc Every edge piece flipped in place and everything else solved.
+def 3 superflip

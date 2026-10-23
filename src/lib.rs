@@ -14,6 +14,7 @@
 //! | [`phases`] | the phases of a solution, from the engine's stages or the cube state | `puzzle` |
 //! | [`recover`] | where a cube went wrong in a printed solution, and the cheapest way back | `puzzle` |
 //! | [`ranges`] | opt-in compression of a solution into layer ranges | `puzzle`, `notation` |
+//! | [`patterns`] | well-known patterns defined by structure, with searched generators | `puzzle` |
 //! | [`render`] | move icons as SVG, pixels, Kitty escapes and text | `puzzle` |
 //!
 //! ```
@@ -32,6 +33,7 @@
 pub mod engines;
 pub mod generate;
 pub mod notation;
+pub mod patterns;
 pub mod phases;
 pub mod puzzle;
 pub mod ranges;

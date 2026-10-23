@@ -1,0 +1,10 @@
+# Generators found by our own search (examples/pattern_search.rs, examples/pattern_solve.rs).
+# id | size | metric | status | length | moves
+checkerboard | 3 | outer | optimal | 6 | F2 Fw2 Rw2 R2 Uw2 U2
+checkerboard | 3 | range | optimal | 3 | 2U2 2R2 2F2
+six-spots | 3 | outer | optimal | 8 | Fw' Rw Lw' Dw' Uw Fw' F U
+six-spots | 3 | range | optimal | 6 | 2U' Fw Bw' Lw' Rw 2U'
+four-spots | 3 | outer | optimal | 8 | D' F2 Fw2 Dw' Uw Rw2 R2 U
+four-spots | 3 | range | optimal | 6 | D2 2R2 2U 2R2 Uw U
+superflip | 3 | outer | best-known | 20 | U' R2 U' F2 D' R2 U' B F U2 L' B2 R2 F2 D' U F' U2 L' R'
+cube-in-cube | 3 | outer | best-known | 18 | U2 R2 D2 U2 B2 U F2 D U2 L' F L' F L' F D B2 U
