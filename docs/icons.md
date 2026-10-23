@@ -78,13 +78,30 @@ cubacle icon "Rw'" --cube 5 --format svg --out rw.svg
 cubacle solve --scramble "R U" --icons
 ```
 
-Each step prints `step i of n: MOVE` and then the icon of the cube before that step. Without `--icons`, the output of `solve` does not change. The colours come from `--scheme` (`boy` by default). `--background dark|light` (dark by default) chooses the dimming and the notation colour as for `icon`; it needs `--icons`.
+On a Kitty-graphics terminal the icons come in rows, as many side by side as fit the width of the terminal, and each row has a line above it such as `steps 9-16 of 128`. A row is one image, with 8 pixels between the icons, and the background stays transparent. The last line is the plain move string. Without graphics (a pipe, `NO_COLOR`, `TERM=dumb` or another terminal), each step prints `step i of n: MOVE` and then its text picture, as before. Without `--icons`, the output of `solve` does not change. The colours come from `--scheme` (`boy` by default).
+
+| Option | Meaning |
+| --- | --- |
+| `--icon-size PIXELS` | Icon height; all icons have the same size. Default: 32 per cube layer, at least 96. |
+| `--columns N` | Icons per row. Default: as many as fit. Wide rows are cut off by the terminal, so a large `N` is your own choice. |
+| `--background dark\|light` | What the icons are seen on. Default: asked from the terminal, dark when it does not answer. |
+
+### How the terminal is asked
+
+Before drawing, `solve --icons` asks the terminal for two things, only when standard input and output are a terminal with Kitty graphics:
+
+- **Width.** `TIOCGWINSZ` gives the columns and, in most terminals, the size in pixels. When the pixel size is 0, the reply to `CSI 14 t` (text area in pixels) is used, then `CSI 16 t` (cell size) times the columns, and last `columns * 8` pixels (an assumed cell width; `COLUMNS` or 80 for the columns). The same sources give the cell height that moves the cursor below a row, with 16 pixels assumed.
+- **Background.** The reply to `OSC 11` (`ESC ] 11 ; ? ESC \`, answered as `rgb:RRRR/GGGG/BBBB`) is judged by its brightness (0.2126 R + 0.7152 G + 0.0722 B above 0.5 is light). Without `--background` and without a reply the background is dark. With `--background`, the colour is not asked.
+
+The queries go through `/dev/tty` in a short raw mode, and the saved settings are restored on every path, also on an error. A DA1 query (`CSI c`) is sent last: a terminal that does not know the other queries still answers it, so the program does not wait. If nothing answers, the wait is 100 ms.
+
+Inside `tmux` and `screen` (`TMUX` or `STY` is set, or `TERM` starts with `screen` or `tmux`) nothing is asked, because they would swallow the queries and the images need a passthrough that is not implemented. The defaults apply there: the width from `TIOCGWINSZ` or `columns * 8`, and a dark background.
 
 ## Terminal support
 
 `cubacle` writes Kitty graphics when standard output is a terminal and the environment names a terminal that supports the [Kitty graphics protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/): `KITTY_WINDOW_ID` is set, `TERM` is `xterm-kitty`, or `TERM_PROGRAM` is `ghostty` or `WezTerm`. Other terminals get coloured text, or plain text when `NO_COLOR` is set, `TERM` is `dumb` or standard output is not a terminal.
 
-The Kitty output transmits raw RGBA (`a=T,f=32`) in chunks of at most 4096 base64 bytes, with `m=1` on every chunk but the last. It first erases the terminal rows that the image covers, steps back up, draws the image with `C=1` (the cursor does not move) and then steps down below it, so older text cannot show through and later output does not overlap. The icon background is transparent by default, so it takes the colours of the terminal and does not drift against other backgrounds; the covered rows are erased first, so older text cannot show through. `--opaque` paints a solid backdrop of the `--background` colour instead. On a light terminal use `--background light`, so that the notation is dark and the dimming suits the backdrop; the choice is not detected from the terminal. Only the height in rows (`r`) is sent, so the terminal keeps the aspect ratio whatever its cell shape; the row count assumes about 16 pixels per row, which is an estimate and not queried. The encoding is covered by unit tests; the drawing was seen in a Kitty-protocol terminal by the owner.
+The Kitty output transmits raw RGBA (`a=T,f=32`) in chunks of at most 4096 base64 bytes, with `m=1` on every chunk but the last. It first erases the terminal rows that the image covers, steps back up, draws the image with `C=1` (the cursor does not move) and then steps down below it, so older text cannot show through and later output does not overlap. The icon background is transparent by default, so it takes the colours of a terminal and does not drift against other backgrounds. `--opaque` paints a solid backdrop of the `--background` colour instead (`icon` only). In `solve --icons` the image is drawn at its own pixel size, without `r`, so a row is as wide as computed; the number of rows to erase is its height divided by the cell height, rounded up. For `icon`, only the height in rows (`r`) is sent, from an assumed 16 pixels per row. See [How the terminal is asked](#how-the-terminal-is-asked) for the width and the background. The encoding is covered by unit tests; the drawing was seen in a Kitty-protocol terminal by the owner.
 
 ## Use the module
 

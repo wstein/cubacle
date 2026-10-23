@@ -10,3 +10,4 @@ Raw-material notes, category architecture.
 - [[Workspace split timing]]
 - [[Render design]]
 - [[Shared reduction module]]
+- [[Terminal probing uses rustix and own parsing]]
