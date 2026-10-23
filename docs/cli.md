@@ -218,6 +218,8 @@ Recommended: solve fresh, shorter than the recover (20 moves).
 Moves now: D2 B2 D' B2 D2 U' F2 D U' R2 U' R' B' L2 D' F U2 R'
 ```
 
+With `--icons` (and `--icon-size`, `--background`, `--columns`, as for `solve`) the mistake is also drawn: the cube as it should be after the last correct step and the cube as it is, then the moves to do as step pictures. See [Recover with icons](icons.md#recover-with-icons).
+
 On a 4x4x4, step 4 of the solution (`F'`) turned the wrong way:
 
 ```sh

@@ -155,6 +155,49 @@ The queries go through `/dev/tty` in a short raw mode, and the saved settings ar
 
 Inside `tmux` and `screen` (`TMUX` or `STY` is set, or `TERM` starts with `screen` or `tmux`) nothing is asked, because they would swallow the queries and the images need a passthrough that is not implemented. The defaults apply there: the width from `TIOCGWINSZ` or `columns * 8`, and a dark background.
 
+## Recover with icons
+
+`recover` takes the same four options as `solve`, with the same names and meaning (`--icons`, `--icon-size`, `--background`, `--columns`; the last three need `--icons`):
+
+```sh
+cubacle recover -s "R U2 F' D L2 B R' U' F2 D2 L B'" --now FDDRURLDBRDBLRFFDUUBUUFBLBLBRDFDFBUFRUFULLDRURLDLBFRBL --at-move 7 --sure-until 3 --icons
+```
+
+The usual text of `recover` comes first. After it:
+
+1. When a mistake or a nearest cube was found, two pictures of the whole cube: `Should be, after step N (the last correct one)`, the cube of the printed solution after the last correct move, and `Is now`, the cube you typed. Each has its Orbit64 token below it. Compare the two to see what differs.
+2. The moves to do now (the way back, or the fresh solution when that is recommended), one picture per step as in `solve --icons`, with the amber quarter-turn note and frame. Phase headings and `State after phase N as token` lines appear only when the moves are a fresh solution that reports solver stages; a way back has none.
+
+Without graphics the pictures are the text pictures of `solve --icons`:
+
+```text
+Should be, after step 4 (the last correct one)
+state
+   B Y O
+  R W R
+ Y R B
+O B O W W G
+W G B O R W
+R B O Y R R
+
+token: Enl7Pqxeueao
+Is now
+state
+   G Y Y
+  R W R
+ O Y B
+W B W R Y B
+W G B O R G
+O B O G Y W
+
+token: FpkdfDU1GuT4
+step 1 of 3: D2
+D2 -> (half turn)
+...
+```
+
+`recover --fresh --icons` draws the fresh solution only. When the way back is for a cube that has to be turned as a whole first, there are no step pictures. On a Kitty terminal the two state pictures are stacked, each under its label.
+
 ## Terminal support
 
 `cubacle` writes Kitty graphics when standard output is a terminal and the environment names a terminal that supports the [Kitty graphics protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/): `KITTY_WINDOW_ID` is set, `TERM` is `xterm-kitty`, or `TERM_PROGRAM` is `ghostty` or `WezTerm`. Other terminals get coloured text, or plain text when `NO_COLOR` is set, `TERM` is `dumb` or standard output is not a terminal.
