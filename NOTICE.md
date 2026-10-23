@@ -61,3 +61,19 @@ names the Java file it derives from and keeps this notice:
     LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
+
+## Label glyph outlines (SIL Open Font License 1.1)
+
+The move labels and the `2x` mark of the icons can be drawn from glyph outlines
+of Quicksand Bold, converted to polygons and embedded as Rust data
+(`src/render/glyphs/quicksand.rs`, written by `tools/embed_glyphs.py`). No font
+file is shipped and no font is loaded at run time. Only the characters
+`0123456789URFDLBwx'` are embedded. Under the OFL 1.1 these embedded outlines
+are derived glyph data, not a font program: they are not offered or named as a
+font, and the Reserved Font Name "Quicksand" is not used for any product. The
+file names its origin; the licence text is kept in
+[`licenses/OFL-Quicksand.txt`](licenses/OFL-Quicksand.txt).
+
+| Font | Upstream | Licence | Copyright line | Licence text |
+| --- | --- | --- | --- | --- |
+| Quicksand (Bold, instance of the variable font) | <https://github.com/andrew-paglinawan/QuicksandFamily>, taken from [google/fonts](https://github.com/google/fonts) at commit `45e3d5269e4a17d823f6d84470bc084dc5ae46f6`, `ofl/quicksand/Quicksand[wght].ttf` | OFL-1.1, Reserved Font Name "Quicksand" | Copyright 2011 The Quicksand Project Authors | [`licenses/OFL-Quicksand.txt`](licenses/OFL-Quicksand.txt) |
