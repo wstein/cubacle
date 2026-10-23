@@ -56,3 +56,29 @@ fn icons_count_the_differing_stickers() {
     let at = out.find(line).unwrap();
     assert!(out.find("Is now").unwrap() < at && at < out.find("step 1 of").unwrap());
 }
+
+#[test]
+fn both_views_are_the_default_and_the_count_line_says_every_difference_is_marked() {
+    let out = cubacle(&["recover", "-s", ORIGINAL, "--now", NOW, "--icons"]);
+    // two cubes, each as a text picture from the URF and the DBL corner
+    assert_eq!(out.matches("state, seen from URF").count(), 2, "{out}");
+    assert_eq!(out.matches("state, seen from DBL").count(), 2, "{out}");
+    let line = out
+        .lines()
+        .find(|l| l.starts_with("Stickers that differ: "))
+        .unwrap();
+    assert!(line.contains("all marked amber"), "{line}");
+}
+
+#[test]
+fn views_urf_draws_one_picture_and_admits_the_hidden_faces() {
+    let args = ["recover", "-s", ORIGINAL, "--now", NOW, "--icons"];
+    let out = cubacle(&[&args[..], &["--views", "urf"]].concat());
+    assert_eq!(out.matches("state, seen from URF").count(), 2, "{out}");
+    assert!(!out.contains("seen from DBL"), "{out}");
+    let line = out
+        .lines()
+        .find(|l| l.starts_with("Stickers that differ: "))
+        .unwrap();
+    assert!(line.contains("visible faces only"), "{line}");
+}

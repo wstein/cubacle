@@ -11,12 +11,13 @@ use cubacle::notation::{orbit64, ColourScheme, Notation};
 use cubacle::phases::Phase;
 use cubacle::puzzle::{Facelets, Move, MoveSequence, Turn};
 use cubacle::render::{
-    icon, state_icon, state_icon_against, Action, Icon, KittyPlacement, Raster, Style,
+    icon, state_icon_pair, state_icon_pair_against, Action, Icon, Raster, Style,
 };
 
 use crate::icons::{default_height, detect_stdout, show, style, Background, Graphics};
 use crate::rows;
 use crate::terminal::{self, Terminal};
+use crate::views::{kitty_block, kitty_state, Views};
 
 /// What `solve --icons` was asked for.
 pub struct SolutionIcons {
@@ -27,25 +28,11 @@ pub struct SolutionIcons {
     pub background: Option<Background>,
     /// Icons per row; `None`: as many as fit.
     pub columns: Option<usize>,
+    /// Which corners the whole-cube pictures are drawn from.
+    pub views: Views,
     /// How the step lines and the final solution line write moves (the icon
     /// labels stay as they are).
     pub notation: Notation,
-}
-
-/// A raster as a block of terminal rows: the rows are cleared so that older
-/// text cannot show through, then the image is drawn at its own pixel size
-/// without moving the cursor, which then steps below it.
-fn kitty_block(raster: &Raster, cell_height: u32) -> String {
-    let rows = raster.height.div_ceil(cell_height.max(1)).max(1);
-    let placement = KittyPlacement {
-        rows: None,
-        keep_cursor: true,
-    };
-    let mut text = "\x1b[2K\n".repeat(rows as usize);
-    text.push_str(&format!("\x1b[{rows}A"));
-    text.push_str(&raster.to_kitty(&placement));
-    text.push_str(&format!("\x1b[{rows}B\r"));
-    text
 }
 
 /// The line above the icons of a phase: `Phase 2: edges (14 moves)`.
@@ -175,6 +162,10 @@ pub struct PictureArgs {
     /// Icons per row for --icons (default: as many as fit the terminal width)
     #[arg(long, requires = "icons", value_name = "N", value_parser = clap::value_parser!(u32).range(1..))]
     pub columns: Option<u32>,
+    /// Corners the whole-cube pictures are seen from: both (all six faces) or
+    /// only Up-Right-Front like the move icons
+    #[arg(long, requires = "icons", value_enum, default_value_t)]
+    pub views: Views,
 }
 
 impl PictureArgs {
@@ -184,6 +175,7 @@ impl PictureArgs {
             height: self.icon_size,
             background: self.background,
             columns: self.columns.map(|c| c as usize),
+            views: self.views,
             notation,
         }
     }
@@ -239,7 +231,7 @@ impl<'a> Pictures<'a> {
                 start,
                 solution,
                 found,
-                self.options.columns,
+                self.options,
                 &self.terminal,
                 &self.style,
                 self.collapse_empty,
@@ -264,29 +256,34 @@ impl<'a> Pictures<'a> {
         now: (&str, &Facelets),
     ) -> Result<String, String> {
         self.states_with(&[
-            (should.0, state_icon(should.1, &self.style), should.1),
+            (should.0, state_icon_pair(should.1, &self.style), should.1),
             (
                 now.0,
-                state_icon_against(now.1, should.1, &self.style),
+                state_icon_pair_against(now.1, should.1, &self.style),
                 now.1,
             ),
         ])
     }
 
     /// Whole-cube pictures, each under its label and followed by its token.
-    fn states_with(&self, states: &[(&str, Icon, &Facelets)]) -> Result<String, String> {
+    fn states_with(&self, states: &[(&str, [Icon; 2], &Facelets)]) -> Result<String, String> {
         let mut out = String::new();
         for (label, drawn, state) in states {
             out.push_str(label);
             out.push('\n');
             if self.graphics == Graphics::Kitty {
-                out.push_str(&kitty_block(
-                    &drawn.to_rgba(self.style.size),
-                    self.terminal.cell.1,
+                out.push_str(&kitty_state(
+                    drawn,
+                    &self.style,
+                    &self.terminal,
+                    self.options.views,
+                    self.options.columns,
                 ));
             } else {
-                out.push_str(&show(drawn, self.graphics, self.style.size));
-                out.push('\n');
+                for view in drawn.iter().take(self.options.views.count()) {
+                    out.push_str(&show(view, self.graphics, self.style.size));
+                    out.push('\n');
+                }
             }
             let token = orbit64::encode(state).map_err(|error| error.to_string())?;
             out.push_str(&format!("token: {token}\n"));
@@ -349,7 +346,7 @@ fn kitty_steps(
     start: &Facelets,
     solution: &MoveSequence,
     found: &[Phase],
-    columns: Option<usize>,
+    options: &SolutionIcons,
     terminal: &Terminal,
     style: &Style,
     collapse_empty: bool,
@@ -369,7 +366,7 @@ fn kitty_steps(
         None => 0,
     };
     let lone = lone_quarters(moves);
-    let per_row = rows::per_row(terminal.width_px, width, rows::GAP, columns);
+    let per_row = rows::per_row(terminal.width_px, width, rows::GAP, options.columns);
     // Without phases (a route that is not from solver stages) the moves form
     // one segment that has no heading and no state picture.
     let whole = [Phase {
@@ -406,9 +403,13 @@ fn kitty_steps(
         if named {
             out.push_str(&state_heading(phase));
             out.push('\n');
-            out.push_str(&kitty_block(
-                &state_icon(&state, style).to_rgba(style.size),
-                terminal.cell.1,
+            let pair = state_icon_pair(&state, style);
+            out.push_str(&kitty_state(
+                &pair,
+                style,
+                terminal,
+                options.views,
+                options.columns,
             ));
             out.push_str(&token_line(phase, &state)?);
         }

@@ -6,12 +6,25 @@ use cubacle::recover::{Advice, Finding, Plan};
 use cubacle::render::differing_stickers;
 
 use crate::steps::{Pictures, SolutionIcons};
+use crate::views::Views;
 
 /// The printed solution's first `count` moves done on the original cube.
 fn after(original: &Facelets, solution: &MoveSequence, count: usize) -> Option<Facelets> {
     let count = count.min(solution.len());
     let head: MoveSequence = solution.moves()[..count].iter().copied().collect();
     original.apply(&head).ok()
+}
+
+/// The count of differing stickers and where the amber marks show them: with
+/// both views every one is marked, in whichever picture has its face.
+fn differ_line(differ: usize, all: usize, views: Views) -> String {
+    let marked = match views {
+        Views::Both => "all marked amber in graphics rows, in the view that shows them",
+        Views::Urf => {
+            "marked amber in graphics rows on the visible faces only, add --views both for the rest"
+        }
+    };
+    format!("Stickers that differ: {differ} of {all} ({marked}).\n")
 }
 
 /// How many printed moves were right: up to the first mistake, or the cube
@@ -42,9 +55,7 @@ pub(crate) fn render(
             out.push_str(&pictures.states_against((&was, &should), ("Is now", current))?);
             let differ = differing_stickers(current, &should);
             let all = current.stickers().len();
-            out.push_str(&format!(
-                "Stickers that differ: {differ} of {all} (marked amber in graphics rows, on the visible faces).\n"
-            ));
+            out.push_str(&differ_line(differ, all, options.views));
         }
     }
     let Some(moves) = plan.moves() else {
@@ -78,4 +89,17 @@ pub(crate) fn render_fresh(
         .or_else(|| phases(current, moves).ok())
         .unwrap_or_default();
     pictures.steps(current, moves, &found)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_count_line_says_where_the_marks_are() {
+        let both = differ_line(12, 54, Views::Both);
+        assert!(both.contains("all marked amber"));
+        assert!(!both.contains("only"));
+        assert!(differ_line(12, 54, Views::Urf).contains("visible faces only"));
+    }
 }

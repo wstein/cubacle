@@ -6,6 +6,7 @@ mod recover_icons;
 mod rows;
 mod steps;
 mod terminal;
+mod views;
 
 use std::io::Read;
 use std::process::ExitCode;
