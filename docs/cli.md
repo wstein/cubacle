@@ -101,6 +101,19 @@ cubacle solve -s "R U2 F' D L2 B R' U' F2 D2 L B' R2 U F D' L' B2 R U2 F L D B'"
 
 Without `--improve`, `--parallel` is refused, and so is `--parallel` without `-b`: it would never return. The 2x2x2 is already optimal and the 4x4x4 and 5x5x5 have no improve modes yet; all three refuse these options with a one-line error.
 
+### Known patterns
+
+From the 4x4x4 up, `solve` also tries to write the cube as a product of at most four pattern macros: a checkerboard, six spot, pons asinorum, tetris or cube-in-a-cube algorithm, turned on layers 1 to 3 from each face and seen from any of the 24 orientations. It answers with that product when it has fewer moves than the reduction engine's solution, and otherwise with the engine's solution, unchanged. `-v` prints `known patterns: N moves instead of M` when the product won. The search is exhaustive over those products and finished in under two seconds for a 7x7x7 on a loaded machine (a unit test that builds the macros and searches took 1.6 s); that is added to every solve of a 4x4x4 or bigger. Cubes built from other patterns, or from more than four macros, get the engine's answer. Measured moves, engine alone against with the shortcut:
+
+| Cube | Engine | With known patterns |
+| --- | --- | --- |
+| 7x7x7, 15-move cube in a cube on the two outer layers (`2Fw 2Lw ...`) | 76 | 15 |
+| 7x7x7, the same on single layer 3 (`3F 3L ...`) | 171 | 15 |
+| 7x7x7 checkerboard (`R2 3R2 5R2 L2 U2 ...`, 12 moves) | 18 | 12 |
+| 5x5x5 checkerboard (`R2 3R2 L2 U2 3U2 D2 F2 3F2 B2`) | 12 | 6 |
+| 7x7x7 built from a checkerboard and three six spots | 172 | 38 |
+| random 4x4x4 to 7x7x7 (40-move scrambles) | 42, 71, 136, 191 | same |
+
 ### Failure
 
 `solve` prints a message to standard error and exits with a non-zero status when the cube is impossible, the limit is too tight, or the time budget runs out. For example:

@@ -31,3 +31,4 @@ Raw-material notes, category engines.
 - [[Improve modes trade time for moves]]
 - [[Bisect over max_moves is unsound under a time budget]]
 - [[A target is solved as a relative state]]
+- [[Pattern shortcut finds hand-built cubes]]

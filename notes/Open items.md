@@ -15,3 +15,4 @@ Raw-material notes, category open-items.
 - [[Step-by-step learning solver]]
 - [[Icon sheet export for documents]]
 - [[Structured solution output]]
+- [[Pattern states are projections onto layer sets]]
