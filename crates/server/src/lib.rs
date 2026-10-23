@@ -37,6 +37,7 @@ use cubacle::engines::four::FourSolver;
 use cubacle::engines::three::Min2PhaseSolver;
 use cubacle::engines::two::PocketSolver;
 use cubacle::generate;
+
 use cubacle::notation::orbit64;
 use cubacle::notation::{parse_cube, ColourScheme, Notation};
 use cubacle::puzzle::{Facelets, Failure, PuzzleKind, SolveOptions, Solver};
@@ -44,6 +45,9 @@ use cubacle::ranges::{compressed_text, Optimise};
 use serde::{Deserialize, Serialize};
 use tokio::sync::Semaphore;
 use tower_http::catch_panic::CatchPanicLayer;
+
+mod input;
+use input::read_input;
 
 /// Longest time budget a solve may be given (10 minutes).
 pub const MAX_TIMEOUT_MS: u64 = 600_000;
@@ -349,7 +353,7 @@ fn read_notation(text: Option<&str>) -> Result<Notation, ApiError> {
 }
 
 /// The cube size of a request, if an engine (and so a generator) exists for it.
-fn engine_kind(size: usize) -> Result<PuzzleKind, ApiError> {
+pub(crate) fn engine_kind(size: usize) -> Result<PuzzleKind, ApiError> {
     match size {
         2..=7 => Ok(PuzzleKind::of_size(size).expect("2 to 7 are sizes")),
         _ => Err(ApiError::bad_input("size must be between 2 and 7")),
@@ -391,14 +395,22 @@ async fn random(params: Result<Query<RandomParams>, QueryRejection>) -> ApiResul
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ConvertRequest {
-    cube: String,
+    cube: Option<String>,
+    /// Moves in WCA or SiGN notation instead of `cube`.
+    scramble: Option<String>,
+    /// Cube size of a `scramble`, 2 to 7 (default 3).
+    size: Option<usize>,
     scheme: Option<String>,
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct SolveRequest {
-    cube: String,
+    cube: Option<String>,
+    /// Moves in WCA or SiGN notation instead of `cube`.
+    scramble: Option<String>,
+    /// Cube size of a `scramble`, 2 to 7 (default 3).
+    size: Option<usize>,
     scheme: Option<String>,
     /// 1..=25, or 1..=255 for the 5x5x5.
     max_moves: Option<u8>,
@@ -457,7 +469,7 @@ fn read_body<T: serde::de::DeserializeOwned>(
     serde_json::from_slice(&bytes).map_err(|e| ApiError::bad_input(format!("bad JSON: {e}")))
 }
 
-fn read_cube(cube: &str, scheme: Option<&str>) -> Result<Facelets, ApiError> {
+pub(crate) fn read_cube(cube: &str, scheme: Option<&str>) -> Result<Facelets, ApiError> {
     let scheme = scheme
         .map(str::parse::<ColourScheme>)
         .transpose()
@@ -467,7 +479,7 @@ fn read_cube(cube: &str, scheme: Option<&str>) -> Result<Facelets, ApiError> {
 
 async fn convert(headers: HeaderMap, body: Result<Bytes, BytesRejection>) -> ApiResult<CubeBody> {
     let request: ConvertRequest = read_body(&headers, body)?;
-    let facelets = read_cube(&request.cube, request.scheme.as_deref())?;
+    let facelets = read_input(request.cube, request.scramble, request.size, request.scheme).await?;
     Ok(Json(CubeBody::of(&facelets)))
 }
 
@@ -507,7 +519,7 @@ async fn solve(
         .map(str::parse)
         .transpose()
         .map_err(ApiError::bad_input)?;
-    let facelets = read_cube(&request.cube, request.scheme.as_deref())?;
+    let facelets = read_input(request.cube, request.scramble, request.size, request.scheme).await?;
     let kind = facelets.kind();
     engine_kind(kind.size())?;
     let mut options = SolveOptions::default();
