@@ -78,7 +78,7 @@ cubacle icon "Rw'" --cube 5 --format svg --out rw.svg
 cubacle solve --scramble "R U" --icons
 ```
 
-On a Kitty-graphics terminal the solution is shown in phases (see below) and the icons come in rows, as many side by side as fit the width of the terminal, and each row has a line above it such as `steps 9-16 of 128`. A row is one image, with 8 pixels between the icons, and the background stays transparent. The last line is the plain move string. Without graphics (a pipe, `NO_COLOR`, `TERM=dumb` or another terminal), each step prints `step i of n: MOVE` and then its text picture, as before. A quarter turn with a half turn right before and right after it, the easiest move to do as a half turn, gets the note `<-- quarter turn, not a half turn` after its move, as in `step 9 of 21: F   <-- quarter turn, not a half turn`; in the Kitty rows the icon of such a move has an amber frame. Without `--icons`, the output of `solve` does not change. The colours come from `--scheme` (`boy` by default).
+On a Kitty-graphics terminal the solution is shown in phases (see below) and the icons come in rows, as many side by side as fit the width of the terminal, and each row has a line above it such as `steps 9-16 of 128`. A row is one image, with 8 pixels between the icons, and the background stays transparent. The last line is the plain move string. Without graphics (a pipe, `NO_COLOR`, `TERM=dumb` or another terminal), each step prints `step i of n: MOVE` and then its text picture, as before. A quarter turn with a half turn right before and right after it, the easiest move to do as a half turn, gets the note `<-- quarter turn, not a half turn` after its move, as in `step 9 of 21: F   <-- quarter turn, not a half turn`. An optional compile-time feature, off by default, also draws an amber frame around the icon of such a move in the Kitty rows (see below). Without `--icons`, the output of `solve` does not change. The colours come from `--scheme` (`boy` by default).
 
 | Option | Meaning |
 | --- | --- |
@@ -140,6 +140,16 @@ phase 4: 3x3 stage, moves 52-70
 
 Without graphics there are no phase headings: the text output is one picture per step, as before, and the token line of a phase follows the last step of that phase.
 
+### Quarter-turn frame
+
+The amber frame around a lone quarter turn in the Kitty rows is an optional compile-time feature, off by default, because it may confuse more than it helps. The text note stays in every build. To get the frame, build with the feature:
+
+```sh
+cargo build --release --features quarter-frame
+```
+
+There is no command-line option or environment variable for it.
+
 ### Checkpoints
 
 `solve --icons` writes the cube as an [Orbit64 token](cli.md) (the text `convert --to token` writes) at these places: the line `Start state: TOKEN` once at the top, and the line `State after phase N as token: TOKEN` after each phase that has moves, below the state picture on a graphics terminal and after its last step otherwise. A phase with nothing to do has no line. The last token is the solved cube. Keep the start token; after a phase, the token of your own cube can be compared with the printed one. Plain `solve` without `--icons` prints no token.
@@ -166,7 +176,7 @@ cubacle recover -s "R U2 F' D L2 B R' U' F2 D2 L B'" --now FDDRURLDBRDBLRFFDUUBU
 The usual text of `recover` comes first. After it:
 
 1. When a mistake or a nearest cube was found, two pictures of the whole cube: `Should be, after step N (the last correct one)`, the cube of the printed solution after the last correct move, and `Is now`, the cube you typed. Each has its Orbit64 token below it. Compare the two to see what differs: on a Kitty terminal every visible sticker of `Is now` whose colour differs from `Should be` carries a small amber square, and in every mode the line `Stickers that differ: N of M` counts them over all faces (the hidden ones too, so a few differing stickers may have no mark).
-2. The moves to do now (the way back, or the fresh solution when that is recommended), one picture per step as in `solve --icons`, with the amber quarter-turn note and frame. Phase headings and `State after phase N as token` lines appear only when the moves are a fresh solution that reports solver stages; a way back has none. In `recover` (not in `solve`) a run of phases with nothing to do is one heading, `Phases 1-5: nothing to do`; a single empty phase keeps its own line.
+2. The moves to do now (the way back, or the fresh solution when that is recommended), one picture per step as in `solve --icons`, with the quarter-turn note (and the optional frame). Phase headings and `State after phase N as token` lines appear only when the moves are a fresh solution that reports solver stages; a way back has none. In `recover` (not in `solve`) a run of phases with nothing to do is one heading, `Phases 1-5: nothing to do`; a single empty phase keeps its own line.
 
 Without graphics the pictures are the text pictures of `solve --icons`:
 
