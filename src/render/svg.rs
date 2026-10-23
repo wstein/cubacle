@@ -1,6 +1,6 @@
 //! SVG output: one `<polygon>` per shape, two decimals, stable text.
 
-use super::scene::{Shape, HEIGHT, WIDTH};
+use super::scene::Shape;
 use super::style::Rgb;
 
 /// A number with two decimals and no negative zero.
@@ -22,19 +22,20 @@ pub(crate) fn write(
     label: &str,
     pixel_height: u32,
     background: Option<Rgb>,
+    (canvas_width, canvas_height): (f64, f64),
 ) -> String {
-    let width = (f64::from(pixel_height) * WIDTH / HEIGHT).round() as u32;
+    let width = (f64::from(pixel_height) * canvas_width / canvas_height).round() as u32;
     let mut out = format!(
         "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 {} {}\" width=\"{width}\" height=\"{pixel_height}\">\n<title>{}</title>\n",
-        num(WIDTH),
-        num(HEIGHT),
+        num(canvas_width),
+        num(canvas_height),
         escape(label)
     );
     if let Some(colour) = background {
         out.push_str(&format!(
             "<rect width=\"{}\" height=\"{}\" fill=\"{}\"/>\n",
-            num(WIDTH),
-            num(HEIGHT),
+            num(canvas_width),
+            num(canvas_height),
             colour.hex()
         ));
     }
@@ -71,7 +72,7 @@ mod tests {
             Rgb(255, 0, 16),
         )
         .with_opacity(0.5);
-        let svg = write(&[shape], "R & U<", 100, Some(Rgb(0, 0, 0)));
+        let svg = write(&[shape], "R & U<", 100, Some(Rgb(0, 0, 0)), (150.0, 100.0));
         assert!(svg.starts_with("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 150.00 100.00\" width=\"150\" height=\"100\">"));
         assert!(svg.contains("<title>R &amp; U&lt;</title>"));
         assert!(svg.contains(

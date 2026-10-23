@@ -369,7 +369,7 @@ fn icon_writes_graphics_to_a_file() {
     assert!(ok, "{err}");
     let text = std::fs::read_to_string(&kitty).unwrap();
     // Erase six rows, step back up, draw without moving the cursor, step down.
-    let head = "\x1b[2K\n".repeat(6) + "\x1b[6A\x1b_Ga=T,f=32,s=144,v=96,q=2,r=6,C=1,m=1;";
+    let head = "\x1b[2K\n".repeat(6) + "\x1b[6A\x1b_Ga=T,f=32,s=100,v=96,q=2,r=6,C=1,m=1;";
     assert!(text.starts_with(&head), "{:?}", &text[..80]);
     assert!(
         !text.contains(",c="),
@@ -405,7 +405,7 @@ fn icon_writes_graphics_to_a_file() {
         rgba.to_str().unwrap(),
     ]);
     assert!(ok, "{err}");
-    assert_eq!(std::fs::metadata(&rgba).unwrap().len(), 48 * 32 * 4);
+    assert_eq!(std::fs::metadata(&rgba).unwrap().len(), 33 * 32 * 4);
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
@@ -517,7 +517,7 @@ fn icons_of_larger_cubes_are_drawn_larger() {
             .stdout
             .len()
     };
-    // height x 1.5 height x 4 bytes
-    assert_eq!(bytes("3"), 96 * 144 * 4);
-    assert_eq!(bytes("7"), 224 * 336 * 4);
+    // height x width (the canvas is 114 x 109.2) x 4 bytes
+    assert_eq!(bytes("3"), 96 * 100 * 4);
+    assert_eq!(bytes("7"), 224 * 234 * 4);
 }

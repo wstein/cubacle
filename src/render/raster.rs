@@ -1,7 +1,7 @@
 //! A small anti-aliased polygon filler: exact horizontal coverage, four
 //! sub-scanlines per pixel, even-odd fill, premultiplied accumulation.
 
-use super::scene::{Shape, HEIGHT, WIDTH};
+use super::scene::Shape;
 use super::style::Rgb;
 
 /// Straight (non-premultiplied) RGBA pixels, row by row.
@@ -14,9 +14,20 @@ pub struct Raster {
 
 const SUB: usize = 4;
 
+/// The test canvas: 150 x 100 units, so units equal pixels at 100 px.
+#[cfg(test)]
 pub(crate) fn rasterise(shapes: &[Shape], height: u32, background: Option<Rgb>) -> Raster {
-    let k = f64::from(height) / HEIGHT;
-    let width = (WIDTH * k).round() as u32;
+    rasterise_canvas(shapes, (150.0, 100.0), height, background)
+}
+
+pub(crate) fn rasterise_canvas(
+    shapes: &[Shape],
+    (canvas_width, canvas_height): (f64, f64),
+    height: u32,
+    background: Option<Rgb>,
+) -> Raster {
+    let k = f64::from(height) / canvas_height;
+    let width = (canvas_width * k).round() as u32;
     let (w, h) = (width as usize, height as usize);
     let mut buf = vec![0.0_f32; w * h * 4];
     if let Some(Rgb(r, g, b)) = background {

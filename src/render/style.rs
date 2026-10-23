@@ -29,16 +29,16 @@ impl Palette {
         Palette { colours, letters }
     }
 
-    /// Colours for sticker letters `W R G Y O B`; other letters become grey.
+    /// Bright, saturated tile colours for sticker letters `W R G Y O B`; other letters become grey.
     pub fn from_letters(letters: [char; 6]) -> Palette {
         let colour = |letter: char| match letter.to_ascii_uppercase() {
-            'W' => Rgb(0xf2, 0xf2, 0xee),
-            'R' => Rgb(0xd6, 0x28, 0x28),
-            'G' => Rgb(0x2a, 0x9d, 0x4e),
-            'Y' => Rgb(0xf6, 0xc9, 0x0e),
-            'O' => Rgb(0xf7, 0x7f, 0x00),
-            'B' => Rgb(0x1f, 0x5f, 0xbf),
-            _ => Rgb(0x88, 0x88, 0x88),
+            'W' => Rgb(0xff, 0xff, 0xff),
+            'R' => Rgb(0xe8, 0x12, 0x1e),
+            'G' => Rgb(0x00, 0xc2, 0x4a),
+            'Y' => Rgb(0xff, 0xe0, 0x00),
+            'O' => Rgb(0xff, 0x7a, 0x00),
+            'B' => Rgb(0x00, 0x5c, 0xff),
+            _ => Rgb(0x96, 0x96, 0x96),
         };
         Palette::new(letters.map(colour), letters)
     }
@@ -62,11 +62,38 @@ impl Default for Palette {
 /// How the moving layer is set apart.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Shading {
-    /// Real colours on the moving layer, everything else darkened to 45 %.
+    /// Real colours on the moving layer, everything else darkened (see [`Backdrop`]).
     #[default]
     DimRest,
     /// The moving layer turns grey, the rest keeps its colours.
     GreyMoving,
+}
+
+/// The backdrop the icon will be seen on. It decides how strongly the resting
+/// pieces are dimmed and the colour of the notation: light glyphs on a dark
+/// backdrop, dark glyphs on a light one.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Backdrop {
+    #[default]
+    Dark,
+    Light,
+}
+
+impl Backdrop {
+    /// The brightness of the pieces that do not turn.
+    pub(crate) fn dimming(self) -> f64 {
+        match self {
+            Backdrop::Dark => 0.25,
+            Backdrop::Light => 0.40,
+        }
+    }
+
+    pub(crate) fn ink(self) -> Rgb {
+        match self {
+            Backdrop::Dark => Rgb(0xf4, 0xf4, 0xf4),
+            Backdrop::Light => Rgb(0x14, 0x16, 0x1a),
+        }
+    }
 }
 
 /// Everything that is not the cube state or the move.
@@ -77,10 +104,10 @@ pub struct Style {
     /// The height in pixels this icon is meant for. It only sets minimum
     /// widths (gaps, arrows) so small icons stay crisp; vector output scales.
     pub size: u32,
-    /// A soft shadow under the cube.
-    pub shadow: bool,
-    /// A solid backdrop; `None` leaves it transparent.
+    /// A solid backdrop colour; `None` leaves it transparent.
     pub background: Option<Rgb>,
+    /// What the icon will be seen on; see [`Backdrop`].
+    pub backdrop: Backdrop,
 }
 
 impl Default for Style {
@@ -89,8 +116,8 @@ impl Default for Style {
             palette: Palette::default(),
             shading: Shading::default(),
             size: 96,
-            shadow: true,
             background: None,
+            backdrop: Backdrop::default(),
         }
     }
 }
@@ -99,16 +126,16 @@ impl Default for Style {
 pub(crate) fn face_light(face: Face) -> f64 {
     match face {
         Face::U => 1.0,
-        Face::F => 0.84,
-        _ => 0.68,
+        Face::F => 0.93,
+        _ => 0.82,
     }
 }
 
+/// The darkening of resting stickers in the letter grid.
 pub(crate) const DIM: f64 = 0.45;
 pub(crate) const GREY: Rgb = Rgb(0x9a, 0xa0, 0xa6);
 pub(crate) const BODY: Rgb = Rgb(0x0e, 0x10, 0x14);
-pub(crate) const ARROW_RED: Rgb = Rgb(0xe0, 0x20, 0x2a);
-pub(crate) const ARROW_CYAN: Rgb = Rgb(0x2f, 0xc4, 0xf2);
+pub(crate) const ARROW_VIOLET: Rgb = Rgb(0x93, 0x33, 0xea);
 pub(crate) const WHITE: Rgb = Rgb(0xff, 0xff, 0xff);
 
 #[cfg(test)]
@@ -125,11 +152,11 @@ mod tests {
     #[test]
     fn letters_pick_colours() {
         let palette = Palette::default();
-        assert_eq!(palette.colour(Face::U), Rgb(0xf2, 0xf2, 0xee));
+        assert_eq!(palette.colour(Face::U), Rgb(0xff, 0xff, 0xff));
         assert_eq!(palette.letter(Face::F), 'G');
         assert_eq!(
             Palette::from_letters(['?'; 6]).colour(Face::R),
-            Rgb(0x88, 0x88, 0x88)
+            Rgb(0x96, 0x96, 0x96)
         );
     }
 }

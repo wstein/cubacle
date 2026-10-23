@@ -5,33 +5,39 @@
 
 use super::action::Action;
 use super::scene::{Part, Shape};
-use super::style::{face_light, Rgb, Shading, Style, BODY, DIM, GREY};
+use super::style::{face_light, Rgb, Shading, Style, BODY, GREY};
 use crate::puzzle::{locate, Face, Facelets};
 
-/// How far depth shifts a point up and to the right on screen.
-pub(crate) const DEPTH: f64 = 0.4;
+/// How far one unit of depth shifts a point right and up on screen: a deep
+/// oblique view that makes the Top and Right faces large.
+pub(crate) const DEPTH: (f64, f64) = (0.5, 0.42);
 
 pub(crate) struct Projection {
     pub scale: f64,
     ox: f64,
     oy: f64,
+    dx: f64,
+    dy: f64,
 }
 
 impl Projection {
     /// Fits the cube of size `n` into the box `x, y, w, h`, centred.
     pub(crate) fn new(n: usize, x: f64, y: f64, w: f64, h: f64) -> Projection {
-        let extent = 2.0 * n as f64 * (1.0 + DEPTH);
+        let (dx, dy) = DEPTH;
+        let size = 2.0 * n as f64;
         Projection {
-            scale: w.min(h) / extent,
+            scale: (w / (size * (1.0 + dx))).min(h / (size * (1.0 + dy))),
             ox: x + w / 2.0,
             oy: y + h / 2.0,
+            dx,
+            dy,
         }
     }
 
     pub(crate) fn project(&self, p: [f64; 3]) -> [f64; 2] {
         [
-            self.ox + self.scale * (p[0] - DEPTH * p[2]),
-            self.oy - self.scale * (p[1] - DEPTH * p[2]),
+            self.ox + self.scale * (p[0] - self.dx * p[2]),
+            self.oy - self.scale * (p[1] - self.dy * p[2]),
         ]
     }
 }
@@ -79,7 +85,7 @@ fn rounded_square(centre: [f64; 2], h: f64, radius: f64) -> Vec<[f64; 2]> {
     points
 }
 
-/// The dark body behind the stickers, the stickers and their highlights.
+/// The dark body behind the stickers and the flat stickers.
 pub(crate) fn cube_shapes(
     state: &Facelets,
     action: &Action,
@@ -113,22 +119,8 @@ pub(crate) fn cube_shapes(
         let (position, _) = locate(kind, index);
         let [u, v] = plane_coords(face, position.map(f64::from));
         let colour = sticker_colour(state, action, style, index, face, position);
-        shapes.push(Shape::new(
-            Part::Sticker,
-            flat(face, rounded_square([u, v], half, radius)),
-            colour,
-        ));
-        let (a, b) = (v + half - 0.24, v + half - 0.09);
-        let reach = half - radius;
-        let strip = vec![
-            [u - reach, a],
-            [u + reach, a],
-            [u + reach, b],
-            [u - reach, b],
-        ];
-        shapes.push(
-            Shape::new(Part::Highlight, flat(face, strip), Rgb(255, 255, 255)).with_opacity(0.22),
-        );
+        let square = rounded_square([u, v], half, radius);
+        shapes.push(Shape::new(Part::Sticker, flat(face, square), colour));
     }
     shapes
 }
@@ -149,7 +141,7 @@ fn sticker_colour(
         _ => base,
     };
     let dim = if style.shading == Shading::DimRest && !moving {
-        DIM
+        style.backdrop.dimming()
     } else {
         1.0
     };
@@ -200,7 +192,6 @@ mod tests {
             let count = |part| shapes.iter().filter(|s| s.part == part).count();
             assert_eq!(count(Part::Body), 3);
             assert_eq!(count(Part::Sticker), 3 * n * n, "{kind:?}");
-            assert_eq!(count(Part::Highlight), 3 * n * n);
             let all: Vec<[f64; 2]> = shapes
                 .iter()
                 .filter(|s| s.part == Part::Body)
@@ -208,7 +199,7 @@ mod tests {
                 .collect();
             let min_x = all.iter().map(|p| p[0]).fold(f64::MAX, f64::min);
             let max_x = all.iter().map(|p| p[0]).fold(f64::MIN, f64::max);
-            let half = (n as f64 + 0.1) * (1.0 + DEPTH) * projection.scale;
+            let half = (n as f64 + 0.1) * (1.0 + DEPTH.0) * projection.scale;
             assert!((min_x - (50.0 - half)).abs() < 0.05, "{kind:?} {min_x}");
             assert!((max_x - (50.0 + half)).abs() < 0.05);
         }
@@ -260,7 +251,11 @@ mod tests {
         let palette = Palette::default();
         let dimmed: Vec<Rgb> = [Face::U, Face::R, Face::F]
             .into_iter()
-            .map(|f| palette.colour(f).scale(face_light(f) * DIM))
+            .map(|f| {
+                palette
+                    .colour(f)
+                    .scale(face_light(f) * Style::default().backdrop.dimming())
+            })
             .collect();
         let stickers = shapes.iter().filter(|s| s.part == Part::Sticker);
         // 27 visible stickers; R turns 9 + 3 + 3 of them, so 12 are dimmed.

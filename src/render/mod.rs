@@ -1,10 +1,13 @@
 //! Move icons: a small picture of a cube state and the move about to be made.
 //!
-//! The view is oblique (Front, Up and Right faces). The moving layers keep
-//! their colours while the rest is darkened (or the moving layers turn grey,
-//! see [`Shading`]); a red arrow with a white halo lies on the face where the
-//! layer is visible, a "2" badge marks half turns, whole-cube rotations get a
-//! curved cyan arrow, and the notation is written beside the cube.
+//! The view is a deep oblique one (Front, Up and Right faces) of flat bright
+//! stickers. The moving layers keep their colours while the rest is darkened
+//! (or the moving layers turn grey, see [`Shading`]); a soft violet arrow with
+//! a white outline lies on the face where the layer is visible, an upright
+//! violet "2x" marks half turns, whole-cube rotations get a curved arrow, and
+//! the notation is written below the cube in Quicksand Bold. The [`Backdrop`]
+//! decides how strongly the resting pieces are dimmed and the colour of the
+//! notation.
 //!
 //! Everything is a pure function of the state, the [`Action`] and the
 //! [`Style`], for any cube size from 2 to 7. The result is a list of filled
@@ -28,8 +31,11 @@ mod action;
 mod arrow;
 mod font;
 mod geometry;
+mod glyphs;
 mod kitty;
+mod label;
 mod raster;
+mod round;
 mod scene;
 mod style;
 mod svg;
@@ -39,18 +45,19 @@ pub use action::{Action, Axis, RenderError};
 pub use arrow::Direction;
 pub use kitty::KittyPlacement;
 pub use raster::Raster;
-pub use style::{Palette, Rgb, Shading, Style};
+pub use style::{Backdrop, Palette, Rgb, Shading, Style};
 
 use crate::puzzle::Facelets;
-use scene::{Part, Shape, HEIGHT};
+use scene::Shape;
 
-/// A drawn icon: shapes in a 150 x 100 unit canvas, ready for any writer.
+/// A drawn icon: shapes in a 114 x 109.2 unit canvas, ready for any writer.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Icon {
     shapes: Vec<Shape>,
     label: String,
     size: u32,
     background: Option<Rgb>,
+    canvas: (f64, f64),
     grid: text::Grid,
     direction: Direction,
 }
@@ -67,26 +74,11 @@ pub fn icon(state: &Facelets, action: &Action, style: &Style) -> Result<Icon, Re
         });
     }
     let n = kind.size();
-    let pixels_per_unit = f64::from(style.size.max(16)) / HEIGHT;
+    let label = action.to_string();
+    let pixels_per_unit = f64::from(style.size.max(16)) / scene::HEIGHT;
     let projection = geometry::Projection::new(n, 10.0, 9.0, 80.0, 76.0);
     let pixels_per_model = projection.scale * pixels_per_unit;
-    let mut shapes = Vec::new();
-    if style.shadow {
-        let ellipse = (0..32)
-            .map(|i| {
-                let a = std::f64::consts::TAU * f64::from(i) / 32.0;
-                [50.0 + 34.0 * a.cos(), 88.5 + 2.6 * a.sin()]
-            })
-            .collect();
-        shapes.push(Shape::new(Part::Shadow, ellipse, style::BODY).with_opacity(0.3));
-    }
-    shapes.extend(geometry::cube_shapes(
-        state,
-        action,
-        style,
-        &projection,
-        pixels_per_model,
-    ));
+    let mut shapes = geometry::cube_shapes(state, action, style, &projection, pixels_per_model);
     let plan = arrow::plan(action, n);
     shapes.extend(arrow::shapes(
         &plan,
@@ -95,8 +87,7 @@ pub fn icon(state: &Facelets, action: &Action, style: &Style) -> Result<Icon, Re
         &projection,
         pixels_per_unit,
     ));
-    let label = action.to_string();
-    shapes.extend(label_shapes(&label, pixels_per_unit));
+    shapes.extend(label::shapes(&label, style.backdrop));
     Ok(Icon {
         grid: text::grid(state, action, style, plan.direction),
         direction: plan.direction,
@@ -104,31 +95,8 @@ pub fn icon(state: &Facelets, action: &Action, style: &Style) -> Result<Icon, Re
         label,
         size: style.size,
         background: style.background,
+        canvas: (scene::WIDTH, scene::HEIGHT),
     })
-}
-
-/// The notation beside the cube: light with a dark outline, readable on any backdrop.
-fn label_shapes(label: &str, pixels_per_unit: f64) -> Vec<Shape> {
-    let units = font::measure(label);
-    let mut scale = 26.0 / font::GLYPH_HEIGHT;
-    if units * scale > 36.0 {
-        scale = 36.0 / units;
-    }
-    let height = scale * font::GLYPH_HEIGHT;
-    let stroke = (0.19 * scale).max(2.0 / pixels_per_unit);
-    let (x, y) = (104.0, 47.0 - height / 2.0);
-    let outline = stroke + (3.0 / pixels_per_unit).clamp(1.2, 2.0);
-    let mut shapes = font::text(label, x, y, height, outline, style::BODY, Part::Label);
-    shapes.extend(font::text(
-        label,
-        x,
-        y,
-        height,
-        stroke,
-        Rgb(0xf4, 0xf4, 0xf4),
-        Part::Label,
-    ));
-    shapes
 }
 
 impl Icon {
@@ -144,12 +112,18 @@ impl Icon {
 
     /// A self-contained SVG document, identical on every run.
     pub fn to_svg(&self) -> String {
-        svg::write(&self.shapes, &self.label, self.size, self.background)
+        svg::write(
+            &self.shapes,
+            &self.label,
+            self.size,
+            self.background,
+            self.canvas,
+        )
     }
 
-    /// Anti-aliased RGBA pixels, `height` pixels tall and 1.5 times as wide.
+    /// Anti-aliased RGBA pixels, `height` pixels tall and as wide as the canvas is (about 1.06 times: the notation sits below the cube).
     pub fn to_rgba(&self, height: u32) -> Raster {
-        raster::rasterise(&self.shapes, height, self.background)
+        raster::rasterise_canvas(&self.shapes, self.canvas, height, self.background)
     }
 
     /// The icon as letters; with `ansi` as coloured cells. See the module `text`.

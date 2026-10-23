@@ -4,12 +4,19 @@
 //! axes, Right for `z`), along the middle of the turning layers, and follows
 //! the velocity `sense * e_axis x p` of a point of that plane. It is drawn in
 //! plane coordinates and projected with the stickers, so it shares their shear.
+//!
+//! The arrow is soft: a shaft with a round tail and a head, about twice as
+//! long as wide, with rounded corners, all outlined in white with round joins.
+//! Its size is constant on the canvas, graded by cube size, and a margin of 12 %
+//! of the face width stays free at both ends.
 
 use super::action::{velocity, Action};
 use super::font;
 use super::geometry::{plane_coords, plane_point, Projection};
-use super::scene::{disc, Part, Shape};
-use super::style::{Rgb, ARROW_CYAN, ARROW_RED, WHITE};
+use super::label::LABEL_SCALE;
+use super::round::{disc, rounded_triangle};
+use super::scene::{Part, Shape};
+use super::style::{ARROW_VIOLET, WHITE};
 use crate::puzzle::Face;
 
 /// Which way the arrow points on the screen.
@@ -41,8 +48,6 @@ pub(crate) struct Plan {
     /// The centre line in plane coordinates, tail first.
     pub path: Vec<[f64; 2]>,
     pub direction: Direction,
-    /// Whole-cube rotations get a curved cyan arrow.
-    pub rotation: bool,
 }
 
 pub(crate) fn plan(action: &Action, n: usize) -> Plan {
@@ -66,7 +71,8 @@ pub(crate) fn plan(action: &Action, n: usize) -> Plan {
     let [du, dv] = plane_coords(face, velocity(axis, sense, p0));
     let len = du.hypot(dv);
     let (du, dv) = (du / len, dv / len);
-    let reach = nf - 0.4;
+    // 12 % of the face width stays free at both ends.
+    let reach = nf * 0.76;
     let path = vec![
         [cu - du * reach, cv - dv * reach],
         [cu + du * reach, cv + dv * reach],
@@ -75,7 +81,6 @@ pub(crate) fn plan(action: &Action, n: usize) -> Plan {
         face,
         direction: straight_direction(du, dv),
         path,
-        rotation: false,
     }
 }
 
@@ -133,7 +138,6 @@ fn rotation_plan(axis: usize, sense: i32, n: f64) -> Plan {
         face: Face::F,
         path,
         direction,
-        rotation: true,
     }
 }
 
@@ -186,33 +190,56 @@ fn ribbon(path: &[[f64; 2]], width: f64) -> Vec<[f64; 2]> {
     left
 }
 
+/// Sizes in plane units.
 struct Metrics {
     width: f64,
     head_len: f64,
     head_half: f64,
+    /// Radius of the rounded head corners.
+    round: f64,
 }
 
-/// One arrow (shaft and head) as plane-coordinate polygons; `grow` inflates it for the halo.
-fn outline(path: &[[f64; 2]], m: &Metrics, grow: f64) -> Vec<Vec<[f64; 2]>> {
+/// The soft arrow: a shaft with a round tail and a head with round corners,
+/// all grown by `grow` with round joins, so the outline has no spikes.
+fn soft_outline(path: &[[f64; 2]], m: &Metrics, grow: f64) -> Vec<Vec<[f64; 2]>> {
     let (shaft, base, dir) = trim(path, m.head_len);
     let tip = [base[0] + dir[0] * m.head_len, base[1] + dir[1] * m.head_len];
-    let mut shaft = shaft;
-    let first = shaft[0];
-    let d0 = unit(sub(shaft[1], shaft[0]));
-    shaft[0] = [first[0] - d0[0] * grow, first[1] - d0[1] * grow];
     let side = [-dir[1], dir[0]];
-    let half = m.head_half + grow * 1.3;
-    let b = [base[0] - dir[0] * grow * 0.3, base[1] - dir[1] * grow * 0.3];
-    let t = [tip[0] + dir[0] * grow * 1.8, tip[1] + dir[1] * grow * 1.8];
-    let head = vec![
-        [b[0] + side[0] * half, b[1] + side[1] * half],
-        t,
-        [b[0] - side[0] * half, b[1] - side[1] * half],
-    ];
-    vec![ribbon(&shaft, m.width + 2.0 * grow), head]
+    let head = rounded_triangle(
+        [
+            [
+                base[0] + side[0] * m.head_half,
+                base[1] + side[1] * m.head_half,
+            ],
+            tip,
+            [
+                base[0] - side[0] * m.head_half,
+                base[1] - side[1] * m.head_half,
+            ],
+        ],
+        m.round,
+        grow,
+    );
+    let tail = disc(shaft[0], (m.width + 2.0 * grow) / 2.0);
+    vec![ribbon(&shaft, m.width + 2.0 * grow), tail, head]
 }
 
-/// The halo, the arrow and, for half turns, the badge.
+/// How much a unit circle of a face plane shrinks across its narrow axis on the
+/// screen, relative to the projection scale: 1 on the Front, less on the
+/// skewed Up and Right faces.
+fn foreshortening(face: Face, n: f64, projection: &Projection) -> f64 {
+    let at = |u: f64, v: f64| projection.project(plane_point(face, n, u, v));
+    let o = at(0.0, 0.0);
+    let (eu, ev) = (at(1.0, 0.0), at(0.0, 1.0));
+    let (a, b) = (eu[0] - o[0], eu[1] - o[1]);
+    let (c, d) = (ev[0] - o[0], ev[1] - o[1]);
+    let sum = a * a + b * b + c * c + d * d;
+    let det = (a * d - b * c).abs();
+    let smin = ((sum - (sum * sum - 4.0 * det * det).max(0.0).sqrt()) / 2.0).sqrt();
+    (smin / projection.scale).clamp(0.0, 1.0)
+}
+
+/// The halo, the arrow and, for half turns, a `2x`.
 ///
 /// `pixels_per_unit` is how many pixels one canvas unit becomes; it only
 /// sets minimum sizes so that small icons keep a readable arrow.
@@ -223,56 +250,67 @@ pub(crate) fn shapes(
     projection: &Projection,
     pixels_per_unit: f64,
 ) -> Vec<Shape> {
-    let ppm = projection.scale * pixels_per_unit;
-    let width = 0.95_f64.max(3.2 / ppm);
-    // The Right face is foreshortened across its width (the `u` axis), so an
-    // arrow running along it is widened to look as bold as one on the Front.
-    let across = if plan.face == Face::R { 2.2 } else { 1.0 };
+    // The shaft goes from 4.0 canvas units on the 2x2 to 2.8 on the 7x7.
+    let grade = (n as f64 - 2.0).clamp(0.0, 5.0) / 5.0;
+    // Canvas units per model unit: the arrow is sized in canvas units.
+    let unit = 1.0 / projection.scale;
+    let width = (4.0 + (2.8 - 4.0) * grade).max(3.2 / pixels_per_unit) * unit;
+    // The arrow is drawn in the face plane and projected with it, so it is
+    // foreshortened like the face, but only down to 70 % of the Front width
+    // so that it stays readable.
+    let squeeze = foreshortening(plan.face, n as f64, projection);
+    let across = (0.7 / squeeze).clamp(1.0, 2.2);
+    // The head is twice as long as wide.
     let metrics = Metrics {
         width: width * across,
-        head_len: 1.9 * width,
-        head_half: (1.5 * width * across).min(if across > 1.0 { 2.2 } else { 1.25 }),
+        head_len: 4.4 * width,
+        head_half: 1.1 * width * across,
+        round: 0.12 * width * across,
     };
-    let grow = 0.28_f64.max(1.4 / ppm) * across.sqrt();
+    let grow = 1.1_f64.max(1.4 / pixels_per_unit) * unit * across.sqrt();
     let nf = n as f64;
     let flat = |poly: Vec<[f64; 2]>| -> Vec<[f64; 2]> {
         poly.into_iter()
             .map(|[u, v]| projection.project(plane_point(plan.face, nf, u, v)))
             .collect()
     };
-    let colour: Rgb = if plan.rotation { ARROW_CYAN } else { ARROW_RED };
     let mut shapes = Vec::new();
-    for poly in outline(&plan.path, &metrics, grow) {
+    for poly in soft_outline(&plan.path, &metrics, grow) {
         shapes.push(Shape::new(Part::Halo, flat(poly), WHITE));
     }
-    for poly in outline(&plan.path, &metrics, 0.0) {
-        shapes.push(Shape::new(Part::Arrow, flat(poly), colour));
+    for poly in soft_outline(&plan.path, &metrics, 0.0) {
+        shapes.push(Shape::new(Part::Arrow, flat(poly), ARROW_VIOLET));
     }
     if action.is_half() {
-        let mid = plan.path[plan.path.len() / 2];
-        let mid = if plan.path.len() % 2 == 0 {
-            let a = plan.path[plan.path.len() / 2 - 1];
-            [(a[0] + mid[0]) / 2.0, (a[1] + mid[1]) / 2.0]
-        } else {
-            mid
-        };
-        let centre = projection.project(plane_point(plan.face, nf, mid[0], mid[1]));
-        let radius = (1.35 * projection.scale).max(5.5 / pixels_per_unit);
-        let halo = radius + (grow * projection.scale).max(1.0 / pixels_per_unit);
-        shapes.push(Shape::new(Part::Halo, disc(centre, halo), WHITE));
-        shapes.push(Shape::new(Part::Badge, disc(centre, radius), ARROW_RED));
-        let height = radius * 1.25;
-        let glyph = height / font::GLYPH_HEIGHT;
-        shapes.extend(font::text(
-            "2",
-            centre[0] - glyph * 0.5,
-            centre[1] - height / 2.0,
-            height,
-            radius * 0.28,
-            WHITE,
-            Part::Badge,
-        ));
+        shapes.extend(half_text(plan, nf, projection, width * across));
     }
+    shapes
+}
+
+/// An upright `2x`, not in perspective, in the arrow colour with a white
+/// outline: right of a vertical arrow, above a horizontal one (right of it
+/// when above does not fit).
+fn half_text(plan: &Plan, nf: f64, projection: &Projection, width: f64) -> Vec<Shape> {
+    let at = |p: [f64; 2]| projection.project(plane_point(plan.face, nf, p[0], p[1]));
+    let (tail, tip) = (at(plan.path[0]), at(*plan.path.last().expect("a path")));
+    let dir = sub(tip, tail);
+    let vertical = dir[1].abs() > dir[0].abs();
+    let point = [(tail[0] + tip[0]) / 2.0, (tail[1] + tip[1]) / 2.0];
+    let (w, h) = (
+        font::measure("2x") * LABEL_SCALE,
+        font::GLYPH_HEIGHT * LABEL_SCALE,
+    );
+    let shaft = width * projection.scale * foreshortening(plan.face, nf, projection).max(0.7) / 2.0;
+    let gap = 3.0;
+    let right = [point[0] + shaft + gap, point[1] - h / 2.0];
+    let above = [point[0] - w / 2.0, point[1] - shaft - gap - h];
+    let (x, y) = if vertical || above[1] < 1.0 {
+        (right[0], right[1])
+    } else {
+        (above[0], above[1])
+    };
+    let mut shapes = font::halo("2x", (x, y), h, 1.2, WHITE, Part::Halo);
+    shapes.extend(font::text("2x", (x, y), h, ARROW_VIOLET, Part::Mark));
     shapes
 }
 

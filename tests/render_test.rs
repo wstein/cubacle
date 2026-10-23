@@ -5,7 +5,7 @@
 //! and review the diff.
 
 use cubacle::puzzle::{Facelets, PuzzleKind};
-use cubacle::render::{icon, Action, Palette, Shading, Style};
+use cubacle::render::{icon, Action, Backdrop, Palette, Shading, Style};
 use std::fs;
 use std::path::PathBuf;
 
@@ -102,19 +102,38 @@ fn the_icon_uses_the_state_and_the_palette() {
 }
 
 #[test]
+fn the_backdrop_decides_dimming_and_the_notation_colour() {
+    let state = Facelets::solved(PuzzleKind::Cube3);
+    let action: Action = "R".parse().unwrap();
+    let draw = |backdrop| {
+        let style = Style {
+            backdrop,
+            ..Style::default()
+        };
+        icon(&state, &action, &style).unwrap().to_svg()
+    };
+    let (dark, light) = (draw(Backdrop::Dark), draw(Backdrop::Light));
+    assert_ne!(dark, light);
+    // Light glyphs on a dark backdrop, dark glyphs on a light one.
+    assert!(dark.contains("#f4f4f4") && !dark.contains("#14161a"));
+    assert!(light.contains("#14161a") && !light.contains("#f4f4f4"));
+    assert_eq!(dark, draw(Backdrop::default()));
+}
+
+#[test]
 fn rasters_have_the_requested_height() {
     let state = Facelets::solved(PuzzleKind::Cube4);
     let action: Action = "Rw".parse().unwrap();
     let raster = icon(&state, &action, &Style::default())
         .unwrap()
         .to_rgba(64);
-    assert_eq!((raster.width, raster.height), (96, 64));
-    assert_eq!(raster.data.len(), 96 * 64 * 4);
+    assert_eq!((raster.width, raster.height), (67, 64));
+    assert_eq!(raster.data.len(), 67 * 64 * 4);
     assert!(raster.data.chunks(4).any(|px| px[3] == 255));
     assert!(raster.data.chunks(4).any(|px| px[3] == 0));
 }
 
-/// Nothing (stickers, shadow, arrow halo, badge, label) may come within 2 px of
+/// Nothing (stickers, arrow halo, 2x, label) may come within 2 px of
 /// the border, whatever the cube size, move or icon size.
 #[test]
 fn drawings_keep_a_margin_from_the_border() {
