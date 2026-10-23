@@ -17,9 +17,9 @@ use cubacle::engines::three::Min2PhaseSolver;
 use cubacle::engines::two::PocketSolver;
 use cubacle::generate;
 use cubacle::notation::orbit64;
-use cubacle::notation::{parse_cube, ColourScheme};
+use cubacle::notation::{parse_cube, parse_expression, ColourScheme};
 use cubacle::phases::{from_stages, phases};
-use cubacle::puzzle::{Facelets, Failure, MoveSequence, PuzzleKind, SolveOptions, Solver};
+use cubacle::puzzle::{Facelets, Failure, PuzzleKind, SolveOptions, Solver};
 
 /// Rubik's cube solver and generator.
 #[derive(Parser)]
@@ -185,8 +185,7 @@ fn kind_of(size: usize) -> Result<PuzzleKind, String> {
 
 /// The solved cube of the given kind with a scramble applied.
 fn scrambled(text: &str, kind: PuzzleKind) -> Result<Facelets, String> {
-    let moves: MoveSequence = text
-        .parse()
+    let moves = parse_expression(text, kind)
         .map_err(|error| format!("scramble is not valid move notation ({error})"))?;
     Facelets::solved(kind)
         .apply(&moves)
@@ -207,7 +206,13 @@ fn read_cube(input: &InputArgs) -> Result<Facelets, String> {
         }
         parts => parts.join(" "),
     };
-    parse_cube(&text, input.scheme).map_err(|error| error.to_string())
+    parse_cube(&text, input.scheme).or_else(|error| {
+        // Text that is no cube may be a move expression for a cube of --size.
+        match kind_of(input.size).map(|kind| scrambled(&text, kind)) {
+            Ok(Ok(cube)) if !text.trim().is_empty() => Ok(cube),
+            _ => Err(error.to_string()),
+        }
+    })
 }
 
 fn solve(args: SolveArgs) -> Result<(), String> {

@@ -293,6 +293,28 @@ A scramble is standard move notation with the moves separated by whitespace. Bes
 
 Moves must be separated: a run such as `RUR'` and a lone `-` are rejected. A 3x3x3 whose centres a wide or inner-layer move has displaced cannot be solved; `solve` reports that instead of a wrong solution.
 
+### Repeated groups
+
+`( ... )` groups moves and `*N` repeats the group, or a single move, right before it N times. Groups nest, and parentheses need no spaces around them; `*N` must follow its group or move directly (`R *2` and `R*0` are errors, as are unbalanced parentheses). An expression may expand to at most 100000 moves. The expression is expanded into plain moves before it is applied, so `(R U)*3` is `R U R U R U`. Six repetitions of the sexy move return a 3x3x3 to the solved state:
+
+```sh
+cubacle facelets "(R U R' U')*6"
+```
+
+```text
+UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB
+```
+
+`facelets` and `--scramble` read the same notation. `convert` and `solve` also take an expression in place of a cube when the text is not a cube; `--size` picks the cube:
+
+```sh
+cubacle convert --size 3 "(R U)*6"
+```
+
+```text
+FULUUBRUURRUFRRBRUDLFFFUFFRDDDDDFDDRLBFLLLLLLBRUDBBBBB
+```
+
 `facelets` prints the facelets reached by applying a scramble to a solved cube (`--size` picks the cube, default 3):
 
 ```sh
