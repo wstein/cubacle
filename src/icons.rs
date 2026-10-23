@@ -9,12 +9,7 @@ use std::path::PathBuf;
 use clap::{Args, ValueEnum};
 use cubacle::notation::ColourScheme;
 use cubacle::puzzle::{Facelets, MoveSequence, PuzzleKind};
-use cubacle::render::{
-    icon, Action, Backdrop, Icon, KittyPlacement, Palette, Raster, Rgb, Shading, Style,
-};
-
-use crate::rows;
-use crate::terminal::{self, Terminal};
+use cubacle::render::{icon, Action, Backdrop, Icon, KittyPlacement, Palette, Rgb, Shading, Style};
 
 #[derive(Clone, Copy, PartialEq, Eq, ValueEnum)]
 pub enum Format {
@@ -40,7 +35,7 @@ pub enum Background {
 }
 
 impl Background {
-    fn backdrop(self) -> Backdrop {
+    pub(crate) fn backdrop(self) -> Backdrop {
         match self {
             Background::Dark => Backdrop::Dark,
             Background::Light => Backdrop::Light,
@@ -125,18 +120,23 @@ pub fn detect(is_terminal: bool, env: &dyn Fn(&str) -> Option<String>) -> Graphi
     }
 }
 
-fn detect_stdout() -> Graphics {
+pub(crate) fn detect_stdout() -> Graphics {
     detect(std::io::stdout().is_terminal(), &|name| {
         std::env::var(name).ok().filter(|v| !v.is_empty())
     })
 }
 
 /// The icon height that keeps stickers readable: 32 pixels per cube layer, at least 96.
-fn default_height(cube: usize) -> u32 {
+pub(crate) fn default_height(cube: usize) -> u32 {
     (32 * u32::try_from(cube).unwrap_or(7)).max(96)
 }
 
-fn style(scheme: Option<ColourScheme>, size: u32, grey: bool, background: Background) -> Style {
+pub(crate) fn style(
+    scheme: Option<ColourScheme>,
+    size: u32,
+    grey: bool,
+    background: Background,
+) -> Style {
     Style {
         palette: Palette::from_letters(scheme.unwrap_or(ColourScheme::WESTERN_BOY).letters()),
         shading: if grey {
@@ -151,7 +151,7 @@ fn style(scheme: Option<ColourScheme>, size: u32, grey: bool, background: Backgr
 }
 
 /// One icon in the form the terminal can show, with a trailing newline.
-fn show(icon: &Icon, graphics: Graphics, size: u32) -> String {
+pub(crate) fn show(icon: &Icon, graphics: Graphics, size: u32) -> String {
     match graphics {
         Graphics::Kitty => {
             // Erase the rows the image covers so older text cannot show
@@ -263,97 +263,6 @@ fn name(format: Format) -> &'static str {
         Format::Kitty => "Kitty graphics",
         _ => "RGBA pixels",
     }
-}
-
-/// What `solve --icons` was asked for.
-pub struct SolutionIcons {
-    pub scheme: Option<ColourScheme>,
-    /// Icon height in pixels.
-    pub height: Option<u32>,
-    /// `None`: ask the terminal.
-    pub background: Option<Background>,
-    /// Icons per row; `None`: as many as fit.
-    pub columns: Option<usize>,
-}
-
-/// A raster as a block of terminal rows: the rows are cleared so that older
-/// text cannot show through, then the image is drawn at its own pixel size
-/// without moving the cursor, which then steps below it.
-fn kitty_block(raster: &Raster, cell_height: u32) -> String {
-    let rows = raster.height.div_ceil(cell_height.max(1)).max(1);
-    let placement = KittyPlacement {
-        rows: None,
-        keep_cursor: true,
-    };
-    let mut text = "\x1b[2K\n".repeat(rows as usize);
-    text.push_str(&format!("\x1b[{rows}A"));
-    text.push_str(&raster.to_kitty(&placement));
-    text.push_str(&format!("\x1b[{rows}B\r"));
-    text
-}
-
-/// `solve --icons`: each step of the solution with the picture of the cube before it.
-///
-/// On a Kitty terminal the icons come in rows as wide as the terminal; elsewhere
-/// there is one text picture per step.
-pub fn print_solution(
-    start: &Facelets,
-    solution: &MoveSequence,
-    options: &SolutionIcons,
-) -> Result<(), String> {
-    let graphics = detect_stdout();
-    let terminal = if graphics == Graphics::Kitty {
-        terminal::probe(options.background.is_none())
-    } else {
-        Terminal::default()
-    };
-    let background = options
-        .background
-        .unwrap_or_else(|| match terminal.background {
-            Some(colour) if colour.is_light() => Background::Light,
-            _ => Background::Dark,
-        });
-    let height = options
-        .height
-        .unwrap_or_else(|| default_height(start.kind().size()));
-    let style = style(options.scheme, height, false, background);
-    let mut state = start.clone();
-    let total = solution.len();
-    let mut out = String::new();
-    let moves = solution.moves();
-    if graphics == Graphics::Kitty && total > 0 {
-        let first = icon(&state, &Action::Layer(moves[0]), &style)
-            .map_err(|error| error.to_string())?
-            .to_rgba(style.size);
-        let columns = rows::per_row(terminal.width_px, first.width, rows::GAP, options.columns);
-        for row in rows::rows(0..total, columns) {
-            let mut rasters = Vec::with_capacity(row.len());
-            for mv in &moves[row.clone()] {
-                let action = Action::Layer(*mv);
-                let drawn = icon(&state, &action, &style).map_err(|error| error.to_string())?;
-                rasters.push(drawn.to_rgba(style.size));
-                state = action.apply(&state).map_err(|error| error.to_string())?;
-            }
-            out.push_str(&rows::heading(&row, total));
-            out.push('\n');
-            let strip = Raster::hstack(&rasters, rows::GAP);
-            out.push_str(&kitty_block(&strip, terminal.cell.1));
-        }
-    } else if graphics != Graphics::Kitty {
-        for (index, mv) in moves.iter().enumerate() {
-            let action = Action::Layer(*mv);
-            let drawn = icon(&state, &action, &style).map_err(|error| error.to_string())?;
-            out.push_str(&format!("step {} of {total}: {mv}\n", index + 1));
-            out.push_str(&show(&drawn, graphics, style.size));
-            out.push('\n');
-            state = action.apply(&state).map_err(|error| error.to_string())?;
-        }
-    }
-    out.push_str(&format!("{solution}\n"));
-    std::io::stdout()
-        .lock()
-        .write_all(out.as_bytes())
-        .map_err(|e| format!("cannot write to standard output: {e}"))
 }
 
 #[cfg(test)]

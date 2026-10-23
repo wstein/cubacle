@@ -506,6 +506,9 @@ fn applications_use_only_the_public_modules() {
     for file in [
         "src/main.rs",
         "src/icons.rs",
+        "src/steps.rs",
+        "src/rows.rs",
+        "src/terminal/mod.rs",
         "crates/server/src/lib.rs",
         "crates/server/src/main.rs",
     ] {

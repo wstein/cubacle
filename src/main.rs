@@ -1,6 +1,7 @@
 mod icons;
 mod improve;
 mod rows;
+mod steps;
 mod terminal;
 
 use std::io::Read;
@@ -17,6 +18,7 @@ use cubacle::engines::two::PocketSolver;
 use cubacle::generate;
 use cubacle::notation::orbit64;
 use cubacle::notation::{parse_cube, ColourScheme};
+use cubacle::phases::phases;
 use cubacle::puzzle::{Facelets, Failure, MoveSequence, PuzzleKind, SolveOptions, Solver};
 
 /// Rubik's cube solver and generator.
@@ -290,11 +292,24 @@ fn solve(args: SolveArgs) -> Result<(), String> {
                 return Err("internal error: solution does not solve the cube".into());
             }
             eprintln!("moves {}", solution.len());
+            if args.verbose {
+                if let Ok(found) = phases(&facelets, &solution) {
+                    for phase in found {
+                        eprintln!(
+                            "phase {}: {}, moves {}-{}",
+                            phase.number,
+                            phase.name,
+                            phase.moves.start + 1,
+                            phase.moves.end
+                        );
+                    }
+                }
+            }
             if args.icons {
-                return icons::print_solution(
+                return steps::print_solution(
                     &facelets,
                     &solution,
-                    &icons::SolutionIcons {
+                    &steps::SolutionIcons {
                         scheme: args.input.scheme,
                         height: args.icon_size,
                         background: args.background,
