@@ -1,5 +1,5 @@
 ---
-id: 20261023140000
+id: 20261023190000
 aliases: []
 tags: ["type/decision", "status/decided", "category/notation"]
 ---
@@ -9,4 +9,4 @@ The amber frame around a lone quarter turn in the Kitty rows of `solve --icons` 
 
 - [[Solve icons checkpoints are Orbit64 tokens]]
 
-Source: owner decision of 2026-10-23
+Source: Cargo.toml, lines 1-60
