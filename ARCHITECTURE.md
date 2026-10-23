@@ -13,6 +13,8 @@ src/
   generate/       random states and scrambles
   phases/         the phases of a solution, from the engine's stages or the cube state
   render/         move icons (SVG, RGBA, Kitty graphics, text) from puzzle types
+  repair/         where a cube went wrong in a printed solution, and the way back
+                  (sticker permutations along the solution; the fresh solution is passed in)
   reduction/      crate-private parts shared by reduction engines (4x4x4,
                   5x5x5): combinatorics, 4-bit pruning tables with a parallel
                   builder and an on-disk cache, thread helpers, the ordered
@@ -38,11 +40,12 @@ puzzle  <-  notation  <-  engines  <-  apps (CLI, server)
    +--- generate               |
    +--- phases                 |
    +--- render                 |
+   +--- repair                 |
    +--- reduction  ------------+   (used by the reduction engines only)
 ```
 
 - `puzzle` depends on nothing else in the crate.
-- `notation`, `generate`, `phases` and `render` depend only on `puzzle`. `render` is pure
+- `notation`, `generate`, `phases`, `repair` and `render` depend only on `puzzle`. `render` is pure
   (no I/O, no global state) and never names `notation`: the CLI maps a colour
   scheme to a `render::Palette`. Terminal detection lives in the CLI.
 - `reduction` depends only on `puzzle`, knows no cube, and is crate-private.
