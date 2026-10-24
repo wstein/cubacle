@@ -10,6 +10,9 @@ use cubacle::puzzle::{Facelets, PuzzleKind, SolveMetrics, SolveOptions, SolveRes
 
 use crate::SolveArgs;
 
+/// Probes of the default engine's answer, as in a plain `solve`.
+const DEFAULT_PROBES: u64 = 3000;
+
 /// The search time when `-b` is absent.
 const DEFAULT_BUDGET_MS: u64 = 60_000;
 
@@ -68,9 +71,12 @@ impl Solver for Optimal {
             nodes: self.nodes,
             cancel: None,
         };
-        // The budget is for the search; the default engine answers first.
+        // The budget is for the search. The default engine answers first, with
+        // the counted improvement of a plain `solve` (about 90 ms): its shorter
+        // answer is the fallback and ends the search sooner.
         let first = SolveOptions {
             time_budget: None,
+            min_probes: Some(DEFAULT_PROBES),
             ..*options
         };
         let (outcome, message) = match self.engine.solve_report(facelets, &first, &limits) {
