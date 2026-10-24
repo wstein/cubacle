@@ -59,28 +59,25 @@ fn encode(slots: &[u8], flips: &[u8]) -> usize {
     index
 }
 
-fn decode(mut index: usize, k: usize) -> (Vec<u8>, Vec<u8>) {
-    let mut flips = vec![0u8; k];
-    for flip in flips.iter_mut() {
-        *flip = (index % 2) as u8;
-        index /= 2;
-    }
-    let mut slots = vec![0u8; k];
-    for slot in slots.iter_mut() {
-        *slot = (index % 12) as u8;
-        index /= 12;
-    }
-    (slots, flips)
-}
-
+/// The table index after one turn; no allocation, for the inner loop of the search.
 fn step(index: usize, k: usize, mv: &EdgeMove) -> usize {
-    let (mut slots, mut flips) = decode(index, k);
+    let mut slots = [0u8; super::MAX_EDGES];
+    let mut flips = [0u8; super::MAX_EDGES];
+    let mut rest = index;
+    for flip in flips.iter_mut().take(k) {
+        *flip = (rest % 2) as u8;
+        rest /= 2;
+    }
+    for slot in slots.iter_mut().take(k) {
+        *slot = (rest % 12) as u8;
+        rest /= 12;
+    }
     for i in 0..k {
         let from = usize::from(slots[i]);
         slots[i] = mv.to[from];
         flips[i] ^= mv.flip[from];
     }
-    encode(&slots, &flips)
+    encode(&slots[..k], &flips[..k])
 }
 
 pub(super) fn edges_only(
@@ -155,6 +152,6 @@ pub(super) fn edges_only(
     finish(
         started,
         Ok(solution.into_iter().collect()),
-        format!("shortest: {length} moves, proved by an exact search over the {k} edges the target names"),
+        format!("shortest: proved by an exact search over the {k} edges the target names"),
     )
 }
