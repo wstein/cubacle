@@ -157,8 +157,10 @@ impl Cube {
         super::vector::turn(self, tables, m)
     }
 
-    /// The cube after move `m`, plain Rust.
+    /// The cube after move `m`, plain Rust: the step on targets without a
+    /// vector version, and the reference the vector version is tested against.
     #[inline]
+    #[cfg_attr(target_arch = "aarch64", allow(dead_code))]
     pub(crate) fn turned_portable(&self, tables: &MoveTables, m: usize) -> Cube {
         let mut out = *self;
         let edge = &tables.edges[m];
