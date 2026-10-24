@@ -16,4 +16,4 @@ Raw-material notes, category open-items.
 - [[Icon sheet export for documents]]
 - [[Structured solution output]]
 - [[Pattern states are projections onto layer sets]]
-- [[Don't-care targets wait for eight owner decisions]]
+- [[Don't-care targets follow eight owner decisions]]

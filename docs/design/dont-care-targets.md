@@ -6,7 +6,7 @@ weight: 40
 
 # Don't-care targets
 
-Status: concept, awaiting owner approval. No code has changed. Numbers marked
+Status: concept, the eight decisions below were approved by the owner on 2026-10-24 as recommended. No code has changed. Numbers marked
 **[E]** are estimates, not measurements; numbers marked **[M]** were run for this
 paper. Only ideas from the study of a GPL sticker solver were used (see the note
 "A study of stickersolve shows what to adopt and what not"); no code or text.
