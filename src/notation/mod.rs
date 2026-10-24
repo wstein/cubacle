@@ -11,7 +11,9 @@ mod sign;
 mod sse;
 mod sse_write;
 
-pub use expr::{parse_expression, ExprError, MAX_DEPTH, MAX_EXPANDED_MOVES};
+pub use expr::{
+    parse_expression, parse_grouped, ExprError, Group, Item, MAX_DEPTH, MAX_EXPANDED_MOVES,
+};
 pub use input::{colour_scheme_of, parse_cube, InputError};
 pub use named::{named_target, NAMED_TARGETS};
 pub use scheme::{ColourScheme, SchemeError};

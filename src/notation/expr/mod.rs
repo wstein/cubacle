@@ -1,6 +1,9 @@
 mod error;
+mod grouped;
 
 pub use error::ExprError;
+pub use grouped::{Group, Item};
+use grouped::{Mark, MarkKind, Run};
 
 use super::sign::is_separator;
 use crate::puzzle::{Face, Move, MoveSequence, NotationError, PuzzleKind, Turn};
@@ -35,14 +38,29 @@ pub const MAX_DEPTH: usize = 100;
 /// `x`, `y` and `z` turn the whole cube like `R`, `U` and `F`. All take the
 /// suffixes `'`, `2` and the aliases of ordinary moves, and a following `*N`.
 pub fn parse_expression(text: &str, kind: PuzzleKind) -> Result<MoveSequence, ExprError> {
+    Ok(MoveSequence::new(read(text, kind, false)?.moves))
+}
+
+/// Reads an expression like [`parse_expression`] and keeps the hand units: a
+/// `·` closes a group, a `( ... )` block is a group of groups (two levels are
+/// kept, deeper parentheses are flattened). Repetition expands the groups
+/// along with the moves; flattening the result gives exactly the moves of
+/// [`parse_expression`].
+pub fn parse_grouped(text: &str, kind: PuzzleKind) -> Result<Group, ExprError> {
+    let run = read(text, kind, true)?;
+    Ok(Group::build(&run.moves, &run.marks))
+}
+
+fn read(text: &str, kind: PuzzleKind, track: bool) -> Result<Run, ExprError> {
     let mut reader = Reader {
         chars: text.chars().collect(),
         at: 0,
         kind,
+        track,
     };
-    let (moves, stop) = reader.sequence(0)?;
+    let (run, stop) = reader.sequence(0)?;
     match stop {
-        Stop::End => Ok(MoveSequence::new(moves)),
+        Stop::End => Ok(run),
         Stop::Close(_) => Err(ExprError::Unbalanced {
             position: reader.at,
         }),
@@ -61,6 +79,8 @@ struct Reader {
     chars: Vec<char>,
     at: usize,
     kind: PuzzleKind,
+    /// Whether group marks are recorded (off: only the moves).
+    track: bool,
 }
 
 impl Reader {
@@ -76,10 +96,16 @@ impl Reader {
     }
 
     /// Items up to the end of the text or an unconsumed `)` `]` `,` `:`.
-    fn sequence(&mut self, depth: usize) -> Result<(Vec<Move>, Stop), ExprError> {
-        let mut out = Vec::new();
+    fn sequence(&mut self, depth: usize) -> Result<(Run, Stop), ExprError> {
+        let mut out = Run::default();
         loop {
-            while self.peek().is_some_and(is_separator) {
+            while let Some(c) = self.peek().filter(|c| is_separator(*c)) {
+                if c == '·' && self.track {
+                    out.marks.push(Mark {
+                        at: out.moves.len(),
+                        kind: MarkKind::Dot,
+                    });
+                }
                 self.at += 1;
             }
             let item = match self.peek() {
@@ -96,19 +122,21 @@ impl Reader {
                 }
                 Some('*') => return Err(ExprError::BadRepeat { position: self.at }),
                 Some(_) => {
-                    let word = self.word()?;
+                    let word = Run::plain(self.word()?);
                     self.suffixes(word, false)?
                 }
             };
-            if out.len() + item.len() > MAX_EXPANDED_MOVES {
+            if out.moves.len() + item.moves.len() > MAX_EXPANDED_MOVES
+                || out.marks.len() + item.marks.len() > grouped::MAX_MARKS
+            {
                 return Err(ExprError::TooLong);
             }
-            out.extend(item);
+            out.append(item);
         }
     }
 
     /// `( ... )`, the moves inside.
-    fn group(&mut self, depth: usize) -> Result<Vec<Move>, ExprError> {
+    fn group(&mut self, depth: usize) -> Result<Run, ExprError> {
         if depth >= MAX_DEPTH {
             return Err(ExprError::TooDeep);
         }
@@ -118,7 +146,7 @@ impl Reader {
         match stop {
             Stop::Close(')') => {
                 self.at += 1;
-                Ok(inner)
+                Ok(if self.track { inner.enclosed() } else { inner })
             }
             Stop::End => Err(ExprError::Unbalanced { position: open }),
             Stop::Close(_) => Err(ExprError::Unbalanced { position: self.at }),
@@ -127,7 +155,7 @@ impl Reader {
     }
 
     /// `[A, B]` or `[A: B]`, expanded.
-    fn bracket(&mut self, depth: usize) -> Result<Vec<Move>, ExprError> {
+    fn bracket(&mut self, depth: usize) -> Result<Run, ExprError> {
         if depth >= MAX_DEPTH {
             return Err(ExprError::TooDeep);
         }
@@ -158,21 +186,23 @@ impl Reader {
             }
             Stop::Close(_) => return Err(ExprError::Unbalanced { position: self.at }),
         }
-        if first.is_empty() || second.is_empty() {
+        if first.moves.is_empty() || second.moves.is_empty() {
             return Err(ExprError::Syntax {
                 position: at,
                 reason: "a [ ] needs moves on both sides of the comma or colon",
             });
         }
-        let size = first.len() + second.len();
-        if size.saturating_mul(2) > MAX_EXPANDED_MOVES {
+        let size = first.moves.len() + second.moves.len();
+        if size.saturating_mul(2) > MAX_EXPANDED_MOVES
+            || (first.marks.len() + second.marks.len()).saturating_mul(2) > grouped::MAX_MARKS
+        {
             return Err(ExprError::TooLong);
         }
         let mut out = first.clone();
-        out.extend(second.iter().copied());
-        out.extend(inverse(&first));
+        out.append(second.clone());
+        out.append(first.inverse());
         if separator == ',' {
-            out.extend(inverse(&second));
+            out.append(second.inverse());
         }
         Ok(out)
     }
@@ -286,7 +316,7 @@ impl Reader {
 
     /// Applies what directly follows an item: `*N`, and for a group also a bare
     /// `N` and one `'` (before or after the count).
-    fn suffixes(&mut self, item: Vec<Move>, group: bool) -> Result<Vec<Move>, ExprError> {
+    fn suffixes(&mut self, item: Run, group: bool) -> Result<Run, ExprError> {
         let mut inverted = false;
         if group && self.peek() == Some('\'') {
             self.at += 1;
@@ -311,12 +341,14 @@ impl Reader {
             self.at += 1;
             inverted = true;
         }
-        if item.len().saturating_mul(count) > MAX_EXPANDED_MOVES {
+        if item.moves.len().saturating_mul(count) > MAX_EXPANDED_MOVES
+            || item.marks.len().saturating_mul(count) > grouped::MAX_MARKS
+        {
             return Err(ExprError::TooLong);
         }
         let repeated = item.repeat(count);
         Ok(if inverted {
-            inverse(&repeated)
+            repeated.inverse()
         } else {
             repeated
         })
@@ -346,7 +378,7 @@ impl Reader {
 }
 
 /// The moves undone: reversed, each turned the other way.
-fn inverse(moves: &[Move]) -> Vec<Move> {
+pub(super) fn inverse(moves: &[Move]) -> Vec<Move> {
     moves
         .iter()
         .rev()
