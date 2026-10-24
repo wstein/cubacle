@@ -82,19 +82,39 @@ pub(crate) fn kitty_state(
     style: &Style,
     terminal: &Terminal,
     columns: Option<usize>,
+    soft_frame: bool,
 ) -> String {
     let rasters: Vec<Raster> = icons
         .iter()
-        .map(|drawn| drawn.to_rgba(style.size))
+        .map(|drawn| {
+            if soft_frame {
+                drawn.clone().unframed().to_rgba(style.size)
+            } else {
+                drawn.to_rgba(style.size)
+            }
+        })
         .collect();
     let joined = Raster::hstack(&rasters, rows::GAP);
+    let frame = |raster: &Raster| {
+        if soft_frame {
+            soft_outline(raster)
+        } else {
+            raster.clone()
+        }
+    };
     if rasters.len() < 2 || pair_fits(terminal.width_px, joined.width, columns) {
-        return kitty_block(&joined, terminal.cell.1);
+        return kitty_block(&frame(&joined), terminal.cell.1);
     }
     rasters
         .iter()
-        .map(|raster| kitty_block(raster, terminal.cell.1))
+        .map(|raster| kitty_block(&frame(raster), terminal.cell.1))
         .collect()
+}
+
+/// The thin, translucent grey outline of a state picture in the Kitty rows:
+/// one pixel, a few pixels of room, rounded corners.
+pub(crate) fn soft_outline(raster: &Raster) -> Raster {
+    raster.outlined(5, 1.0, [128, 128, 128, 110], 6.0)
 }
 
 /// A raster as a block of terminal rows: the rows are cleared so that older
@@ -161,7 +181,7 @@ mod tests {
             background: None,
         };
         // a lone picture is never split and never dropped, however narrow
-        let out = kitty_state(&icons, &style, &narrow, Some(1));
+        let out = kitty_state(&icons, &style, &narrow, Some(1), false);
         assert_eq!(out.matches("a=T").count(), 1);
     }
 
@@ -181,7 +201,7 @@ mod tests {
             background: None,
         };
         let images = |t: &Terminal, columns| {
-            kitty_state(&icons, &style, t, columns)
+            kitty_state(&icons, &style, t, columns, false)
                 .matches("a=T")
                 .count()
         };
@@ -190,7 +210,7 @@ mod tests {
         assert_eq!(images(&narrow, None), 3);
         let one = Views::Net.icons(&cube, None, &style);
         assert_eq!(
-            kitty_state(&one, &style, &narrow, None)
+            kitty_state(&one, &style, &narrow, None, false)
                 .matches("a=T")
                 .count(),
             1

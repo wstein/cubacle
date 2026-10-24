@@ -131,6 +131,13 @@ pub(crate) fn target_line(state: &Facelets) -> Result<String, String> {
     Ok(format!("Target state: {token}\n"))
 }
 
+/// The line that gives the state a solution ends in, as an Orbit64 token; it
+/// stands where the last phase would have its token line.
+pub(crate) fn end_line(state: &Facelets) -> Result<String, String> {
+    let token = orbit64::encode(state).map_err(|error| error.to_string())?;
+    Ok(format!("End state: {token}\n"))
+}
+
 /// The line that gives the cube after a phase as an Orbit64 token, for
 /// `cubacle recover --state <start> --current <token>`.
 pub(crate) fn token_line(phase: &Phase, state: &Facelets) -> Result<String, String> {
@@ -317,6 +324,20 @@ impl<'a> Pictures<'a> {
                 &self.style,
                 self.options.notation,
             )?);
+            let total = solution.len();
+            if found
+                .last()
+                .is_some_and(|p| p.moves.end == total && total > 0)
+            {
+                // the end state has a picture as large as the start picture
+                let mut end = start.clone();
+                for mv in solution.moves() {
+                    end = Action::Layer(*mv)
+                        .apply(&end)
+                        .map_err(|error| error.to_string())?;
+                }
+                out.push_str(&self.start_state(&end));
+            }
             Ok(out)
         }
     }
@@ -358,7 +379,7 @@ impl<'a> Pictures<'a> {
     /// The pictures of one state: one image on a graphics terminal, else text.
     fn picture(&self, drawn: &[Icon], style: &Style) -> String {
         if self.graphics == Graphics::Kitty {
-            return kitty_state(drawn, style, &self.terminal, self.options.columns);
+            return kitty_state(drawn, style, &self.terminal, self.options.columns, true);
         }
         let mut out = String::new();
         for view in drawn {
@@ -398,7 +419,13 @@ pub fn print_solution(
     let mut stdout = std::io::stdout().lock();
     stdout
         .write_all(out.as_bytes())
-        .and_then(|()| writeln!(stdout, "{}", options.notation.write(start.kind(), solution)))
+        .and_then(|()| {
+            writeln!(
+                stdout,
+                "\nMoves: {}",
+                options.notation.write(start.kind(), solution)
+            )
+        })
         .map_err(|e| format!("cannot write to standard output: {e}"))
 }
 
@@ -428,9 +455,11 @@ fn text_steps(
         state = action.apply(&state).map_err(|error| error.to_string())?;
         for phase in found.iter().filter(|p| p.moves.end == index + 1) {
             if !phase.moves.is_empty() {
-                out.push_str(&token_line(phase, &state)?);
                 if index + 1 < total {
+                    out.push_str(&token_line(phase, &state)?);
                     out.push('\n');
+                } else {
+                    out.push_str(&end_line(&state)?);
                 }
             }
         }

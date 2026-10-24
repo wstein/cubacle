@@ -5,11 +5,11 @@ use cubacle::phases::Phase;
 use cubacle::puzzle::{Facelets, MoveSequence};
 use cubacle::render::{icon, Action, Icon, Raster, Style};
 
-use super::{groups, heading_at, lone_quarters, row_icon, token_line, Pictures, SolutionIcons};
+use super::{end_line, heading_at, lone_quarters, row_icon, token_line, Pictures, SolutionIcons};
 use crate::icons::numbered;
 use crate::rows;
 use crate::terminal::Terminal;
-use crate::views::{kitty_block, kitty_state};
+use crate::views::{kitty_block, kitty_state, soft_outline};
 
 /// The phase blocks of a solution as Kitty rows; with `with_start` the start
 /// picture, larger than the icons, comes first on rows of its own.
@@ -80,7 +80,9 @@ pub(super) fn kitty_steps(
             items.push(Item::cell(raster, 1));
             state = action.apply(&state).map_err(|error| error.to_string())?;
         }
-        if named {
+        // the last phase has no picture in its rows: the end state follows below
+        let last = named && phase.moves.end == total;
+        if named && !last {
             items.push(state_item(&state, options, style, width, per_row, terminal));
         }
         for row in pack(items, per_row) {
@@ -95,7 +97,12 @@ pub(super) fn kitty_steps(
                 }
             }
         }
-        if named {
+        if last {
+            // the end state: its token on a line of its own above its picture
+            out.push('\n');
+            out.push_str(&end_line(&state)?);
+            out.push_str(&pictures.start_state(&state));
+        } else if named {
             // the phase block ends with its token on a line of its own, and
             // one blank line separates it from the next block
             out.push_str(&token_line(phase, &state)?);
@@ -126,8 +133,8 @@ impl Item {
 }
 
 /// The picture of the cube `state`, as tall as a move icon, taking as many
-/// icon cells of the row as its width needs (two for the folded view), in its
-/// frame.
+/// icon cells of the row as its width needs (two for the folded view), left-
+/// aligned in a thin outline.
 fn state_item(
     state: &Facelets,
     options: &SolutionIcons,
@@ -138,24 +145,23 @@ fn state_item(
 ) -> Item {
     let drawn: Vec<Icon> = options.views.icons(state, None, style);
     // as tall as a move icon with its label; the width follows from the shape
-    let rasters: Vec<Raster> = drawn.iter().map(|d| d.to_rgba(style.size)).collect();
-    let natural = Raster::hstack(&rasters, rows::GAP);
+    let rasters: Vec<Raster> = drawn
+        .iter()
+        .map(|d| d.clone().unframed().to_rgba(style.size))
+        .collect();
+    let natural = soft_outline(&Raster::hstack(&rasters, rows::GAP));
     // the row cells it needs, rounded up
     let cells = (natural.width + rows::GAP).div_ceil(cell + rows::GAP) as usize;
     if cells > per_row {
-        let text = kitty_state(&drawn, style, terminal, options.columns);
+        let text = kitty_state(&drawn, style, terminal, options.columns, true);
         return Item {
             cells: per_row,
             raster: None,
             block: Some(text),
         };
     }
-    // centred in the cells it takes
-    let slot = cells as u32 * cell + (cells as u32 - 1) * rows::GAP;
-    let left = (slot - natural.width) / 2;
-    let right = slot - natural.width - left;
-    let padded = Raster::hstack(&[groups::spacer(left), natural, groups::spacer(right)], 0);
-    Item::cell(padded, cells)
+    // left-aligned in the cells it takes: it starts right after the last icon
+    Item::cell(natural, cells)
 }
 
 /// Fills rows with at most `per_row` cells; a picture drawn as a block has a

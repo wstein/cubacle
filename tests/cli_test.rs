@@ -460,12 +460,9 @@ fn solve_icons_prints_the_start_token_and_a_token_after_each_phase() {
     let (_, solved, _) = cubacle(&["convert", "--to", "token", "-s", ""]);
     let last = icons
         .lines()
-        .rfind(|l| l.starts_with("State after phase "))
+        .rfind(|l| l.starts_with("End state: "))
         .unwrap();
-    assert!(
-        last.ends_with(&format!(" as token: {}", solved.trim_end())),
-        "{last}"
-    );
+    assert_eq!(last, format!("End state: {}", solved.trim_end()));
     let (_, plain, _) = cubacle(&["solve", "-s", "R U F"]);
     assert!(!plain.contains("token") && !plain.contains("Start"));
 }
@@ -754,11 +751,10 @@ fn state_pictures_have_no_headline_and_sit_in_the_rows() {
     assert!(ok);
     assert!(!out.contains("compare it with your cube"), "{out:?}");
     assert!(!out.lines().any(|l| l == "Start state"), "{out:?}");
-    // the start picture (two cells) and two moves fill row one, four moves
-    // row two, the picture after the phase (two cells) row three
-    assert_eq!(out.matches("\x1b_Ga=T").count(), 3, "{out:?}");
-    // the phase block ends with its token line, on a line of its own
-    let token = out.find("State after phase 1 as token: ").unwrap();
-    assert!(token > out.rfind("\x1b_Ga=T").unwrap());
-    assert!(out[token..].lines().next().unwrap().len() > 30);
+    // the start picture on rows of its own, two rows of moves, the end picture
+    assert_eq!(out.matches("\x1b_Ga=T").count(), 4, "{out:?}");
+    // the end state token comes above the end picture, which is last
+    let end = out.find("End state: ").unwrap();
+    assert!(end < out.rfind("\x1b_Ga=T").unwrap());
+    assert!(!out.contains("State after phase"), "{out:?}");
 }

@@ -51,7 +51,7 @@ fn recover_icons_of_a_fresh_choice_draws_the_fresh_solution() {
     assert!(ok);
     assert!(out.contains("Recommended: solve fresh"), "{out}");
     assert!(out.contains("move 18 of 18"), "{out}");
-    assert!(out.contains("State after phase"), "{out}");
+    assert!(out.contains("End state: "), "{out}");
 }
 
 #[test]
