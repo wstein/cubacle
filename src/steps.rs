@@ -42,23 +42,47 @@ pub struct SolutionIcons {
     pub target: Option<Facelets>,
 }
 
-/// The line above the icons of a phase: `Phase 2: edges (14 moves)`.
-pub(crate) fn phase_heading(phase: &Phase) -> String {
+/// The line above the icons of a phase, with the numbers of its moves in the
+/// whole solution of `total` moves: `Phase 2: edges (14 moves, moves 9-22 of
+/// 27)`, `Phase 3: last layer (1 move, move 27 of 27)`. A phase that is the
+/// whole solution says only `Phase 1: solve (3 moves)`; an empty one
+/// `Phase 1: solve (nothing to do)`. The numbers are those of the icons and of
+/// `recover --at-move`.
+pub(crate) fn phase_heading(phase: &Phase, total: usize) -> String {
     let count = phase.moves.len();
     if count == 0 {
         return format!("Phase {}: {} (nothing to do)", phase.number, phase.name);
     }
     let unit = if count == 1 { "move" } else { "moves" };
-    format!("Phase {}: {} ({count} {unit})", phase.number, phase.name)
+    let place = if count == total {
+        String::new()
+    } else if count == 1 {
+        format!(", move {} of {total}", phase.moves.start + 1)
+    } else {
+        format!(
+            ", moves {}-{} of {total}",
+            phase.moves.start + 1,
+            phase.moves.end
+        )
+    };
+    format!(
+        "Phase {}: {} ({count} {unit}{place})",
+        phase.number, phase.name
+    )
 }
 
 /// The heading of `found[at]`. With `collapse`, a run of empty phases gets one
 /// line, `Phases 1-5: nothing to do`, on its first phase and none on the
 /// others (`None`); a lone empty phase keeps its own heading.
-pub(crate) fn heading_at(found: &[Phase], at: usize, collapse: bool) -> Option<String> {
+pub(crate) fn heading_at(
+    found: &[Phase],
+    at: usize,
+    collapse: bool,
+    total: usize,
+) -> Option<String> {
     let phase = &found[at];
     if !collapse || !phase.moves.is_empty() {
-        return Some(phase_heading(phase));
+        return Some(phase_heading(phase, total));
     }
     if at > 0 && found[at - 1].moves.is_empty() {
         return None;
@@ -68,7 +92,7 @@ pub(crate) fn heading_at(found: &[Phase], at: usize, collapse: bool) -> Option<S
         .take_while(|p| p.moves.is_empty())
         .count();
     if run == 1 {
-        return Some(phase_heading(phase));
+        return Some(phase_heading(phase, total));
     }
     Some(format!(
         "Phases {}-{}: nothing to do",
@@ -78,7 +102,8 @@ pub(crate) fn heading_at(found: &[Phase], at: usize, collapse: bool) -> Option<S
 }
 
 /// The `--verbose` line of a phase: `phase 2: edges, moves 15-27`, or
-/// `phase 2: edges, nothing to do`. It says what `phase_heading` says.
+/// `phase 2: edges, nothing to do`. It says what `phase_heading` says, so
+/// `solve` writes it only where the headings are not shown.
 pub(crate) fn phase_line(phase: &Phase) -> String {
     if phase.moves.is_empty() {
         return format!("phase {}: {}, nothing to do", phase.number, phase.name);
@@ -160,6 +185,11 @@ pub(crate) fn lone_quarters(moves: &[Move]) -> Vec<bool> {
 pub(crate) fn move_line(index: usize, total: usize, mv: &str, lone: bool) -> String {
     let note = if lone { QUARTER_NOTE } else { "" };
     format!("move {} of {total}: {mv}{note}\n", index + 1)
+}
+
+/// Whether `solve --icons` writes phase headings: only the Kitty rows have them.
+pub(crate) fn shows_phase_headings(mode: GraphicsMode) -> bool {
+    detect_stdout(mode) == Graphics::Kitty
 }
 
 /// The picture options `solve` and `recover` share.
@@ -429,7 +459,7 @@ fn kitty_steps(
     let phases = if named { found } else { &whole };
     for (at, phase) in phases.iter().enumerate() {
         if named {
-            if let Some(heading) = heading_at(phases, at, collapse_empty) {
+            if let Some(heading) = heading_at(phases, at, collapse_empty, total) {
                 out.push_str(&heading);
                 out.push('\n');
             }
@@ -446,8 +476,6 @@ fn kitty_steps(
                 rasters.push(row_icon(raster, lone[at]));
                 state = action.apply(&state).map_err(|error| error.to_string())?;
             }
-            out.push_str(&rows::heading(&row, total));
-            out.push('\n');
             let strip = Raster::hstack(&rasters, rows::GAP);
             out.push_str(&kitty_block(&strip, terminal.cell.1));
         }
@@ -483,13 +511,13 @@ mod tests {
                 "phase 3: c, moves 5-9"
             ]
         );
-        let headings: Vec<String> = found.iter().map(phase_heading).collect();
+        let headings: Vec<String> = found.iter().map(|p| phase_heading(p, 9)).collect();
         assert_eq!(
             headings,
             [
                 "Phase 1: a (nothing to do)",
-                "Phase 2: b (4 moves)",
-                "Phase 3: c (5 moves)"
+                "Phase 2: b (4 moves, moves 1-4 of 9)",
+                "Phase 3: c (5 moves, moves 5-9 of 9)"
             ]
         );
     }
@@ -506,19 +534,19 @@ mod tests {
         ];
         let found = cubacle::phases::from_stages(&stages, 9).unwrap();
         let lines: Vec<Option<String>> = (0..found.len())
-            .map(|i| heading_at(&found, i, true))
+            .map(|i| heading_at(&found, i, true, 9))
             .collect();
         let want = [
             Some("Phases 1-3: nothing to do"),
             None,
             None,
-            Some("Phase 4: d (4 moves)"),
+            Some("Phase 4: d (4 moves, moves 1-4 of 9)"),
             Some("Phase 5: e (nothing to do)"),
-            Some("Phase 6: f (5 moves)"),
+            Some("Phase 6: f (5 moves, moves 5-9 of 9)"),
         ];
         assert_eq!(lines, want.map(|l| l.map(str::to_owned)));
         assert_eq!(
-            heading_at(&found, 0, false).as_deref(),
+            heading_at(&found, 0, false, 9).as_deref(),
             Some("Phase 1: a (nothing to do)")
         );
     }
@@ -572,13 +600,20 @@ mod tests {
             name: "edges",
             moves: 13..27,
         };
-        assert_eq!(phase_heading(&phase), "Phase 2: edges (14 moves)");
+        assert_eq!(
+            phase_heading(&phase, 27),
+            "Phase 2: edges (14 moves, moves 14-27 of 27)"
+        );
         let one = Phase {
             number: 1,
             name: "solve",
             moves: 0..1,
         };
-        assert_eq!(phase_heading(&one), "Phase 1: solve (1 move)");
+        assert_eq!(phase_heading(&one, 1), "Phase 1: solve (1 move)");
+        assert_eq!(
+            phase_heading(&one, 5),
+            "Phase 1: solve (1 move, move 1 of 5)"
+        );
         assert_eq!(
             state_heading(&phase),
             "State after phase 2 - compare it with your cube"

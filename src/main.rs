@@ -513,7 +513,9 @@ fn solve(args: SolveArgs) -> Result<(), String> {
             } else {
                 Vec::new()
             };
-            if args.verbose {
+            // With `--icons` on a graphics terminal the phase headings say it.
+            let headed = args.pictures.icons && steps::shows_phase_headings(args.pictures.graphics);
+            if args.verbose && !headed {
                 for phase in &found {
                     eprintln!("{}", steps::phase_line(phase));
                 }

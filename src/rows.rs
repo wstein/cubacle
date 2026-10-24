@@ -29,15 +29,6 @@ pub fn rows(steps: Range<usize>, per_row: usize) -> Vec<Range<usize>> {
     out
 }
 
-/// The line above a row, with 1-based move numbers: `moves 9-16 of 128` or `move 3 of 128`.
-pub fn heading(row: &Range<usize>, total: usize) -> String {
-    if row.len() == 1 {
-        format!("move {} of {total}", row.start + 1)
-    } else {
-        format!("moves {}-{} of {total}", row.start + 1, row.end)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -65,11 +56,5 @@ mod tests {
         assert_eq!(rows(5..9, 10), vec![5..9]);
         assert_eq!(rows(4..4, 3), Vec::<Range<usize>>::new());
         assert_eq!(rows(0..2, 0), vec![0..1, 1..2]);
-    }
-
-    #[test]
-    fn headings_count_from_one() {
-        assert_eq!(heading(&(8..16), 128), "moves 9-16 of 128");
-        assert_eq!(heading(&(2..3), 128), "move 3 of 128");
     }
 }
