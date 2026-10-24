@@ -6,7 +6,7 @@ use cubacle::render::{Raster, Style};
 
 use super::{Graphics, Pictures};
 use crate::rows;
-use crate::views::{kitty_block, pair_fits, soft_outline};
+use crate::views::{kitty_block, pair_fits, soft_panel};
 
 /// Pixels between the two pictures.
 const BETWEEN: u32 = 16;
@@ -48,7 +48,7 @@ impl Pictures<'_> {
                     .iter()
                     .map(|d| d.clone().unframed().to_rgba(style.size))
                     .collect();
-                soft_outline(&Raster::hstack(&rasters, rows::GAP))
+                soft_panel(&Raster::hstack(&rasters, rows::GAP), style.backdrop)
             };
             let (a, b) = (draw(&left), draw(&right));
             let both = Raster::hstack(&[a.clone(), b.clone()], BETWEEN);
