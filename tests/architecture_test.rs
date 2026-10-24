@@ -361,8 +361,12 @@ fn modules_only_use_what_the_dependency_rules_allow() {
         assert!(!files.is_empty(), "{dir} has no sources");
         for file in files {
             // A `#[cfg(test)]` module in its own file (it may use a real 3x3x3
-            // solver where the engine itself takes any `dyn Solver`).
-            if file.ends_with("five/solver/tests.rs") || file.ends_with("four/solver_tests.rs") {
+            // solver where the engine itself takes any `dyn Solver`; the 2x2x2
+            // tests draw random cubes from the generator).
+            if file.ends_with("five/solver/tests.rs")
+                || file.ends_with("four/solver_tests.rs")
+                || file.ends_with("two/tests.rs")
+            {
                 continue;
             }
             let source = fs::read_to_string(&file).expect("readable source");
