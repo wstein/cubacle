@@ -30,6 +30,7 @@ Raw-material notes, category engines.
 - [[4x4 phases 1 to 3 equal the Java ones]]
 - [[Spread solves over cores for throughput]]
 - [[Improve modes trade time for moves]]
+- [[A counted default improvement keeps plain solve deterministic]]
 - [[Bisect over max_moves is unsound under a time budget]]
 - [[A target is solved as a relative state]]
 - [[Pattern shortcut finds hand-built cubes]]
