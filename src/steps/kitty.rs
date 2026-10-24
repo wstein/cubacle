@@ -12,13 +12,13 @@ use crate::terminal::Terminal;
 use crate::views::{kitty_block, kitty_state};
 
 /// The phase blocks of a solution as Kitty rows; with `with_start` the start
-/// picture is the first item of the first row.
+/// picture, larger than the icons, comes first on rows of its own.
 pub(super) fn kitty_steps(
     pictures: &Pictures<'_>,
     start: &Facelets,
     solution: &MoveSequence,
     found: &[Phase],
-    mut with_start: bool,
+    with_start: bool,
 ) -> Result<String, String> {
     let (options, terminal, style) = (pictures.options, &pictures.terminal, &pictures.style);
     let collapse_empty = pictures.collapse_empty;
@@ -48,6 +48,11 @@ pub(super) fn kitty_steps(
     let named = !found.is_empty();
     let phases = if named { found } else { &whole };
     let mut blank = false;
+    if with_start {
+        // the start state has rows of its own, above the first phase
+        out.push_str(&pictures.start_state(start));
+        blank = true;
+    }
     for (at, phase) in phases.iter().enumerate() {
         if named {
             if let Some(heading) = heading_at(phases, at, collapse_empty, total) {
@@ -67,10 +72,6 @@ pub(super) fn kitty_steps(
             out.push('\n');
         }
         let mut items: Vec<Item> = Vec::new();
-        if with_start {
-            with_start = false;
-            items.push(state_item(start, options, style, width, per_row, terminal));
-        }
         for at in phase.moves.clone() {
             let action = Action::Layer(moves[at]);
             let drawn = icon(&state, &action, style).map_err(|error| error.to_string())?;
@@ -125,8 +126,8 @@ impl Item {
 }
 
 /// The picture of the cube `state`, as tall as a move icon, taking as many
-/// icon cells of the row as its width needs (two for the folded view); it has
-/// no frame.
+/// icon cells of the row as its width needs (two for the folded view), in its
+/// frame.
 fn state_item(
     state: &Facelets,
     options: &SolutionIcons,
@@ -135,12 +136,7 @@ fn state_item(
     per_row: usize,
     terminal: &Terminal,
 ) -> Item {
-    let drawn: Vec<Icon> = options
-        .views
-        .icons(state, None, style)
-        .into_iter()
-        .map(Icon::unframed)
-        .collect();
+    let drawn: Vec<Icon> = options.views.icons(state, None, style);
     // as tall as a move icon with its label; the width follows from the shape
     let rasters: Vec<Raster> = drawn.iter().map(|d| d.to_rgba(style.size)).collect();
     let natural = Raster::hstack(&rasters, rows::GAP);

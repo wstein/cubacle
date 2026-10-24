@@ -340,20 +340,29 @@ impl<'a> Pictures<'a> {
     }
 
     /// The start state in the current view, directly below its token line
-    /// `Start state: TOKEN`, with no heading of its own.
+    /// `Start state: TOKEN`, with no heading of its own. On a graphics
+    /// terminal it is drawn one and a half times as large as a move icon.
     pub fn start_state(&self, start: &Facelets) -> String {
-        let drawn = self.options.views.icons(start, None, &self.style);
-        self.picture(&drawn)
+        let style = if self.graphics == Graphics::Kitty {
+            Style {
+                size: self.style.size * 3 / 2,
+                ..self.style.clone()
+            }
+        } else {
+            self.style.clone()
+        };
+        let drawn = self.options.views.icons(start, None, &style);
+        self.picture(&drawn, &style)
     }
 
     /// The pictures of one state: one image on a graphics terminal, else text.
-    fn picture(&self, drawn: &[Icon]) -> String {
+    fn picture(&self, drawn: &[Icon], style: &Style) -> String {
         if self.graphics == Graphics::Kitty {
-            return kitty_state(drawn, &self.style, &self.terminal, self.options.columns);
+            return kitty_state(drawn, style, &self.terminal, self.options.columns);
         }
         let mut out = String::new();
         for view in drawn {
-            out.push_str(&show(view, self.graphics, self.style.size));
+            out.push_str(&show(view, self.graphics, style.size));
             out.push('\n');
         }
         out
@@ -365,7 +374,7 @@ impl<'a> Pictures<'a> {
         for (label, drawn, state) in states {
             out.push_str(label);
             out.push('\n');
-            out.push_str(&self.picture(drawn));
+            out.push_str(&self.picture(drawn, &self.style));
             let token = orbit64::encode(state).map_err(|error| error.to_string())?;
             out.push_str(&format!("token: {token}\n"));
         }
