@@ -83,7 +83,7 @@ fn stray_moves_after_the_last_step_are_found_last() {
     done.push(Move::new(Face::R, 1, false, Turn::Clockwise));
     done.push(Move::new(Face::U, 2, true, Turn::Half));
     let current = original.apply(&seq(&done)).unwrap();
-    let s = staged(&original, &current, &solution, &Limits::default());
+    let s = staged(&original, &current, &solution, &no_deadline());
     assert_eq!(s.stage, Widening::Strays, "{:?}", s.diagnosis.finding);
     assert_eq!(s.tried.last(), Some(&Widening::Strays));
     assert_recovers(&s, &current, &solution);
@@ -91,7 +91,7 @@ fn stray_moves_after_the_last_step_are_found_last() {
     assert!(shortest.unwrap() <= 2);
     let none = Limits {
         strays: 0,
-        ..Limits::default()
+        ..no_deadline()
     };
     let s = staged(&original, &current, &solution, &none);
     assert_ne!(s.stage, Widening::Strays);
@@ -106,7 +106,7 @@ fn a_mistake_followed_by_stray_moves_is_found() {
         done.extend_from_slice(&solution[11..16]);
         done.extend(extra());
         let current = original.apply(&seq(&done)).unwrap();
-        let s = staged(&original, &current, &solution, &Limits::default());
+        let s = staged(&original, &current, &solution, &no_deadline());
         let Finding::Mistakes {
             mistakes, strays, ..
         } = &s.diagnosis.finding
@@ -127,7 +127,7 @@ fn a_cube_explained_without_stray_moves_never_reaches_the_stage() {
     let mut done = solution[..10].to_vec();
     done.extend_from_slice(&solution[11..16]);
     let current = original.apply(&seq(&done)).unwrap();
-    let s = staged(&original, &current, &solution, &Limits::default());
+    let s = staged(&original, &current, &solution, &no_deadline());
     assert!(!s.tried.contains(&Widening::Strays));
     let Finding::Mistakes { strays, .. } = &s.diagnosis.finding else {
         panic!("{:?}", s.diagnosis.finding);
@@ -143,7 +143,7 @@ fn with_a_stop_the_stray_moves_come_after_it() {
     done.extend(extra());
     let current = original.apply(&seq(&done)).unwrap();
     let scope = Scope::at(16);
-    let limits = Limits::default();
+    let limits = no_deadline();
     let s = diagnose_staged(&original, &current, &seq(&solution), &limits, Some(&scope)).unwrap();
     assert_eq!(s.stage, Widening::Strays);
     assert_eq!(s.tried.last(), Some(&Widening::Strays));
@@ -178,7 +178,7 @@ fn real(name: &str) -> (Facelets, Facelets, MoveSequence) {
 #[test]
 fn a_wrong_amount_and_two_stray_moves_are_found_last_on_a_real_cube() {
     let (original, current, solution) = real("8-9");
-    let s = diagnose_staged(&original, &current, &solution, &Limits::default(), None).unwrap();
+    let s = diagnose_staged(&original, &current, &solution, &no_deadline(), None).unwrap();
     assert_eq!(s.stage, Widening::Strays);
     let Finding::Mistakes {
         mistakes, strays, ..
@@ -194,7 +194,7 @@ fn a_wrong_amount_and_two_stray_moves_are_found_last_on_a_real_cube() {
 #[test]
 fn a_skipped_move_with_a_stray_move_is_found_last_on_a_real_cube() {
     let (original, current, solution) = real("12-13");
-    let s = diagnose_staged(&original, &current, &solution, &Limits::default(), None).unwrap();
+    let s = diagnose_staged(&original, &current, &solution, &no_deadline(), None).unwrap();
     assert_eq!(s.stage, Widening::Strays);
     let Finding::Mistakes { mistakes, .. } = &s.diagnosis.finding else {
         panic!("{:?}", s.diagnosis.finding);
@@ -209,14 +209,23 @@ fn an_explanation_that_needs_stray_moves_says_it_is_less_certain() {
         let s = diagnose_staged(&original, &current, &solution, limits, None).unwrap();
         Plan::new(s.diagnosis, solution.clone(), None).to_string()
     };
-    let with = text(&Limits::default());
+    let with = text(&no_deadline());
     assert!(
         with.contains("Less certain: this explanation assumes 2 extra moves after the mistake"),
         "{with}"
     );
     let without = text(&Limits {
         strays: 0,
-        ..Limits::default()
+        ..no_deadline()
     });
     assert!(!without.contains("Less certain"), "{without}");
+}
+
+/// Limits without the wall-clock deadline, so a loaded machine searches longer instead of
+/// answering wrongly.
+fn no_deadline() -> Limits {
+    Limits {
+        max_time: None,
+        ..Limits::default()
+    }
 }

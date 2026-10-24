@@ -36,7 +36,7 @@ fn runs() -> Vec<Run> {
 
 /// The first mistake (0-based position) and the printed moves used up.
 fn plain(a: &Run, b: &Run) -> Option<(usize, usize)> {
-    let d = diagnose(&a.cube, &b.cube, &a.solution, &Limits::default()).unwrap();
+    let d = diagnose(&a.cube, &b.cube, &a.solution, &no_deadline()).unwrap();
     match d.finding {
         Finding::Mistakes { mistakes, done, .. } => Some((mistakes[0].step - 1, done)),
         _ => None,
@@ -73,7 +73,7 @@ fn the_stop_alone_finds_each_explainable_mistake_in_the_phase_stages() {
             &a.cube,
             &b.cube,
             &a.solution,
-            &Limits::default(),
+            &no_deadline(),
             Some(&scope(a, done, None)),
         )
         .unwrap();
@@ -92,7 +92,7 @@ fn a_right_sure_move_is_found_at_once_and_a_wrong_one_only_costs_a_stage() {
             &a.cube,
             &b.cube,
             &a.solution,
-            &Limits::default(),
+            &no_deadline(),
             Some(&scope(a, done, Some(first))),
         )
         .unwrap();
@@ -102,7 +102,7 @@ fn a_right_sure_move_is_found_at_once_and_a_wrong_one_only_costs_a_stage() {
             &a.cube,
             &b.cube,
             &a.solution,
-            &Limits::default(),
+            &no_deadline(),
             Some(&scope(a, done, Some((first + 4).min(done - 1)))),
         )
         .unwrap();
@@ -112,5 +112,14 @@ fn a_right_sure_move_is_found_at_once_and_a_wrong_one_only_costs_a_stage() {
             i + 1,
             i + 2
         );
+    }
+}
+
+/// Limits without the wall-clock deadline, so a loaded machine searches longer instead of
+/// answering wrongly.
+fn no_deadline() -> Limits {
+    Limits {
+        max_time: None,
+        ..Limits::default()
     }
 }

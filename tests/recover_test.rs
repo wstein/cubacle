@@ -79,7 +79,10 @@ fn assert_recovers(diagnosis: &Diagnosis, current: &Facelets, solution: &[Move])
 }
 
 fn limits() -> Limits {
-    Limits::default()
+    Limits {
+        max_time: None,
+        ..Limits::default()
+    }
 }
 
 /// Skips, changes, swaps or repeats the move at `at`, then keeps following

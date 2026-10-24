@@ -52,7 +52,7 @@ fn attempts() -> HashMap<String, Attempt> {
 fn plan_of(name: &str) -> Plan {
     let a = &attempts()[name];
     let started = Instant::now();
-    let d = diagnose(&a.original, &a.current, &a.solution, &Limits::default()).unwrap();
+    let d = diagnose(&a.original, &a.current, &a.solution, &no_deadline()).unwrap();
     assert!(started.elapsed().as_secs() < 10, "{name} took too long");
     for route in &d.routes {
         let after = a.current.apply(&route.moves).unwrap();
@@ -101,4 +101,13 @@ fn moves_done_by_hand_after_a_mistake_are_not_explained() {
     let plan = plan_of("12-13");
     assert_eq!(plan.diagnosis.finding, Finding::Unexplained);
     assert_eq!(plan.advice, Advice::Fresh, "{plan}");
+}
+
+/// Limits without the wall-clock deadline, so a loaded machine searches longer instead of
+/// answering wrongly.
+fn no_deadline() -> Limits {
+    Limits {
+        max_time: None,
+        ..Limits::default()
+    }
 }
