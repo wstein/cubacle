@@ -21,3 +21,4 @@ Raw-material notes, category architecture.
 - [[A flat net shows every sticker undistorted]]
 - [[Patterns are defined by structure and searched]]
 - [[The folded view is the default for whole-cube pictures]]
+- [[A move is called a move everywhere and carries its number]]
