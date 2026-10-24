@@ -199,7 +199,7 @@ Every sticker appears exactly once, the three corner faces keep their 3D look an
 
 | Cube | 2x2x2 | 3x3x3 | 4x4x4 | 5x5x5 | 6x6x6 | 7x7x7 |
 | --- | --- | --- | --- | --- | --- | --- |
-| Pixels (width x height) | 139 x 96 | 138 x 96 | 184 x 128 | 230 x 160 | 275 x 192 | 321 x 224 |
+| Pixels (width x height) | 138 x 96 | 138 x 96 | 183 x 128 | 229 x 160 | 274 x 192 | 320 x 224 |
 
 It is one image; like `net` it is never split, so on a terminal narrower than the picture lower `--icon-size` (the default height is 32 per layer, at least 96). Without graphics the text picture is the corner with the flat faces beside it, as in the sample under [Recover with icons](#recover-with-icons). Tests check that each of the 6 n x n stickers is drawn once with its colour and place for sizes 2 to 7, that stickers of one cubie meet across the gaps, that every differing sticker has exactly one mark, and the text of a solved 3x3x3.
 

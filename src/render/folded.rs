@@ -24,7 +24,7 @@ use super::Icon;
 use crate::puzzle::{locate, Face, Facelets};
 
 /// Space between a flat face and the corner, in model units (a sticker is 2 wide).
-const GAP: f64 = 0.6;
+const GAP: f64 = 0.3;
 /// Canvas margin around the drawing, in canvas units; the frame lies inside it.
 const MARGIN: f64 = 3.0;
 
