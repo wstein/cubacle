@@ -7,8 +7,9 @@ use clap::Args;
 use cubacle::notation::{parse_cube, parse_expression, Notation};
 use cubacle::phases::{from_stages, phases};
 use cubacle::puzzle::{Facelets, MoveSequence, PuzzleKind};
-use cubacle::recover::{diagnose_staged, locate, Limits, PhaseInfo, Plan, Scope};
+use cubacle::recover::{diagnose_staged, locate, Advice, Limits, PhaseInfo, Plan, Scope};
 
+use crate::metrics_out;
 use crate::recover_icons;
 use crate::steps::PictureArgs;
 use crate::{default_options, failure_message, read_cube, solver_for, InputArgs};
@@ -89,6 +90,7 @@ pub(crate) fn run(args: RecoverArgs) -> Result<(), String> {
     if args.fresh {
         let (moves, stages) = solve_staged(&current)?;
         println!("{}", notation.write(current.kind(), &moves));
+        eprintln!("{}", metrics_out::line(current.kind(), &moves));
         if args.pictures.icons {
             let options = args.pictures.options(args.input.scheme, notation);
             print!(
@@ -191,6 +193,15 @@ pub(crate) fn run(args: RecoverArgs) -> Result<(), String> {
         "{}",
         plan.with(&|mv| notation.write_move(original.kind(), mv))
     );
+    if let Advice::Recover(route) = &plan.advice {
+        eprintln!(
+            "recover route {}",
+            metrics_out::line(original.kind(), &route.moves)
+        );
+    }
+    if let Some(fresh) = &plan.fresh {
+        eprintln!("fresh {}", metrics_out::line(original.kind(), fresh));
+    }
     if args.pictures.icons {
         let options = args.pictures.options(args.input.scheme, notation);
         print!(

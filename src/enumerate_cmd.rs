@@ -77,6 +77,7 @@ pub fn run(
     let notation: Notation = args.notation;
     let stdout = std::io::stdout();
     let mut length = None;
+    let mut spread = crate::metrics_out::Spread::new(kind);
     let mut written = std::io::Result::Ok(());
     let listing = solver
         .enumerate(
@@ -94,6 +95,7 @@ pub fn run(
                     length = Some(solution.len());
                     eprintln!("moves {}", solution.len());
                 }
+                spread.add(solution);
                 let mut out = stdout.lock();
                 written =
                     writeln!(out, "{}", notation.write(kind, solution)).and_then(|()| out.flush());
@@ -106,6 +108,9 @@ pub fn run(
             Ok(_) => "internal error".to_owned(),
         })?;
     written.map_err(|error| format!("cannot write the solutions: {error}"))?;
+    if let Some(line) = spread.line() {
+        eprintln!("{line}");
+    }
     eprintln!(
         "solutions {} (shortest {} moves; {} nodes)",
         listing.found, listing.shortest, listing.nodes

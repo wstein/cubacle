@@ -10,6 +10,7 @@ use cubacle::puzzle::{Facelets, MoveSequence, PuzzleKind};
 use cubacle::render::{icon, Action};
 
 use crate::icons::{default_height, detect_stdout, show, style, Background, Format, Graphics};
+use crate::metrics_out;
 use crate::steps::{Layout, PictureArgs, Pictures};
 
 #[derive(Args)]
@@ -24,6 +25,10 @@ pub struct MovesArgs {
     /// How to write the moves: wca (Rw, 3Rw) sign (r, 3r) or sse (TR, T3R)
     #[arg(long, default_value = "wca")]
     notation: Notation,
+    /// Print all seven move counts (htm qtm stm etm obtm btm atm) on stderr
+    /// instead of the usual headline ones
+    #[arg(long)]
+    metrics: bool,
     #[command(flatten)]
     pictures: PictureArgs,
     /// With --icons, draw the groups marked by "·" and "( )": dots (default)
@@ -93,9 +98,16 @@ pub fn run(args: MovesArgs) -> Result<(), String> {
     let text = read_text(&args.expression)?;
     let moves = expand(&text, kind)?;
     if args.pictures.icons {
+        if args.metrics {
+            eprintln!("{}", metrics_out::text_line(&text, kind, &moves, true));
+        }
         return draw(&args, kind, &text, &moves);
     }
     println!("{}", args.notation.write(kind, &moves));
+    eprintln!(
+        "{}",
+        metrics_out::text_line(&text, kind, &moves, args.metrics)
+    );
     Ok(())
 }
 

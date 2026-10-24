@@ -554,10 +554,15 @@ fn a_4x4_token_is_solved_with_and_without_slices() {
 fn solve_always_reports_the_move_count() {
     let (ok, solution, stderr) = cubacle(&["solve", "A4ib8aejxj4Y"]);
     assert!(ok);
-    assert_eq!(
-        stderr,
-        format!("moves {}", solution.split_whitespace().count())
+    let count = solution.split_whitespace().count();
+    let mut lines = stderr.lines();
+    assert_eq!(lines.next(), Some(format!("moves {count}").as_str()));
+    let metrics = lines.next().expect("a metrics line");
+    assert!(
+        metrics.starts_with(&format!("metrics: htm {count}, qtm ")),
+        "{metrics}"
     );
+    assert_eq!(lines.next(), None);
 }
 
 #[test]

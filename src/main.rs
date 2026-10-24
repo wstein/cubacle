@@ -1,6 +1,7 @@
 mod enumerate_cmd;
 mod icons;
 mod improve;
+mod metrics_out;
 mod moves_cmd;
 mod patterns_cmd;
 mod phase_dots;
@@ -125,6 +126,10 @@ struct ConvertArgs {
     /// What to print
     #[arg(long, value_enum, default_value_t = Output::Facelets)]
     to: Output,
+    /// When the input is a move expression, also print all seven move counts
+    /// (htm qtm stm etm obtm btm atm) on stderr
+    #[arg(long)]
+    metrics: bool,
 }
 
 #[derive(Args)]
@@ -214,6 +219,9 @@ fn run(cli: Cli) -> Result<(), String> {
         Command::Patterns(args) => patterns_cmd::run(args),
         Command::Convert(args) => {
             let (cube, detected) = read_input(&args.input)?;
+            if args.metrics {
+                print_metrics(&args.input)?;
+            }
             match args.to {
                 Output::Facelets => println!("{cube}"),
                 Output::Token => println!("{}", orbit64::encode(&cube).map_err(|e| e.to_string())?),
@@ -249,6 +257,24 @@ fn run(cli: Cli) -> Result<(), String> {
             Ok(())
         }
     }
+}
+
+/// `convert --metrics`: all seven counts of the moves the input stands for.
+fn print_metrics(input: &InputArgs) -> Result<(), String> {
+    let text = match (&input.scramble, input.cube.as_slice()) {
+        (Some(scramble), _) => scramble.clone(),
+        (None, [single]) if single == "-" => {
+            return Err("--metrics cannot read the moves from stdin".into())
+        }
+        (None, words) => words.join(" "),
+    };
+    if parse_cube(&text, input.scheme).is_ok() {
+        return Err("--metrics needs a move expression, not a cube".into());
+    }
+    let kind = kind_of(input.size)?;
+    let moves = parse_expression(&text, kind).map_err(|error| error.to_string())?;
+    eprintln!("{}", metrics_out::text_line(&text, kind, &moves, true));
+    Ok(())
 }
 
 fn kind_of(size: usize) -> Result<PuzzleKind, String> {
@@ -467,6 +493,7 @@ fn solve(args: SolveArgs) -> Result<(), String> {
                 });
             }
             eprintln!("moves {}", solution.len());
+            eprintln!("{}", metrics_out::line(facelets.kind(), &solution));
             // The engine's own stages where it reports them, else the state-based cut.
             let found = if args.verbose
                 || args.pictures.icons
@@ -500,6 +527,13 @@ fn solve(args: SolveArgs) -> Result<(), String> {
             );
             if ranges {
                 eprintln!("compressed moves {count}");
+                if !dots {
+                    let packed = cubacle::ranges::compress(facelets.kind(), &solution);
+                    eprintln!(
+                        "compressed {}",
+                        metrics_out::compressed_line(facelets.kind(), &packed)
+                    );
+                }
             }
             println!("{text}");
             Ok(())

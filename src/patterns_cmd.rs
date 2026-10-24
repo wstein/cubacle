@@ -88,6 +88,10 @@ fn find_state(args: &FindArgs, size: usize) -> Result<(), String> {
     )
     .map_err(|error| error.to_string())?;
     eprintln!("moves {}", generator.moves.len());
+    eprintln!(
+        "{}",
+        crate::metrics_out::line(state.kind(), &generator.moves)
+    );
     match (&generator.note, generator.proven) {
         (_, true) => {
             eprintln!("shortest: no sequence of fewer moves exists (searched exhaustively)")
@@ -140,6 +144,11 @@ fn print_generator(generator: &Generator) {
         generator.status.name()
     );
     println!("    {}", generator.moves);
+    if let Some(kind) = cubacle::puzzle::PuzzleKind::of_size(generator.size) {
+        if let Some(line) = crate::metrics_out::words_line(&generator.moves, kind) {
+            eprintln!("{line}");
+        }
+    }
 }
 
 fn show(name: &str, size: Option<usize>) -> Result<(), String> {
