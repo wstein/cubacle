@@ -83,18 +83,13 @@ impl Raster {
         self
     }
 
-    /// The raster inside a thin outline with rounded corners: `pad` transparent
-    /// pixels on every side, then a line of `colour` (straight RGBA, so a
-    /// translucent grey stays soft on dark and light backgrounds) that is
-    /// `thickness` pixels wide. The corners have the given radius.
-    pub fn outlined(&self, pad: u32, thickness: f64, colour: [u8; 4], radius: f64) -> Raster {
+    /// The raster on a panel: `pad` clear pixels on every side filled with
+    /// `colour` (straight RGBA, translucent, so it stays a soft tint on any
+    /// terminal background), rounded corners of the given radius, the raster
+    /// drawn over it.
+    pub fn on_panel(&self, pad: u32, colour: [u8; 4], radius: f64) -> Raster {
         let (w, h) = (self.width + 2 * pad, self.height + 2 * pad);
         let mut data = vec![0u8; w as usize * h as usize * 4];
-        let (iw, pad_px) = (self.width as usize, pad as usize);
-        for (y, row) in self.data.chunks_exact(iw.max(1) * 4).enumerate() {
-            let at = ((y + pad_px) * w as usize + pad_px) * 4;
-            data[at..at + iw * 4].copy_from_slice(row);
-        }
         let (half_w, half_h) = (f64::from(w) / 2.0, f64::from(h) / 2.0);
         for y in 0..h {
             for x in 0..w {
@@ -104,17 +99,27 @@ impl Raster {
                     (f64::from(y) + 0.5 - half_h).abs() - (half_h - radius),
                 );
                 let d = dx.max(0.0).hypot(dy.max(0.0)) + dx.max(dy).min(0.0) - radius;
-                let outer = (0.5 - d).clamp(0.0, 1.0);
-                let inner = (0.5 - (d + thickness)).clamp(0.0, 1.0);
-                let line = outer - inner;
-                if line > 0.0 {
-                    let at = (y as usize * w as usize + x as usize) * 4;
-                    let alpha = (f64::from(colour[3]) * line).round() as u8;
-                    // the line is drawn over what is there (the padding is clear)
-                    if data[at + 3] == 0 {
-                        data[at..at + 4].copy_from_slice(&[colour[0], colour[1], colour[2], alpha]);
+                let cover = (0.5 - d).clamp(0.0, 1.0);
+                let at = (y as usize * w as usize + x as usize) * 4;
+                let alpha = (f64::from(colour[3]) * cover).round() as u8;
+                data[at..at + 4].copy_from_slice(&[colour[0], colour[1], colour[2], alpha]);
+            }
+        }
+        // the picture over the panel (source-over, straight alpha)
+        let iw = self.width as usize;
+        for (y, row) in self.data.chunks_exact(iw.max(1) * 4).enumerate() {
+            for (x, px) in row.chunks_exact(4).enumerate() {
+                let at = ((y + pad as usize) * w as usize + x + pad as usize) * 4;
+                let (sa, da) = (f64::from(px[3]) / 255.0, f64::from(data[at + 3]) / 255.0);
+                let out = sa + da * (1.0 - sa);
+                if out > 0.0 {
+                    for c in 0..3 {
+                        let v = (f64::from(px[c]) * sa + f64::from(data[at + c]) * da * (1.0 - sa))
+                            / out;
+                        data[at + c] = v.round() as u8;
                     }
                 }
+                data[at + 3] = (out * 255.0).round() as u8;
             }
         }
         Raster {

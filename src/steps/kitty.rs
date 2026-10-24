@@ -9,7 +9,7 @@ use super::{end_line, heading_at, lone_quarters, row_icon, token_line, Pictures,
 use crate::icons::numbered;
 use crate::rows;
 use crate::terminal::Terminal;
-use crate::views::{kitty_block, kitty_state, soft_outline};
+use crate::views::{kitty_block, kitty_state, soft_panel};
 
 /// The phase blocks of a solution as Kitty rows; with `with_start` the start
 /// picture, larger than the icons, comes first on rows of its own.
@@ -149,7 +149,7 @@ fn state_item(
         .iter()
         .map(|d| d.clone().unframed().to_rgba(style.size))
         .collect();
-    let natural = soft_outline(&Raster::hstack(&rasters, rows::GAP));
+    let natural = soft_panel(&Raster::hstack(&rasters, rows::GAP), style.backdrop);
     // the row cells it needs, rounded up
     let cells = (natural.width + rows::GAP).div_ceil(cell + rows::GAP) as usize;
     if cells > per_row {

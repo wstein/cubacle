@@ -5,7 +5,7 @@
 use cubacle::puzzle::Facelets;
 use cubacle::render::{
     state_icon_folded, state_icon_folded_against, state_icon_net, state_icon_net_against,
-    state_icon_pair, state_icon_pair_against, Icon, KittyPlacement, Raster, Style,
+    state_icon_pair, state_icon_pair_against, Backdrop, Icon, KittyPlacement, Raster, Style,
 };
 
 use crate::rows;
@@ -97,7 +97,7 @@ pub(crate) fn kitty_state(
     let joined = Raster::hstack(&rasters, rows::GAP);
     let frame = |raster: &Raster| {
         if soft_frame {
-            soft_outline(raster)
+            soft_panel(raster, style.backdrop)
         } else {
             raster.clone()
         }
@@ -111,10 +111,15 @@ pub(crate) fn kitty_state(
         .collect()
 }
 
-/// The thin, translucent grey outline of a state picture in the Kitty rows:
-/// one pixel, a few pixels of room, rounded corners.
-pub(crate) fn soft_outline(raster: &Raster) -> Raster {
-    raster.outlined(5, 1.0, [128, 128, 128, 110], 6.0)
+/// The panel of a state picture in the Kitty rows: a faint tint that is a
+/// little lighter than a dark terminal and a little darker than a light one,
+/// a few pixels of room, rounded corners, no frame line.
+pub(crate) fn soft_panel(raster: &Raster, backdrop: Backdrop) -> Raster {
+    let tint = match backdrop {
+        Backdrop::Dark => [255, 255, 255, 22],
+        Backdrop::Light => [0, 0, 0, 16],
+    };
+    raster.on_panel(6, tint, 8.0)
 }
 
 /// A raster as a block of terminal rows: the rows are cleared so that older
