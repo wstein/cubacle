@@ -106,6 +106,9 @@ pub(crate) fn start_line(state: &Facelets) -> Result<String, String> {
     Ok(format!("Start state: {token}\n"))
 }
 
+/// The heading above the picture of the start state.
+pub(crate) const START_HEADING: &str = "Start state";
+
 /// The line that names the state a solution leads to, as an Orbit64 token.
 pub(crate) fn target_line(state: &Facelets) -> Result<String, String> {
     let token = orbit64::encode(state).map_err(|error| error.to_string())?;
@@ -302,25 +305,33 @@ impl<'a> Pictures<'a> {
         ])
     }
 
+    /// The start state under the heading `Start state`, in the current view;
+    /// its token is the line `Start state: TOKEN` above.
+    pub fn start_state(&self, start: &Facelets) -> String {
+        let drawn = self.options.views.icons(start, None, &self.style);
+        format!("{START_HEADING}\n{}", self.picture(&drawn))
+    }
+
+    /// The pictures of one state: one image on a graphics terminal, else text.
+    fn picture(&self, drawn: &[Icon]) -> String {
+        if self.graphics == Graphics::Kitty {
+            return kitty_state(drawn, &self.style, &self.terminal, self.options.columns);
+        }
+        let mut out = String::new();
+        for view in drawn {
+            out.push_str(&show(view, self.graphics, self.style.size));
+            out.push('\n');
+        }
+        out
+    }
+
     /// Whole-cube pictures, each under its label and followed by its token.
     fn states_with(&self, states: &[(&str, Vec<Icon>, &Facelets)]) -> Result<String, String> {
         let mut out = String::new();
         for (label, drawn, state) in states {
             out.push_str(label);
             out.push('\n');
-            if self.graphics == Graphics::Kitty {
-                out.push_str(&kitty_state(
-                    drawn,
-                    &self.style,
-                    &self.terminal,
-                    self.options.columns,
-                ));
-            } else {
-                for view in drawn {
-                    out.push_str(&show(view, self.graphics, self.style.size));
-                    out.push('\n');
-                }
-            }
+            out.push_str(&self.picture(drawn));
             let token = orbit64::encode(state).map_err(|error| error.to_string())?;
             out.push_str(&format!("token: {token}\n"));
         }
@@ -340,6 +351,7 @@ pub fn print_solution(
     if let Some(target) = &options.target {
         out.push_str(&target_line(target)?);
     }
+    out.push_str(&pictures.start_state(start));
     out.push_str(&pictures.steps(start, solution, found)?);
     let mut stdout = std::io::stdout().lock();
     stdout

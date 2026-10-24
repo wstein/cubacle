@@ -427,6 +427,23 @@ fn solve_icons_on_a_pipe_is_plain_text_and_plain_solve_is_unchanged() {
 }
 
 #[test]
+fn solve_icons_draws_the_start_state_before_step_one() {
+    let (ok, icons, _) = cubacle(&["solve", "-s", "R U F", "--icons"]);
+    assert!(ok);
+    let lines: Vec<&str> = icons.lines().collect();
+    assert!(lines[0].starts_with("Start state: "));
+    assert_eq!(lines[1], "Start state");
+    assert!(lines[2].starts_with("state, folded view"), "{}", lines[2]);
+    let step = icons.find("step 1 of ").unwrap();
+    assert!(icons.find("Start state\n").unwrap() < step);
+    let (_, urf, _) = cubacle(&["solve", "-s", "R U F", "--icons", "--views", "urf"]);
+    assert!(urf.contains("Start state\nstate, seen from URF"), "{urf}");
+    // moves has no start state
+    let (_, moves, _) = cubacle(&["moves", "R", "--icons", "--format", "text"]);
+    assert!(!moves.contains("Start state"));
+}
+
+#[test]
 fn solve_icons_prints_the_start_token_and_a_token_after_each_phase() {
     let (ok, start, _) = cubacle(&["convert", "--to", "token", "-s", "R U F"]);
     assert!(ok);
