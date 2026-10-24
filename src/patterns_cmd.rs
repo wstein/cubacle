@@ -29,6 +29,24 @@ enum Action {
     },
     /// Find the shortest known generator of a cube state: the moves that build it from the solved cube
     Find(FindArgs),
+    /// Read the structure of a cube state: its symmetries and, as the detector
+    /// grows, the pattern it is, its pieces and the subgroups it lies in
+    Identify(IdentifyArgs),
+}
+
+#[derive(Args)]
+pub struct IdentifyArgs {
+    /// An Orbit64 token, URFDLB facelets, W/R/G/Y/O/B colours or a move
+    /// expression for a cube of --size (3 unless given); spaces are allowed and
+    /// need no quoting
+    #[arg(num_args = 1.., required_unless_present = "scramble", conflicts_with = "scramble")]
+    cube: Vec<String>,
+    /// Use the cube this scramble makes (on a cube of --size)
+    #[arg(short, long)]
+    scramble: Option<String>,
+    /// Colour scheme of colour input: boy, jp or six letters in URFDLB order
+    #[arg(long)]
+    scheme: Option<ColourScheme>,
 }
 
 #[derive(Args)]
@@ -64,7 +82,18 @@ pub fn run(args: PatternsArgs) -> Result<(), String> {
         None => list(args.size),
         Some(Action::Show { name }) => show(&name.join(" "), args.size),
         Some(Action::Find(find)) => find_state(&find, args.size.unwrap_or(3)),
+        Some(Action::Identify(identify)) => identify_state(&identify, args.size.unwrap_or(3)),
     }
+}
+
+/// `patterns identify`: what the structure of a state says about it.
+fn identify_state(args: &IdentifyArgs, size: usize) -> Result<(), String> {
+    let state = match &args.scramble {
+        Some(scramble) => crate::scrambled(scramble, crate::kind_of(size)?)?,
+        None => crate::parse_text(&args.cube.join(" "), args.scheme, size)?.0,
+    };
+    print!("{}", patterns::detect(&state));
+    Ok(())
 }
 
 /// `patterns find`: the moves that build a state from the solved cube.

@@ -18,10 +18,12 @@
 //! ```
 
 mod bases;
+mod detector;
 mod model;
 mod parse;
 
 pub use bases::{bases, Base};
+pub use detector::{detect, Operation, Report, Symmetry};
 
 use std::sync::OnceLock;
 
