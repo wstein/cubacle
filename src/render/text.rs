@@ -27,6 +27,8 @@ pub(crate) struct Grid {
     pub faces: [Vec<Cell>; 3],
     /// The flat net: faces `U`, `L`, `F`, `R`, `B`, `D`, row-major. Then the other fields are unused.
     pub net: Option<Vec<Vec<Cell>>>,
+    /// With `net`: the folded view, the corner U F R with L, D and B flat around it.
+    pub folded: bool,
 }
 
 pub(crate) fn grid(state: &Facelets, action: &Action, style: &Style, direction: Direction) -> Grid {
@@ -51,6 +53,7 @@ pub(crate) fn grid(state: &Facelets, action: &Action, style: &Style, direction: 
         below: false,
         faces,
         net: None,
+        folded: false,
     }
 }
 
@@ -77,6 +80,7 @@ pub(crate) fn state_grid(state: &Facelets, style: &Style, camera: Camera) -> Gri
         below: camera == Camera::Below,
         faces,
         net: None,
+        folded: false,
     }
 }
 
@@ -127,8 +131,54 @@ impl Grid {
         out
     }
 
+    /// The folded view: the corner (U leaning away over F, R beside F) with
+    /// L left of F, D below F and B right of R, top aligned with U.
+    fn render_folded(&self, faces: &[Vec<Cell>], ansi: bool) -> String {
+        let n = self.n;
+        let order = [Face::U, Face::L, Face::F, Face::R, Face::B, Face::D];
+        let cw = if ansi { 3 } else { 2 };
+        let row = |at: usize, r: usize| -> String {
+            (0..n)
+                .map(|c| cell(&faces[at][r * n + c], order[at], ansi))
+                .collect()
+        };
+        // visible column of the first cell of B
+        let right = 3 * cw * n + 2;
+        let lead = cw * n + 1;
+        let mut lines: Vec<(String, usize)> = Vec::new();
+        for r in 0..n {
+            let pad = lead + n - r;
+            lines.push((format!("{}{}", " ".repeat(pad), row(0, r)), pad + cw * n));
+        }
+        for r in 0..n {
+            lines.push((
+                format!("{} {}{}", row(1, r), row(2, r), row(3, r)),
+                3 * cw * n + 1,
+            ));
+        }
+        for r in 0..n {
+            let pad = lead;
+            lines.push((format!("{}{}", " ".repeat(pad), row(5, r)), pad + cw * n));
+        }
+        let mut out = format!("{}\n", self.header);
+        for (i, (text, width)) in lines.into_iter().enumerate() {
+            out.push_str(&text);
+            if i < n {
+                out.push_str(&" ".repeat(right - width));
+                out.push_str(&row(4, i));
+            }
+            let trimmed = out.trim_end_matches(' ').len();
+            out.truncate(trimmed);
+            out.push('\n');
+        }
+        out
+    }
+
     pub(crate) fn render(&self, ansi: bool) -> String {
         if let Some(faces) = &self.net {
+            if self.folded {
+                return self.render_folded(faces, ansi);
+            }
             return self.render_net(faces, ansi);
         }
         let n = self.n;

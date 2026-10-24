@@ -4,8 +4,8 @@
 
 use cubacle::puzzle::Facelets;
 use cubacle::render::{
-    state_icon_net, state_icon_net_against, state_icon_pair, state_icon_pair_against, Icon,
-    KittyPlacement, Raster, Style,
+    state_icon_folded, state_icon_folded_against, state_icon_net, state_icon_net_against,
+    state_icon_pair, state_icon_pair_against, Icon, KittyPlacement, Raster, Style,
 };
 
 use crate::rows;
@@ -21,6 +21,8 @@ pub enum Views {
     Urf,
     /// The flat net: U above F, L F R B in a row, D below; every sticker once, no projection.
     Net,
+    /// The corner U F R in perspective with L, D and B unfolded flat around it; every sticker once.
+    Folded,
     /// The net and the two corners.
     All,
 }
@@ -47,7 +49,12 @@ impl Views {
             Some(r) => state_icon_net_against(state, r, style),
             None => state_icon_net(state, style),
         };
+        let folded = || match reference {
+            Some(r) => state_icon_folded_against(state, r, style),
+            None => state_icon_folded(state, style),
+        };
         match self {
+            Views::Folded => vec![folded()],
             Views::Both => pair().into(),
             Views::Urf => {
                 let [urf, _] = pair();
@@ -136,6 +143,25 @@ mod tests {
         );
         assert_eq!(Views::default(), Views::Both);
         assert!(!Views::Urf.shows_every_face() && Views::Net.shows_every_face());
+    }
+
+    #[test]
+    fn the_folded_view_is_one_picture_that_shows_every_face() {
+        let cube = Facelets::solved(cubacle::puzzle::PuzzleKind::Cube5);
+        let style = Style::default();
+        let icons = Views::Folded.icons(&cube, None, &style);
+        assert_eq!(icons.len(), 1);
+        assert!(Views::Folded.shows_every_face());
+        let marked = Views::Folded.icons(&cube, Some(&cube), &style);
+        assert_eq!(marked.len(), 1);
+        let narrow = Terminal {
+            width_px: 50,
+            cell: (8, 16),
+            background: None,
+        };
+        // a lone picture is never split and never dropped, however narrow
+        let out = kitty_state(&icons, &style, &narrow, Some(1));
+        assert_eq!(out.matches("a=T").count(), 1);
     }
 
     #[test]

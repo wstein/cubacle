@@ -152,7 +152,7 @@ fn shapes(state: &Facelets, reference: Option<&Facelets>, style: &Style) -> (Vec
     (out, net.width)
 }
 
-fn frame(width: f64, style: &Style) -> Vec<Shape> {
+pub(super) fn frame(width: f64, style: &Style) -> Vec<Shape> {
     let ink = style.backdrop.ink();
     let strip = |x0: f64, y0: f64, x1: f64, y1: f64| {
         let points = vec![[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
@@ -189,6 +189,7 @@ fn grid(state: &Facelets, style: &Style) -> Grid {
         below: false,
         faces: Default::default(),
         net: Some(faces.to_vec()),
+        folded: false,
     }
 }
 
