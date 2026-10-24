@@ -46,6 +46,7 @@ Raw-material notes, category engines.
 - [[Vector code exists for NEON, AVX2 and AVX-512 with one fallback]]
 - [[The optimal mode bounds its search by corner and edge databases]]
 - [[Optimal solving of random cubes takes minutes to hours on one Mac core]]
+- [[Table sizes follow the memory the host really has]]
 - [[The optimal search step has a NEON version and a portable one]]
 - [[Restricted solves search the alphabet's own letters]]
 - [[Big cubes with a move set are solved by pattern macros]]

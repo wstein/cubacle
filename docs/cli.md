@@ -182,7 +182,7 @@ L' U2 F' L F U' D F B2 L B' D' L2 B2 D R2 B2 U
 
 The second run proves only that no solution has fewer than 14 moves, and prints the default engine's 18. The answer is never longer than the default one, and every answer is replayed on the cube before it is printed. The first run in a cache directory builds the tables, which takes a few minutes (Small: about 50 s of CPU; Large: about 6 minutes of CPU) and prints its progress on stderr.
 
-`--max-memory MB` (default 1500) picks the tables: the large set (555 MB) when it fits, else the small one (86 MB), else an error. `--optimal` needs the 3x3x3 and cannot be combined with `--fast`, `--probes`, `--improve`, `--parallel`, `--moves`, `--to`, `--all` or `--count`. **Random cubes are mostly out of reach on one core of a laptop:** a cube that needs 17 or 18 moves takes billions of nodes, minutes to hours. Measured numbers, by length, are on [3x3x3 performance](engines/3x3.md#optimal-solutions).
+The tables depend on the memory this machine really has, read at run time (macOS, Linux and Windows alike, never assumed from the platform): without `--max-memory` the budget is half of the available memory (the total where the system does not report it), at most 16000 MB. The large set (555 MB) is used when it fits the budget, else the small one (86 MB), else an error. An explicit `--max-memory MB` wins. If the memory cannot be read, the small set is used and stderr says so. The first stderr line names the choice and the reason, for example `optimal search with the large pruning tables (555 MB): this machine has 17179 MB of memory, available: 9533 MB; budget 4766 MB (half of the available memory, at most 16000)`. `--optimal` needs the 3x3x3 and cannot be combined with `--fast`, `--probes`, `--improve`, `--parallel`, `--moves`, `--to`, `--all` or `--count`. **Random cubes are mostly out of reach on one core of a laptop:** a cube that needs 17 or 18 moves takes billions of nodes, minutes to hours. Measured numbers, by length, are on [3x3x3 performance](engines/3x3.md#optimal-solutions).
 
 ### Move counts
 
@@ -258,7 +258,7 @@ On the 3x3x3 the answer is the shortest in the set (for `qtm` it is the default 
 error: not solvable with half-turns: a piece sits in a place these moves never bring it to
 ```
 
-`-m` and `-b` still apply (`error: no solution of at most 3 moves in <R,U> ...`). `--max-memory MB` (default 1500) bounds the tables. `--moves` cannot be combined with `--improve`, `--parallel`, `--probes` or `--slices`. Measured on 20 random states per set (random 60-move walks inside the group for the first two; random cubes for `htm`): `<R,U>` 0.30 s mean, 0.31 s at most, 15.8 moves on average (13 to 17); `half-turns` 0.22 s, 10.9 moves (10 to 14); `htm` 0.04 s, 20.6 moves (20 to 21).
+`-m` and `-b` still apply (`error: no solution of at most 3 moves in <R,U> ...`). `--max-memory MB` (default 1500; for `--optimal` see above) bounds the tables. `--moves` cannot be combined with `--improve`, `--parallel`, `--probes` or `--slices`. Measured on 20 random states per set (random 60-move walks inside the group for the first two; random cubes for `htm`): `<R,U>` 0.30 s mean, 0.31 s at most, 15.8 moves on average (13 to 17); `half-turns` 0.22 s, 10.9 moves (10 to 14); `htm` 0.04 s, 20.6 moves (20 to 21).
 
 On a 4x4x4 to 7x7x7 the cube is searched as a product of pattern macros whose moves are all in the set (see [Patterns](patterns.md)):
 
