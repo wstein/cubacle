@@ -665,3 +665,30 @@ fn icons_of_larger_cubes_are_drawn_larger() {
     assert_eq!(bytes("3"), 96 * 100 * 4);
     assert_eq!(bytes("7"), 224 * 234 * 4);
 }
+
+#[test]
+fn graphics_flag_and_variable_choose_the_pictures() {
+    let run = |args: &[&str], var: Option<&str>| {
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_cubacle"));
+        cmd.args(args).env_remove("CUBACLE_GRAPHICS");
+        if let Some(v) = var {
+            cmd.env("CUBACLE_GRAPHICS", v);
+        }
+        cmd.output().expect("cubacle runs")
+    };
+    let text = |o: &std::process::Output| String::from_utf8_lossy(&o.stdout).into_owned();
+    let base = ["moves", "R", "--icons"];
+    let flag = |g: &'static str| [base.as_slice(), &["--graphics", g]].concat();
+    // a pipe: plain unless the choice is explicit
+    assert!(!text(&run(&base, None)).contains('\x1b'));
+    assert!(text(&run(&flag("ansi"), None)).contains("\x1b[48;2;"));
+    assert!(text(&run(&flag("kitty"), None)).contains("\x1b_G"));
+    // the variable works, and the flag wins over it
+    assert!(text(&run(&base, Some("ansi"))).contains("\x1b[48;2;"));
+    assert!(!text(&run(&flag("plain"), Some("ansi"))).contains('\x1b'));
+    // an invalid value names the accepted ones
+    let out = run(&base, Some("bogus"));
+    assert!(!out.status.success());
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(err.contains("auto, kitty, ansi, plain"), "{err}");
+}

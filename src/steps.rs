@@ -12,7 +12,9 @@ use cubacle::phases::Phase;
 use cubacle::puzzle::{Facelets, Move, MoveSequence, Turn};
 use cubacle::render::{icon, Action, Icon, Raster, Style};
 
-use crate::icons::{default_height, detect_stdout, show, style, Background, Graphics};
+use crate::icons::{
+    default_height, detect_stdout, show, style, Background, Graphics, GraphicsMode,
+};
 use crate::rows;
 use crate::terminal::{self, Terminal};
 use crate::views::{kitty_block, kitty_state, Views};
@@ -24,6 +26,8 @@ pub struct SolutionIcons {
     pub height: Option<u32>,
     /// `None`: ask the terminal.
     pub background: Option<Background>,
+    /// How the pictures are drawn.
+    pub graphics: GraphicsMode,
     /// Icons per row; `None`: as many as fit.
     pub columns: Option<usize>,
     /// Which corners the whole-cube pictures are drawn from.
@@ -165,6 +169,16 @@ pub struct PictureArgs {
     /// dimming (default: ask the terminal, dark when it does not answer)
     #[arg(long, requires = "icons", value_enum)]
     pub background: Option<Background>,
+    /// How the --icons pictures are drawn: auto, kitty, ansi or plain; an
+    /// explicit value also applies when output is not a terminal
+    #[arg(
+        long,
+        requires = "icons",
+        value_enum,
+        env = "CUBACLE_GRAPHICS",
+        default_value_t
+    )]
+    pub graphics: GraphicsMode,
     /// Icons per row for --icons (default: as many as fit the terminal width)
     #[arg(long, requires = "icons", value_name = "N", value_parser = clap::value_parser!(u32).range(1..))]
     pub columns: Option<u32>,
@@ -179,6 +193,7 @@ impl PictureArgs {
             scheme,
             height: self.icon_size,
             background: self.background,
+            graphics: self.graphics,
             columns: self.columns.map(|c| c as usize),
             views: self.views,
             notation,
@@ -198,7 +213,7 @@ pub struct Pictures<'a> {
 
 impl<'a> Pictures<'a> {
     pub fn new(cube_size: usize, options: &'a SolutionIcons) -> Pictures<'a> {
-        let graphics = detect_stdout();
+        let graphics = detect_stdout(options.graphics);
         let terminal = if graphics == Graphics::Kitty {
             terminal::probe(options.background.is_none())
         } else {

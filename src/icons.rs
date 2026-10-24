@@ -77,10 +77,37 @@ pub fn detect(is_terminal: bool, env: &dyn Fn(&str) -> Option<String>) -> Graphi
     }
 }
 
-pub(crate) fn detect_stdout() -> Graphics {
-    detect(std::io::stdout().is_terminal(), &|name| {
-        std::env::var(name).ok().filter(|v| !v.is_empty())
-    })
+/// What `--graphics` and `CUBACLE_GRAPHICS` can say.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, ValueEnum)]
+pub enum GraphicsMode {
+    /// Decide from the environment, then ask the terminal
+    #[default]
+    Auto,
+    /// Kitty graphics protocol images
+    Kitty,
+    /// Coloured text pictures
+    Ansi,
+    /// Letters only
+    Plain,
+}
+
+/// An explicit mode wins, also when standard output is not a terminal; `Auto` decides.
+pub fn choose(
+    mode: GraphicsMode,
+    is_terminal: bool,
+    env: &dyn Fn(&str) -> Option<String>,
+) -> Graphics {
+    match mode {
+        GraphicsMode::Auto => detect(is_terminal, env),
+        GraphicsMode::Kitty => Graphics::Kitty,
+        GraphicsMode::Ansi => Graphics::Ansi,
+        GraphicsMode::Plain => Graphics::Plain,
+    }
+}
+
+pub(crate) fn detect_stdout(mode: GraphicsMode) -> Graphics {
+    let env = |name: &str| std::env::var(name).ok().filter(|v| !v.is_empty());
+    choose(mode, std::io::stdout().is_terminal(), &env)
 }
 
 /// The icon height that keeps stickers readable: 32 pixels per cube layer, at least 96.
@@ -142,6 +169,17 @@ mod tests {
                 .find(|(k, _)| *k == name)
                 .map(|(_, v)| (*v).to_owned())
         }
+    }
+
+    #[test]
+    fn an_explicit_mode_wins_over_the_environment_and_the_pipe() {
+        let none = env(&[]);
+        let kitty = env(&[("KITTY_WINDOW_ID", "1")]);
+        assert_eq!(choose(GraphicsMode::Kitty, false, &none), Graphics::Kitty);
+        assert_eq!(choose(GraphicsMode::Ansi, true, &kitty), Graphics::Ansi);
+        assert_eq!(choose(GraphicsMode::Plain, true, &kitty), Graphics::Plain);
+        assert_eq!(choose(GraphicsMode::Auto, true, &kitty), Graphics::Kitty);
+        assert_eq!(choose(GraphicsMode::Auto, false, &kitty), Graphics::Plain);
     }
 
     #[test]

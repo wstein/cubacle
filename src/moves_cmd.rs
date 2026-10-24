@@ -131,7 +131,7 @@ fn draw(
     let mut style = style(args.scheme, height, args.grey, background);
     let terminal = std::io::stdout().is_terminal();
     let graphics = if to_stdout {
-        detect_stdout()
+        detect_stdout(pictures.graphics)
     } else {
         Graphics::Plain
     };

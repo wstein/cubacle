@@ -13,7 +13,7 @@ repository = "https://github.com/wstein/cubacle"
 
 [dependencies]
 rand = "0.10.3"
-clap = { version = "4.6.7", features = ["derive"] }
+clap = { version = "4.6.7", features = ["derive", "env"] }
 
 [features]
 # Draws an amber frame around a lone quarter turn in the Kitty rows of `--icons`.
