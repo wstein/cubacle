@@ -189,8 +189,15 @@ impl Icon {
     /// the cube, the arrow, the `2x` mark and the notation. The text picture
     /// ([`Icon::to_text`]) has no number.
     #[must_use]
-    pub fn numbered(mut self, number: usize, backdrop: Backdrop) -> Icon {
-        self.shapes.extend(number::shapes(number, backdrop));
+    pub fn numbered(self, number: usize, backdrop: Backdrop) -> Icon {
+        self.numbered_as(&number.to_string(), backdrop)
+    }
+
+    /// Like [`Icon::numbered`] with a text label in place of the number, such
+    /// as `R2` for the second move of a way back.
+    #[must_use]
+    pub fn numbered_as(mut self, label: &str, backdrop: Backdrop) -> Icon {
+        self.shapes.extend(number::shapes(label, backdrop));
         self
     }
 

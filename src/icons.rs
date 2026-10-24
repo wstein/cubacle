@@ -71,6 +71,14 @@ pub(crate) fn numbered(icon: Icon, number: usize, numbers: Numbers, backdrop: Ba
     }
 }
 
+/// The icon of a move with a text label in the corner (`R1`), when numbers are on.
+pub(crate) fn labelled(icon: Icon, label: &str, numbers: Numbers, backdrop: Backdrop) -> Icon {
+    match numbers {
+        Numbers::Auto | Numbers::On => icon.numbered_as(label, backdrop),
+        Numbers::Off => icon,
+    }
+}
+
 /// How standard output can show an icon.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Graphics {

@@ -206,7 +206,7 @@ pub(crate) fn run(args: RecoverArgs) -> Result<(), String> {
         let options = args.pictures.options(args.input.scheme, notation);
         print!(
             "{}",
-            recover_icons::render(&options, &original, &current, &plan, &fresh_stages)?
+            recover_icons::render(&options, &original, &current, &plan, &found, &fresh_stages)?
         );
     }
     Ok(())

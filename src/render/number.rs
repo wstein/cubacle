@@ -18,14 +18,8 @@ fn ink(backdrop: Backdrop) -> Rgb {
     }
 }
 
-pub(crate) fn shapes(number: usize, backdrop: Backdrop) -> Vec<Shape> {
-    font::text(
-        &number.to_string(),
-        (MARGIN, MARGIN),
-        HEIGHT,
-        ink(backdrop),
-        Part::Number,
-    )
+pub(crate) fn shapes(label: &str, backdrop: Backdrop) -> Vec<Shape> {
+    font::text(label, (MARGIN, MARGIN), HEIGHT, ink(backdrop), Part::Number)
 }
 
 #[cfg(test)]
@@ -77,7 +71,7 @@ mod tests {
                 };
                 let base = coverage(&base.shapes);
                 for n in [1, 88, 888, 1888] {
-                    let digits = coverage(&shapes(n, Backdrop::Dark));
+                    let digits = coverage(&shapes(&n.to_string(), Backdrop::Dark));
                     for (i, (d, b)) in digits.iter().zip(&base).enumerate() {
                         assert!(
                             *d == 0 || *b == 0,
@@ -93,7 +87,7 @@ mod tests {
 
     #[test]
     fn the_number_is_small_and_in_the_corner() {
-        let cover = coverage(&shapes(128, Backdrop::Light));
+        let cover = coverage(&shapes("128", Backdrop::Light));
         let width = cover.len() / SIZE as usize;
         let rows = SIZE as usize;
         let hit = |x: usize, y: usize| cover[y * width + x] > 0;

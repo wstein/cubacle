@@ -5,8 +5,10 @@ use cubacle::phases::Phase;
 use cubacle::puzzle::{Facelets, MoveSequence};
 use cubacle::render::{icon, Action, Icon, Raster, Style};
 
-use super::{end_line, heading_at, lone_quarters, row_icon, token_line, Pictures, SolutionIcons};
-use crate::icons::numbered;
+use super::{
+    end_line, heading_at, lone_quarters, row_icon, token_line, Block, Pictures, SolutionIcons,
+};
+use crate::icons::labelled;
 use crate::rows;
 use crate::terminal::Terminal;
 use crate::views::{kitty_block, kitty_state, soft_panel};
@@ -19,10 +21,11 @@ pub(super) fn kitty_steps(
     solution: &MoveSequence,
     found: &[Phase],
     with_start: bool,
+    block: Block<'_>,
 ) -> Result<String, String> {
     let (options, terminal, style) = (pictures.options, &pictures.terminal, &pictures.style);
     let collapse_empty = pictures.collapse_empty;
-    let total = solution.len();
+    let total = block.total;
     let moves = solution.moves();
     let mut state = start.clone();
     let mut out = String::new();
@@ -43,7 +46,7 @@ pub(super) fn kitty_steps(
     let whole = [Phase {
         number: 0,
         name: "",
-        moves: 0..total,
+        moves: block.base..block.base + moves.len(),
     }];
     let named = !found.is_empty();
     let phases = if named { found } else { &whole };
@@ -72,17 +75,19 @@ pub(super) fn kitty_steps(
             out.push('\n');
         }
         let mut items: Vec<Item> = Vec::new();
-        for at in phase.moves.clone() {
+        for global in phase.moves.clone() {
+            let at = global - block.base;
             let action = Action::Layer(moves[at]);
             let drawn = icon(&state, &action, style).map_err(|error| error.to_string())?;
-            let drawn = numbered(drawn, at + 1, options.numbers, style.backdrop);
+            let drawn = labelled(drawn, &block.label(at), options.numbers, style.backdrop);
             let raster = row_icon(drawn.to_rgba(style.size), lone[at]);
             items.push(Item::cell(raster, 1));
             state = action.apply(&state).map_err(|error| error.to_string())?;
         }
         // the last phase has no picture in its rows: the end state follows below
-        let last = named && phase.moves.end == total;
-        if named && !last {
+        let final_phase = named && phase.moves.end == total;
+        let last = final_phase && block.end;
+        if named && !final_phase {
             items.push(state_item(&state, options, style, width, per_row, terminal));
         }
         for row in pack(items, per_row) {
@@ -102,7 +107,7 @@ pub(super) fn kitty_steps(
             out.push('\n');
             out.push_str(&end_line(&state)?);
             out.push_str(&pictures.start_state(&state));
-        } else if named {
+        } else if named && !final_phase {
             // the phase block ends with its token on a line of its own, and
             // one blank line separates it from the next block
             out.push_str(&token_line(phase, &state)?);

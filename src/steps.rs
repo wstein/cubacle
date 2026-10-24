@@ -18,8 +18,11 @@ use crate::icons::{
 use crate::terminal::{self, Terminal};
 use crate::views::{kitty_state, Views};
 
+mod block;
 mod groups;
 mod kitty;
+mod states;
+pub(crate) use block::{clipped, Block};
 pub use groups::Layout;
 
 /// What `solve --icons` was asked for.
@@ -180,9 +183,9 @@ pub(crate) fn lone_quarters(moves: &[Move]) -> Vec<bool> {
 
 /// The line above the text picture of a move: `move 3 of 9: F`, with a note
 /// when the move is a lone quarter turn.
-pub(crate) fn move_line(index: usize, total: usize, mv: &str, lone: bool) -> String {
+pub(crate) fn move_line(label: &str, total: usize, mv: &str, lone: bool) -> String {
     let note = if lone { QUARTER_NOTE } else { "" };
-    format!("move {} of {total}: {mv}{note}\n", index + 1)
+    format!("move {label} of {total}: {mv}{note}\n")
 }
 
 /// Whether `solve --icons` writes phase headings: only the Kitty rows have them.
@@ -301,6 +304,25 @@ impl<'a> Pictures<'a> {
         if let Some(layout) = &self.layout {
             return groups::steps(self, start, solution, layout);
         }
+        self.steps_block(
+            start,
+            solution,
+            found,
+            with_start,
+            Block::whole(solution.len()),
+        )
+    }
+
+    /// The moves of a block of a longer list: `found` holds the phases with
+    /// global indices (see [`clipped`]).
+    pub(crate) fn steps_block(
+        &self,
+        start: &Facelets,
+        solution: &MoveSequence,
+        found: &[Phase],
+        with_start: bool,
+        block: Block<'_>,
+    ) -> Result<String, String> {
         if self.graphics == Graphics::Kitty && solution.is_empty() {
             return Ok(if with_start {
                 self.start_state(start)
@@ -309,7 +331,7 @@ impl<'a> Pictures<'a> {
             });
         }
         if self.graphics == Graphics::Kitty {
-            kitty::kitty_steps(self, start, solution, found, with_start)
+            kitty::kitty_steps(self, start, solution, found, with_start, block)
         } else {
             let mut out = if with_start {
                 self.start_state(start)
@@ -323,11 +345,12 @@ impl<'a> Pictures<'a> {
                 self.graphics,
                 &self.style,
                 self.options.notation,
+                block,
             )?);
-            let total = solution.len();
-            if found
-                .last()
-                .is_some_and(|p| p.moves.end == total && total > 0)
+            if block.end
+                && found
+                    .last()
+                    .is_some_and(|p| p.moves.end == block.total && block.total > 0)
             {
                 // the end state has a picture as large as the start picture
                 let mut end = start.clone();
@@ -340,24 +363,6 @@ impl<'a> Pictures<'a> {
             }
             Ok(out)
         }
-    }
-
-    /// The cube as it should be and as it is, the second marked where it
-    /// differs from the first.
-    pub fn states_against(
-        &self,
-        should: (&str, &Facelets),
-        now: (&str, &Facelets),
-    ) -> Result<String, String> {
-        let views = self.options.views;
-        self.states_with(&[
-            (should.0, views.icons(should.1, None, &self.style), should.1),
-            (
-                now.0,
-                views.icons(now.1, Some(should.1), &self.style),
-                now.1,
-            ),
-        ])
     }
 
     /// The start state in the current view, directly below its token line
@@ -377,7 +382,7 @@ impl<'a> Pictures<'a> {
     }
 
     /// The pictures of one state: one image on a graphics terminal, else text.
-    fn picture(&self, drawn: &[Icon], style: &Style) -> String {
+    pub(super) fn picture(&self, drawn: &[Icon], style: &Style) -> String {
         if self.graphics == Graphics::Kitty {
             return kitty_state(drawn, style, &self.terminal, self.options.columns, true);
         }
@@ -387,19 +392,6 @@ impl<'a> Pictures<'a> {
             out.push('\n');
         }
         out
-    }
-
-    /// Whole-cube pictures, each under its label and followed by its token.
-    fn states_with(&self, states: &[(&str, Vec<Icon>, &Facelets)]) -> Result<String, String> {
-        let mut out = String::new();
-        for (label, drawn, state) in states {
-            out.push_str(label);
-            out.push('\n');
-            out.push_str(&self.picture(drawn, &self.style));
-            let token = orbit64::encode(state).map_err(|error| error.to_string())?;
-            out.push_str(&format!("token: {token}\n"));
-        }
-        Ok(out)
     }
 }
 
@@ -436,16 +428,17 @@ fn text_steps(
     graphics: Graphics,
     style: &Style,
     notation: Notation,
+    block: Block<'_>,
 ) -> Result<String, String> {
     let mut state = start.clone();
-    let total = solution.len();
+    let total = block.total;
     let mut out = String::new();
     let lone = lone_quarters(solution.moves());
     for (index, mv) in solution.moves().iter().enumerate() {
         let action = Action::Layer(*mv);
         let drawn = icon(&state, &action, style).map_err(|error| error.to_string())?;
         out.push_str(&move_line(
-            index,
+            &block.label(index),
             total,
             &notation.write_move(start.kind(), mv),
             lone[index],
@@ -453,12 +446,13 @@ fn text_steps(
         out.push_str(&show(&drawn, graphics, style.size));
         out.push('\n');
         state = action.apply(&state).map_err(|error| error.to_string())?;
-        for phase in found.iter().filter(|p| p.moves.end == index + 1) {
+        let global = block.base + index + 1;
+        for phase in found.iter().filter(|p| p.moves.end == global) {
             if !phase.moves.is_empty() {
-                if index + 1 < total {
+                if global < total {
                     out.push_str(&token_line(phase, &state)?);
                     out.push('\n');
-                } else {
+                } else if block.end {
                     out.push_str(&end_line(&state)?);
                 }
             }
@@ -534,13 +528,13 @@ mod tests {
         let lone = lone_quarters(seq.moves());
         let flagged: Vec<usize> = (0..lone.len()).filter(|&i| lone[i]).collect();
         assert_eq!(flagged, [2, 7]);
-        let line = move_line(2, 10, &seq.moves()[2].to_string(), true);
+        let line = move_line("3", 10, &seq.moves()[2].to_string(), true);
         assert_eq!(
             line,
             "move 3 of 10: F   <-- quarter turn, not a half turn\n"
         );
         assert_eq!(
-            move_line(0, 10, &seq.moves()[0].to_string(), false),
+            move_line("1", 10, &seq.moves()[0].to_string(), false),
             "move 1 of 10: 3Rw2\n"
         );
     }

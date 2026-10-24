@@ -71,7 +71,7 @@ impl Views {
 
 /// Whether the pictures of a state go side by side in one image: they must
 /// fit the terminal width and `--columns` must allow two icons in a row.
-fn pair_fits(width_px: u32, pair_px: u32, columns: Option<usize>) -> bool {
+pub(crate) fn pair_fits(width_px: u32, pair_px: u32, columns: Option<usize>) -> bool {
     columns.is_none_or(|c| c >= 2) && pair_px <= width_px
 }
 
