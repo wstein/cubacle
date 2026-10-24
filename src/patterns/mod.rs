@@ -30,7 +30,7 @@ use model::Def;
 
 /// What one move is in a generator's length.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Metric {
+pub enum Span {
     /// Outer-block turns: `R`, `Rw`, `3Rw` (a block from one face). A slice
     /// needs two of them.
     Outer,
@@ -38,18 +38,18 @@ pub enum Metric {
     Range,
 }
 
-impl Metric {
+impl Span {
     pub fn name(self) -> &'static str {
         match self {
-            Metric::Outer => "outer",
-            Metric::Range => "range",
+            Span::Outer => "outer",
+            Span::Range => "range",
         }
     }
 
-    fn parse(text: &str) -> Option<Metric> {
+    fn parse(text: &str) -> Option<Span> {
         match text {
-            "outer" => Some(Metric::Outer),
-            "range" => Some(Metric::Range),
+            "outer" => Some(Span::Outer),
+            "range" => Some(Span::Range),
             _ => None,
         }
     }
@@ -89,7 +89,7 @@ impl Status {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Generator {
     pub size: usize,
-    pub metric: Metric,
+    pub metric: Span,
     pub status: Status,
     /// Number of moves in `metric`.
     pub length: usize,
@@ -169,12 +169,10 @@ impl Pattern {
     /// The shortest generator for a size, in `metric` or (None) in either metric.
     /// Every outer-block sequence is also a range sequence, so a `Range`
     /// request can be answered by an `Outer` generator.
-    pub fn generator(&self, size: usize, metric: Option<Metric>) -> Option<&Generator> {
+    pub fn generator(&self, size: usize, metric: Option<Span>) -> Option<&Generator> {
         self.generators
             .iter()
-            .filter(|g| {
-                g.size == size && metric.is_none_or(|m| g.metric == m || m == Metric::Range)
-            })
+            .filter(|g| g.size == size && metric.is_none_or(|m| g.metric == m || m == Span::Range))
             .min_by_key(|g| g.length)
     }
 

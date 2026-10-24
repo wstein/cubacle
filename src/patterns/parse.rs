@@ -11,7 +11,7 @@
 //! `id | size | metric | status | length | moves`.
 
 use super::model::{Def, Map};
-use super::{Generator, Metric, Pattern, Status};
+use super::{Generator, Pattern, Span, Status};
 use crate::puzzle::Face;
 
 fn faces_of(text: &str) -> Result<Vec<Face>, String> {
@@ -118,7 +118,7 @@ pub(super) fn parse_generators(text: &str) -> Result<Vec<(String, Generator)>, S
             id.to_owned(),
             Generator {
                 size: size.parse().map_err(|_| format!("bad size in {line:?}"))?,
-                metric: Metric::parse(metric).ok_or_else(|| format!("bad metric in {line:?}"))?,
+                metric: Span::parse(metric).ok_or_else(|| format!("bad metric in {line:?}"))?,
                 status: Status::parse(status).ok_or_else(|| format!("bad status in {line:?}"))?,
                 length: length
                     .parse()

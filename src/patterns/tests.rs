@@ -34,8 +34,8 @@ fn every_generator_builds_its_definition() {
                 generator.moves
             );
             let counted = match generator.metric {
-                Metric::Outer => moves.len(),
-                Metric::Range => generator.moves.split_whitespace().count(),
+                Span::Outer => moves.len(),
+                Span::Range => generator.moves.split_whitespace().count(),
             };
             assert_eq!(counted, generator.length, "{} length", pattern.id);
         }

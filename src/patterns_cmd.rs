@@ -6,7 +6,7 @@ use std::time::Duration;
 use clap::{Args, Subcommand};
 use cubacle::engines::pattern::{find_generator_with, Cap, DEFAULT_MAX_MEMORY_MB};
 use cubacle::notation::{ColourScheme, Notation};
-use cubacle::patterns::{self, Generator, Metric, Pattern};
+use cubacle::patterns::{self, Generator, Pattern, Span};
 use cubacle::puzzle::Move;
 
 #[derive(Args)]
@@ -110,7 +110,7 @@ fn lengths(pattern: &Pattern, size: usize) -> String {
             .generator(size, Some(metric))
             .map_or("-".to_owned(), |g| g.length.to_string())
     };
-    format!("{}/{}", of(Metric::Outer), of(Metric::Range))
+    format!("{}/{}", of(Span::Outer), of(Span::Range))
 }
 
 fn list(size: Option<usize>) -> Result<(), String> {
@@ -177,12 +177,12 @@ fn show(name: &str, size: Option<usize>) -> Result<(), String> {
     }
     for s in sizes {
         println!("{s}x{s}x{s}");
-        for metric in [Metric::Outer, Metric::Range] {
+        for metric in [Span::Outer, Span::Range] {
             let Some(generator) = pattern.generator(s, Some(metric)) else {
                 continue;
             };
             // A range answer that is an outer generator was printed already.
-            if metric == Metric::Outer || generator.metric == Metric::Range {
+            if metric == Span::Outer || generator.metric == Span::Range {
                 print_generator(generator);
             }
         }
