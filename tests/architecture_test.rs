@@ -12,7 +12,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 /// (source directory, modules it may name), keyed as `puzzle` or `engines::three`.
-const RULES: [(&str, &[&str]); 15] = [
+const RULES: [(&str, &[&str]); 16] = [
     ("src/puzzle", &["puzzle"]),
     ("src/notation", &["puzzle", "notation"]),
     ("src/generate", &["puzzle", "generate"]),
@@ -26,6 +26,10 @@ const RULES: [(&str, &[&str]); 15] = [
     (
         "src/engines/pattern",
         &["puzzle", "patterns", "ranges", "engines::pattern"],
+    ),
+    (
+        "src/engines/restricted",
+        &["puzzle", "notation", "engines::restricted"],
     ),
     ("src/engines/two", &["puzzle", "notation", "engines::two"]),
     (
@@ -58,6 +62,7 @@ const APP_ALLOWED: &[&str] = &[
     "engines::dwalton",
     "engines::four",
     "engines::pattern",
+    "engines::restricted",
 ];
 
 fn rust_files(dir: &Path, out: &mut Vec<PathBuf>) {

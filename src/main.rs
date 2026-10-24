@@ -5,6 +5,7 @@ mod patterns_cmd;
 mod phase_dots;
 mod recover_cmd;
 mod recover_icons;
+mod restricted_cmd;
 mod rows;
 mod steps;
 mod terminal;
@@ -157,6 +158,16 @@ struct SolveArgs {
     /// Allow single inner layers (2R) in 4x4x4 and 5x5x5 answers where they make them shorter
     #[arg(long)]
     slices: bool,
+    /// Use only these moves: a list in any notation ("R U R2 U'", taken
+    /// literally), generators ("<R,U>": every turn of R and U), or a name: htm
+    /// (no restriction, the default), qtm, half-turns, quarter-slices. On the
+    /// 3x3x3 the answer is shortest in the set; a cube the set cannot solve
+    /// is reported at once
+    #[arg(long, value_name = "SET", conflicts_with_all = ["improve", "parallel", "probes", "slices"])]
+    moves: Option<String>,
+    /// Hard memory cap in megabytes for the tables of --moves
+    #[arg(long, value_name = "MB", default_value_t = 1500)]
+    max_memory: usize,
     /// Solve to this state instead of to the solved cube: an Orbit64 token,
     /// URFDLB facelets, W/R/G/Y/O/B colours or a move expression applied to the
     /// solved cube of the start's size (one argument: quote it), or one of the
@@ -380,9 +391,20 @@ fn solve(args: SolveArgs) -> Result<(), String> {
         None => start.clone(),
     };
     improve::check(&args, facelets.kind())?;
-    let solver = solver_for(facelets.kind());
+    let restricted = match args.moves.as_deref() {
+        Some(text) => restricted_cmd::read_set(text, facelets.kind())?,
+        None => None,
+    };
+    let solver = match &restricted {
+        Some(alphabet) => restricted_cmd::solver_for(alphabet.clone(), args.max_memory)?,
+        None => solver_for(facelets.kind()),
+    };
 
-    let mut options = default_options(facelets.kind());
+    // A restricted set has no default limit: its answers are longer than 21.
+    let mut options = match restricted {
+        Some(_) => SolveOptions::default(),
+        None => default_options(facelets.kind()),
+    };
     if let Some(moves) = args.max_moves {
         options = options.with_max_moves(moves);
     }
@@ -471,6 +493,9 @@ fn solve(args: SolveArgs) -> Result<(), String> {
                 .message
                 .map_or_else(String::new, |m| format!(" ({m})"))
         )),
+        Err(failure) if restricted.is_some() => {
+            Err(restricted_cmd::failure_text(failure, result.message))
+        }
         Err(failure) => Err(failure_message(failure, result.message)),
     }
 }
