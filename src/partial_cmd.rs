@@ -36,6 +36,13 @@ fn check(args: &SolveArgs) -> Result<(), String> {
 pub fn run(args: &SolveArgs, start: &Facelets, target: &Target) -> Result<(), String> {
     check(args)?;
     let kind = start.kind();
+    // The reduction engines have no goal stages yet; say so before their tables are built.
+    if kind.size() >= 4 {
+        return Err(format!(
+            "unsupported: the {0}x{0}x{0} engine cannot solve targets with open stickers yet (the 2x2x2 and 3x3x3 can)",
+            kind.size()
+        ));
+    }
     let solver = solver_for(kind);
     let mut options: SolveOptions = default_options(kind);
     if let Some(moves) = args.max_moves {

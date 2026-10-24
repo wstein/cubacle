@@ -99,6 +99,18 @@ fn few_completions_are_best_found_and_probes_shorten_them() {
 }
 
 #[test]
+fn the_reduction_engines_refuse_open_stickers_before_building_tables() {
+    let target = format!("{}{}", "U".repeat(16), "X".repeat(80));
+    let (ok, _, err) = cubacle(&["solve", "--size", "4", "R U", "--to", &target]);
+    assert!(!ok);
+    assert!(
+        err.contains("unsupported") && err.contains("4x4x4"),
+        "{err}"
+    );
+    assert!(!err.contains("preparing"), "{err}");
+}
+
+#[test]
 fn a_subset_name_is_refused_on_the_wrong_size() {
     let (ok, _, err) = cubacle(&["solve", "--size", "2", "R U", "--to", "cross"]);
     assert!(!ok);
