@@ -14,7 +14,7 @@ use crate::icons::{
     default_height, detect_stdout, numbered, show, style, Background, Format, Graphics, Numbers,
 };
 use crate::metrics_out;
-use crate::steps::{Layout, PictureArgs, Pictures};
+use crate::steps::{end_line, Layout, PictureArgs, Pictures};
 
 #[derive(Args)]
 pub struct MovesArgs {
@@ -210,7 +210,12 @@ fn draw(
             let tree = parse_grouped(text, kind).map_err(|error| error.to_string())?;
             pictures = pictures.grouped(Layout::of(&tree));
         }
-        let steps = pictures.steps(&start, moves, &[], false)?;
+        let mut steps = pictures.steps(&start, moves, &[], false)?;
+        // the cube after the last move, as `solve --icons` ends
+        let end = start.apply(moves).map_err(|error| error.to_string())?;
+        steps.push('\n');
+        steps.push_str(&end_line(&end)?);
+        steps.push_str(&pictures.start_state(&end));
         return std::io::stdout()
             .lock()
             .write_all(steps.as_bytes())
