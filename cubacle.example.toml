@@ -1,0 +1,27 @@
+# Example cubacle configuration. Copy it to ./cubacle.toml or to
+# ~/.config/cubacle/cubacle.toml (or pass it with --config FILE, or set
+# CUBACLE_CONFIG). Without a config file cubacle uses only "builtin".
+
+[patterns]
+# Pattern sources, in order. Paths are relative to this file.
+files = [
+    "builtin", # the pattern library that ships with cubacle
+    # Pattern tables by Werner Randelshofer (CubeTwister). This data belongs to
+    # its author and is NOT part of cubacle; it is used under his terms, which
+    # you must check yourself before you use it. cubacle never downloads it for
+    # you: fetch the files with curl (see docs/patterns.md), then uncomment the
+    # entries you want.
+    # "https://raw.githubusercontent.com/wrandelshofer/CubeTwister/master/resources/database/2xPocket/PatternExportTab.txt",
+    # "https://raw.githubusercontent.com/wrandelshofer/CubeTwister/master/resources/database/3xRubik/PatternExportTab.txt",
+    # "https://raw.githubusercontent.com/wrandelshofer/CubeTwister/master/resources/database/4xRevenge/PatternExportTab.txt",
+    # "https://raw.githubusercontent.com/wrandelshofer/CubeTwister/master/resources/database/5xProfessor/PatternExportTab.txt",
+    # A local table with an explicit size and a prefix for its names:
+    # { path = "tables/mine.txt", size = 3, name_prefix = "my-" },
+]
+
+# Where imported files and downloads live (default: ~/.cache/cubacle/patterns,
+# or CUBACLE_CACHE_DIR / XDG_CACHE_HOME).
+# cache_dir = "~/.cache/cubacle/patterns"
+
+# Downloading is not built in; this switch is read but has no effect.
+auto_fetch = false

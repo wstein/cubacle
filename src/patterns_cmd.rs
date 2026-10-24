@@ -15,6 +15,13 @@ pub struct PatternsArgs {
     /// `show`: print only that size)
     #[arg(long, global = true)]
     size: Option<usize>,
+    /// Config file (default: $CUBACLE_CONFIG, ./cubacle.toml, ~/.config/cubacle/cubacle.toml)
+    #[arg(long, global = true, value_name = "FILE")]
+    config: Option<std::path::PathBuf>,
+    /// List as a tree of categories with the number of generators and the
+    /// shortest length per size, instead of the flat list
+    #[arg(long)]
+    tree: bool,
     #[command(subcommand)]
     action: Option<Action>,
 }
@@ -23,7 +30,7 @@ pub struct PatternsArgs {
 enum Action {
     /// Describe one pattern and print its generators
     Show {
-        /// Pattern id, name or alias; spaces are allowed and need no quoting
+        /// Pattern id, name, alias or catalogue id (`ct:A200.01`), with `#n` for one generator; spaces are allowed and need no quoting
         #[arg(num_args = 1.., required = true)]
         name: Vec<String>,
     },
@@ -37,6 +44,8 @@ enum Action {
     Cycles(IdentifyArgs),
     /// Import a tab-separated pattern table (CubeTwister `PatternExportTab.txt` layout)
     Import(crate::patterns_import_cmd::ImportArgs),
+    /// Print the config file in use and what each pattern source gave
+    Sources,
 }
 
 #[derive(Args)]
@@ -83,17 +92,41 @@ pub struct FindArgs {
 }
 
 pub fn run(args: PatternsArgs) -> Result<(), String> {
+    let config = crate::patterns_config::load(args.config.as_deref())?;
+    let library = || {
+        let library = config.library();
+        for warning in &library.warnings {
+            eprintln!("warning: {warning}");
+        }
+        library
+    };
     match args.action {
-        None => list(args.size),
-        Some(Action::Show { name }) => show(&name.join(" "), args.size),
+        None => list(&library(), args.size, args.tree),
+        Some(Action::Show { name }) => show(&library(), &name.join(" "), args.size),
         Some(Action::Find(find)) => find_state(&find, args.size.unwrap_or(3)),
-        Some(Action::Identify(identify)) => identify_state(&identify, args.size.unwrap_or(3)),
+        Some(Action::Identify(identify)) => {
+            identify_state(&identify, args.size.unwrap_or(3), &library())
+        }
         Some(Action::Cycles(cycles)) => cycles_state(&cycles, args.size.unwrap_or(3)),
         Some(Action::Import(import)) => {
-            let dir = crate::patterns_import_cmd::default_data_dir()?;
+            let dir = config.data_dir()?;
             crate::patterns_import_cmd::run(import, &dir, args.size)
         }
+        Some(Action::Sources) => sources(&config),
     }
+}
+
+/// `patterns sources`: the config and what each entry gave.
+fn sources(config: &crate::patterns_config::Config) -> Result<(), String> {
+    match &config.path {
+        Some(path) => println!("config: {}", path.display()),
+        None => println!("config: none (default: the built-in library only)"),
+    }
+    println!("data directory: {}", config.data_dir()?.display());
+    for note in config.library().notes {
+        println!("{note}");
+    }
+    Ok(())
 }
 
 /// `patterns cycles`: a move sequence is followed piece by piece; a cube given
@@ -120,12 +153,24 @@ fn cycles_state(args: &IdentifyArgs, size: usize) -> Result<(), String> {
 }
 
 /// `patterns identify`: what the structure of a state says about it.
-fn identify_state(args: &IdentifyArgs, size: usize) -> Result<(), String> {
+fn identify_state(
+    args: &IdentifyArgs,
+    size: usize,
+    library: &crate::patterns_config::Library,
+) -> Result<(), String> {
     let state = match &args.scramble {
         Some(scramble) => crate::scrambled(scramble, crate::kind_of(size)?)?,
         None => crate::parse_text(&args.cube.join(" "), args.scheme, size)?.0,
     };
     print!("{}", patterns::detect(&state));
+    for pattern in patterns::identify_imported(&library.extra, &state) {
+        println!(
+            "imported: {} {} (imported from {})",
+            pattern.catalogue,
+            pattern.name,
+            pattern.origin.as_deref().unwrap_or("?")
+        );
+    }
     Ok(())
 }
 
@@ -175,17 +220,34 @@ fn lengths(pattern: &Pattern, size: usize) -> String {
     format!("{}/{}", of(Span::Outer), of(Span::Range))
 }
 
-fn list(size: Option<usize>) -> Result<(), String> {
-    println!("id\tname\tsizes (outer/range moves)");
-    for pattern in patterns::all() {
-        let mut sizes: Vec<usize> = pattern
-            .generators()
-            .iter()
-            .map(|g| g.size)
-            .filter(|s| size.is_none_or(|wanted| wanted == *s))
+fn sizes_of(pattern: &Pattern, size: Option<usize>) -> Vec<usize> {
+    let mut sizes: Vec<usize> = pattern
+        .generators()
+        .iter()
+        .map(|g| g.size)
+        .filter(|s| size.is_none_or(|wanted| wanted == *s))
+        .collect();
+    sizes.sort_unstable();
+    sizes.dedup();
+    sizes
+}
+
+fn list(
+    library: &crate::patterns_config::Library,
+    size: Option<usize>,
+    tree: bool,
+) -> Result<(), String> {
+    if tree {
+        let items: Vec<&Pattern> = library
+            .all()
+            .filter(|p| !sizes_of(p, size).is_empty())
             .collect();
-        sizes.sort_unstable();
-        sizes.dedup();
+        print_tree(&items, 0, size);
+        return Ok(());
+    }
+    println!("id\tname\tsizes (outer/range moves)");
+    for pattern in library.all() {
+        let sizes = sizes_of(pattern, size);
         if sizes.is_empty() {
             continue;
         }
@@ -193,9 +255,80 @@ fn list(size: Option<usize>) -> Result<(), String> {
             .iter()
             .map(|s| format!("{s}:{}", lengths(pattern, *s)))
             .collect();
-        println!("{}\t{}\t{}", pattern.id, pattern.name, text.join(" "));
+        print!("{}\t{}\t{}", pattern.id, pattern.name, text.join(" "));
+        match &pattern.origin {
+            Some(origin) => println!("\timported from {origin}"),
+            None => println!(),
+        }
     }
     Ok(())
+}
+
+/// The group path shown in the tree: an imported table's last level is the
+/// pattern's own name, so it is the leaf and not a heading.
+fn tree_path(pattern: &Pattern) -> &[patterns::Group] {
+    match pattern.group.last() {
+        Some(last)
+            if pattern.origin.is_some()
+                && !last.en.is_empty()
+                && pattern.name.ends_with(&last.en) =>
+        {
+            &pattern.group[..pattern.group.len() - 1]
+        }
+        _ => &pattern.group,
+    }
+}
+
+/// Patterns under one heading, then the headings below it, in first-seen order.
+fn print_tree(items: &[&Pattern], depth: usize, size: Option<usize>) {
+    let pad = "  ".repeat(depth);
+    for pattern in items.iter().filter(|p| tree_path(p).len() == depth) {
+        let sizes: Vec<String> = sizes_of(pattern, size)
+            .iter()
+            .map(|s| {
+                let shortest = pattern
+                    .generators()
+                    .iter()
+                    .filter(|g| g.size == *s)
+                    .map(|g| g.length)
+                    .min()
+                    .unwrap_or(0);
+                format!("{s}:{shortest}")
+            })
+            .collect();
+        let count = pattern
+            .generators()
+            .iter()
+            .filter(|g| size.is_none_or(|wanted| wanted == g.size))
+            .count();
+        println!(
+            "{pad}{}\t{}\t{count} {}\t{}",
+            pattern.catalogue,
+            pattern.name,
+            if count == 1 {
+                "generator"
+            } else {
+                "generators"
+            },
+            sizes.join(" ")
+        );
+    }
+    let mut seen: Vec<&str> = Vec::new();
+    for pattern in items {
+        let path = tree_path(pattern);
+        if path.len() <= depth || seen.contains(&path[depth].en.as_str()) {
+            continue;
+        }
+        let heading = &path[depth].en;
+        seen.push(heading);
+        let below: Vec<&Pattern> = items
+            .iter()
+            .copied()
+            .filter(|p| tree_path(p).get(depth).is_some_and(|g| g.en == *heading))
+            .collect();
+        println!("{pad}{heading}");
+        print_tree(&below, depth + 1, size);
+    }
 }
 
 fn print_generator(generator: &Generator) {
@@ -213,8 +346,62 @@ fn print_generator(generator: &Generator) {
     }
 }
 
-fn show(name: &str, size: Option<usize>) -> Result<(), String> {
-    let pattern = patterns::find(name).ok_or_else(|| format!("no pattern named {name:?}"))?;
+/// `name` or `name#n`.
+fn split_number(text: &str) -> (&str, Option<usize>) {
+    match text.rsplit_once('#') {
+        Some((name, n)) if n.parse::<usize>().is_ok() => (name.trim(), n.parse().ok()),
+        _ => (text, None),
+    }
+}
+
+/// Imported patterns and a `#n` request list generators by number.
+fn show_numbered(
+    pattern: &Pattern,
+    size: Option<usize>,
+    number: Option<usize>,
+) -> Result<(), String> {
+    println!("{} ({})", pattern.name, pattern.catalogue);
+    if !pattern.aliases.is_empty() {
+        println!("also: {}", pattern.aliases.join(", "));
+    }
+    println!("{}", pattern.description);
+    if !pattern.group.is_empty() {
+        let names: Vec<&str> = pattern.group.iter().map(|g| g.en.as_str()).collect();
+        println!("group: {}", names.join(" > "));
+    }
+    if !pattern.provenance.is_empty() {
+        println!("by: {}", pattern.provenance);
+    }
+    if let Some(origin) = &pattern.origin {
+        println!("imported from {origin}");
+    }
+    let mut shown = 0;
+    for g in pattern.generators() {
+        if size.is_some_and(|s| s != g.size) || number.is_some_and(|n| n != g.number) {
+            continue;
+        }
+        shown += 1;
+        println!("{0}x{0}x{0} #{1}: {2} moves", g.size, g.number, g.length);
+        println!("    {}", g.moves);
+    }
+    if shown == 0 {
+        return Err(format!("{} has no such generator", pattern.catalogue));
+    }
+    Ok(())
+}
+
+fn show(
+    library: &crate::patterns_config::Library,
+    text: &str,
+    size: Option<usize>,
+) -> Result<(), String> {
+    let (name, number) = split_number(text);
+    let pattern = library
+        .find(name)
+        .ok_or_else(|| format!("no pattern named {name:?}"))?;
+    if number.is_some() || pattern.origin.is_some() {
+        return show_numbered(pattern, size, number);
+    }
     println!("{} ({})", pattern.name, pattern.id);
     if !pattern.aliases.is_empty() {
         println!("also: {}", pattern.aliases.join(", "));
