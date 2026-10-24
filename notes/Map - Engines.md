@@ -42,3 +42,6 @@ Raw-material notes, category engines.
 - [[Partial targets are solved as a goal-set search]]
 - [[An optimal mode is a measured clean-room design]]
 - [[Vector code exists for NEON, AVX2 and AVX-512 with one fallback]]
+- [[Restricted solves search the alphabet's own letters]]
+- [[Big cubes with a move set are solved by pattern macros]]
+- [[Solution lists are a depth-bounded search]]

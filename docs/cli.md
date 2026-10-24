@@ -116,6 +116,73 @@ From the 4x4x4 up, `solve` also tries to write the cube as a product of at most 
 | 7x7x7 built from a checkerboard and three six spots | 172 | 38 |
 | random 4x4x4 to 7x7x7 (40-move scrambles) | 42, 71, 136, 191 | same |
 
+### Restricted move sets
+
+`--moves SET` makes the solution use only the moves of a set. A set is a list in any notation the program reads (taken literally: `"R U U2"` has no `R'`), generators in angle brackets (`"<R,U>"` is every turn of R and U), or a name: `htm` (no restriction, the default; the output is the same as without the option), `qtm` (quarter turns of the faces), `half-turns` and `quarter-slices`.
+
+```sh
+cubacle solve --moves half-turns -s "R2 U2 F2 D2 L2 B2 U2 R2"
+cubacle solve --moves "<R,U>" -s "R U R' U' R U2 R' U R U' R U R' U2 R"
+cubacle solve --moves "R U U2" -s "R' U"
+```
+
+```text
+moves 8
+R2 U2 B2 R2 U2 B2 D2 L2
+moves 12
+R U' R' U R' U R2 U2 R U' R' U2
+moves 3
+U U2 R
+```
+
+On the 3x3x3 the answer is the shortest in the set (for `qtm` it is the default solution written in quarter turns, not proven shortest). A cube the set cannot solve is reported at once, not as a timeout:
+
+```text
+error: not solvable with half-turns: a piece sits in a place these moves never bring it to
+```
+
+`-m` and `-b` still apply (`error: no solution of at most 3 moves in <R,U> ...`). `--max-memory MB` (default 1500) bounds the tables. `--moves` cannot be combined with `--improve`, `--parallel`, `--probes` or `--slices`. Measured on 20 random states per set (random 60-move walks inside the group for the first two; random cubes for `htm`): `<R,U>` 0.30 s mean, 0.31 s at most, 15.8 moves on average (13 to 17); `half-turns` 0.22 s, 10.9 moves (10 to 14); `htm` 0.04 s, 20.6 moves (20 to 21).
+
+On a 4x4x4 to 7x7x7 the cube is searched as a product of pattern macros whose moves are all in the set (see [Patterns](patterns.md)):
+
+```sh
+cubacle solve --size 5 --moves half-turns -s "R2 3R2 L2 U2 3U2 D2 F2 3F2 B2"
+cubacle solve --size 5 --moves R -s "R2 L2"
+```
+
+```text
+moves 6
+2B2 2F2 2D2 2U2 2L2 2R2
+error: the moves "R" cannot be searched: no pattern macro is made only of the allowed moves; the set cannot be searched as pattern macros
+```
+
+A cube that is no such product gets `no product of pattern macros made of half-turns solves this cube; that does not mean the cube cannot be solved with them`, never "unsolvable". The 2x2x2 does not take `--moves`.
+
+### Listing solutions
+
+`--all` lists every solution of the shortest length (3x3x3 only; with `--moves`, within the set). Of moves that commute only one order is listed, `--raw` lists every order. `--count N` stops after N solutions. `--depth D` also lists the longer solutions up to D moves, shortest first. Solutions go to standard output as they are found; `moves N` headers and a summary go to standard error.
+
+```sh
+cubacle solve --all --raw -s "R L"
+cubacle solve --count 3 --depth 8 --moves half-turns -s "R2 U2 F2"
+```
+
+```text
+moves 2
+R' L'
+L' R'
+solutions 2 (shortest 2 moves; 50 nodes)
+moves 3
+F2 U2 R2
+moves 7
+U2 R2 L2 D2 B2 D2 L2
+D2 R2 L2 U2 B2 D2 L2
+solutions 3 (shortest 3 moves; 241 nodes)
+stopped after 3 solutions
+```
+
+The search checks the time budget (`-b`) at every node; when it runs out the list so far is kept and the command fails with `the list is incomplete`. Without `--moves` only a small table bounds the search, so lists are practical for short scrambles; a random cube of 20 moves is not. `--depth` and `--raw` need `--all` or `--count`. The REST server does not list solutions yet.
+
 ### Failure
 
 `solve` prints a message to standard error and exits with a non-zero status when the cube is impossible, the limit is too tight, or the time budget runs out. For example:

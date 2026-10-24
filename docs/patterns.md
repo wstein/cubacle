@@ -86,6 +86,26 @@ centres-cycled	Cycled centres	4:8/4 5:8/4 6:8/4
 
 Not every pattern exists on every size or was found within the search budget; the missing entries are open, not impossible. The nested cube in a cube has only a long solver-derived generator (5x5x5); the 6x6x6 and 7x7x7 versions, the opposite centres on the 5x5x5 and 7x7x7 and the 2x2x2 analogues other than the cube in a cube were not found. Lists such as Tetris, Anaconda or Pons asinorum are not included because we could not state their structure with certainty.
 
+## Finding a generator
+
+`cubacle patterns find` looks for the shortest known sequence that builds a cube from the solved cube. The cube is given like the input of `solve` (or with `-s`), on the size of `--size` (3 unless given):
+
+```sh
+cubacle patterns find --size 5 --moves half-turns -s "R2 3R2 L2 U2 3U2 D2 F2 3F2 B2"
+cubacle patterns find --size 7 --max-memory 200 -s "R2 3R2 5R2 L2 U2 3U2 5U2 D2 F2 3F2 5F2 B2"
+```
+
+```text
+moves 6
+shortest: no sequence of fewer moves exists (searched exhaustively)
+2F2 4F2 4U2 2U2 4R2 2R2
+moves 12
+best known, a shorter one may exist (the exact search reached the memory cap (200 MB))
+R2 3R2 L2 3L2 U2 3U2 D2 3D2 F2 3F2 B2 3B2
+```
+
+It first searches products of macros (from the 4x4x4 up), then an exact bidirectional search over plain moves for something shorter. `--moves SET` restricts the answer to a move set (see `solve --moves`); a macro is used only when its moves and those of its inverse are all in the set. `--max-memory MB` (default 1500) is a hard cap on the searches; a search that reaches it says so, and "nothing found within the cap" is not "no sequence exists". `-b` sets a time limit.
+
 ## How the generators were found
 
 `examples/pattern_search` runs a bidirectional search over cost levels from the solved cube and from the pattern (in every orientation on even cubes) and replays its answer with the library before printing it:
