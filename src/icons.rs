@@ -5,6 +5,7 @@
 
 use std::io::IsTerminal;
 
+use crate::terminal;
 use clap::ValueEnum;
 use cubacle::notation::ColourScheme;
 use cubacle::render::{Backdrop, Icon, KittyPlacement, Palette, Rgb, Shading, Style};
@@ -107,7 +108,13 @@ pub fn choose(
 
 pub(crate) fn detect_stdout(mode: GraphicsMode) -> Graphics {
     let env = |name: &str| std::env::var(name).ok().filter(|v| !v.is_empty());
-    choose(mode, std::io::stdout().is_terminal(), &env)
+    let graphics = choose(mode, std::io::stdout().is_terminal(), &env);
+    // Only the automatic choice asks, and only where the variables left doubt.
+    if mode == GraphicsMode::Auto && graphics == Graphics::Ansi && terminal::supports_kitty() {
+        Graphics::Kitty
+    } else {
+        graphics
+    }
 }
 
 /// The icon height that keeps stickers readable: 32 pixels per cube layer, at least 96.

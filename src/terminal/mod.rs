@@ -11,6 +11,7 @@
 //! `tmux` or `screen`, which would swallow the queries or need a passthrough
 //! that this program does not use; the defaults apply there.
 
+mod kitty;
 mod parse;
 
 pub use parse::Colour;
@@ -87,6 +88,21 @@ pub fn probe(want_background: bool) -> Terminal {
     }
 }
 
+/// Asks the terminal whether it speaks the Kitty graphics protocol, at most
+/// once per process. False when standard input or output is not a terminal,
+/// inside `tmux` or `screen`, on timeout and on every error.
+pub fn supports_kitty() -> bool {
+    use std::io::IsTerminal;
+    static ANSWER: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ANSWER.get_or_init(|| {
+        let env = |name: &str| std::env::var(name).ok().filter(|v| !v.is_empty());
+        std::io::stdin().is_terminal()
+            && std::io::stdout().is_terminal()
+            && !behind_multiplexer(&env)
+            && imp::supports_kitty()
+    })
+}
+
 #[cfg(unix)]
 mod imp {
     use super::parse::{parse_replies, Replies};
@@ -133,6 +149,27 @@ mod imp {
         }
     }
 
+    impl super::kitty::Wire for RawTty {
+        fn send(&mut self, bytes: &[u8]) -> bool {
+            self.tty
+                .write_all(bytes)
+                .and_then(|()| self.tty.flush())
+                .is_ok()
+        }
+
+        fn read(&mut self) -> Option<Vec<u8>> {
+            let mut buf = [0u8; 256];
+            match self.tty.read(&mut buf) {
+                Ok(n) => Some(buf[..n].to_vec()),
+                Err(_) => None,
+            }
+        }
+    }
+
+    pub fn supports_kitty() -> bool {
+        RawTty::open().is_some_and(|mut raw| super::kitty::probe_with(&mut raw))
+    }
+
     pub fn query(background: bool, sizes: bool) -> Replies {
         if !background && !sizes {
             return Replies::default();
@@ -177,6 +214,10 @@ mod imp {
 
     pub fn window_size() -> Option<(u16, u16, u16, u16)> {
         None
+    }
+
+    pub fn supports_kitty() -> bool {
+        false
     }
 
     pub fn query(_background: bool, _sizes: bool) -> Replies {
