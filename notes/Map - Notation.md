@@ -18,3 +18,4 @@ Raw-material notes, category notation.
 - [[SiGN notation as an output option]]
 - [[SSE notation is read and written]]
 - [[Move input rules are WCA and SiGN]]
+- [[A middle dot marks a hand unit, not a simultaneous turn]]

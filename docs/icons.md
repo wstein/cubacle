@@ -75,6 +75,35 @@ An explicit `--format` or `--out` writes the icons themselves, one per move or r
 cubacle moves "Rw'" --size 5 --icons --format svg --out rw.svg
 ```
 
+### Hand units
+
+A `·` between moves ends a hand unit, and `( ... )` makes a block of units (see [Hand units](cli.md#hand-units)). With `·` or `(` in the input, `moves --icons` draws each unit as icons placed close together, units separated by a larger gap, a thin bracket with the unit number above each unit, and a thicker outer bracket above each parenthesised block (two levels; deeper parentheses are flattened). The label under every icon stays the move. Rows are as wide as the terminal (or `--columns` icons) and break only between units; a unit wider than a row is cut into rows as the last resort, and its heading says `(continued)`. The headings read `group 3 of 9` or `groups 3-6 of 9` instead of `step 5 of 22`. Input without `·` or `(` is drawn as before, and `--group none` draws any input as before.
+
+On a terminal without graphics the first line is the moves with ` · ` between the units (a block in parentheses), then a heading and the pictures of each unit. This is the real output of `cubacle moves --size 2 --icons --graphics plain "R U · F'"`:
+
+```text
+R U · F'
+group 1 of 2: R U
+R ↑
+  w W
+ w W
+g G R R
+g G R R
+
+U ←
+  W G
+ W G
+G Y R R
+g y r r
+
+group 2 of 2: F'
+F' ↑
+  w w
+ G G
+R R W b
+G Y R r
+```
+
 ## Solve with icons
 
 ```sh
