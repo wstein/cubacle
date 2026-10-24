@@ -2,6 +2,7 @@
 
 use std::sync::Arc;
 
+use cubacle::engines::pattern::{Cap, PatternSolver};
 use cubacle::engines::restricted::{SubsetSolver, DEFAULT_TABLE_ENTRIES};
 use cubacle::engines::three::Min2PhaseSolver;
 use cubacle::notation::parse_alphabet;
@@ -27,10 +28,12 @@ pub fn solver_for(alphabet: Alphabet, max_memory_mb: usize) -> Result<Box<dyn So
                 .with_helper(Arc::new(Min2PhaseSolver::new()));
             Ok(Box::new(solver))
         }
-        kind => Err(format!(
-            "--moves is available for the 3x3x3 here, not for the {0}x{0}x{0}",
-            kind.size()
-        )),
+        PuzzleKind::Cube2 => Err("--moves is not available for the 2x2x2".to_owned()),
+        _ => {
+            let solver = PatternSolver::new(alphabet, Cap::megabytes(max_memory_mb))
+                .map_err(|error| format!("--moves: {error}"))?;
+            Ok(Box::new(solver))
+        }
     }
 }
 

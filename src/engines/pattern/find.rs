@@ -88,6 +88,18 @@ pub fn find_generator(
     cap: Cap,
     time: Option<Duration>,
 ) -> Result<Generator, NotFound> {
+    find_generator_with(state, cap, time, None)
+}
+
+/// Like [`find_generator`], with every move of the answer taken from `allow`
+/// (all moves when `None`). A macro is used only when all its moves and those
+/// of its inverse are allowed.
+pub fn find_generator_with(
+    state: &Facelets,
+    cap: Cap,
+    time: Option<Duration>,
+    allow: Option<&dyn Fn(&Move) -> bool>,
+) -> Result<Generator, NotFound> {
     let started = Instant::now();
     let kind = state.kind();
     if state.is_solved() {
@@ -102,7 +114,7 @@ pub fn find_generator(
     let mut macro_note = None;
     let mut best: Option<MoveSequence> = None;
     if kind.size() >= 4 {
-        let search = PatternSearch::new(kind, cap, None).map_err(NotFound::Searched)?;
+        let search = PatternSearch::new(kind, cap, allow).map_err(NotFound::Searched)?;
         match search.solve(state, deadline) {
             Probe::Found(solution) => best = Some(inverse(&solution)),
             Probe::Missing { complete } => {
@@ -117,11 +129,31 @@ pub fn find_generator(
     }
     // 2. Outer blocks, shorter than the first answer.
     let n = kind.size();
-    let set = if n == 3 {
+    let mut set = if n == 3 {
         steps::plain(n, false, false, true)
     } else {
         steps::layer_moves(n, false)
     };
+    if let Some(allow) = allow {
+        let keep: Vec<bool> = set
+            .text
+            .iter()
+            .map(|word| {
+                word.iter()
+                    .flat_map(LayerMove::to_moves)
+                    .all(|mv| allow(&mv))
+            })
+            .collect();
+        let mut flags = keep.iter();
+        set.steps.retain(|_| *flags.next().unwrap_or(&false));
+        let mut flags = keep.iter();
+        set.text.retain(|_| *flags.next().unwrap_or(&false));
+        if set.steps.is_empty() {
+            return Err(NotFound::Searched(
+                "the move set has no move this search can use".to_owned(),
+            ));
+        }
+    }
     let len = n * n * 6;
     let max_states = cap.max_bytes / state_bytes(len);
     let max_cost = best.as_ref().map_or(

@@ -13,6 +13,9 @@
 //! * [`find_generator`] (the `patterns find` command) looks for the shortest
 //!   generator of a state, with an exact search for shorter ones.
 //!
+//! * [`PatternSolver`] (`solve --moves` on a 4x4x4 or bigger cube) solves with
+//!   the macros whose moves are all in a restricted alphabet.
+//!
 //! Every search takes a [`Cap`] on its memory. A search that reaches the cap
 //! stops and says so; it never claims that nothing exists.
 //!
@@ -27,6 +30,7 @@ mod find;
 pub mod geometry;
 mod library;
 mod search;
+mod solver;
 pub mod steps;
 
 use std::sync::OnceLock;
@@ -36,9 +40,10 @@ use crate::puzzle::{
     Facelets, Failure, Move, MoveSequence, PuzzleKind, SolveMetrics, SolveOptions, SolveResult,
     SolveStage, Solver,
 };
-pub use find::{find_generator, Generator, NotFound};
+pub use find::{find_generator, find_generator_with, Generator, NotFound};
 use library::Library;
 use search::Table;
+pub use solver::PatternSolver;
 
 /// The memory cap in megabytes when none is given.
 pub const DEFAULT_MAX_MEMORY_MB: usize = 1500;

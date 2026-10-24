@@ -4,9 +4,10 @@
 use std::time::Duration;
 
 use clap::{Args, Subcommand};
-use cubacle::engines::pattern::{find_generator, Cap, DEFAULT_MAX_MEMORY_MB};
+use cubacle::engines::pattern::{find_generator_with, Cap, DEFAULT_MAX_MEMORY_MB};
 use cubacle::notation::{ColourScheme, Notation};
 use cubacle::patterns::{self, Generator, Metric, Pattern};
+use cubacle::puzzle::Move;
 
 #[derive(Args)]
 pub struct PatternsArgs {
@@ -43,6 +44,10 @@ pub struct FindArgs {
     /// Colour scheme of colour input: boy, jp or six letters in URFDLB order
     #[arg(long)]
     scheme: Option<ColourScheme>,
+    /// Build the state with these moves only: a list, a named set or <R,U>
+    /// generators (see `solve --moves`)
+    #[arg(long, value_name = "SET")]
+    moves: Option<String>,
     /// Hard memory cap of the searches in megabytes
     #[arg(long, value_name = "MB", default_value_t = DEFAULT_MAX_MEMORY_MB)]
     max_memory: usize,
@@ -70,7 +75,18 @@ fn find_state(args: &FindArgs, size: usize) -> Result<(), String> {
     };
     let cap = Cap::megabytes(args.max_memory);
     let time = args.budget_ms.map(Duration::from_millis);
-    let generator = find_generator(&state, cap, time).map_err(|error| error.to_string())?;
+    let alphabet = match &args.moves {
+        Some(text) => crate::restricted_cmd::read_set(text, state.kind())?,
+        None => None,
+    };
+    let allow = alphabet.as_ref().map(|a| move |mv: &Move| a.contains(mv));
+    let generator = find_generator_with(
+        &state,
+        cap,
+        time,
+        allow.as_ref().map(|f| f as &dyn Fn(&Move) -> bool),
+    )
+    .map_err(|error| error.to_string())?;
     eprintln!("moves {}", generator.moves.len());
     match (&generator.note, generator.proven) {
         (_, true) => {

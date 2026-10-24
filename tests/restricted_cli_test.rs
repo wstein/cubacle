@@ -134,3 +134,63 @@ fn bad_sets_and_conflicting_options_are_errors() {
     let run = cubacle(&["solve", "--moves", "<>", "--scramble", "R"]);
     assert!(!run.ok);
 }
+
+fn big(set: &str, scramble: &str) -> Run {
+    cubacle(&[
+        "solve",
+        "--size",
+        "5",
+        "--moves",
+        set,
+        "--scramble",
+        scramble,
+    ])
+}
+
+#[test]
+fn a_big_cube_is_solved_by_pattern_macros_of_the_set() {
+    let scramble = "R2 L2 U2 D2 F2 B2";
+    let run = big("half-turns", scramble);
+    assert!(run.ok, "{}", run.err);
+    let kind = PuzzleKind::Cube5;
+    let start = Facelets::solved(kind)
+        .apply(&scramble.parse::<MoveSequence>().unwrap())
+        .unwrap();
+    let moves: MoveSequence = run.out.parse().unwrap();
+    let alphabet = parse_alphabet("half-turns", kind).unwrap();
+    assert!(moves.moves().iter().all(|mv| alphabet.contains(mv)));
+    assert!(start.apply(&moves).unwrap().is_solved());
+}
+
+#[test]
+fn a_big_cube_set_without_a_macro_is_an_error_not_a_hang() {
+    let run = big("R", "R2 L2 U2 D2 F2 B2");
+    assert!(!run.ok);
+    assert!(run.err.contains("cannot be searched"), "{}", run.err);
+}
+
+#[test]
+fn a_cube_that_is_no_product_of_the_macros_is_not_called_unsolvable() {
+    let run = big("half-turns", "R2 U2 3Rw2 Uw2 F2");
+    assert!(!run.ok);
+    assert!(
+        run.err.contains("does not mean the cube cannot be solved"),
+        "{}",
+        run.err
+    );
+}
+
+#[test]
+fn patterns_find_keeps_to_the_moves_given() {
+    let run = cubacle(&[
+        "patterns",
+        "find",
+        "--moves",
+        "half-turns",
+        "--scramble",
+        "R2 L2 U2 D2 F2 B2",
+    ]);
+    assert!(run.ok, "{}", run.err);
+    assert!(!run.out.contains('\''), "{}", run.out);
+    assert_eq!(run.out.split_whitespace().count(), 6);
+}
