@@ -96,48 +96,48 @@ fn describe(m: &Mistake, w: Writer) -> String {
     let step = m.step;
     let printed = m.printed.map(|p| w(&p)).unwrap_or_default();
     match &m.kind {
-        MistakeKind::Skipped => format!("step {step} ({printed}) was skipped"),
+        MistakeKind::Skipped => format!("move {step} ({printed}) was skipped"),
         MistakeKind::WrongAmount { done } => {
             let done = w(done);
-            format!("step {step} ({printed}) was turned as {done} instead")
+            format!("move {step} ({printed}) was turned as {done} instead")
         }
         MistakeKind::WrongDirection { done } => {
             let done = w(done);
-            format!("step {step} ({printed}) was turned the wrong way ({done})")
+            format!("move {step} ({printed}) was turned the wrong way ({done})")
         }
         MistakeKind::WrongLayers { done } => {
             let done = w(done);
-            format!("step {step} ({printed}) turned other layers ({done})")
+            format!("move {step} ({printed}) turned other layers ({done})")
         }
         MistakeKind::WrongFace { done } => {
             let done = w(done);
-            format!("step {step} ({printed}) was done on the wrong face ({done})")
+            format!("move {step} ({printed}) was done on the wrong face ({done})")
         }
         MistakeKind::Different { done } => {
             let done = w(done);
-            format!("step {step} ({printed}) was replaced by {done}")
+            format!("move {step} ({printed}) was replaced by {done}")
         }
         MistakeKind::Swapped { next } => {
             let next = w(next);
             format!(
-            "steps {step} and {} ({printed} {next}) were done in the wrong order ({next} {printed})",
+            "moves {step} and {} ({printed} {next}) were done in the wrong order ({next} {printed})",
             step + 1
         )
         }
-        MistakeKind::Repeated => format!("step {step} ({printed}) was done twice"),
+        MistakeKind::Repeated => format!("move {step} ({printed}) was done twice"),
         MistakeKind::Extra { done } if m.printed.is_some() => {
             let done = w(done);
-            format!("the extra move {done} was made before step {step} ({printed})")
+            format!("the extra move {done} was made before move {step} ({printed})")
         }
         MistakeKind::Extra { done } => {
-            format!("the extra move {} was made after the last step", w(done))
+            format!("the extra move {} was made after the last move", w(done))
         }
     }
 }
 
 fn step_of(solution: &MoveSequence, done: usize, w: Writer) -> String {
     match solution.moves().get(done) {
-        Some(m) => format!("step {} ({})", done + 1, w(m)),
+        Some(m) => format!("move {} ({})", done + 1, w(m)),
         None => "the end".to_owned(),
     }
 }
@@ -196,7 +196,7 @@ impl Plan {
             }
             Finding::OnPath { done } => writeln!(
                 f,
-                "Your cube is on the path: you are after step {done} of {n}."
+                "Your cube is on the path: you are after move {done} of {n}."
             )?,
             Finding::Mistakes {
                 mistakes,
@@ -232,12 +232,12 @@ impl Plan {
                     }
                 }
                 if strays.is_empty() {
-                    writeln!(f, "You had done {done} of {n} steps when you stopped.")?;
+                    writeln!(f, "You had done {done} of {n} moves when you stopped.")?;
                 } else {
                     let list = words(&strays.iter().copied().collect(), w);
                     writeln!(
                         f,
-                        "You had done {done} of {n} steps, then made {} ({list}).",
+                        "You had done {done} of {n} moves, then made {} ({list}).",
                         plural(strays.len(), "stray move")
                     )?;
                     writeln!(
@@ -257,7 +257,7 @@ impl Plan {
             }
             Finding::Near { done, away } => writeln!(
                 f,
-                "Your cube is off the path of the solution. It is {} from the cube after step {done}; the cause cannot be named (stray moves or several mistakes).",
+                "Your cube is off the path of the solution. It is {} from the cube after move {done}; the cause cannot be named (stray moves or several mistakes).",
                 plural(*away, "move")
             )?,
             Finding::Unexplained => writeln!(

@@ -6,7 +6,7 @@ weight: 4
 
 # Move icons
 
-A move icon (a "minicube": a small cube picture with an arrow, also called an arrow diagram) shows one move on the cube. `cubacle moves --icons` draws moves as such pictures, and `cubacle solve --icons` shows every step of a solution that way. The same code is available as the `cubacle::render` module, which returns SVG, RGBA pixels or Kitty graphics escapes for a frontend or a PDF export.
+A move icon (a "minicube": a small cube picture with an arrow, also called an arrow diagram) shows one move on the cube. `cubacle moves --icons` draws moves as such pictures, and `cubacle solve --icons` shows every move of a solution that way. The same code is available as the `cubacle::render` module, which returns SVG, RGBA pixels or Kitty graphics escapes for a frontend or a PDF export.
 
 ## What an icon shows
 
@@ -39,10 +39,10 @@ The notation below the cube is the canonical notation of the move. `Rw` and `Rw2
 cubacle moves R "U'" Rw2 --size 4 --icons
 ```
 
-The moves are read like those of `convert` and `solve` (groups, commutators, slices, rotations, layer ranges), and `--size` is the cube size. With `--icons` and no `--format` or `--out`, the output is the step pictures of `solve --icons`: each move is drawn on the cube left by the moves before it (starting from the solved cube or `--from`), under a line `step i of n: MOVE`. On a terminal without graphics, the output is text; on a pipe it is plain text without escape sequences:
+The moves are read like those of `convert` and `solve` (groups, commutators, slices, rotations, layer ranges), and `--size` is the cube size. With `--icons` and no `--format` or `--out`, the output is the move pictures of `solve --icons`: each move is drawn on the cube left by the moves before it (starting from the solved cube or `--from`), under a line `move i of n: MOVE`. On a terminal without graphics, the output is text; on a pipe it is plain text without escape sequences:
 
 ```text
-step 1 of 2: R
+move 1 of 2: R
 R ↑
    w w W
   w w W
@@ -54,11 +54,11 @@ g g G R R R
 
 Moving stickers are uppercase and the others lowercase.
 
-An explicit `--format` or `--out` writes the icons themselves, one per move or rotation, without step lines; each is drawn on its own start cube, as in a move sheet, unless `--cumulative`. All options below need `--icons`.
+An explicit `--format` or `--out` writes the icons themselves, one per move or rotation, without move lines; each is drawn on its own start cube, as in a move sheet, unless `--cumulative`. All options below need `--icons`.
 
 | Option | Meaning |
 | --- | --- |
-| `--format auto\|svg\|rgba\|kitty\|text` | The output format. `auto` (the default) shows step pictures (Kitty graphics on a capable terminal, text otherwise); with `--out` it writes SVG. |
+| `--format auto\|svg\|rgba\|kitty\|text` | The output format. `auto` (the default) shows move pictures (Kitty graphics on a capable terminal, text otherwise); with `--out` it writes SVG. |
 | `--icon-size PIXELS` | Icon height in pixels. Default: 32 per cube layer, at least 96 (96 for the 2x2x2 and 3x3x3, 128 for the 4x4x4, 224 for the 7x7x7), so stickers stay readable on larger cubes. The canvas is 114 by 109.2 units, so the width is about 1.04 times the height (100 by 96 pixels by default). |
 | `--size N` | Cube size, 2 to 7, 3 by default. |
 | `--out FILE` | Write to a file instead of standard output. |
@@ -77,7 +77,7 @@ cubacle moves "Rw'" --size 5 --icons --format svg --out rw.svg
 
 ### Hand units
 
-A `·` between moves ends a hand unit, and `( ... )` makes a block of units (see [Hand units](cli.md#hand-units)). With `·` or `(` in the input, `moves --icons` draws each unit as icons placed close together, units separated by a larger gap, a thin bracket with the unit number above each unit, and a thicker outer bracket above each parenthesised block (two levels; deeper parentheses are flattened). The label under every icon stays the move. Rows are as wide as the terminal (or `--columns` icons) and break only between units; a unit wider than a row is cut into rows as the last resort, and its heading says `(continued)`. The headings read `group 3 of 9` or `groups 3-6 of 9` instead of `step 5 of 22`. Input without `·` or `(` is drawn as before, and `--group none` draws any input as before.
+A `·` between moves ends a hand unit, and `( ... )` makes a block of units (see [Hand units](cli.md#hand-units)). With `·` or `(` in the input, `moves --icons` draws each unit as icons placed close together, units separated by a larger gap, a thin bracket with the unit number above each unit, and a thicker outer bracket above each parenthesised block (two levels; deeper parentheses are flattened). The label under every icon stays the move. Rows are as wide as the terminal (or `--columns` icons) and break only between units; a unit wider than a row is cut into rows as the last resort, and its heading says `(continued)`. The headings read `group 3 of 9` or `groups 3-6 of 9` instead of `move 5 of 22`. Input without `·` or `(` is drawn as before, and `--group none` draws any input as before.
 
 On a terminal without graphics the first line is the moves with ` · ` between the units (a block in parentheses), then a heading and the pictures of each unit. This is the real output of `cubacle moves --size 2 --icons --graphics plain "R U · F'"`:
 
@@ -110,7 +110,7 @@ G Y R r
 cubacle solve --scramble "R U" --icons
 ```
 
-On a Kitty-graphics terminal the solution is shown in phases (see below) and the icons come in rows, as many side by side as fit the width of the terminal, and each row has a line above it such as `steps 9-16 of 128`. A row is one image, with 8 pixels between the icons, and the background stays transparent. The last line is the plain move string. Without graphics (a pipe, `NO_COLOR`, `TERM=dumb` or another terminal), each step prints `step i of n: MOVE` and then its text picture, as before. A quarter turn with a half turn right before and right after it, the easiest move to do as a half turn, gets the note `<-- quarter turn, not a half turn` after its move, as in `step 9 of 21: F   <-- quarter turn, not a half turn`. An optional compile-time feature, off by default, also draws an amber frame around the icon of such a move in the Kitty rows (see below). Without `--icons`, the output of `solve` does not change. The colours come from `--scheme` (`boy` by default).
+On a Kitty-graphics terminal the solution is shown in phases (see below) and the icons come in rows, as many side by side as fit the width of the terminal, and each row has a line above it such as `moves 9-16 of 128`. A row is one image, with 8 pixels between the icons, and the background stays transparent. The last line is the plain move string. Without graphics (a pipe, `NO_COLOR`, `TERM=dumb` or another terminal), each move prints `move i of n: MOVE` and then its text picture, as before. A quarter turn with a half turn right before and right after it, the easiest move to do as a half turn, gets the note `<-- quarter turn, not a half turn` after its move, as in `move 9 of 21: F   <-- quarter turn, not a half turn`. An optional compile-time feature, off by default, also draws an amber frame around the icon of such a move in the Kitty rows (see below). Without `--icons`, the output of `solve` does not change. The colours come from `--scheme` (`boy` by default).
 
 | Option | Meaning |
 | --- | --- |
@@ -125,11 +125,11 @@ The solution is cut into phases, and each phase has a heading line, its rows of 
 
 ```text
 Phase 1: centres (25 moves)
-steps 1-10 of 44
+moves 1-10 of 44
 (a row of 10 icons)
-steps 11-20 of 44
+moves 11-20 of 44
 (a row of 10 icons)
-steps 21-25 of 44
+moves 21-25 of 44
 (a row of 5 icons)
 State after phase 1 - compare it with your cube
 (a framed picture of the cube)
@@ -171,7 +171,7 @@ phase 3: centres and wings paired, moves 26-51
 phase 4: 3x3 stage, moves 52-70
 ```
 
-Without graphics there are no phase headings: the text output is one picture per step, as before, and the token line of a phase follows the last step of that phase.
+Without graphics there are no phase headings: the text output is one picture per move, as before, and the token line of a phase follows the last move of that phase.
 
 ### Quarter-turn frame
 
@@ -242,7 +242,7 @@ B Y W  R B O  Y R R  Y O R
 
 ### Checkpoints
 
-`solve --icons` also draws the start state, under the heading `Start state` in the current view, right after the line `Start state: TOKEN` and before step 1 (on a pipe too; `recover --icons` keeps its `Should be` and `Is now` pictures, `moves --icons` has no start state). It writes the cube as an [Orbit64 token](cli.md) (the text `convert --to token` writes) at these places: the line `Start state: TOKEN` once at the top, and the line `State after phase N as token: TOKEN` after each phase that has moves, below the state picture on a graphics terminal and after its last step otherwise. A phase with nothing to do has no line. The last token is the solved cube. Keep the start token; after a phase, the token of your own cube can be compared with the printed one. Plain `solve` without `--icons` prints no token.
+`solve --icons` also draws the start state, under the heading `Start state` in the current view, right after the line `Start state: TOKEN` and before move 1 (on a pipe too; `recover --icons` keeps its `Should be` and `Is now` pictures, `moves --icons` has no start state). It writes the cube as an [Orbit64 token](cli.md) (the text `convert --to token` writes) at these places: the line `Start state: TOKEN` once at the top, and the line `State after phase N as token: TOKEN` after each phase that has moves, below the state picture on a graphics terminal and after its last move otherwise. A phase with nothing to do has no line. The last token is the solved cube. Keep the start token; after a phase, the token of your own cube can be compared with the printed one. Plain `solve` without `--icons` prints no token.
 
 ### How the terminal is asked
 
@@ -265,13 +265,13 @@ cubacle recover -s "R U2 F' D L2 B R' U' F2 D2 L B'" --now FDDRURLDBRDBLRFFDUUBU
 
 The usual text of `recover` comes first. After it:
 
-1. When a mistake or a nearest cube was found, two pictures of the whole cube: `Should be, after step N (the last correct one)`, the cube of the printed solution after the last correct move, and `Is now`, the cube you typed. Each has its Orbit64 token below it. Compare the two to see what differs: on a Kitty terminal every sticker of `Is now` whose colour differs from `Should be` carries a small amber square, in the view that shows its face (the corner or a flat face with `folded`, URF or DBL with `both`), so all of them are marked. In every mode the line `Stickers that differ: N of M` counts them over all faces. With `--views urf` the hidden faces are not drawn, so only the stickers of U, R and F are marked and the line says so; `folded`, `both`, `net` and `all` mark every one.
-2. The moves to do now (the way back, or the fresh solution when that is recommended), one picture per step as in `solve --icons`, with the quarter-turn note (and the optional frame). Phase headings and `State after phase N as token` lines appear only when the moves are a fresh solution that reports solver stages; a way back has none. In `recover` (not in `solve`) a run of phases with nothing to do is one heading, `Phases 1-5: nothing to do`; a single empty phase keeps its own line.
+1. When a mistake or a nearest cube was found, two pictures of the whole cube: `Should be, after move N (the last correct one)`, the cube of the printed solution after the last correct move, and `Is now`, the cube you typed. Each has its Orbit64 token below it. Compare the two to see what differs: on a Kitty terminal every sticker of `Is now` whose colour differs from `Should be` carries a small amber square, in the view that shows its face (the corner or a flat face with `folded`, URF or DBL with `both`), so all of them are marked. In every mode the line `Stickers that differ: N of M` counts them over all faces. With `--views urf` the hidden faces are not drawn, so only the stickers of U, R and F are marked and the line says so; `folded`, `both`, `net` and `all` mark every one.
+2. The moves to do now (the way back, or the fresh solution when that is recommended), one picture per move as in `solve --icons`, with the quarter-turn note (and the optional frame). Phase headings and `State after phase N as token` lines appear only when the moves are a fresh solution that reports solver stages; a way back has none. In `recover` (not in `solve`) a run of phases with nothing to do is one heading, `Phases 1-5: nothing to do`; a single empty phase keeps its own line.
 
 Without graphics the pictures are the text pictures of `solve --icons`:
 
 ```text
-Should be, after step 4 (the last correct one)
+Should be, after move 4 (the last correct one)
 state, folded view: corner U F R, with L, D and B flat around it
           B Y O     W B W
          R W R      G B O
@@ -298,12 +298,12 @@ Y R W  O B O G Y W
 
 token: FpkdfDU1GuT4
 Stickers that differ: 31 of 54 (all marked amber in graphics rows, in the view that shows them).
-step 1 of 3: D2
+move 1 of 3: D2
 D2 → (half turn)
 ...
 ```
 
-`recover --fresh --icons` draws the fresh solution only. When the way back is for a cube that has to be turned as a whole first, there are no step pictures. On a Kitty terminal the two state pictures are stacked, each under its label.
+`recover --fresh --icons` draws the fresh solution only. When the way back is for a cube that has to be turned as a whole first, there are no move pictures. On a Kitty terminal the two state pictures are stacked, each under its label.
 
 ## Terminal support
 

@@ -1,4 +1,4 @@
-//! `recover --icons`: the mistake as two pictures, the way forward as steps.
+//! `recover --icons`: the mistake as two pictures, the way forward as moves.
 
 use cubacle::phases::{from_stages, phases};
 use cubacle::puzzle::{Facelets, MoveSequence, SolveStage};
@@ -50,7 +50,7 @@ pub(crate) fn render(
     let mut out = String::new();
     if let Some(right) = right_moves(plan) {
         if let Some(should) = after(original, &plan.solution, right) {
-            let was = format!("Should be, after step {right} (the last correct one)");
+            let was = format!("Should be, after move {right} (the last correct one)");
             out.push_str(&pictures.states_against((&was, &should), ("Is now", current))?);
             let differ = differing_stickers(current, &should);
             let all = current.stickers().len();
@@ -61,7 +61,7 @@ pub(crate) fn render(
         return Ok(out);
     };
     if plan.diagnosis.rotation.is_some() && matches!(plan.advice, Advice::Recover(_)) {
-        out.push_str("The way back is for the cube turned as said above: no step pictures.\n");
+        out.push_str("The way back is for the cube turned as said above: no move pictures.\n");
         return Ok(out);
     }
     // Only a fresh solve has solver stages; a way back has none.

@@ -100,8 +100,8 @@ fn moves_icons_groups_text_fallback() {
         "R U · F'",
     ]);
     assert!(ok);
-    assert!(out.contains("step 1 of 3: R"), "{out}");
+    assert!(out.contains("move 1 of 3: R"), "{out}");
     let (ok, out, _) = cubacle(&["moves", "--icons", "--graphics", "plain", "R U"]);
     assert!(ok);
-    assert!(out.contains("step 2 of 2: U"), "{out}");
+    assert!(out.contains("move 2 of 2: U"), "{out}");
 }

@@ -1,7 +1,7 @@
 use std::process::Command;
 
 const ORIGINAL: &str = "R U2 F' D L2 B R' U' F2 D2 L B'";
-/// The original cube after `B L' U2 B2 U2 B2 D2`: step 5 (`D'`) was skipped.
+/// The original cube after `B L' U2 B2 U2 B2 D2`: move 5 (`D'`) was skipped.
 const NOW: &str = "FDDRURLDBRDBLRFFDUUBUUFBLBLBRDFDFBUFRUFULLDRURLDLBFRBL";
 
 fn cubacle(args: &[&str]) -> (bool, String, String) {
@@ -24,12 +24,12 @@ fn recover_icons_shows_should_be_and_is_now_then_the_way_back() {
     assert!(ok);
     assert!(!out.contains('\x1b'), "{out}");
     assert!(out.starts_with(&plain), "the plan text comes first");
-    let should = out.find("Should be, after step 4").expect("label");
+    let should = out.find("Should be, after move 4").expect("label");
     let now = out.find("Is now").expect("label");
-    let step = out.find("step 1 of 3: D2").expect("step");
+    let step = out.find("move 1 of 3: D2").expect("step");
     assert!(should < now && now < step, "{out}");
     assert_eq!(out.matches("token: ").count(), 2, "{out}");
-    assert!(out.contains("step 3 of 3: D'"), "{out}");
+    assert!(out.contains("move 3 of 3: D'"), "{out}");
 }
 
 #[test]
@@ -50,7 +50,7 @@ fn recover_icons_of_a_fresh_choice_draws_the_fresh_solution() {
     ]);
     assert!(ok);
     assert!(out.contains("Recommended: solve fresh"), "{out}");
-    assert!(out.contains("step 18 of 18"), "{out}");
+    assert!(out.contains("move 18 of 18"), "{out}");
     assert!(out.contains("State after phase"), "{out}");
 }
 
@@ -72,7 +72,7 @@ fn recover_fresh_icons_draws_the_solution_and_the_other_options_apply() {
         "2",
     ]);
     assert!(ok);
-    assert!(out.contains("step 18 of 18"), "{out}");
+    assert!(out.contains("move 18 of 18"), "{out}");
     assert!(!out.contains("Should be"), "{out}");
 }
 

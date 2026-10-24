@@ -43,7 +43,7 @@ The 2×2×2 solver (`PocketSolver`) keeps one corner fixed and searches an exact
 
 ## Move icons
 
-`cubacle moves R "U'" Rw2 --icons` draws moves as small pictures, move icons ("minicubes") (Kitty graphics on a capable terminal, text elsewhere, or SVG with `--format svg --out FILE`), and `cubacle solve --icons` shows each solution step that way. See [docs/icons.md](docs/icons.md).
+`cubacle moves R "U'" Rw2 --icons` draws moves as small pictures, move icons ("minicubes") (Kitty graphics on a capable terminal, text elsewhere, or SVG with `--format svg --out FILE`), and `cubacle solve --icons` shows each move of a solution that way. See [docs/icons.md](docs/icons.md).
 
 ## Usage
 

@@ -1,9 +1,9 @@
-//! `solve --icons`: the steps of a solution as icons, in phases and rows.
+//! `solve --icons`: the moves of a solution as icons, in phases and rows.
 //!
 //! On a Kitty terminal every phase has a heading line, then its icons in rows
 //! as wide as the terminal (one image per row, see `rows`), then a framed
 //! picture of the cube after the phase. Elsewhere there is one text picture per
-//! step, as before.
+//! move, as before.
 
 use std::io::Write;
 
@@ -35,7 +35,7 @@ pub struct SolutionIcons {
     pub columns: Option<usize>,
     /// Which corners the whole-cube pictures are drawn from.
     pub views: Views,
-    /// How the step lines and the final solution line write moves (the icon
+    /// How the move lines and the final solution line write moves (the icon
     /// labels stay as they are).
     pub notation: Notation,
     /// The state the solution leads to when it is not the solved cube.
@@ -155,17 +155,17 @@ pub(crate) fn lone_quarters(moves: &[Move]) -> Vec<bool> {
         .collect()
 }
 
-/// The line above the text picture of a step: `step 3 of 9: F`, with a note
+/// The line above the text picture of a move: `move 3 of 9: F`, with a note
 /// when the move is a lone quarter turn.
-pub(crate) fn step_line(index: usize, total: usize, mv: &str, lone: bool) -> String {
+pub(crate) fn move_line(index: usize, total: usize, mv: &str, lone: bool) -> String {
     let note = if lone { QUARTER_NOTE } else { "" };
-    format!("step {} of {total}: {mv}{note}\n", index + 1)
+    format!("move {} of {total}: {mv}{note}\n", index + 1)
 }
 
 /// The picture options `solve` and `recover` share.
 #[derive(clap::Args)]
 pub struct PictureArgs {
-    /// Show each step with a picture of the cube (graphics on a capable terminal)
+    /// Show each move with a picture of the cube (graphics on a capable terminal)
     #[arg(long)]
     pub icons: bool,
     /// Icon height in pixels for --icons (default: 32 per cube layer, at least 96)
@@ -243,7 +243,7 @@ impl<'a> Pictures<'a> {
         }
     }
 
-    /// Draws the moves in groups instead of one icon per step.
+    /// Draws the moves in groups instead of one icon per move.
     pub fn grouped(mut self, layout: Layout) -> Pictures<'a> {
         self.layout = Some(layout);
         self
@@ -255,7 +255,7 @@ impl<'a> Pictures<'a> {
         self
     }
 
-    /// The step pictures of a solution (no start line, no final moves line).
+    /// The move pictures of a solution (no start line, no final moves line).
     pub fn steps(
         &self,
         start: &Facelets,
@@ -339,7 +339,7 @@ impl<'a> Pictures<'a> {
     }
 }
 
-/// Each step of the solution with the picture of the cube before it.
+/// Each move of the solution with the picture of the cube before it.
 pub fn print_solution(
     start: &Facelets,
     solution: &MoveSequence,
@@ -375,7 +375,7 @@ fn text_steps(
     for (index, mv) in solution.moves().iter().enumerate() {
         let action = Action::Layer(*mv);
         let drawn = icon(&state, &action, style).map_err(|error| error.to_string())?;
-        out.push_str(&step_line(
+        out.push_str(&move_line(
             index,
             total,
             &notation.write_move(start.kind(), mv),
@@ -529,14 +529,14 @@ mod tests {
         let lone = lone_quarters(seq.moves());
         let flagged: Vec<usize> = (0..lone.len()).filter(|&i| lone[i]).collect();
         assert_eq!(flagged, [2, 7]);
-        let line = step_line(2, 10, &seq.moves()[2].to_string(), true);
+        let line = move_line(2, 10, &seq.moves()[2].to_string(), true);
         assert_eq!(
             line,
-            "step 3 of 10: F   <-- quarter turn, not a half turn\n"
+            "move 3 of 10: F   <-- quarter turn, not a half turn\n"
         );
         assert_eq!(
-            step_line(0, 10, &seq.moves()[0].to_string(), false),
-            "step 1 of 10: 3Rw2\n"
+            move_line(0, 10, &seq.moves()[0].to_string(), false),
+            "move 1 of 10: 3Rw2\n"
         );
     }
 

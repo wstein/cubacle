@@ -138,10 +138,10 @@ fn recover_writes_wide_moves_in_sign_on_request() {
     };
     let (ok, wca, err) = run("wca");
     assert!(ok, "{err}");
-    assert!(wca.contains("Continue with step 2 (Uw2)"), "{wca}");
+    assert!(wca.contains("Continue with move 2 (Uw2)"), "{wca}");
     let (ok, sign, err) = run("sign");
     assert!(ok, "{err}");
-    assert!(sign.contains("Continue with step 2 (u2)"), "{sign}");
+    assert!(sign.contains("Continue with move 2 (u2)"), "{sign}");
 }
 
 #[test]

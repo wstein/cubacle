@@ -41,7 +41,7 @@ pub struct MovesArgs {
     #[command(flatten)]
     pictures: PictureArgs,
     /// With --icons, draw the groups marked by "·" and "( )": dots (default)
-    /// or none (one icon per step)
+    /// or none (one icon per move)
     #[arg(long, requires = "icons", value_enum, default_value_t)]
     group: GroupMode,
     /// With --icons, the output format
@@ -99,7 +99,7 @@ enum GroupMode {
     /// Draw the groups with brackets and numbers
     #[default]
     Dots,
-    /// One icon per step, as without the dots
+    /// One icon per move, as without the dots
     None,
 }
 

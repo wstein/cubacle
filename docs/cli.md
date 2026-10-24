@@ -47,10 +47,10 @@ The first two lines go to standard error. `moves N` is always printed there, `el
 | `--improve` | 3x3x3 only. Keep improving until the time budget (`-b`, default 1000 ms) is spent, then print the best solution found. |
 | `--parallel` | 3x3x3 only, with `--improve` and `-b`: search the six orientations at once. Measured no better than plain `--improve`. |
 | `--slices` | 4x4x4 and 5x5x5: allow single inner layers (`2R`) in the answer where they make it shorter. Default: outer layers and two-layer turns only. See [the move metric](performance.md#move-metric). |
-| `--notation <wca\|sign\|sse>` | How the solution is written. Default `wca` (`Rw`, `3Rw`); `sign` writes `r`, `3r`; `sse` writes `TR`, `T3R`, `MR` (see [Move notations](#move-notations)). With `--icons` it also sets the step lines and the last line; the icon labels stay WCA. |
+| `--notation <wca\|sign\|sse>` | How the solution is written. Default `wca` (`Rw`, `3Rw`); `sign` writes `r`, `3r`; `sse` writes `TR`, `T3R`, `MR` (see [Move notations](#move-notations)). With `--icons` it also sets the move lines and the last line; the icon labels stay WCA. |
 | `--optimise ranges` | After the solve, with no search: adjacent turns of one axis are written as layer ranges where that is shorter (`2-3r` in sign, `2-3Rw` in wca, `V2R`, `M2R` or `N2-4R` in sse; only contiguous layers). Off by default. The solution is the same state; stderr reports `moves N` (as solved), `compressed moves M` and, after the metrics line of the plain answer, `compressed metrics: ...`; stdout holds the compressed text. Not combined with `--icons`. On 20 random 4x4x4 to 7x7x7 solutions it saved 0 to 2 moves (2 of 20 saved any, both 7x7x7), on 14 human 4x4x4+ states 0 to 5, because the solvers already merge most axis runs. |
 | `--group <none\|phases>` | `phases` writes the solution with ` · ` between the solver phases that the engine reports (see [Hand units](#hand-units)); `none` (default) is the plain list. Not with `--icons`. With `--optimise ranges` each phase is compressed on its own, so no range crosses a dot. |
-| `--icons` | Show each step as an icon. The output begins with `Start state: TOKEN`, then the start state as a picture under the heading `Start state`, and has a line `State after phase N as token: TOKEN` after each phase, so that a checkpoint can be compared with your cube. See [Move icons](icons.md#checkpoints). |
+| `--icons` | Show each move as an icon. The output begins with `Start state: TOKEN`, then the start state as a picture under the heading `Start state`, and has a line `State after phase N as token: TOKEN` after each phase, so that a checkpoint can be compared with your cube. See [Move icons](icons.md#checkpoints). |
 | `--icon-size <PIXELS>` | With `--icons`: icon height in pixels. Default: 32 per cube layer, at least 96. |
 | `--background <dark\|light>` | With `--icons`: what the icons are seen on. It sets the notation colour and the dimming. Default: the terminal is asked (`OSC 11`), dark when it does not answer. |
 | `--graphics <auto\|kitty\|ansi\|plain>` | With `--icons`: how the pictures are drawn. Default `auto` (variables, then a question to the terminal). An explicit value is used as given, also when output is not a terminal. The variable `CUBACLE_GRAPHICS` has the same values; the flag wins. Also accepted by `moves` and `recover`. See [Forcing the graphics](icons.md#forcing-the-graphics-and-terminals). |
@@ -88,7 +88,7 @@ Rules and limits:
 - An impossible start or target is rejected: `the start or the target state is impossible`.
 - 4x4x4 and larger: the target holds exactly, with orientation, but its centres must be on their own faces, because the solvers cannot tell centres of one colour apart and so cannot aim for a scrambled arrangement. Turns of the outer layer (`R`, `U'`) keep them there, wide and inner turns do not; `--to Rw` fails with `the target has centres out of place`.
 - 2x2x2: it has no centres to fix its frame, and its solver ends in any of the 24 orientations, so the target counts as reached when the cube shows it after a rotation of the whole cube.
-- With `--icons` the output has `Target state: TOKEN` below `Start state: TOKEN`, and the step pictures end in the target.
+- With `--icons` the output has `Target state: TOKEN` below `Start state: TOKEN`, and the move pictures end in the target.
 - A target is one argument, so `--to` does not read standard input.
 
 ### Shorter solutions
@@ -294,7 +294,7 @@ The first 5x5x5 solve prints `preparing the 5x5x5 tables (cache directory ...)` 
 
 `recover` helps a person who followed a printed solution and made a mistake. Give it the original cube (the one the solution was made for, written as `solve` takes it), the cube as it is now with `--now`, and optionally the solution that was handed out with `--solution`. Without `--solution` it derives the solution with the same defaults as `solve`; the solver is deterministic for the same cube, so this gives the printed one. It works for every size from the 2x2x2 to the 7x7x7.
 
-The cube below is the one of the first example after `B L' U2 B2 U2 B2 D2`: the person skipped step 5 (`D'`) and went on to step 8.
+The cube below is the one of the first example after `B L' U2 B2 U2 B2 D2`: the person skipped move 5 (`D'`) and went on to move 8.
 
 ```sh
 cubacle recover -s "R U2 F' D L2 B R' U' F2 D2 L B'" --now FDDRURLDBRDBLRFFDUUBUUFBLBLBRDFDFBUFRUFULLDRURLDLBFRBL
@@ -302,19 +302,19 @@ cubacle recover -s "R U2 F' D L2 B R' U' F2 D2 L B'" --now FDDRURLDBRDBLRFFDUUBU
 
 ```text
 Your cube is off the path of the solution.
-Most likely: mistake at move 5, phase 1 (to the G1 subgroup): step 5 (D') was skipped.
-You had done 8 of 21 steps when you stopped.
-Recover: do 3 moves D2 B2 D', then continue with step 7 (B2). That is 18 moves in all.
+Most likely: mistake at move 5, phase 1 (to the G1 subgroup): move 5 (D') was skipped.
+You had done 8 of 21 moves when you stopped.
+Recover: do 3 moves D2 B2 D', then continue with move 7 (B2). That is 18 moves in all.
 Fresh: solve your cube again from where it is, 18 moves.
 Recommended: recover, as short as solving fresh and it keeps your printed solution.
 Moves now: D2 B2 D'
-Then continue with step 7 (B2) of the printed solution.
+Then continue with move 7 (B2) of the printed solution.
 ```
 
 The output says one of these things.
 
-- **The cube is on the path**: `you are after step j of n`, and which step comes next.
-- **One or two mistakes explain the cube**: the move and the phase of the solution it is in (named when the solution has more than one phase), the printed move, and what was done instead: the step *skipped*, turned by the *wrong amount* (a quarter instead of a half turn or the reverse), the *wrong way*, in *other layers* (`Fw2` for `3Fw2`), on the *wrong face*, *replaced* by some other move, *done twice*, *swapped* with the next step, or an *extra move* made before it. It also says how many steps were done when the cube was entered. When moves that commute give several equal explanations, the earliest step is shown and the number of the others is printed.
+- **The cube is on the path**: `you are after move j of n`, and which move comes next.
+- **One or two mistakes explain the cube**: the move and the phase of the solution it is in (named when the solution has more than one phase), the printed move, and what was done instead: the move *skipped*, turned by the *wrong amount* (a quarter instead of a half turn or the reverse), the *wrong way*, in *other layers* (`Fw2` for `3Fw2`), on the *wrong face*, *replaced* by some other move, *done twice*, *swapped* with the next move, or an *extra move* made before it. It also says how many moves were done when the cube was entered. When moves that commute give several equal explanations, the earliest move is shown and the number of the others is printed.
 - **One mistake and moves made by hand after it** explain the cube. This is the last resort: it is searched only after every other stage found nothing, so a cube that has a simpler explanation never gets this one. The output then says `then made N stray moves` and `Less certain: this explanation assumes N extra moves after the mistake`; with `--at-move N` the extra moves are taken to follow move N. `-v` shows the stage as `stray moves after the mistake`.
 - **The cube is a few moves away from the path**, but no mistake is named.
 - **Nothing was found** (three or more mistakes, or moves done by hand after the mistake): the fresh solution is printed.
@@ -339,13 +339,13 @@ fresh solve 11.25µs
 search 277.208µs
 stages tried: the window from the move you are sure of; answered by the window from the move you are sure of
 Your cube is off the path of the solution.
-Most likely: mistake at move 5, phase 1 (to the G1 subgroup): step 5 (D') was skipped.
-You had done 8 of 21 steps when you stopped.
-Recover: do 3 moves D2 B2 D', then continue with step 7 (B2). That is 18 moves in all.
+Most likely: mistake at move 5, phase 1 (to the G1 subgroup): move 5 (D') was skipped.
+You had done 8 of 21 moves when you stopped.
+Recover: do 3 moves D2 B2 D', then continue with move 7 (B2). That is 18 moves in all.
 Fresh: solve your cube again from where it is, 18 moves.
 Recommended: recover, as short as solving fresh and it keeps your printed solution.
 Moves now: D2 B2 D'
-Then continue with step 7 (B2) of the printed solution.
+Then continue with move 7 (B2) of the printed solution.
 ```
 
 (The timings on standard error differ from run to run.)
@@ -358,17 +358,17 @@ cubacle recover -s "R U2 F' D L2 B R' U' F2 D2 L B'" --now FDDRURLDBRDBLRFFDUUBU
 
 ```text
 Your cube is off the path of the solution.
-Most likely: mistake at move 5, phase 1 (to the G1 subgroup): step 5 (D') was skipped.
-You had done 8 of 21 steps when you stopped.
-Recover: undo 3 moves by turning D2 B2 U2, then continue with step 5 (D'). That is 20 moves in all.
+Most likely: mistake at move 5, phase 1 (to the G1 subgroup): move 5 (D') was skipped.
+You had done 8 of 21 moves when you stopped.
+Recover: undo 3 moves by turning D2 B2 U2, then continue with move 5 (D'). That is 20 moves in all.
 Fresh: solve your cube again from where it is, 18 moves.
 Recommended: solve fresh, shorter than the recover (20 moves).
 Fresh solution: D2 B2 D' B2 D2 U' F2 D U' R2 U' R' B' L2 D' F U2 R'
 ```
 
-With `--icons` (and `--icon-size`, `--background`, `--columns`, `--views`, as for `solve`) the mistake is also drawn: the cube as it should be after the last correct step and the cube as it is, then the moves to do as step pictures. See [Recover with icons](icons.md#recover-with-icons).
+With `--icons` (and `--icon-size`, `--background`, `--columns`, `--views`, as for `solve`) the mistake is also drawn: the cube as it should be after the last correct move and the cube as it is, then the moves to do as move pictures. See [Recover with icons](icons.md#recover-with-icons).
 
-On a 4x4x4, step 4 of the solution (`F'`) turned the wrong way:
+On a 4x4x4, move 4 of the solution (`F'`) turned the wrong way:
 
 ```sh
 cubacle recover --size 4 -s "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F Uw Rw' F2 Lw" --now UDRRDDUUUUUBBLRFDDRUBDUURBRUDFDFDBDLDBFLDLLFRRRLUBBBFBDURLDFDUFULLBRDRFBFBRRRULBFFLBLLRFLFFULLBF
@@ -376,9 +376,9 @@ cubacle recover --size 4 -s "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F Uw Rw' F2 Lw" --
 
 ```text
 Your cube is off the path of the solution.
-Most likely: mistake at move 4, phase 1 (centres staged): step 4 (F') was turned the wrong way (F).
-You had done 9 of 43 steps when you stopped.
-Recover: undo 6 moves by turning B' Uw L2 F Lw' F', then continue with step 4 (F'). That is 46 moves in all.
+Most likely: mistake at move 4, phase 1 (centres staged): move 4 (F') was turned the wrong way (F).
+You had done 9 of 43 moves when you stopped.
+Recover: undo 6 moves by turning B' Uw L2 F Lw' F', then continue with move 4 (F'). That is 46 moves in all.
 Fresh: solve your cube again from where it is, 42 moves.
 Recommended: solve fresh, shorter than the recover (46 moves).
 Fresh solution: R2 D' R U' Fw D2 Fw B2 U2 F2 Dw' D2 F' Dw2 L B' R L' Bw2 Rw2 F' Bw2 Rw2 D2 F2 R2 F' R2 B R2 L2 B L D R' F2 U' R' B R' L D'
@@ -699,7 +699,7 @@ cubacle moves --size 7 "(R2 F2 L2)*2"
 R2 F2 L2 R2 F2 L2
 ```
 
-With `--icons` it draws the moves as small pictures, as `solve --icons` does for the steps of a solution. See [Move icons](icons.md). `--group dots|none` (default `dots`, needs `--icons`) decides whether `·` and `( )` in the input draw groups; see [Hand units](icons.md#hand-units).
+With `--icons` it draws the moves as small pictures, as `solve --icons` does for the moves of a solution. See [Move icons](icons.md). `--group dots|none` (default `dots`, needs `--icons`) decides whether `·` and `( )` in the input draw groups; see [Hand units](icons.md#hand-units).
 
 ```sh
 cubacle moves R "U'" --icons --format text
@@ -726,7 +726,7 @@ Rejected, with the token in the message: `rw` and `3rw` (a lowercase letter alre
 
 #### Where moves are read and written
 
-Moves are read as WCA, SiGN or SSE, with groups, commutators and ranges, by `solve --scramble`, `convert --scramble` and `facelets`, by `recover --solution`, by `moves` (its moves and `--from`), and by the `scramble` field of the REST API. Moves are written in any of the three by `--notation wca|sign|sse` on `solve` (the solution, the `--icons` step lines and the last line; the icon pictures keep WCA letters), `scramble` and `recover` (every move in the explanation and in `Moves now:` and `Fresh solution:`).
+Moves are read as WCA, SiGN or SSE, with groups, commutators and ranges, by `solve --scramble`, `convert --scramble` and `facelets`, by `recover --solution`, by `moves` (its moves and `--from`), and by the `scramble` field of the REST API. Moves are written in any of the three by `--notation wca|sign|sse` on `solve` (the solution, the `--icons` move lines and the last line; the icon pictures keep WCA letters), `scramble` and `recover` (every move in the explanation and in `Moves now:` and `Fresh solution:`).
 
 ```sh
 cubacle facelets "r U f'"

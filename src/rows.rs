@@ -29,12 +29,12 @@ pub fn rows(steps: Range<usize>, per_row: usize) -> Vec<Range<usize>> {
     out
 }
 
-/// The line above a row, with 1-based step numbers: `steps 9-16 of 128` or `step 3 of 128`.
+/// The line above a row, with 1-based move numbers: `moves 9-16 of 128` or `move 3 of 128`.
 pub fn heading(row: &Range<usize>, total: usize) -> String {
     if row.len() == 1 {
-        format!("step {} of {total}", row.start + 1)
+        format!("move {} of {total}", row.start + 1)
     } else {
-        format!("steps {}-{} of {total}", row.start + 1, row.end)
+        format!("moves {}-{} of {total}", row.start + 1, row.end)
     }
 }
 
@@ -69,7 +69,7 @@ mod tests {
 
     #[test]
     fn headings_count_from_one() {
-        assert_eq!(heading(&(8..16), 128), "steps 9-16 of 128");
-        assert_eq!(heading(&(2..3), 128), "step 3 of 128");
+        assert_eq!(heading(&(8..16), 128), "moves 9-16 of 128");
+        assert_eq!(heading(&(2..3), 128), "move 3 of 128");
     }
 }

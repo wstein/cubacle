@@ -1,7 +1,7 @@
 use std::process::Command;
 
 const ORIGINAL: &str = "R U2 F' D L2 B R' U' F2 D2 L B'";
-/// The original cube after `B L' U2 B2 U2 B2 D2`: step 5 (`D'`) was skipped.
+/// The original cube after `B L' U2 B2 U2 B2 D2`: move 5 (`D'`) was skipped.
 const NOW: &str = "FDDRURLDBRDBLRFFDUUBUUFBLBLBRDFDFBUFRUFULLDRURLDLBFRBL";
 
 fn cubacle(args: &[&str]) -> String {
@@ -52,9 +52,9 @@ fn icons_count_the_differing_stickers() {
     let (count, rest) = rest.split_once(" of ").expect("of");
     let count: usize = count.parse().expect("number");
     assert!(count > 0 && rest.starts_with("54 "), "{line}");
-    // the count line sits between the two pictures and the steps
+    // the count line sits between the two pictures and the moves
     let at = out.find(line).unwrap();
-    assert!(out.find("Is now").unwrap() < at && at < out.find("step 1 of").unwrap());
+    assert!(out.find("Is now").unwrap() < at && at < out.find("move 1 of").unwrap());
 }
 
 #[test]

@@ -1,7 +1,7 @@
 use std::process::Command;
 
 const ORIGINAL: &str = "R U2 F' D L2 B R' U' F2 D2 L B'";
-/// The original cube after `B L' U2 B2 U2 B2 D2`: step 5 (`D'`) was skipped.
+/// The original cube after `B L' U2 B2 U2 B2 D2`: move 5 (`D'`) was skipped.
 const NOW: &str = "FDDRURLDBRDBLRFFDUUBUUFBLBLBRDFDFBUFRUFULLDRURLDLBFRBL";
 
 fn cubacle(args: &[&str]) -> (bool, String, String) {
@@ -20,11 +20,11 @@ fn cubacle(args: &[&str]) -> (bool, String, String) {
 fn a_skipped_move_is_named_and_the_route_is_printed() {
     let (ok, out, _) = cubacle(&["recover", "-s", ORIGINAL, "--now", NOW]);
     assert!(ok);
-    assert!(out.contains("step 5 (D') was skipped"), "{out}");
-    assert!(out.contains("You had done 8 of 21 steps"), "{out}");
+    assert!(out.contains("move 5 (D') was skipped"), "{out}");
+    assert!(out.contains("You had done 8 of 21 moves"), "{out}");
     assert!(out.contains("Moves now: D2 B2 D'"), "{out}");
     assert!(
-        out.contains("Then continue with step 7 (B2) of the printed solution."),
+        out.contains("Then continue with move 7 (B2) of the printed solution."),
         "{out}"
     );
 }
@@ -64,8 +64,8 @@ fn a_cube_on_the_path_says_where() {
     let (_, now, _) = cubacle(&["facelets", &format!("{ORIGINAL} B L' U2 B2")]);
     let (ok, out, _) = cubacle(&["recover", "-s", ORIGINAL, "--now", &now]);
     assert!(ok);
-    assert!(out.contains("you are after step 4 of 21"), "{out}");
-    assert!(out.contains("Continue with step 5 (D')."), "{out}");
+    assert!(out.contains("you are after move 4 of 21"), "{out}");
+    assert!(out.contains("Continue with move 5 (D')."), "{out}");
 }
 
 #[test]
@@ -92,7 +92,7 @@ fn the_move_stopped_at_finds_the_mistake_in_the_first_stage() {
         "-v",
     ]);
     assert!(ok, "{err}");
-    assert!(out.contains("step 5 (D') was skipped"), "{out}");
+    assert!(out.contains("move 5 (D') was skipped"), "{out}");
     assert!(err.contains("answered by the phase of the stop"), "{err}");
 }
 
@@ -122,7 +122,7 @@ fn the_move_you_are_sure_of_is_a_hint_and_the_mistake_names_its_phase() {
     let (ok, out, err) = run("3");
     assert!(ok, "{err}");
     assert!(
-        out.contains("mistake at move 5, phase 1 (to the G1 subgroup): step 5 (D') was skipped"),
+        out.contains("mistake at move 5, phase 1 (to the G1 subgroup): move 5 (D') was skipped"),
         "{out}"
     );
     assert!(

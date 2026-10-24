@@ -336,8 +336,8 @@ fn moves_icons_text_on_a_pipe_has_no_escape_sequences() {
     let (ok, auto, _) = cubacle(&["moves", "R", "U'", "--icons"]);
     assert!(ok);
     assert!(!auto.contains('\x1b'));
-    assert!(auto.starts_with("step 1 of 2: R\nR \u{2191}"), "{auto}");
-    assert!(auto.contains("step 2 of 2: U'\nU' \u{2192}"), "{auto}");
+    assert!(auto.starts_with("move 1 of 2: R\nR \u{2191}"), "{auto}");
+    assert!(auto.contains("move 2 of 2: U'\nU' \u{2192}"), "{auto}");
 }
 
 #[test]
@@ -418,23 +418,23 @@ fn moves_icons_write_graphics_to_a_file() {
 fn solve_icons_on_a_pipe_is_plain_text_and_plain_solve_is_unchanged() {
     let (ok, plain, _) = cubacle(&["solve", "-s", "R U"]);
     assert!(ok);
-    assert!(!plain.contains("step"));
+    assert!(!plain.contains("move"));
     let (ok, icons, _) = cubacle(&["solve", "-s", "R U", "--icons"]);
     assert!(ok);
     assert!(!icons.contains('\x1b'));
-    assert!(icons.contains("step 1 of "));
+    assert!(icons.contains("move 1 of "));
     assert!(icons.trim_end().ends_with(&plain));
 }
 
 #[test]
-fn solve_icons_draws_the_start_state_before_step_one() {
+fn solve_icons_draws_the_start_state_before_move_one() {
     let (ok, icons, _) = cubacle(&["solve", "-s", "R U F", "--icons"]);
     assert!(ok);
     let lines: Vec<&str> = icons.lines().collect();
     assert!(lines[0].starts_with("Start state: "));
     assert_eq!(lines[1], "Start state");
     assert!(lines[2].starts_with("state, folded view"), "{}", lines[2]);
-    let step = icons.find("step 1 of ").unwrap();
+    let step = icons.find("move 1 of ").unwrap();
     assert!(icons.find("Start state\n").unwrap() < step);
     let (_, urf, _) = cubacle(&["solve", "-s", "R U F", "--icons", "--views", "urf"]);
     assert!(urf.contains("Start state\nstate, seen from URF"), "{urf}");
@@ -590,7 +590,7 @@ fn moves_icons_background_sets_the_notation_colour_and_opaque_paints_it() {
 fn solve_icons_takes_a_background_and_plain_solve_does_not() {
     let (ok, out, err) = cubacle(&["solve", "-s", "R U", "--icons", "--background", "light"]);
     assert!(ok, "{err}");
-    assert!(out.contains("step 1 of "));
+    assert!(out.contains("move 1 of "));
     let (ok, _, err) = cubacle(&["solve", "-s", "R U", "--background", "light"]);
     assert!(!ok && err.contains("--icons"), "{err}");
 }
@@ -599,7 +599,7 @@ fn solve_icons_takes_a_background_and_plain_solve_does_not() {
 fn solve_icons_takes_columns_that_a_pipe_does_not_need() {
     let (ok, out, err) = cubacle(&["solve", "-s", "R U", "--icons", "--columns", "3"]);
     assert!(ok, "{err}");
-    assert!(out.contains("step 1 of ") && !out.contains('\x1b'));
+    assert!(out.contains("move 1 of ") && !out.contains('\x1b'));
     for bad in ["0", "x"] {
         let (ok, _, err) = cubacle(&["solve", "-s", "R U", "--icons", "--columns", bad]);
         assert!(!ok && err.contains("invalid value"), "{err}");
@@ -669,7 +669,7 @@ fn a_4x4_icons_solve_on_a_pipe_is_still_plain_text() {
         !icons.contains('\x1b') && !icons.contains("Phase "),
         "{icons}"
     );
-    assert!(icons.contains("step 1 of "));
+    assert!(icons.contains("move 1 of "));
     assert!(icons.trim_end().ends_with(&plain));
 }
 
