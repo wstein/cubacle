@@ -48,3 +48,8 @@ Raw-material notes, category engines.
 - [[Big cubes with a move set are solved by pattern macros]]
 - [[Solution lists are a depth-bounded search]]
 - [[The plain 3x3x3 solve makes 3000 probes and -m keeps them]]
+- [[A symmetry is a sticker permutation plus a colour map]]
+- [[The fingerprint is the least reading over every frame and axis order]]
+- [[Subgroup tests are exact only where pieces describe the group]]
+- [[Cycles use our own spelling and the order comes from the cycle type]]
+- [[Reading cycles as input is an open item]]
