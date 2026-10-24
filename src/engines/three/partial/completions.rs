@@ -170,12 +170,11 @@ pub(super) fn by_completions(
     }
     match best {
         Some(moves) => {
-            let length = moves.len();
             finish(
                 started,
                 Ok(moves),
                 format!(
-                    "best found: {length} moves, the shortest of the two-phase answers to {} complete cubes the target allows (not proven shortest)",
+                    "best found: the shortest of the two-phase answers to {} complete cube(s) the target allows, not proven shortest",
                     all.len()
                 ),
             )

@@ -26,6 +26,9 @@ fn check(args: &SolveArgs) -> Result<(), String> {
     if args.pictures.icons {
         return refuse("--icons");
     }
+    if args.improve || args.parallel {
+        return refuse("--improve and --parallel");
+    }
     Ok(())
 }
 
@@ -42,6 +45,10 @@ pub fn run(args: &SolveArgs, start: &Facelets, target: &Target) -> Result<(), St
         options = options.with_time_budget(Duration::from_millis(millis));
     }
     options = options.with_slices(args.slices);
+    // Targets that need the two-phase search take its counted improvement when asked.
+    if let Some(probes) = args.probes {
+        options = options.with_min_probes(probes);
+    }
     let result = solver.solve_to(start, target, &options);
     if args.verbose {
         eprintln!("elapsed {:?}", result.metrics.elapsed);

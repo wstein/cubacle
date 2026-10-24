@@ -72,6 +72,33 @@ fn the_cross_on_a_3x3_is_reached_in_the_fewest_moves() {
 }
 
 #[test]
+fn few_completions_are_best_found_and_probes_shorten_them() {
+    let start = cube(
+        PuzzleKind::Cube3,
+        "R U2 F' D L2 B R' U F2 D' L B2 U' R2 F D2 L' U",
+    );
+    // every sticker fixed except the three of the URF corner: one completion
+    let to = "UUUUUUUUXXRRRRRRRRFFXFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB";
+    let target = parse_partial(to, None).unwrap().unwrap();
+    let mut lengths = Vec::new();
+    for extra in [&[][..], &["--probes", "3000"][..]] {
+        let mut args = vec!["solve", "R U2 F' D L2 B R' U F2 D' L B2 U' R2 F D2 L' U"];
+        args.extend(["--to", to]);
+        args.extend(extra);
+        let (ok, out, err) = cubacle(&args);
+        assert!(ok, "{err}");
+        assert!(
+            err.contains("best found") && !err.contains("shortest:"),
+            "{err}"
+        );
+        let moves: MoveSequence = out.parse().unwrap();
+        assert!(target.reached_by(&start, &moves), "{out}");
+        lengths.push(moves.len());
+    }
+    assert!(lengths[1] <= lengths[0], "{lengths:?}");
+}
+
+#[test]
 fn a_subset_name_is_refused_on_the_wrong_size() {
     let (ok, _, err) = cubacle(&["solve", "--size", "2", "R U", "--to", "cross"]);
     assert!(!ok);

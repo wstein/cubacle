@@ -79,7 +79,7 @@ fn stickers(cube: &Cubie, positions: &[[usize; 3]; 8]) -> [u8; 24] {
 }
 
 /// Distances from every state to the nearest goal; `None` when no state is a goal.
-fn goal_distances(target: &Target) -> Option<Box<[u8]>> {
+fn goal_distances(target: &Target) -> Option<(Box<[u8]>, usize)> {
     let t = tables();
     let positions = slot_positions();
     let cared = cared_lists(target);
@@ -106,6 +106,7 @@ fn goal_distances(target: &Target) -> Option<Box<[u8]>> {
     if frontier.is_empty() {
         return None;
     }
+    let goals = frontier.len();
     let mut depth = 0u8;
     while !frontier.is_empty() {
         depth += 1;
@@ -121,7 +122,7 @@ fn goal_distances(target: &Target) -> Option<Box<[u8]>> {
         }
         frontier = next;
     }
-    Some(dist)
+    Some((dist, goals))
 }
 
 pub(super) fn solve_to(
@@ -150,7 +151,7 @@ pub(super) fn solve_to(
         Ok(normalised) => normalised,
         Err(message) => return finish(Err(Failure::InvalidInput), Some(message)),
     };
-    let Some(dist) = goal_distances(target) else {
+    let Some((dist, goal_states)) = goal_distances(target) else {
         return finish(
             Err(Failure::Exhausted),
             Some(
@@ -191,7 +192,8 @@ pub(super) fn solve_to(
     finish(
         Ok(solution.into_iter().collect()),
         Some(format!(
-            "shortest: {length} moves, proved by a search from the whole goal set"
+            "shortest: proved by a search from the whole goal set of {} states",
+            goal_states
         )),
     )
 }
