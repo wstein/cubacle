@@ -129,15 +129,26 @@ in <R,U>: no: an edge these faces never touch is moved
 in <R,U,F>: no: an edge these faces never touch is moved
 symmetry: 48 of 48 operations fix it (24 rotations, 24 mirrored)
   1 of them keep every colour, 47 rename colours
-  ...
+  classes: 1 identity, 3 face mirrors, 3 face half turns, 1 inversion, 6 edge mirrors, 6 edge half turns, 6 face quarter turns, 6 quarter-turn mirrors, 8 corner third turns, 8 sixth-turn mirrors
 ```
+
+`identify -v` adds one line per class with the axes and the colour renaming of every operation.
 
 The report has four parts.
 
 - **pattern**: the state is put into canonical form, the smallest sticker string under the 48 cube symmetries (24 rotations and their mirror images) and every renaming of the six colours, and looked up among the library patterns and the solved cube of that size. The text after the name says how the state differs from the library's colouring: `exactly`, `turned`, `mirrored`, `with colours renamed`, or a combination. A state that is no library pattern prints `no library match`; a random cube does not match.
-- **fingerprint**: for every piece orbit (corners, edges, wings by depth, centres) the number of displaced pieces, of twisted corners or flipped edges, and, where pieces can be told apart (corners, and the edges of the 3x3x3 and the middle wings of odd cubes), the cycle type of their permutation. The compact code is `C` corners with `t` twisted, `E` edges and `W<depth>:` wings with `f` flipped, `X` centre orbits (the number of misplaced stickers), each preceded by the number displaced and followed by the cycle lengths in brackets: `C0t0 E0f12` is the superflip. The code is read in every colour frame and axis order that fits and the least is kept, so a cube, its turned or mirrored image and any renaming of its colours give the same code. On an even cube, which has no fixed centres, the frame is the best matching of colours to faces.
+- **fingerprint**: for every piece orbit (corners, edges, wings by depth, centres) the number of displaced pieces, of twisted corners or flipped edges, and, where pieces can be told apart (corners, and the edges of the 3x3x3 and the middle wings of odd cubes), the cycle type of their permutation. The compact code is `C` corners with `t` twisted, `E` edges and `W<depth>:` wings with `f` flipped, `X` (x-centres, on the diagonals of a face), `+` (+-centres, on its mid-lines) and `O` (oblique) centre orbits (the number of misplaced stickers; a ring number follows where a shape has more than one ring, `X2:`), each preceded by the number displaced and followed by the cycle lengths in brackets: `C0t0 E0f12` is the superflip. The code is read in every colour frame and axis order that fits and the least is kept, so a cube, its turned or mirrored image and any renaming of its colours give the same code. On an even cube, which has no fixed centres, the frame is the best matching of colours to faces.
 - **subgroups**: exact tests on the pieces. `corners only`, `edges only` and (4x4x4 up) `centres only` say that nothing else moved. On the 3x3x3, `G1 domino group` (corners untwisted, edges unflipped, the middle-layer edges in the middle layer; one line per axis) and the half-turn group are exact too: the half-turn test checks the classes of four corners and four edges and a table of 648 projected arrangements, and a test walks all 663 552 states of the group to confirm it. `<R,U>` and `<R,U,F>` have no description by pieces, so the test only refutes (a piece those faces never touch is moved) or answers `possible`; `cubacle solve --moves "<R,U>"` is the proof. The tests assume a legal cube.
-- **symmetry**: how many of the 48 symmetries fix the state when the colours may be renamed, how many of those keep every colour literally, and which operations they are with the renaming each needs (a superflip is fixed by all 48 but only after renaming colours; the identity keeps them).
+- **symmetry**: how many of the 48 symmetries fix the state when the colours may be renamed, how many of those keep every colour literally, and how many operations each class has; `-v` lists the operations with the renaming each needs (a superflip is fixed by all 48 but only after renaming colours; the identity keeps them).
+
+Centre orbits are named by where their stickers sit, never by colour, and the same names are used by `identify` and `cycles`. On the 5x5x5 the two orbits are `x-centres (corner side)` and `+-centres (edge side)`; the 6x6x6 and 7x7x7 add `x-centres (middle side)`, `+-centres (middle side)` and `oblique centres (1 and 2 cells in)`, whose two mirror images are told apart by `a` and `b`. For example (5x5x5):
+
+```text
+fingerprint: C0t0 W1:0f12 E0f0 X0 +12
+  ...
+  x-centres (corner side): 24 centre stickers, 0 misplaced
+  +-centres (edge side): 24 centre stickers, 12 misplaced
+```
 
 On a 7x7x7 `identify` takes about 10 ms.
 
@@ -163,7 +174,7 @@ cubacle patterns cycles --size 4 "R U 2R' Fw"
 ```text
 corners: (DFL UFL UBL UBR DBR) +2 0 0 +2 +2; (DFR UFR); 1 in place
 wings 1: ...
-centres 1: ...
+x-centres (corner side): (Ur2c2 Fr3c3 Dr3c3 ...); (Ur3c3 Rr2c2 ...); 5 in place
 order: 780
 order without the centres: 60
 ```
