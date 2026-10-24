@@ -12,13 +12,15 @@
 //! until it is. The solution then uses the faces that the rotation moved into
 //! the U, R and F positions, so that it solves the cube as it was given.
 
+mod partial;
+
 use std::sync::OnceLock;
 use std::time::Instant;
 
 use crate::notation::orbit64::{CORNER_COLOURS, CORNER_FACELETS};
 use crate::puzzle::{
     Face, Facelets, Failure, Move, MoveSequence, PuzzleKind, SolveMetrics, SolveOptions,
-    SolveResult, Solver, Turn,
+    SolveResult, Solver, Target, Turn,
 };
 
 const PERMS: usize = 5040;
@@ -404,6 +406,10 @@ impl Solver for PocketSolver {
     fn prepare(&self) {
         tables();
         rotations();
+    }
+
+    fn solve_to(&self, start: &Facelets, target: &Target, options: &SolveOptions) -> SolveResult {
+        partial::solve_to(self, start, target, options)
     }
 
     fn solve(&self, facelets: &Facelets, options: &SolveOptions) -> SolveResult {
