@@ -185,7 +185,7 @@ pub struct PictureArgs {
     /// Icons per row for --icons (default: as many as fit the terminal width)
     #[arg(long, requires = "icons", value_name = "N", value_parser = clap::value_parser!(u32).range(1..))]
     pub columns: Option<u32>,
-    /// Pictures of a whole cube: both corners (default), urf only, the flat net, or all
+    /// Pictures of a whole cube: folded (default), both corners, urf only, the flat net, or all
     #[arg(long, requires = "icons", value_enum, default_value_t)]
     pub views: Views,
 }

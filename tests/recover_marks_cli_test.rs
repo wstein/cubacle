@@ -58,11 +58,25 @@ fn icons_count_the_differing_stickers() {
 }
 
 #[test]
-fn both_views_are_the_default_and_the_count_line_says_every_difference_is_marked() {
-    let out = cubacle(&["recover", "-s", ORIGINAL, "--now", NOW, "--icons"]);
+fn views_both_draws_two_corners_and_the_count_line_says_every_difference_is_marked() {
+    let out = cubacle(&[
+        "recover", "-s", ORIGINAL, "--now", NOW, "--icons", "--views", "both",
+    ]);
     // two cubes, each as a text picture from the URF and the DBL corner
     assert_eq!(out.matches("state, seen from URF").count(), 2, "{out}");
     assert_eq!(out.matches("state, seen from DBL").count(), 2, "{out}");
+    let line = out
+        .lines()
+        .find(|l| l.starts_with("Stickers that differ: "))
+        .unwrap();
+    assert!(line.contains("all marked amber"), "{line}");
+}
+
+#[test]
+fn the_folded_view_is_the_default_and_marks_every_difference() {
+    let out = cubacle(&["recover", "-s", ORIGINAL, "--now", NOW, "--icons"]);
+    assert_eq!(out.matches("state, folded view").count(), 2, "{out}");
+    assert!(!out.contains("seen from"), "{out}");
     let line = out
         .lines()
         .find(|l| l.starts_with("Stickers that differ: "))

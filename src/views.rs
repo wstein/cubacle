@@ -15,13 +15,13 @@ use crate::terminal::Terminal;
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, clap::ValueEnum)]
 pub enum Views {
     /// Up-Right-Front and the opposite Down-Left-Back corner, so that all six faces show.
-    #[default]
     Both,
     /// Up-Right-Front only, as the move icons.
     Urf,
     /// The flat net: U above F, L F R B in a row, D below; every sticker once, no projection.
     Net,
     /// The corner U F R in perspective with L, D and B unfolded flat around it; every sticker once.
+    #[default]
     Folded,
     /// The net and the two corners.
     All,
@@ -135,13 +135,14 @@ mod tests {
         assert_eq!(
             [
                 count(Views::Both),
+                count(Views::Folded),
                 count(Views::Urf),
                 count(Views::Net),
                 count(Views::All)
             ],
-            [2, 1, 1, 3]
+            [2, 1, 1, 1, 3]
         );
-        assert_eq!(Views::default(), Views::Both);
+        assert_eq!(Views::default(), Views::Folded);
         assert!(!Views::Urf.shows_every_face() && Views::Net.shows_every_face());
     }
 
