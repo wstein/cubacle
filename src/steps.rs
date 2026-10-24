@@ -13,7 +13,8 @@ use cubacle::puzzle::{Facelets, Move, MoveSequence, Turn};
 use cubacle::render::{icon, Action, Icon, Raster, Style};
 
 use crate::icons::{
-    default_height, detect_stdout, show, style, Background, Graphics, GraphicsMode,
+    default_height, detect_stdout, numbered, show, style, Background, Graphics, GraphicsMode,
+    Numbers,
 };
 use crate::rows;
 use crate::terminal::{self, Terminal};
@@ -35,6 +36,8 @@ pub struct SolutionIcons {
     pub columns: Option<usize>,
     /// Which corners the whole-cube pictures are drawn from.
     pub views: Views,
+    /// Whether the icons carry their move number.
+    pub numbers: Numbers,
     /// How the move lines and the final solution line write moves (the icon
     /// labels stay as they are).
     pub notation: Notation,
@@ -221,6 +224,11 @@ pub struct PictureArgs {
     /// Pictures of a whole cube: folded (default), both corners, urf only, the flat net, or all
     #[arg(long, requires = "icons", value_enum, default_value_t)]
     pub views: Views,
+    /// Move numbers in the top-left corner of the --icons pictures: on
+    /// (default) or off. The number is the position in the move list, the
+    /// N of `recover --at-move N`
+    #[arg(long, requires = "icons", value_enum, default_value_t)]
+    pub numbers: Numbers,
 }
 
 impl PictureArgs {
@@ -232,6 +240,7 @@ impl PictureArgs {
             graphics: self.graphics,
             columns: self.columns.map(|c| c as usize),
             views: self.views,
+            numbers: self.numbers,
             notation,
             target: None,
         }
@@ -472,6 +481,7 @@ fn kitty_steps(
             for (at, mv) in row.clone().zip(&moves[row.clone()]) {
                 let action = Action::Layer(*mv);
                 let drawn = icon(&state, &action, style).map_err(|error| error.to_string())?;
+                let drawn = numbered(drawn, at + 1, options.numbers, style.backdrop);
                 let raster = drawn.to_rgba(style.size);
                 rasters.push(row_icon(raster, lone[at]));
                 state = action.apply(&state).map_err(|error| error.to_string())?;

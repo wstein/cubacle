@@ -38,6 +38,7 @@ mod glyphs;
 mod kitty;
 mod label;
 mod net;
+mod number;
 mod pair;
 mod raster;
 mod round;
@@ -183,6 +184,16 @@ fn state_icon_against_seen(
 }
 
 impl Icon {
+    /// The icon with `number` (a move number, from 1) in small grey digits in
+    /// the top-left corner. The digits scale with the icon and keep clear of
+    /// the cube, the arrow, the `2x` mark and the notation. The text picture
+    /// ([`Icon::to_text`]) has no number.
+    #[must_use]
+    pub fn numbered(mut self, number: usize, backdrop: Backdrop) -> Icon {
+        self.shapes.extend(number::shapes(number, backdrop));
+        self
+    }
+
     /// The notation shown beside the cube, e.g. `Rw2` or `2R2`.
     pub fn label(&self) -> &str {
         &self.label

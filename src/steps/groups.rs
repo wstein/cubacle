@@ -12,7 +12,7 @@ use cubacle::puzzle::{Facelets, Move, MoveSequence};
 use cubacle::render::{brackets, icon, Action, BlockSpan, Raster, UnitSpan};
 
 use super::{lone_quarters, row_icon, Pictures};
-use crate::icons::{show, Graphics};
+use crate::icons::{numbered, show, Graphics};
 use crate::views::kitty_block;
 
 /// Pixels between two icons of one group.
@@ -346,6 +346,7 @@ fn kitty(
                 for at in piece.moves.clone() {
                     let action = Action::Layer(moves[at]);
                     let drawn = icon(&state, &action, style).map_err(|error| error.to_string())?;
+                    let drawn = numbered(drawn, at + 1, pictures.options.numbers, style.backdrop);
                     icons.push(row_icon(drawn.to_rgba(style.size), lone[at]));
                     state = action.apply(&state).map_err(|error| error.to_string())?;
                 }

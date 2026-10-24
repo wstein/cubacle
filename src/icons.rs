@@ -50,6 +50,25 @@ impl Background {
     }
 }
 
+/// Whether the icons carry their move number.
+#[derive(Clone, Copy, PartialEq, Eq, Default, ValueEnum)]
+pub enum Numbers {
+    /// A small grey move number in the top-left corner of every icon
+    #[default]
+    On,
+    /// No numbers
+    Off,
+}
+
+/// The icon of a move, numbered when asked: `number` counts from 1 over the
+/// whole move list, the same index that `recover --at-move` takes.
+pub(crate) fn numbered(icon: Icon, number: usize, numbers: Numbers, backdrop: Backdrop) -> Icon {
+    match numbers {
+        Numbers::On => icon.numbered(number, backdrop),
+        Numbers::Off => icon,
+    }
+}
+
 /// How standard output can show an icon.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Graphics {

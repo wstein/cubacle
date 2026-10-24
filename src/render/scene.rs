@@ -15,6 +15,7 @@ pub(crate) enum Part {
     Arrow,
     Mark,
     Label,
+    Number,
     Frame,
 }
 

@@ -10,7 +10,9 @@ use cubacle::puzzle::{Facelets, Move, MoveSequence, PuzzleKind, Turn};
 use cubacle::ranges::{compress, compressed_text, Optimise};
 use cubacle::render::{icon, Action};
 
-use crate::icons::{default_height, detect_stdout, show, style, Background, Format, Graphics};
+use crate::icons::{
+    default_height, detect_stdout, numbered, show, style, Background, Format, Graphics,
+};
 use crate::metrics_out;
 use crate::steps::{Layout, PictureArgs, Pictures};
 
@@ -249,8 +251,10 @@ fn draw(
     }
     let mut state = start;
     let mut bytes: Vec<u8> = Vec::new();
-    for action in &actions {
+    for (at, action) in actions.iter().enumerate() {
         let drawn = icon(&state, action, &style).map_err(|error| error.to_string())?;
+        // the text pictures have no number; the others carry the typed index
+        let drawn = numbered(drawn, at + 1, pictures.numbers, style.backdrop);
         match format {
             Format::Svg | Format::Auto => bytes.extend(drawn.to_svg().into_bytes()),
             Format::Rgba => bytes.extend(drawn.to_rgba(height).data),
