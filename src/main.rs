@@ -4,6 +4,7 @@ mod improve;
 mod metrics_out;
 mod moves_cmd;
 mod partial_cmd;
+mod optimal_cmd;
 mod patterns_cmd;
 mod phase_dots;
 mod recover_cmd;
@@ -189,7 +190,17 @@ struct SolveArgs {
     /// With --all or --count: list every order of commuting moves
     #[arg(long)]
     raw: bool,
-    /// Hard memory cap in megabytes for the tables of --moves
+    /// 3x3x3 only: find a provably shortest solution (half-turn metric). The default
+    /// engine's answer comes first and stays the fallback; a large pruning table (cached in
+    /// the cache directory) drives the search. Limited by -b (default 60000 ms) and --nodes;
+    /// when the limit ends the search, the default answer is printed and stderr says "not
+    /// proven shortest"
+    #[arg(long, conflicts_with_all = ["fast", "probes", "improve", "parallel", "moves", "to", "all", "count"])]
+    optimal: bool,
+    /// With --optimal: stop after this many search nodes (the same on every machine)
+    #[arg(long, value_name = "N", requires = "optimal")]
+    nodes: Option<u64>,
+    /// Hard memory cap in megabytes for the tables of --moves and --optimal
     #[arg(long, value_name = "MB", default_value_t = 1500)]
     max_memory: usize,
     /// Solve to this state instead of to the solved cube: an Orbit64 token,
@@ -465,6 +476,7 @@ fn solve(args: SolveArgs) -> Result<(), String> {
         None => start.clone(),
     };
     improve::check(&args, facelets.kind())?;
+    optimal_cmd::check(&args, facelets.kind())?;
     let restricted = match args.moves.as_deref() {
         Some(text) => restricted_cmd::read_set(text, facelets.kind())?,
         None => None,
@@ -473,9 +485,13 @@ fn solve(args: SolveArgs) -> Result<(), String> {
     if enumerate_cmd::wanted(&args) {
         return enumerate_cmd::run(&args, &start, &facelets, target.as_ref(), restricted);
     }
-    let solver = match &restricted {
-        Some(alphabet) => restricted_cmd::solver_for(alphabet.clone(), args.max_memory)?,
-        None => solver_for(facelets.kind()),
+    let solver = if args.optimal {
+        optimal_cmd::solver(args.max_memory, args.nodes)?
+    } else {
+        match &restricted {
+            Some(alphabet) => restricted_cmd::solver_for(alphabet.clone(), args.max_memory)?,
+            None => solver_for(facelets.kind()),
+        }
     };
 
     let restricted_set = restricted.is_some();
@@ -493,6 +509,7 @@ fn solve(args: SolveArgs) -> Result<(), String> {
     options = options.with_slices(args.slices);
     let mode = improve::mode(&args).or_else(|| {
         improve::default_mode(&args, facelets.kind(), target.is_some(), restricted_set)
+            .filter(|_| !args.optimal)
     });
     let result = match mode {
         Some(mode) if facelets.kind() == PuzzleKind::Cube3 => {
