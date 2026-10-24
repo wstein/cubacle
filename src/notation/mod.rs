@@ -2,6 +2,7 @@
 //! detection. Everything here translates text into [`crate::puzzle`] types.
 
 mod alphabet;
+mod axis;
 mod expr;
 mod input;
 mod named;
@@ -15,6 +16,7 @@ mod sse_write;
 mod subset;
 
 pub use alphabet::{parse_alphabet, AlphabetError, NAMED_SETS};
+pub use axis::axis_units;
 pub use expr::{
     parse_expression, parse_grouped, ExprError, Group, Item, MAX_DEPTH, MAX_EXPANDED_MOVES,
 };
