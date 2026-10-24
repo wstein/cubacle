@@ -36,6 +36,7 @@ pub use fingerprint::{Fingerprint, OrbitStat};
 pub use library::Match;
 pub use subgroup::{Membership, Verdict};
 pub use symmetry::{Operation, Symmetry};
+pub use text::Detailed;
 
 use crate::puzzle::{Facelets, MoveSequence, PuzzleKind};
 

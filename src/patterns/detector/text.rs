@@ -6,14 +6,50 @@ use super::{Report, Symmetry};
 
 impl fmt::Display for Report {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write_matches(f, &self.matches)?;
-        write_fingerprint(f, &self.fingerprint)?;
-        write_subgroups(f, &self.subgroups)?;
-        write_symmetry(f, &self.symmetry)
+        self.write(f, false)
     }
 }
 
-fn write_symmetry(f: &mut fmt::Formatter<'_>, symmetry: &Symmetry) -> fmt::Result {
+/// The report with one line per symmetry operation and its colour renaming.
+pub struct Detailed<'a>(pub(super) &'a Report);
+
+impl fmt::Display for Detailed<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.write(f, true)
+    }
+}
+
+impl Report {
+    fn write(&self, f: &mut fmt::Formatter<'_>, verbose: bool) -> fmt::Result {
+        write_matches(f, &self.matches)?;
+        write_fingerprint(f, &self.fingerprint)?;
+        write_subgroups(f, &self.subgroups)?;
+        write_symmetry(f, &self.symmetry, verbose)
+    }
+
+    /// The report with every symmetry operation listed (`identify -v`).
+    pub fn detailed(&self) -> Detailed<'_> {
+        Detailed(self)
+    }
+}
+
+/// A short plural for the class counts: `3 edge mirrors`.
+fn short_class(class: &str) -> &'static str {
+    match class {
+        "identity" => "identity",
+        "quarter turn about a face axis" => "face quarter turn",
+        "half turn about a face axis" => "face half turn",
+        "half turn about an edge axis" => "edge half turn",
+        "third turn about a corner axis" => "corner third turn",
+        "inversion through the centre" => "inversion",
+        "mirror parallel to a face" => "face mirror",
+        "mirror through opposite edges" => "edge mirror",
+        "quarter turn and mirror" => "quarter-turn mirror",
+        _ => "sixth-turn mirror",
+    }
+}
+
+fn write_symmetry(f: &mut fmt::Formatter<'_>, symmetry: &Symmetry, verbose: bool) -> fmt::Result {
     let order = symmetry.order();
     writeln!(
         f,
@@ -33,6 +69,20 @@ fn write_symmetry(f: &mut fmt::Formatter<'_>, symmetry: &Symmetry) -> fmt::Resul
             Some((_, list)) => list.push(operation),
             None => classes.push((operation.class, vec![operation])),
         }
+    }
+    let counts: Vec<String> = classes
+        .iter()
+        .map(|(class, list)| {
+            let word = short_class(class);
+            match (list.len(), word) {
+                (1, _) | (_, "identity" | "inversion") => format!("{} {word}", list.len()),
+                (n, _) => format!("{n} {word}s"),
+            }
+        })
+        .collect();
+    writeln!(f, "  classes: {}", counts.join(", "))?;
+    if !verbose {
+        return Ok(());
     }
     for (class, operations) in classes {
         let mut axes: Vec<(String, usize)> = Vec::new();

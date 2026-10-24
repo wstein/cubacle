@@ -27,8 +27,8 @@ mod parse;
 
 pub use bases::{bases, Base};
 pub use detector::{
-    cycles_of_moves, cycles_of_state, detect, Cycle, Cycles, Fingerprint, Match, Membership,
-    Operation, OrbitCycles, OrbitStat, Order, Report, Symmetry, Verdict,
+    cycles_of_moves, cycles_of_state, detect, Cycle, Cycles, Detailed, Fingerprint, Match,
+    Membership, Operation, OrbitCycles, OrbitStat, Order, Report, Symmetry, Verdict,
 };
 pub use import::{
     decode_text, import_tab, read_plain, ImportOptions, ImportProblem, ImportReport, ImportRow,

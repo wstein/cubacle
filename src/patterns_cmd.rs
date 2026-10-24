@@ -38,7 +38,7 @@ enum Action {
     Find(FindArgs),
     /// Read the structure of a cube state: its symmetries and, as the detector
     /// grows, the pattern it is, its pieces and the subgroups it lies in
-    Identify(IdentifyArgs),
+    Identify(IdentifyCmd),
     /// Print a state as piece cycles with orientation marks and the order of
     /// the permutation (moves give the exact order; colours only on 2x2x2 and 3x3x3)
     Cycles(IdentifyArgs),
@@ -46,6 +46,15 @@ enum Action {
     Import(crate::patterns_import_cmd::ImportArgs),
     /// Print the config file in use and what each pattern source gave
     Sources,
+}
+
+#[derive(Args)]
+pub struct IdentifyCmd {
+    #[command(flatten)]
+    state: IdentifyArgs,
+    /// List every symmetry operation with the colour renaming it needs
+    #[arg(short, long)]
+    verbose: bool,
 }
 
 #[derive(Args)]
@@ -104,9 +113,12 @@ pub fn run(args: PatternsArgs) -> Result<(), String> {
         None => list(&library(), args.size, args.tree),
         Some(Action::Show { name }) => show(&library(), &name.join(" "), args.size),
         Some(Action::Find(find)) => find_state(&find, args.size.unwrap_or(3)),
-        Some(Action::Identify(identify)) => {
-            identify_state(&identify, args.size.unwrap_or(3), &library())
-        }
+        Some(Action::Identify(identify)) => identify_state(
+            &identify.state,
+            identify.verbose,
+            args.size.unwrap_or(3),
+            &library(),
+        ),
         Some(Action::Cycles(cycles)) => cycles_state(&cycles, args.size.unwrap_or(3)),
         Some(Action::Import(import)) => {
             let dir = config.data_dir()?;
@@ -155,6 +167,7 @@ fn cycles_state(args: &IdentifyArgs, size: usize) -> Result<(), String> {
 /// `patterns identify`: what the structure of a state says about it.
 fn identify_state(
     args: &IdentifyArgs,
+    verbose: bool,
     size: usize,
     library: &crate::patterns_config::Library,
 ) -> Result<(), String> {
@@ -162,7 +175,12 @@ fn identify_state(
         Some(scramble) => crate::scrambled(scramble, crate::kind_of(size)?)?,
         None => crate::parse_text(&args.cube.join(" "), args.scheme, size)?.0,
     };
-    print!("{}", patterns::detect(&state));
+    let report = patterns::detect(&state);
+    if verbose {
+        print!("{}", report.detailed());
+    } else {
+        print!("{report}");
+    }
     for pattern in patterns::identify_imported(&library.extra, &state) {
         println!(
             "imported: {} {} (imported from {})",
