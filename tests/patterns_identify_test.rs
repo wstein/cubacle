@@ -64,3 +64,17 @@ fn a_turned_cube_is_still_the_pattern() {
     assert!(ok);
     assert!(text.contains("(checkerboard)"), "{text}");
 }
+
+#[test]
+fn the_fingerprint_reads_the_pieces() {
+    let (ok, text) = identify(&["U' R2 U' F2 D' R2 U' B F U2 L' B2 R2 F2 D' U F' U2 L' R'"]);
+    assert!(ok);
+    assert!(text.contains("fingerprint: C0t0 E0f12"), "{text}");
+    assert!(
+        text.contains("edges: 12 pieces, 0 displaced, 12 flipped"),
+        "{text}"
+    );
+    let (ok, text) = identify(&["--size", "7", "-s", "R U F' 2R 3U Rw' Fw 4L2 3B"]);
+    assert!(ok);
+    assert!(text.contains("wings (depth 2): 24 pieces"), "{text}");
+}

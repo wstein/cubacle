@@ -7,6 +7,7 @@ use super::{Report, Symmetry};
 impl fmt::Display for Report {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write_matches(f, &self.matches)?;
+        write_fingerprint(f, &self.fingerprint)?;
         write_symmetry(f, &self.symmetry)
     }
 }
@@ -75,6 +76,42 @@ fn write_matches(f: &mut fmt::Formatter<'_>, matches: &[super::Match]) -> fmt::R
     }
     for m in matches {
         writeln!(f, "pattern: {} ({}), {}", m.name, m.id, m.relation)?;
+    }
+    Ok(())
+}
+
+fn write_fingerprint(f: &mut fmt::Formatter<'_>, fingerprint: &super::Fingerprint) -> fmt::Result {
+    writeln!(f, "fingerprint: {}", fingerprint.code())?;
+    for orbit in &fingerprint.orbits {
+        let what = match orbit.name.split_once(' ') {
+            Some(("wings", depth)) => format!("wings (depth {depth})"),
+            _ => orbit.name.clone(),
+        };
+        let unit = if orbit.name == "centres" {
+            "centre stickers"
+        } else {
+            "pieces"
+        };
+        let mut parts = vec![format!("{} {unit}", orbit.pieces)];
+        if orbit.name == "centres" {
+            parts.push(format!("{} misplaced", orbit.displaced));
+        } else {
+            parts.push(format!("{} displaced", orbit.displaced));
+            let word = if orbit.name == "corners" {
+                "twisted"
+            } else {
+                "flipped"
+            };
+            parts.push(format!("{} {word}", orbit.oriented_wrong));
+        }
+        match &orbit.cycles {
+            Some(c) if !c.is_empty() => {
+                let list: Vec<String> = c.iter().map(ToString::to_string).collect();
+                parts.push(format!("cycles of length {}", list.join(", ")));
+            }
+            _ => {}
+        }
+        writeln!(f, "  {what}: {}", parts.join(", "))?;
     }
     Ok(())
 }

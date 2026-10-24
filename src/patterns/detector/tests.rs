@@ -147,3 +147,50 @@ fn every_generator_builds_a_state_the_detector_names() {
         }
     }
 }
+
+#[test]
+fn the_fingerprint_is_the_same_for_every_turn_and_renaming() {
+    for kind in PuzzleKind::ALL {
+        for seed in [3, 4] {
+            let cube = random_cube(kind, seed, 25);
+            let state = colours(&cube);
+            let want = detect(&cube).fingerprint;
+            for g in 0..48 {
+                let seen = renamed(&image(kind, &state, g), NAMINGS[1 + g % 3]);
+                let got = detect(&canon::facelets(&seen)).fingerprint;
+                assert_eq!(got.code(), want.code(), "{kind:?} symmetry {g}");
+            }
+        }
+    }
+}
+
+#[test]
+fn known_states_have_the_expected_fingerprint() {
+    let code = |name: &str, size: usize| {
+        let kind = PuzzleKind::of_size(size).unwrap();
+        let cube = patterns::find(name).unwrap().state(kind).unwrap();
+        detect(&cube).fingerprint.code()
+    };
+    assert_eq!(code("superflip", 3), "C0t0 E0f12");
+    assert_eq!(code("checkerboard", 3), "C0t0 E12f0(2.2.2.2.2.2)");
+    assert_eq!(
+        detect(&Facelets::solved(PuzzleKind::Cube3))
+            .fingerprint
+            .code(),
+        "C0t0 E0f0"
+    );
+    assert_eq!(
+        detect(&Facelets::solved(PuzzleKind::Cube2))
+            .fingerprint
+            .code(),
+        "C0t0"
+    );
+}
+
+#[test]
+fn a_random_cube_is_displaced_nearly_everywhere() {
+    let cube = random_cube(PuzzleKind::Cube3, 9, 40);
+    let fp = detect(&cube).fingerprint;
+    assert!(fp.orbits[0].displaced >= 5, "{}", fp.code());
+    assert!(fp.orbits[1].displaced >= 8, "{}", fp.code());
+}

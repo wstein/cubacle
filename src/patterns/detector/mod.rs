@@ -2,7 +2,8 @@
 //! it is, without searching.
 //!
 //! [`detect`] reports the symmetries that fix the state (with colour swaps),
-//! its canonical form and the library pattern it is, if any.
+//! its canonical form, the library pattern it is (if any) and a fingerprint of
+//! its piece orbits.
 //! It explains a state and never replaces the search for a solution.
 //!
 //! ```
@@ -14,14 +15,17 @@
 //! ```
 
 mod canon;
+mod fingerprint;
 mod geometry;
 mod library;
+mod pieces;
 mod symmetry;
 mod text;
 
 #[cfg(test)]
 mod tests;
 
+pub use fingerprint::{Fingerprint, OrbitStat};
 pub use library::Match;
 pub use symmetry::{Operation, Symmetry};
 
@@ -39,6 +43,9 @@ pub struct Report {
     /// The library patterns the state is (up to turning, mirroring and
     /// recolouring); empty if it is none of them.
     pub matches: Vec<Match>,
+    /// Per piece orbit: how many pieces are displaced, twisted or flipped,
+    /// and the cycle type where pieces can be told apart.
+    pub fingerprint: Fingerprint,
 }
 
 /// The sticker colours of a cube as numbers 0 to 5 in `URFDLB` order.
@@ -55,5 +62,6 @@ pub fn detect(cube: &Facelets) -> Report {
         symmetry: symmetry::symmetry_of(kind, &state),
         matches: library::matches(kind, &state, &canon),
         canonical: canon::facelets(&canon),
+        fingerprint: fingerprint::fingerprint(kind, &state),
     }
 }

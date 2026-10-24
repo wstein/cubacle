@@ -23,7 +23,7 @@ mod model;
 mod parse;
 
 pub use bases::{bases, Base};
-pub use detector::{detect, Operation, Report, Symmetry};
+pub use detector::{detect, Fingerprint, Match, Operation, OrbitStat, Report, Symmetry};
 
 use std::sync::OnceLock;
 
