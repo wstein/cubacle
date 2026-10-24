@@ -5,12 +5,12 @@ use std::io::{IsTerminal, Read, Write};
 use std::path::PathBuf;
 
 use clap::Args;
-use cubacle::notation::{parse_expression, to_wca_token, ColourScheme, Notation};
+use cubacle::notation::{parse_expression, parse_grouped, to_wca_token, ColourScheme, Notation};
 use cubacle::puzzle::{Facelets, MoveSequence, PuzzleKind};
 use cubacle::render::{icon, Action};
 
 use crate::icons::{default_height, detect_stdout, show, style, Background, Format, Graphics};
-use crate::steps::{PictureArgs, Pictures};
+use crate::steps::{Layout, PictureArgs, Pictures};
 
 #[derive(Args)]
 pub struct MovesArgs {
@@ -26,6 +26,10 @@ pub struct MovesArgs {
     notation: Notation,
     #[command(flatten)]
     pictures: PictureArgs,
+    /// With --icons, draw the groups marked by "·" and "( )": dots (default)
+    /// or none (one icon per step)
+    #[arg(long, requires = "icons", value_enum, default_value_t)]
+    group: GroupMode,
     /// With --icons, the output format
     #[arg(long, requires = "icons", value_enum, default_value = "auto")]
     format: Format,
@@ -49,6 +53,16 @@ pub struct MovesArgs {
     /// cube left by the moves before it (default: each move on its own start cube)
     #[arg(long, requires = "icons")]
     cumulative: bool,
+}
+
+/// How `moves --icons` treats `·` and `( )` in the input.
+#[derive(Clone, Copy, PartialEq, Eq, Default, clap::ValueEnum)]
+enum GroupMode {
+    /// Draw the groups with brackets and numbers
+    #[default]
+    Dots,
+    /// One icon per step, as without the dots
+    None,
 }
 
 /// The expression words joined, or standard input for a lone "-".
@@ -117,7 +131,12 @@ fn draw(
     if args.format == Format::Auto && to_stdout {
         // Step pictures, as `solve --icons` shows them.
         let options = pictures.options(args.scheme, args.notation);
-        let steps = Pictures::new(args.size, &options).steps(&start, moves, &[])?;
+        let mut pictures = Pictures::new(args.size, &options);
+        if args.group == GroupMode::Dots && (text.contains('·') || text.contains('(')) {
+            let tree = parse_grouped(text, kind).map_err(|error| error.to_string())?;
+            pictures = pictures.grouped(Layout::of(&tree));
+        }
+        let steps = pictures.steps(&start, moves, &[])?;
         return std::io::stdout()
             .lock()
             .write_all(steps.as_bytes())

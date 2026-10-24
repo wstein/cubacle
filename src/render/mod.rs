@@ -30,6 +30,7 @@
 
 mod action;
 mod arrow;
+mod brackets;
 mod font;
 mod geometry;
 mod glyphs;
@@ -47,6 +48,7 @@ mod text;
 
 pub use action::{Action, Axis, RenderError};
 pub use arrow::Direction;
+pub use brackets::{bracket_height, brackets, BlockSpan, UnitSpan};
 pub use kitty::KittyPlacement;
 pub use net::{state_icon_net, state_icon_net_against};
 pub use pair::{opposite_view, state_icon_pair, state_icon_pair_against};

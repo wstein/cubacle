@@ -83,6 +83,27 @@ impl Raster {
         self
     }
 
+    /// `top` above `bottom`, left-aligned; the result is as wide as the wider one.
+    pub fn vstack(top: &Raster, bottom: &Raster) -> Raster {
+        let width = top.width.max(bottom.width);
+        let height = top.height + bottom.height;
+        let w = width as usize;
+        let mut data = vec![0u8; w * height as usize * 4];
+        let mut y = 0usize;
+        for raster in [top, bottom] {
+            let rw = raster.width as usize;
+            for row in raster.data.chunks_exact(rw.max(1) * 4) {
+                data[y * w * 4..y * w * 4 + rw * 4].copy_from_slice(row);
+                y += 1;
+            }
+        }
+        Raster {
+            width,
+            height,
+            data,
+        }
+    }
+
     /// Places `rasters` side by side, top-aligned, with `gap` transparent
     /// pixels between neighbours. The result is as tall as the tallest one;
     /// where a raster is shorter, the rest of its column is transparent.

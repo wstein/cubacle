@@ -19,6 +19,9 @@ use crate::rows;
 use crate::terminal::{self, Terminal};
 use crate::views::{kitty_block, kitty_state, Views};
 
+mod groups;
+pub use groups::Layout;
+
 /// What `solve --icons` was asked for.
 pub struct SolutionIcons {
     pub scheme: Option<ColourScheme>,
@@ -209,6 +212,8 @@ pub struct Pictures<'a> {
     style: Style,
     options: &'a SolutionIcons,
     collapse_empty: bool,
+    /// Hand units to draw the moves in (`moves --icons` with `·`).
+    layout: Option<Layout>,
 }
 
 impl<'a> Pictures<'a> {
@@ -231,7 +236,14 @@ impl<'a> Pictures<'a> {
             style,
             options,
             collapse_empty: false,
+            layout: None,
         }
+    }
+
+    /// Draws the moves in groups instead of one icon per step.
+    pub fn grouped(mut self, layout: Layout) -> Pictures<'a> {
+        self.layout = Some(layout);
+        self
     }
 
     /// Runs of phases with nothing to do get one heading line (`recover`).
@@ -247,6 +259,9 @@ impl<'a> Pictures<'a> {
         solution: &MoveSequence,
         found: &[Phase],
     ) -> Result<String, String> {
+        if let Some(layout) = &self.layout {
+            return groups::steps(self, start, solution, layout);
+        }
         if self.graphics == Graphics::Kitty {
             kitty_steps(
                 start,
