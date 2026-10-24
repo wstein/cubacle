@@ -39,3 +39,4 @@ Raw-material notes, category engines.
 - [[One pattern search serves solve, the library and patterns find]]
 - [[A pattern detector reads structure from the cubie state]]
 - [[The detector explains patterns and never replaces the search]]
+- [[Partial targets are solved as a goal-set search]]

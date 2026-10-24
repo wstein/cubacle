@@ -1,0 +1,14 @@
+---
+id: 20261024140001
+aliases: []
+tags: ["type/design", "status/open", "category/engines"]
+---
+A partial target is solved per engine as a search for any state in a goal set. The relative state T^-1 S needs one definite target, so it stays the path for full targets only, with byte-identical output. The 2x2x2 gets an exact multi-source breadth-first table; the 3x3x3 enumerates completions when they are few and otherwise searches with relaxed projection tables (exact for the cross, best-effort with a node limit for F2L); the reduction engines use their own stages as goals (centres only). A colour goal also lifts the moved-centres refusal on 4x4 and up. The result says shortest only where that is proven.
+
+## Links
+
+- [[A partial target is a map from slots to allowed colours]]
+- [[A target is solved as a relative state]]
+- [[Pattern states are projections onto layer sets]]
+
+Source: docs/design/dont-care-targets.md, lines 90-190
