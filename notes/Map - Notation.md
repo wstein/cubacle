@@ -10,6 +10,7 @@ Raw-material notes, category notation.
 - [[Orbit64 tokens]]
 - [[Solve icons checkpoints are Orbit64 tokens]]
 - [[Quarter turn frame is off by default]]
+- [[Icons carry the move number that recover takes]]
 - [[Colour schemes]]
 - [[Orbit64 slot numbering caveat]]
 - [[Orbit64 verification by size]]

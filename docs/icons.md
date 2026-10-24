@@ -110,7 +110,7 @@ G Y R r
 cubacle solve --scramble "R U" --icons
 ```
 
-On a Kitty-graphics terminal the solution is shown in phases (see below) and the icons come in rows, as many side by side as fit the width of the terminal, and each row has a line above it such as `moves 9-16 of 128`. A row is one image, with 8 pixels between the icons, and the background stays transparent. The last line is the plain move string. Without graphics (a pipe, `NO_COLOR`, `TERM=dumb` or another terminal), each move prints `move i of n: MOVE` and then its text picture, as before. A quarter turn with a half turn right before and right after it, the easiest move to do as a half turn, gets the note `<-- quarter turn, not a half turn` after its move, as in `move 9 of 21: F   <-- quarter turn, not a half turn`. An optional compile-time feature, off by default, also draws an amber frame around the icon of such a move in the Kitty rows (see below). Without `--icons`, the output of `solve` does not change. The colours come from `--scheme` (`boy` by default).
+On a Kitty-graphics terminal the solution is shown in phases (see below) and the icons come in rows, as many side by side as fit the width of the terminal, and every icon has its move number in the top-left corner (see [Move numbers](#move-numbers)). A row is one image, with 8 pixels between the icons, and the background stays transparent. The last line is the plain move string. Without graphics (a pipe, `NO_COLOR`, `TERM=dumb` or another terminal), each move prints `move i of n: MOVE` and then its text picture, as before. A quarter turn with a half turn right before and right after it, the easiest move to do as a half turn, gets the note `<-- quarter turn, not a half turn` after its move, as in `move 9 of 21: F   <-- quarter turn, not a half turn`. An optional compile-time feature, off by default, also draws an amber frame around the icon of such a move in the Kitty rows (see below). Without `--icons`, the output of `solve` does not change. The colours come from `--scheme` (`boy` by default).
 
 | Option | Meaning |
 | --- | --- |
@@ -118,60 +118,28 @@ On a Kitty-graphics terminal the solution is shown in phases (see below) and the
 | `--columns N` | Icons per row. Default: as many as fit. Wide rows are cut off by the terminal, so a large `N` is your own choice. |
 | `--background dark\|light` | What the icons are seen on. Default: asked from the terminal, dark when it does not answer. |
 | `--views folded\|both\|urf\|net\|all` | Pictures of a whole cube: the folded view (`folded`, default), the two corners (`both`), URF only (`urf`), the flat net (`net`) or the net and the two corners (`all`). See [The folded view](#the-folded-view), [Two views of a state](#two-views-of-a-state) and [The flat net](#the-flat-net). |
+| `--numbers on\|off` | The move number in the top-left corner of every icon (`on`, default) or none. See [Move numbers](#move-numbers). |
 
 ### Phases
 
-The solution is cut into phases, and each phase has a heading line, its rows of icons and then a picture of the cube after it. A row never spans two phases.
+The solution is cut into phases, and each phase has a heading line, then its rows of icons. The heading says how many moves the phase has and which moves of the whole solution they are: `Phase 4: 3x3 stage (19 moves, moves 9-27 of 27)`, or `(1 move, move 27 of 27)` for one move. A phase that is the whole solution, as on the 2x2x2 and often on the 3x3x3, says only `Phase 1: solve (3 moves)`; an empty phase says `(nothing to do)`. The picture of the cube after a phase is an item of the last row of the phase, right after its last icon, as tall as an icon with its notation line and as wide as its shape needs (two icon cells, gap included); when fewer than two cells are left in the row it starts the next row. The picture has no frame and no heading of its own. The block of a phase ends with the line `State after phase N as token: TOKEN` on a line of its own, and one blank line separates it from the next block (the final plain move string follows directly). A row never spans two phases, and the start picture is the first item of the first row.
 
 ```text
-Phase 1: centres (25 moves)
-moves 1-10 of 44
-(a row of 10 icons)
-moves 11-20 of 44
-(a row of 10 icons)
-moves 21-25 of 44
-(a row of 5 icons)
-State after phase 1 - compare it with your cube
-(a framed picture of the cube)
-State after phase 1 as token: (an Orbit64 token)
-Phase 2: edges (nothing to do)
-Phase 3: 3x3 stage (19 moves)
+Phase 1: centres staged (19 moves, moves 1-19 of 70)
+(rows of icons numbered 1 to 19, the last row ends with the picture of the cube after the phase)
+State after phase 1 as token: TOKEN
+
+Phase 2: wings staged (6 moves, moves 20-25 of 70)
 ...
 ```
 
-The state picture has no arrow, no notation and no dimming: every sticker is in full colour inside a thin frame, so that it cannot be mistaken for a move. Compare it with your own cube before you go on.
-
-For the 4x4x4 to 7x7x7 the phases are the stages of the engine that solved the cube: the engine notes where each stage ends and the program carries those ends through the rewriting of the answer, so a phase ends where the engine's stage ended (matched by the state of the cube; when the rewriting leaves no such state, at the closest one). For the 2x2x2 and 3x3x3 the phases are read from the cube: the solution is replayed and a phase ends at the first move after which its condition holds for the rest of the solution. A phase with no moves keeps its number and its heading reads `nothing to do`, with no icons and no picture. A phase that no answer of an engine ever needs is not in its list: the big cubes have no `edges` phase, because their engines pair the wings together with the centres.
-
-| Cube | Phases |
-| --- | --- |
-| 2x2x2 | `solve` |
-| 3x3x3 | `to the G1 subgroup` (corners and edges oriented, the four middle-layer edges in the middle layer: the Kociemba domino state), `solve` |
-| 4x4x4 | `centres staged` (each pair of opposite colours has its centres on one axis), `centres sorted and wings split` (the centres sorted far enough for the last phase and every wing pair in the half-slot split it needs), `centres and wings paired` (the cube is now a 3x3x3), `3x3 stage` |
-| 5x5x5 | `centres staged` (the same, in two searches), `wings staged` (the wings in slots where they can be paired), `centres and wings paired` (a 3x3x3), `3x3 stage` |
-| 6x6x6, 7x7x7 | `left/right centres staged`, `up/down centres staged`, `centres prepared`, `inner wings and centres`, `outer wings and centres` (a 3x3x3), `3x3 stage` |
-
-The 6x6x6 and 7x7x7 engine follows dwalton76/rubiks-cube-NxNxN-solver, whose many small steps are grouped into the six phases like this:
-
-| Phase | 6x6x6 steps | 7x7x7 steps |
-| --- | --- | --- |
-| `left/right centres staged` | inner x-centres staged and obliques paired; centres staged | inner centres staged; obliques paired; centres staged |
-| `up/down centres staged` | the same for up and down | the same for up and down |
-| `centres prepared` | the two last centre steps ("reducible") | the three last centre steps (bars, daisy) |
-| `inner wings and centres` | the 4x4x4 engine on the inner wings and centres | the 5x5x5 engine on the inner wings and centres |
-| `outer wings and centres` | the 5x5x5 engine on the outer wings and centres | the 5x5x5 engine on the outer wings and centres |
-| `3x3 stage` | the 3x3x3 solver | the 3x3x3 solver |
-
-Measured on three random 7x7x7 cubes (183 to 190 moves) the phases take 30 to 33, 28 to 31, 30 to 33, 35 to 40, 32 to 42 and 21 moves, so none dominates. At the end of `inner wings and centres` the centres inside the outermost ring are one colour per face; at the end of `outer wings and centres` all centres are solved and all wings are paired. With `--verbose`, the phases are also written to standard error, for every cube and with or without `--icons`:
-
-```text
-phase 1: centres staged, moves 1-19
-phase 2: wings staged, moves 20-25
-phase 3: centres and wings paired, moves 26-51
-phase 4: 3x3 stage, moves 52-70
-```
+With `-v` the lines `phase 1: centres staged, moves 1-19` go to standard error as before, except with `--icons` on a graphics terminal, where the headings already say it.
 
 Without graphics there are no phase headings: the text output is one picture per move, as before, and the token line of a phase follows the last move of that phase.
+
+### Move numbers
+
+Every icon of `solve --icons`, `recover --icons` and `moves --icons` has its move number in the top-left corner, in small grey digits that read on a dark and on a light background. The number counts over the whole list of moves drawn (1 to N, across phases), and it is the N of `recover --at-move N`: the move you did last before you noticed the mistake. For `solve --icons` that is the position in the printed solution; `recover --icons` draws the moves to do now and numbers them from 1 on its own list; `moves --icons` counts over the typed moves, also with `--format svg` and `--out`. `--numbers off` hides the numbers everywhere; `--numbers on` is the default. Without graphics the line `move i of n: MOVE` above the text picture already numbers the moves.
 
 ### Quarter-turn frame
 
@@ -242,7 +210,7 @@ B Y W  R B O  Y R R  Y O R
 
 ### Checkpoints
 
-`solve --icons` also draws the start state, under the heading `Start state` in the current view, right after the line `Start state: TOKEN` and before move 1 (on a pipe too; `recover --icons` keeps its `Should be` and `Is now` pictures, `moves --icons` has no start state). It writes the cube as an [Orbit64 token](cli.md) (the text `convert --to token` writes) at these places: the line `Start state: TOKEN` once at the top, and the line `State after phase N as token: TOKEN` after each phase that has moves, below the state picture on a graphics terminal and after its last move otherwise. A phase with nothing to do has no line. The last token is the solved cube. Keep the start token; after a phase, the token of your own cube can be compared with the printed one. Plain `solve` without `--icons` prints no token.
+`solve --icons` also draws the start state in the current view, as the first item of the first row (two icon cells wide, no frame, no heading; without graphics directly below the line `Start state: TOKEN`) and before move 1 (on a pipe too; `recover --icons` keeps its `Should be` and `Is now` pictures, `moves --icons` has no start state). It writes the cube as an [Orbit64 token](cli.md) (the text `convert --to token` writes) at these places: the line `Start state: TOKEN` once at the top, and the line `State after phase N as token: TOKEN` after each phase that has moves, below the rows of the phase on a graphics terminal and after its last move otherwise, followed by a blank line when more output follows. A phase with nothing to do has no line. The last token is the solved cube. Keep the start token; after a phase, the token of your own cube can be compared with the printed one. Plain `solve` without `--icons` prints no token.
 
 ### How the terminal is asked
 
@@ -257,7 +225,7 @@ Inside `tmux` and `screen` (`TMUX` or `STY` is set, or `TERM` starts with `scree
 
 ## Recover with icons
 
-`recover` takes the same options as `solve`, with the same names and meaning (`--icons`, `--icon-size`, `--background`, `--columns`, `--views`; all but the first need `--icons`):
+`recover` takes the same options as `solve`, with the same names and meaning (`--icons`, `--icon-size`, `--background`, `--columns`, `--views`, `--numbers`; all but the first need `--icons`):
 
 ```sh
 cubacle recover -s "R U2 F' D L2 B R' U' F2 D2 L B'" --now FDDRURLDBRDBLRFFDUUBUUFBLBLBRDFDFBUFRUFULLDRURLDLBFRBL --at-move 7 --sure-until 3 --icons

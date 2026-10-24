@@ -50,12 +50,13 @@ The first two lines go to standard error. `moves N` is always printed there, `el
 | `--notation <wca\|sign\|sse>` | How the solution is written. Default `wca` (`Rw`, `3Rw`); `sign` writes `r`, `3r`; `sse` writes `TR`, `T3R`, `MR` (see [Move notations](#move-notations)). With `--icons` it also sets the move lines and the last line; the icon labels stay WCA. |
 | `--optimise ranges` | After the solve, with no search: adjacent turns of one axis are written as layer ranges where that is shorter (`2-3r` in sign, `2-3Rw` in wca, `V2R`, `M2R` or `N2-4R` in sse; only contiguous layers). Off by default. The solution is the same state; stderr reports `moves N` (as solved), `compressed moves M` and, after the metrics line of the plain answer, `compressed metrics: ...`; stdout holds the compressed text. Not combined with `--icons`. On 20 random 4x4x4 to 7x7x7 solutions it saved 0 to 2 moves (2 of 20 saved any, both 7x7x7), on 14 human 4x4x4+ states 0 to 5, because the solvers already merge most axis runs. |
 | `--group <none\|phases>` | `phases` writes the solution with ` · ` between the solver phases that the engine reports (see [Hand units](#hand-units)); `none` (default) is the plain list. Not with `--icons`. With `--optimise ranges` each phase is compressed on its own, so no range crosses a dot. |
-| `--icons` | Show each move as an icon. The output begins with `Start state: TOKEN`, then the start state as a picture under the heading `Start state`, and has a line `State after phase N as token: TOKEN` after each phase, so that a checkpoint can be compared with your cube. See [Move icons](icons.md#checkpoints). |
+| `--icons` | Show each move as an icon. The output begins with `Start state: TOKEN`, then the start state as a picture (two icon cells wide, no frame, no heading), and has a line `State after phase N as token: TOKEN` after each phase, so that a checkpoint can be compared with your cube. See [Move icons](icons.md#checkpoints). |
 | `--icon-size <PIXELS>` | With `--icons`: icon height in pixels. Default: 32 per cube layer, at least 96. |
 | `--background <dark\|light>` | With `--icons`: what the icons are seen on. It sets the notation colour and the dimming. Default: the terminal is asked (`OSC 11`), dark when it does not answer. |
 | `--graphics <auto\|kitty\|ansi\|plain>` | With `--icons`: how the pictures are drawn. Default `auto` (variables, then a question to the terminal). An explicit value is used as given, also when output is not a terminal. The variable `CUBACLE_GRAPHICS` has the same values; the flag wins. Also accepted by `moves` and `recover`. See [Forcing the graphics](icons.md#forcing-the-graphics-and-terminals). |
 | `--columns <N>` | With `--icons` on a graphics terminal: icons per row. Default: as many as fit the terminal width. See [Move icons](icons.md#how-the-terminal-is-asked). |
 | `--views <folded\|both\|urf\|net\|all>` | With `--icons`: how the whole-cube state pictures are drawn. `folded` (default) draws the Up-Right-Front corner in perspective with L, D and B unfolded flat around it, every sticker once; `both` draws each state from the Up-Right-Front and from the opposite Down-Left-Back corner, side by side, so all six faces show; `urf` only the first; `net` the flat cross net (U above F, L F R B in a row, D below), every sticker once; `all` the net and both corners. See [The folded view](icons.md#the-folded-view), [Two views of a state](icons.md#two-views-of-a-state) and [The flat net](icons.md#the-flat-net). |
+| `--numbers <on\|off>` | With `--icons`: the move number in the top-left corner of every icon (`on`, default) or none. The number is the position in the move list, the N of `recover --at-move N`. See [Move numbers](icons.md#move-numbers). |
 | `-v`, `--verbose` | Print timing and search statistics to standard error. With `--probes` or `--improve` also `improved from L1 to L2 moves`. Also one line per phase of the solution, such as `phase 1: to the G1 subgroup, moves 1-14` or `phase 2: wings staged, moves 20-25`; the 4x4x4 to 7x7x7 name the stages of their engine (see [Move icons](icons.md#phases)). |
 
 A cube argument of `-` reads the cube from standard input:
@@ -366,7 +367,7 @@ Recommended: solve fresh, shorter than the recover (20 moves).
 Fresh solution: D2 B2 D' B2 D2 U' F2 D U' R2 U' R' B' L2 D' F U2 R'
 ```
 
-With `--icons` (and `--icon-size`, `--background`, `--columns`, `--views`, as for `solve`) the mistake is also drawn: the cube as it should be after the last correct move and the cube as it is, then the moves to do as move pictures. See [Recover with icons](icons.md#recover-with-icons).
+With `--icons` (and `--icon-size`, `--background`, `--columns`, `--views`, `--numbers`, as for `solve`) the mistake is also drawn: the cube as it should be after the last correct move and the cube as it is, then the moves to do as move pictures. See [Recover with icons](icons.md#recover-with-icons).
 
 On a 4x4x4, move 4 of the solution (`F'`) turned the wrong way:
 
@@ -699,7 +700,7 @@ cubacle moves --size 7 "(R2 F2 L2)*2"
 R2 F2 L2 R2 F2 L2
 ```
 
-With `--icons` it draws the moves as small pictures, as `solve --icons` does for the moves of a solution. See [Move icons](icons.md). `--group dots|none` (default `dots`, needs `--icons`) decides whether `·` and `( )` in the input draw groups; see [Hand units](icons.md#hand-units).
+With `--icons` it draws the moves as small pictures, as `solve --icons` does for the moves of a solution, each with its move number (`--numbers off` hides them). See [Move icons](icons.md). `--group dots|none` (default `dots`, needs `--icons`) decides whether `·` and `( )` in the input draw groups; see [Hand units](icons.md#hand-units).
 
 ```sh
 cubacle moves R "U'" --icons --format text
