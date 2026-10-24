@@ -7,6 +7,7 @@ Intel and AMD hosts with 96 GB of memory are available to the owner from the wee
 
 ## Links
 
+- [[Searches are capped at 1.5 GB and run one at a time]]
 - [[An optimal mode is a measured clean-room design]]
 
 Source: docs/patterns.md, lines 1-10

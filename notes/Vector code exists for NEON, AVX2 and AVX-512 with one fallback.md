@@ -7,6 +7,7 @@ Hot loops with byte permutations (optimal search, pattern search, 5x5 and 7x7 ta
 
 ## Links
 
+- [[Pattern search speed comes from measuring first, then symmetry, compact states and cores]]
 - [[An optimal mode is a measured clean-room design]]
 
 Source: docs/patterns.md, lines 1-10

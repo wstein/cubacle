@@ -7,6 +7,9 @@ An optimal mode (`solve --optimal`) finds a shortest 3x3 solution with a large p
 
 ## Links
 
+- [[Shorter solutions beat compute time]]
+- [[Pattern search speed comes from measuring first, then symmetry, compact states and cores]]
+- [[A study of stickersolve shows what to adopt and what not]]
 - [[Licensing]]
 
 
