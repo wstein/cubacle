@@ -3,6 +3,7 @@ mod icons;
 mod improve;
 mod metrics_out;
 mod moves_cmd;
+mod partial_cmd;
 mod patterns_cmd;
 mod phase_dots;
 mod recover_cmd;
@@ -28,11 +29,12 @@ use cubacle::engines::two::PocketSolver;
 use cubacle::generate;
 use cubacle::notation::orbit64;
 use cubacle::notation::{
-    colour_scheme_of, named_target, parse_cube, parse_expression, ColourScheme, Notation,
+    colour_scheme_of, named_target, parse_cube, parse_expression, parse_partial, ColourScheme,
+    Notation,
 };
 use cubacle::phases::{from_stages, phases};
 use cubacle::puzzle::{
-    reaches, relative_state, Facelets, Failure, PuzzleKind, SolveOptions, Solver,
+    reaches, relative_state, Facelets, Failure, PuzzleKind, SolveOptions, Solver, Target,
 };
 use cubacle::ranges::Optimise;
 
@@ -193,8 +195,9 @@ struct SolveArgs {
     /// Solve to this state instead of to the solved cube: an Orbit64 token,
     /// URFDLB facelets, W/R/G/Y/O/B colours or a move expression applied to the
     /// solved cube of the start's size (one argument: quote it), or one of the
-    /// names superflip, checkerboard, cube-in-cube. The moves printed take the
-    /// start to the target.
+    /// names superflip, checkerboard, cube-in-cube. An X (or ?) in facelets or
+    /// colours marks a sticker that may show any colour; the moves printed
+    /// reach any such state. The moves printed take the start to the target.
     #[arg(long, value_name = "TARGET")]
     to: Option<String>,
     /// Mark the solver phases in the answer with " · " (none: a plain list). A
@@ -346,15 +349,31 @@ fn parse_text(
 }
 
 /// The state `--to` names, read like the start; a move expression is applied
-/// to the solved cube of the start's size.
-fn read_target(text: &str, args: &SolveArgs, start: &Facelets) -> Result<Facelets, String> {
+/// to the solved cube of the start's size. A text with `X` or `?` stickers
+/// gives a partial target; every other form is a complete state.
+fn read_target(text: &str, args: &SolveArgs, start: &Facelets) -> Result<Target, String> {
     // A pattern name is taken only when the whole text is that name.
     if let Some(named) = named_target(text, start.kind()) {
-        return named.map_err(|error| format!("--to: {error}"));
+        return named
+            .map(|state| Target::complete(&state))
+            .map_err(|error| format!("--to: {error}"));
+    }
+    if let Some(partial) =
+        parse_partial(text, args.input.scheme).map_err(|error| format!("--to: {error}"))?
+    {
+        if partial.kind() != start.kind() {
+            return Err(format!(
+                "--to: the start is a {0}x{0}x{0} but the target has {1} stickers, a {2}x{2}x{2}",
+                start.kind().size(),
+                partial.kind().facelet_count(),
+                partial.kind().size()
+            ));
+        }
+        return Ok(partial);
     }
     let (target, _) = parse_text(text, args.input.scheme, start.kind().size())
         .map_err(|error| format!("--to: {error}"))?;
-    Ok(target)
+    Ok(Target::complete(&target))
 }
 
 /// The engine for a cube size, prepared; progress goes to standard error. From
@@ -427,6 +446,13 @@ fn solve(args: SolveArgs) -> Result<(), String> {
         .as_deref()
         .map(|text| read_target(text, &args, &start))
         .transpose()?;
+    // A target with open stickers is a set of states, not one: the engine
+    // searches for the set. Every other target is a state and keeps the
+    // relative-state path below.
+    if let Some(partial) = target.as_ref().filter(|t| t.as_state().is_none()) {
+        return partial_cmd::run(&args, &start, partial);
+    }
+    let target = target.and_then(|t| t.as_state());
     // The cube to solve: the start itself, or what is left of it after the
     // target is taken out.
     let facelets = match &target {
