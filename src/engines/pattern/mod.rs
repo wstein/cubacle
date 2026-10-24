@@ -9,7 +9,7 @@
 //! fewer moves. A cube that is no such product gets the engine's answer
 //! unchanged.
 //!
-//! Files: `library` (the macros), `search` (meet in the middle over their
+//! Files: `library` (the macros, built from `crate::patterns::bases`), `search` (meet in the middle over their
 //! products), and for the generator search of `examples/pattern_search`:
 //! `geometry` (sticker tables), `steps` (the move sets) and `bidir` (the
 //! bidirectional search over them).

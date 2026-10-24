@@ -17,8 +17,11 @@
 //! assert_eq!(Some(cube), pattern.state(PuzzleKind::Cube3));
 //! ```
 
+mod bases;
 mod model;
 mod parse;
+
+pub use bases::{bases, Base};
 
 use std::sync::OnceLock;
 

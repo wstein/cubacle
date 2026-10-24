@@ -25,7 +25,7 @@ fn turn_of(quarters: usize) -> Turn {
     }
 }
 
-fn step_of(n: usize, moves: &[LayerMove]) -> Step {
+pub fn step_of(n: usize, moves: &[LayerMove]) -> Step {
     let mut table: Vec<usize> = (0..6 * n * n).collect();
     for mv in moves {
         table = compose(&table, &source_table(n, mv));

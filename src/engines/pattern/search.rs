@@ -9,6 +9,7 @@
 use std::collections::HashMap;
 use std::time::Instant;
 
+use super::geometry::{apply, hash};
 use super::library::Library;
 use crate::puzzle::{Facelets, MoveSequence};
 
@@ -33,54 +34,41 @@ fn unpack(mut packed: u64) -> Vec<usize> {
     path
 }
 
-fn hash(stickers: &[u8]) -> u128 {
-    let mut a = 0xcbf2_9ce4_8422_2325u64;
-    let mut b = 0x9e37_79b9_7f4a_7c15u64;
-    for &x in stickers {
-        a = (a ^ u64::from(x)).wrapping_mul(0x0100_0000_01b3);
-        b = (b.rotate_left(5) ^ u64::from(x)).wrapping_mul(0xff51_afd7_ed55_8ccd);
-    }
-    (u128::from(a) << 64) | u128::from(b)
-}
-
-fn turned(stickers: &[u8], dest: &[u16]) -> Vec<u8> {
-    let mut out = vec![0; stickers.len()];
-    for (i, &d) in dest.iter().enumerate() {
-        out[usize::from(d)] = stickers[i];
-    }
-    out
-}
-
 fn stickers_of(facelets: &Facelets) -> Vec<u8> {
     facelets.stickers().iter().map(|&f| f as u8).collect()
 }
 
 /// The products of macros that reach each state from the solved cube.
 pub(super) struct Table {
-    reached: HashMap<u128, u64>,
+    reached: HashMap<u64, u64>,
 }
 
 impl Table {
     pub(super) fn build(library: &Library) -> Table {
         let solved = stickers_of(&Facelets::solved(library.kind));
-        let mut reached: HashMap<u128, (usize, u64)> = HashMap::new();
+        let mut buffer = vec![0; solved.len()];
+        let mut reached: HashMap<u64, (usize, u64)> = HashMap::new();
         reached.insert(hash(&solved), (0, 0));
         let mut frontier: Vec<(Vec<u8>, Vec<usize>, usize)> = vec![(solved, Vec::new(), 0)];
-        for _ in 0..STORED {
+        for level in 0..STORED {
+            let last = level + 1 == STORED;
             let mut next = Vec::new();
             for (stickers, path, cost) in &frontier {
                 for (m, entry) in library.macros.iter().enumerate() {
                     if path.last().is_some_and(|&p| library.macros[p].inverse == m) {
                         continue;
                     }
-                    let moved = turned(stickers, &entry.dest);
+                    apply(&entry.step.forward, stickers, &mut buffer);
                     let mut longer = path.clone();
                     longer.push(m);
                     let cost = cost + entry.moves.len();
-                    let slot = reached.entry(hash(&moved)).or_insert((usize::MAX, 0));
+                    let slot = reached.entry(hash(&buffer)).or_insert((usize::MAX, 0));
                     if cost < slot.0 {
                         *slot = (cost, pack(&longer));
-                        next.push((moved, longer, cost));
+                        // The last level is not expanded, so it needs no frontier.
+                        if !last {
+                            next.push((buffer.clone(), longer, cost));
+                        }
                     }
                 }
             }
@@ -153,6 +141,7 @@ impl Walk<'_> {
         if path.len() == WALKED {
             return;
         }
+        let mut moved = vec![0; stickers.len()];
         for (m, entry) in self.library.macros.iter().enumerate() {
             if path
                 .last()
@@ -160,7 +149,7 @@ impl Walk<'_> {
             {
                 continue;
             }
-            let moved = turned(stickers, &entry.dest);
+            apply(&entry.step.forward, stickers, &mut moved);
             path.push(m);
             self.visit(&moved, path);
             path.pop();
