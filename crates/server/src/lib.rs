@@ -43,12 +43,14 @@ use cubacle::notation::{parse_cube, ColourScheme, Notation};
 use cubacle::puzzle::{
     reaches, relative_state, Facelets, Failure, PuzzleKind, RelativeError, SolveOptions, Solver,
 };
-use cubacle::ranges::{compressed_text, Optimise};
+use cubacle::ranges::{compress, write as write_ranges, Optimise};
 use serde::{Deserialize, Serialize};
 use tokio::sync::Semaphore;
 use tower_http::catch_panic::CatchPanicLayer;
 
+mod counts;
 mod input;
+use counts::Counts;
 use input::{read_input, read_target};
 
 /// Longest time budget a solve may be given (10 minutes).
@@ -496,10 +498,13 @@ struct SolveBody {
     kind: String,
     solution: String,
     length: usize,
+    metrics: Counts,
     #[serde(skip_serializing_if = "Option::is_none")]
     compressed: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     compressed_length: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    compressed_metrics: Option<Counts>,
     elapsed_micros: u64,
 }
 
@@ -669,13 +674,17 @@ async fn solve(
     };
     match &result.outcome {
         Ok(solution) => {
-            let packed = optimise.map(|_| compressed_text(notation, kind, solution));
+            let packed = optimise.map(|_| compress(kind, solution));
             Ok(Json(SolveBody {
                 kind: kind_name(kind),
                 solution: notation.write(kind, solution),
                 length: solution.len(),
-                compressed: packed.as_ref().map(|(text, _)| text.clone()),
-                compressed_length: packed.map(|(_, count)| count),
+                metrics: Counts::of(solution, kind),
+                compressed: packed
+                    .as_ref()
+                    .map(|moves| write_ranges(notation, kind, moves)),
+                compressed_length: packed.as_ref().map(Vec::len),
+                compressed_metrics: packed.as_ref().map(|moves| Counts::of_ranges(moves, kind)),
                 elapsed_micros: u64::try_from(result.metrics.elapsed.as_micros())
                     .unwrap_or(u64::MAX),
             }))
