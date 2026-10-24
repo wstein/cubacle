@@ -11,6 +11,7 @@ Raw-material notes, category notation.
 - [[Solve icons checkpoints are Orbit64 tokens]]
 - [[Quarter turn frame is off by default]]
 - [[Icons carry the move number that recover takes]]
+- [[Recover pictures draw the rollback and the rest of the printed solution]]
 - [[Colour schemes]]
 - [[Orbit64 slot numbering caveat]]
 - [[Orbit64 verification by size]]

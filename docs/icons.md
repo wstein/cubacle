@@ -139,7 +139,7 @@ Without graphics there are no phase headings: the text output is one picture per
 
 ### Move numbers
 
-Every icon of `solve --icons`, `recover --icons` and `moves --icons` has its move number in the top-left corner, in small grey digits that read on a dark and on a light background. The number counts over the whole list of moves drawn (1 to N, across phases), and it is the N of `recover --at-move N`: the move you did last before you noticed the mistake. For `solve --icons` that is the position in the printed solution; `recover --icons` draws the moves to do now and numbers them from 1 on its own list; `moves --icons` counts over the typed moves, also with `--format svg` and `--out`. `--numbers off` hides the numbers everywhere; `--numbers on` is the default. Without graphics the line `move i of n: MOVE` above the text picture already numbers the moves.
+Every icon of `solve --icons`, `recover --icons` and `moves --icons` has its move number in the top-left corner, in small grey digits that read on a dark and on a light background. The number counts over the whole list of moves drawn (1 to N, across phases), and it is the N of `recover --at-move N`: the move you did last before you noticed the mistake. For `solve --icons` that is the position in the printed solution; `recover --icons` numbers the rollback R1 to RN and the rest of the printed solution with its own numbers; `moves --icons` counts over the typed moves, also with `--format svg` and `--out`. `--numbers off` hides the numbers everywhere; `--numbers on` is the default. Without graphics the line `move i of n: MOVE` above the text picture already numbers the moves.
 
 ### Quarter-turn frame
 
@@ -173,7 +173,7 @@ It is one image; like `net` it is never split, so on a terminal narrower than th
 
 ### Two views of a state
 
-A move icon shows the cube from the Up-Right-Front corner (URF), so the Left, Back and Down faces are hidden. The picture of a whole state (`State after phase N - compare it with your cube` in `solve --icons`, `Should be` and `Is now` in `recover --icons`) can be drawn twice with `--views both`, side by side in one image: the URF view on the left and the view from the opposite Down-Left-Back corner (DBL) on the right. Together they show every sticker of the six faces exactly once. Move icons stay URF only.
+A move icon shows the cube from the Up-Right-Front corner (URF), so the Left, Back and Down faces are hidden. The picture of a whole state (`State after phase N - compare it with your cube` in `solve --icons`, `Should be` and `Is now` in `recover --icons`, side by side in one image) can be drawn twice with `--views both`, side by side in one image: the URF view on the left and the view from the opposite Down-Left-Back corner (DBL) on the right. Together they show every sticker of the six faces exactly once. Move icons stay URF only.
 
 The four side faces form one belt from left to right, every face upright (its U edge on top): F and R in the left picture, then B and L in the right one. The right picture is the cube seen from below: B is the large face in front, L the narrow side on its right, and D lies under B. Physically: hold the cube with U up, turn it around its vertical axis (`y2`) so that B faces you and L is on your right, then bend down and look up at it from below. A turn of the cube about the vertical axis keeps U up, so B and L stay upright; seen from underneath, D appears below them. (Turning the cube over, for example with `x2`, would put the side faces upside down, which is why the second view is not drawn that way.) Tests check this against the facelet layout: every sticker of D, L and B lands on a visible face of the `y2`-turned cube, the two views cover each sticker once, the side faces are drawn in the order F, R, B, L with their U edge on top, and every amber mark lies on its sticker.
 
@@ -233,12 +233,15 @@ cubacle recover -s "R U2 F' D L2 B R' U' F2 D2 L B'" --now FDDRURLDBRDBLRFFDUUBU
 
 The usual text of `recover` comes first. After it:
 
-1. When a mistake or a nearest cube was found, two pictures of the whole cube: `Should be, after move N (the last correct one)`, the cube of the printed solution after the last correct move, and `Is now`, the cube you typed. Each has its Orbit64 token below it. Compare the two to see what differs: on a Kitty terminal every sticker of `Is now` whose colour differs from `Should be` carries a small amber square, in the view that shows its face (the corner or a flat face with `folded`, URF or DBL with `both`), so all of them are marked. In every mode the line `Stickers that differ: N of M` counts them over all faces. With `--views urf` the hidden faces are not drawn, so only the stickers of U, R and F are marked and the line says so; `folded`, `both`, `net` and `all` mark every one.
-2. The moves to do now (the way back, or the fresh solution when that is recommended), one picture per move as in `solve --icons`, with the quarter-turn note (and the optional frame). Phase headings and `State after phase N as token` lines appear only when the moves are a fresh solution that reports solver stages; a way back has none. In `recover` (not in `solve`) a run of phases with nothing to do is one heading, `Phases 1-5: nothing to do`; a single empty phase keeps its own line.
+1. When a mistake or a nearest cube was found, the lines `Should be: TOKEN` (the cube of the printed solution after the last correct move) and `Is now: TOKEN` (the cube you typed), then the two pictures at the size of the start picture of `solve --icons`. On a Kitty terminal they are one image, `Should be` on the left and `Is now` on the right (the line `Left: Should be, after move N (the last correct one). Right: Is now.` says so); when they do not fit the terminal width, or `--columns 1` is given, they are stacked, one image each under its label. Every sticker of `Is now` whose colour differs from `Should be` carries a small amber square, in the view that shows its face (the corner or a flat face with `folded`, URF or DBL with `both`), so all of them are marked. In every mode the line `Stickers that differ: N of M` counts them over all faces. With `--views urf` the hidden faces are not drawn, so only the stickers of U, R and F are marked and the line says so; `folded`, `both`, `net` and `all` mark every one.
+2. When the advice is the way back, two blocks. `Rollback (undo N moves)` draws the moves to do now, one picture per move, numbered R1 to RN (`move R1 of 3: D2` without graphics). `Continue (moves A-B of the printed solution)` draws the rest of the printed solution from the cube the way back ends in, which is the original cube after A-1 printed moves; its icons carry the numbers of the printed solution, the N of `recover --at-move N`. On a Kitty terminal the continue block has the phase headings of the printed solution, cut at move A (`Phase 1: to the G1 subgroup (15 moves, moves 7-21 of 21)`), and the `State after phase N as token` lines; the rollback has none. When the advice is to solve fresh, one block of the fresh moves with its phases as in `solve --icons`. In `recover` (not in `solve`) a run of phases with nothing to do is one heading, `Phases 1-5: nothing to do`; a single empty phase keeps its own line.
+3. `End state: TOKEN` and the end picture at the size of the start picture, a blank line, and `Moves: ` with the rollback and the continue moves as one string in the chosen notation (the fresh moves when those are advised).
 
 Without graphics the pictures are the text pictures of `solve --icons`:
 
 ```text
+Should be: Enl7Pqxeueao
+Is now: FpkdfDU1GuT4
 Should be, after move 4 (the last correct one)
 state, folded view: corner U F R, with L, D and B flat around it
           B Y O     W B W
@@ -251,7 +254,6 @@ B Y W  R B O Y R R
        G Y G
        Y Y G
 
-token: Enl7Pqxeueao
 Is now
 state, folded view: corner U F R, with L, D and B flat around it
           G Y Y     R O Y
@@ -264,14 +266,52 @@ Y R W  O B O G Y W
        G Y G
        B W G
 
-token: FpkdfDU1GuT4
 Stickers that differ: 31 of 54 (all marked amber in graphics rows, in the view that shows them).
-move 1 of 3: D2
+
+Rollback (undo 3 moves)
+move R1 of 3: D2
 D2 → (half turn)
+   g y y
+  r w r
+ o y b
+w b w r y b
+w g b o r g
+O B O G Y W
+
 ...
+
+Continue (moves 7-21 of the printed solution)
+move 7 of 21: B2
+B2 ↑ (half turn)
+   B R Y
+  r w r
+ o y b
+w b w r y G
+w g b o r W
+y r r y o R
+
+...
+
+move 21 of 21: R'
+...
+
+End state: AAAAAAAAAAAA
+state, folded view: corner U F R, with L, D and B flat around it
+          W W W     B B B
+         W W W      B B B
+        W W W       B B B
+O O O  G G G R R R
+O O O  G G G R R R
+O O O  G G G R R R
+       Y Y Y
+       Y Y Y
+       Y Y Y
+
+
+Moves: D2 B2 D' B2 D2 U' F2 D U' R2 U' R' B' L2 D' F U2 R'
 ```
 
-`recover --fresh --icons` draws the fresh solution only. When the way back is for a cube that has to be turned as a whole first, there are no move pictures. On a Kitty terminal the two state pictures are stacked, each under its label.
+`recover --fresh --icons` draws the fresh solution only. When the way back is for a cube that has to be turned as a whole first, there are no move pictures.
 
 ## Terminal support
 

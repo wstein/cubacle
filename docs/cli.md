@@ -367,7 +367,7 @@ Recommended: solve fresh, shorter than the recover (20 moves).
 Fresh solution: D2 B2 D' B2 D2 U' F2 D U' R2 U' R' B' L2 D' F U2 R'
 ```
 
-With `--icons` (and `--icon-size`, `--background`, `--columns`, `--views`, `--numbers`, as for `solve`) the mistake is also drawn: the cube as it should be after the last correct move and the cube as it is, then the moves to do as move pictures. See [Recover with icons](icons.md#recover-with-icons).
+With `--icons` (and `--icon-size`, `--background`, `--columns`, `--views`, `--numbers`, as for `solve`) the mistake is also drawn: the cube as it should be after the last correct move and the cube as it is, side by side, then the rollback and the rest of the printed solution as move pictures, the end state and the moves as one line. See [Recover with icons](icons.md#recover-with-icons).
 
 On a 4x4x4, move 4 of the solution (`F'`) turned the wrong way:
 
