@@ -18,6 +18,7 @@
 
 use std::fmt;
 
+use super::centre_names::{centre_classes, pair_up};
 use super::matching::{centre_groups, Permutation};
 use super::pieces::{axis, layout};
 use crate::puzzle::{locate, Face, Facelets, PuzzleKind};
@@ -203,11 +204,13 @@ pub(crate) fn analyse(kind: PuzzleKind, pi: &Permutation, exact: bool) -> Cycles
         )
     };
     let groups = centre_groups(kind);
+    let mut names: Vec<String> = centre_classes(kind).into_iter().map(|c| c.name).collect();
+    pair_up(names.iter_mut());
     for (g, group) in groups.iter().enumerate() {
-        let name = match (groups.len(), n % 2, g + 1 == groups.len()) {
-            (1, _, _) if n == 3 => "centres".to_owned(),
-            (_, 1, true) => "centres (face middles)".to_owned(),
-            _ => format!("centres {}", g + 1),
+        let name = match names.get(g) {
+            Some(name) => name.clone(),
+            None if n == 3 => "centres".to_owned(),
+            None => "centres (face middles)".to_owned(),
         };
         let pieces = group.iter().map(|&s| (s, pi[s], 0)).collect();
         orbits.push(build(name, Class::Centre, pieces, &centre_name));

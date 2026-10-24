@@ -88,13 +88,13 @@ fn write_fingerprint(f: &mut fmt::Formatter<'_>, fingerprint: &super::Fingerprin
             Some(("wings", depth)) => format!("wings (depth {depth})"),
             _ => orbit.name.clone(),
         };
-        let unit = if orbit.name == "centres" {
+        let unit = if orbit.tag.is_some() {
             "centre stickers"
         } else {
             "pieces"
         };
         let mut parts = vec![format!("{} {unit}", orbit.pieces)];
-        if orbit.name == "centres" {
+        if orbit.tag.is_some() {
             parts.push(format!("{} misplaced", orbit.displaced));
         } else {
             parts.push(format!("{} displaced", orbit.displaced));

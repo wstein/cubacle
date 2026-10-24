@@ -7,6 +7,7 @@
 //! fits and the least result is kept. That makes the fingerprint the same for
 //! a cube, its turned or mirrored image and any renaming of its colours.
 
+use super::centre_names::{centre_classes, pair_up};
 use super::pieces::{frames, Cube, Frame, ORDERS};
 use crate::puzzle::PuzzleKind;
 
@@ -24,6 +25,9 @@ pub struct OrbitStat {
     /// The lengths of the cycles longer than one, longest first, when the
     /// pieces of the orbit are all different and all found; `None` otherwise.
     pub cycles: Option<Vec<usize>>,
+    /// The token prefix of a centre orbit (`X`, `+`, `O1-2:`); `None` for
+    /// corners, edges and wings.
+    pub tag: Option<String>,
 }
 
 impl OrbitStat {
@@ -34,6 +38,9 @@ impl OrbitStat {
 
     /// The compact token: `C0t0`, `E0f12`, `W1:0f12`, `X12`.
     fn token(&self) -> String {
+        if let Some(tag) = &self.tag {
+            return format!("{tag}{}", self.displaced);
+        }
         let (tag, depth) = match self.name.split_once(' ') {
             Some((word, depth)) => (word, format!("{depth}:")),
             None => (self.name.as_str(), String::new()),
@@ -42,7 +49,7 @@ impl OrbitStat {
             "corners" => "C",
             "edges" => "E",
             "wings" => "W",
-            _ => "X",
+            _ => "?",
         };
         let wrong = match tag {
             "corners" => format!("t{}", self.oriented_wrong),
@@ -119,7 +126,7 @@ fn permutation(cube: &Cube, places: &[Vec<usize>], order: [usize; 3]) -> Option<
     (sorted.len() == places.len()).then_some(target)
 }
 
-fn read(cube: &Cube, order: [usize; 3], odd: bool) -> Vec<OrbitStat> {
+fn read(kind: PuzzleKind, cube: &Cube, order: [usize; 3], odd: bool) -> Vec<OrbitStat> {
     let layout = cube.layout;
     let mut out = Vec::new();
 
@@ -131,6 +138,7 @@ fn read(cube: &Cube, order: [usize; 3], odd: bool) -> Vec<OrbitStat> {
         displaced: readings.iter().filter(|r| !r.placed).count(),
         oriented_wrong: readings.iter().filter(|r| !r.oriented).count(),
         cycles: permutation(cube, &corners, order).and_then(|t| cycle_type(&t)),
+        tag: None,
     });
 
     let depths: Vec<usize> = {
@@ -158,25 +166,35 @@ fn read(cube: &Cube, order: [usize; 3], odd: bool) -> Vec<OrbitStat> {
                 .then(|| permutation(cube, &places, order))
                 .flatten()
                 .and_then(|t| cycle_type(&t)),
+            tag: None,
         });
     }
 
-    let mut centres: Vec<OrbitStat> = layout
+    let classes = centre_classes(kind);
+    let mut centres: Vec<(usize, OrbitStat)> = layout
         .centres
         .iter()
-        .map(|orbit| OrbitStat {
-            name: "centres".to_owned(),
-            pieces: orbit.len(),
-            displaced: orbit
-                .iter()
-                .filter(|&&s| cube.lab[s] as usize != s / layout.face_len)
-                .count(),
-            oriented_wrong: 0,
-            cycles: None,
+        .zip(&classes)
+        .map(|(orbit, class)| {
+            let rank = classes.iter().position(|c| c.name == class.name);
+            let stat = OrbitStat {
+                name: class.name.clone(),
+                pieces: orbit.len(),
+                displaced: orbit
+                    .iter()
+                    .filter(|&&s| cube.lab[s] as usize != s / layout.face_len)
+                    .count(),
+                oriented_wrong: 0,
+                cycles: None,
+                tag: Some(class.tag.clone()),
+            };
+            (rank.unwrap_or(0), stat)
         })
         .collect();
-    // Mirrors swap the two chiral orbits of a depth, so only the multiset counts.
+    // Mirrors swap the two chiral orbits of a class, so only the multiset counts.
     centres.sort();
+    let mut centres: Vec<OrbitStat> = centres.into_iter().map(|(_, s)| s).collect();
+    pair_up(centres.iter_mut().map(|s| &mut s.name));
     out.extend(centres);
     out
 }
@@ -189,7 +207,7 @@ pub(crate) fn fingerprint(kind: PuzzleKind, state: &[u8]) -> Fingerprint {
     for frame in &frames {
         let cube = Cube::new(kind, state, frame);
         for order in ORDERS {
-            let stats = read(&cube, order, odd);
+            let stats = read(kind, &cube, order, odd);
             if best.as_ref().is_none_or(|b| stats < *b) {
                 best = Some(stats);
             }

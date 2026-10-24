@@ -134,3 +134,26 @@ fn subgroups_are_reported_for_a_3x3x3() {
         "{text}"
     );
 }
+
+#[test]
+fn centre_orbits_are_named_by_their_position() {
+    let (ok, text) = identify(&["--size", "5", "-s", "R U 2R' 3Fw"]);
+    assert!(ok);
+    assert!(
+        text.contains("  x-centres (corner side): 24 centre stickers"),
+        "{text}"
+    );
+    assert!(
+        text.contains("  +-centres (edge side): 24 centre stickers"),
+        "{text}"
+    );
+    let code = text
+        .lines()
+        .find(|l| l.starts_with("fingerprint: "))
+        .unwrap();
+    assert!(code.contains(" X") && code.contains(" +"), "{code}");
+    let (ok, text) = cycles(&["--size", "5", "R U 2R' 3Fw"]);
+    assert!(ok);
+    assert!(text.contains("x-centres (corner side):"), "{text}");
+    assert!(text.contains("+-centres (edge side):"), "{text}");
+}
