@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use clap::{Args, Subcommand};
 use cubacle::engines::pattern::{find_generator_with, Cap, DEFAULT_MAX_MEMORY_MB};
-use cubacle::notation::{ColourScheme, Notation};
+use cubacle::notation::{parse_cube, parse_expression, ColourScheme, Notation};
 use cubacle::patterns::{self, Generator, Pattern, Span};
 use cubacle::puzzle::Move;
 
@@ -32,6 +32,9 @@ enum Action {
     /// Read the structure of a cube state: its symmetries and, as the detector
     /// grows, the pattern it is, its pieces and the subgroups it lies in
     Identify(IdentifyArgs),
+    /// Print a state as piece cycles with orientation marks and the order of
+    /// the permutation (moves give the exact order; colours only on 2x2x2 and 3x3x3)
+    Cycles(IdentifyArgs),
 }
 
 #[derive(Args)]
@@ -83,7 +86,31 @@ pub fn run(args: PatternsArgs) -> Result<(), String> {
         Some(Action::Show { name }) => show(&name.join(" "), args.size),
         Some(Action::Find(find)) => find_state(&find, args.size.unwrap_or(3)),
         Some(Action::Identify(identify)) => identify_state(&identify, args.size.unwrap_or(3)),
+        Some(Action::Cycles(cycles)) => cycles_state(&cycles, args.size.unwrap_or(3)),
     }
+}
+
+/// `patterns cycles`: a move sequence is followed piece by piece; a cube given
+/// as text is read from its colours.
+fn cycles_state(args: &IdentifyArgs, size: usize) -> Result<(), String> {
+    let kind = crate::kind_of(size)?;
+    let text = match &args.scramble {
+        Some(scramble) => scramble.clone(),
+        None => args.cube.join(" "),
+    };
+    let cube = match &args.scramble {
+        Some(_) => None,
+        None => parse_cube(&text, args.scheme).ok(),
+    };
+    let cycles = match cube {
+        Some(cube) => patterns::cycles_of_state(&cube)?,
+        None => match parse_expression(&text, kind) {
+            Ok(moves) => patterns::cycles_of_moves(kind, &moves)?,
+            Err(_) => return crate::parse_text(&text, args.scheme, size).map(|_| ()),
+        },
+    };
+    print!("{cycles}");
+    Ok(())
 }
 
 /// `patterns identify`: what the structure of a state says about it.

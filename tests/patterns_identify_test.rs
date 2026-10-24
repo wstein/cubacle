@@ -3,9 +3,17 @@
 use std::process::Command;
 
 fn identify(args: &[&str]) -> (bool, String) {
+    run("identify", args)
+}
+
+fn cycles(args: &[&str]) -> (bool, String) {
+    run("cycles", args)
+}
+
+fn run(command: &str, args: &[&str]) -> (bool, String) {
     let output = Command::new(env!("CARGO_BIN_EXE_cubacle"))
         .arg("patterns")
-        .arg("identify")
+        .arg(command)
         .args(args)
         .output()
         .expect("cubacle runs");
@@ -77,4 +85,34 @@ fn the_fingerprint_reads_the_pieces() {
     let (ok, text) = identify(&["--size", "7", "-s", "R U F' 2R 3U Rw' Fw 4L2 3B"]);
     assert!(ok);
     assert!(text.contains("wings (depth 2): 24 pieces"), "{text}");
+}
+
+#[test]
+fn cycles_of_moves_give_the_order() {
+    let (ok, text) = cycles(&["R U"]);
+    assert!(ok);
+    assert!(
+        text.contains("corners: (UBL UBR DBR DFR UFL) 0 +2 +1 +2 0; (UFR) +1; 2 in place"),
+        "{text}"
+    );
+    assert!(text.contains("order: 105"), "{text}");
+    let (ok, text) = cycles(&["--size", "4", "R U 2R' Fw"]);
+    assert!(ok);
+    assert!(text.contains("order without the centres: 60"), "{text}");
+}
+
+#[test]
+fn cycles_of_colours_need_the_moves_for_an_order_on_big_cubes() {
+    let (ok, text) = cycles(&["UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB"]);
+    assert!(ok);
+    assert!(text.contains("order: 1"), "{text}");
+    let (ok, text) = cycles(&["--size", "4", "-s", "R U 2R'"]);
+    assert!(ok);
+    assert!(text.contains("order: "), "{text}");
+}
+
+#[test]
+fn cycles_of_a_bad_cube_is_an_error() {
+    let (ok, _) = cycles(&["not a cube"]);
+    assert!(!ok);
 }

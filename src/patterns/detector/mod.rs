@@ -15,9 +15,11 @@
 //! ```
 
 mod canon;
+mod cycles;
 mod fingerprint;
 mod geometry;
 mod library;
+mod matching;
 mod pieces;
 mod symmetry;
 mod text;
@@ -25,11 +27,12 @@ mod text;
 #[cfg(test)]
 mod tests;
 
+pub use cycles::{Cycle, Cycles, OrbitCycles, Order};
 pub use fingerprint::{Fingerprint, OrbitStat};
 pub use library::Match;
 pub use symmetry::{Operation, Symmetry};
 
-use crate::puzzle::Facelets;
+use crate::puzzle::{Facelets, MoveSequence, PuzzleKind};
 
 /// What the detector found.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -64,4 +67,22 @@ pub fn detect(cube: &Facelets) -> Report {
         canonical: canon::facelets(&canon),
         fingerprint: fingerprint::fingerprint(kind, &state),
     }
+}
+
+/// The cycles in which a move sequence carries the pieces of a cube of `kind`,
+/// with the order of the permutation. Exact: pieces are followed through the
+/// moves.
+pub fn cycles_of_moves(kind: PuzzleKind, moves: &MoveSequence) -> Result<Cycles, String> {
+    let pi = matching::of_moves(kind, moves)
+        .ok_or_else(|| "a move does not exist on this cube".to_owned())?;
+    Ok(cycles::analyse(kind, &pi, true))
+}
+
+/// The cycles of a cube given by its colours. On the 2x2x2 and 3x3x3 every
+/// piece is told apart and the order is given; on bigger cubes equal pieces
+/// are matched in index order, which reproduces the colours but defines no
+/// order.
+pub fn cycles_of_state(cube: &Facelets) -> Result<Cycles, String> {
+    let pi = matching::of_state(cube)?;
+    Ok(cycles::analyse(cube.kind(), &pi, cube.kind().size() <= 3))
 }

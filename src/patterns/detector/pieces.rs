@@ -17,6 +17,8 @@ pub(crate) struct Wing {
     /// Distance from the nearest corner along the edge, 1 for the wings next
     /// to a corner.
     pub(crate) depth: usize,
+    /// Place along the edge, 1 to `n - 2`, counted towards +x, +y or +z.
+    pub(crate) along: usize,
     /// The only wing of its edge, on a cube of odd size.
     pub(crate) middle: bool,
 }
@@ -61,6 +63,7 @@ fn build(kind: PuzzleKind) -> Layout {
                 wings.push(Wing {
                     stickers: [a, b],
                     depth: k.min(kind.size() - 1 - k),
+                    along: k,
                     middle: n % 2 == 1 && k == kind.size() / 2,
                 });
             }
