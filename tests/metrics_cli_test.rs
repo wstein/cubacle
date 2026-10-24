@@ -43,6 +43,22 @@ fn big_cubes_show_block_counts() {
 }
 
 #[test]
+fn expand_quarter_writes_half_turns_as_two_moves() {
+    let (ok, out, err) = cubacle(&["moves", "--expand", "quarter", "R2 U' F2"]);
+    assert!(ok, "{err}");
+    assert_eq!(out, "R R U' F F");
+    assert_eq!(err, "metrics: htm 5, qtm 5, stm 5");
+}
+
+#[test]
+fn optimise_ranges_counts_the_compressed_form() {
+    let (ok, out, err) = cubacle(&["moves", "--size", "5", "--optimise", "ranges", "3Rw R'"]);
+    assert!(ok, "{err}");
+    assert_eq!(out, "2-3Rw");
+    assert_eq!(err, "metrics: obtm 2, qtm 2, stm 2, btm 1");
+}
+
+#[test]
 fn convert_metrics_needs_moves() {
     let (ok, out, err) = cubacle(&["convert", "--metrics", "-s", "R U2"]);
     assert!(ok, "{err}");

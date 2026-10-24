@@ -14,6 +14,22 @@ pub fn compressed_line(kind: PuzzleKind, moves: &[LayerMove]) -> String {
     format!("metrics: {}", metrics::summary_layer_moves(moves, kind))
 }
 
+/// All seven counts of a compressed sequence.
+pub fn compressed_all_line(kind: PuzzleKind, moves: &[LayerMove]) -> String {
+    let counts = Metric::ALL
+        .into_iter()
+        .map(|metric| (metric, metrics::count_layer_moves(moves, kind, metric)));
+    format!("metrics: {}", metrics::join(counts))
+}
+
+/// All seven counts of `moves`.
+pub fn all_line(kind: PuzzleKind, moves: &MoveSequence) -> String {
+    format!(
+        "metrics: {}",
+        metrics::join(metrics::count_all(moves, kind))
+    )
+}
+
 /// The counts of move text as written, so `M`, `x` and `2-3Rw` count as the
 /// one turn they are; text with groups or repeats is counted after expansion
 /// (`moves`). `all` selects all seven metrics instead of the headline ones.

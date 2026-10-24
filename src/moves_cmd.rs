@@ -6,7 +6,8 @@ use std::path::PathBuf;
 
 use clap::Args;
 use cubacle::notation::{parse_expression, parse_grouped, to_wca_token, ColourScheme, Notation};
-use cubacle::puzzle::{Facelets, MoveSequence, PuzzleKind};
+use cubacle::puzzle::{Facelets, Move, MoveSequence, PuzzleKind, Turn};
+use cubacle::ranges::{compress, compressed_text, Optimise};
 use cubacle::render::{icon, Action};
 
 use crate::icons::{default_height, detect_stdout, show, style, Background, Format, Graphics};
@@ -29,6 +30,14 @@ pub struct MovesArgs {
     /// instead of the usual headline ones
     #[arg(long)]
     metrics: bool,
+    /// Rewrite the moves for a metric: quarter writes every half turn as two
+    /// quarter turns (R2 becomes R R), the form to count in QTM
+    #[arg(long, value_enum, conflicts_with_all = ["icons", "optimise"])]
+    expand: Option<Expand>,
+    /// Write adjacent turns of one axis as layer ranges where that is shorter
+    /// (`ranges`, as in `solve`)
+    #[arg(long, value_name = "WHAT", conflicts_with = "icons")]
+    optimise: Option<Optimise>,
     #[command(flatten)]
     pictures: PictureArgs,
     /// With --icons, draw the groups marked by "·" and "( )": dots (default)
@@ -58,6 +67,30 @@ pub struct MovesArgs {
     /// cube left by the moves before it (default: each move on its own start cube)
     #[arg(long, requires = "icons")]
     cumulative: bool,
+}
+
+/// What `moves --expand` rewrites.
+#[derive(Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
+enum Expand {
+    /// Every half turn as two quarter turns
+    Quarter,
+}
+
+/// The same moves with each half turn written as two quarter turns.
+fn quarter_turns(moves: &MoveSequence) -> MoveSequence {
+    moves
+        .moves()
+        .iter()
+        .flat_map(|mv| {
+            let count = if mv.turn == Turn::Half { 2 } else { 1 };
+            let turn = if mv.turn == Turn::Half {
+                Turn::Clockwise
+            } else {
+                mv.turn
+            };
+            std::iter::repeat_n(Move::new(mv.face, mv.depth, mv.wide, turn), count)
+        })
+        .collect()
 }
 
 /// How `moves --icons` treats `·` and `( )` in the input.
@@ -102,6 +135,33 @@ pub fn run(args: MovesArgs) -> Result<(), String> {
             eprintln!("{}", metrics_out::text_line(&text, kind, &moves, true));
         }
         return draw(&args, kind, &text, &moves);
+    }
+    if args.optimise == Some(Optimise::Ranges) {
+        let (written, _) = compressed_text(args.notation, kind, &moves);
+        println!("{written}");
+        let packed = compress(kind, &moves);
+        eprintln!(
+            "{}",
+            if args.metrics {
+                metrics_out::compressed_all_line(kind, &packed)
+            } else {
+                metrics_out::compressed_line(kind, &packed)
+            }
+        );
+        return Ok(());
+    }
+    if args.expand == Some(Expand::Quarter) {
+        let quarters = quarter_turns(&moves);
+        println!("{}", args.notation.write(kind, &quarters));
+        eprintln!(
+            "{}",
+            if args.metrics {
+                metrics_out::all_line(kind, &quarters)
+            } else {
+                metrics_out::line(kind, &quarters)
+            }
+        );
+        return Ok(());
     }
     println!("{}", args.notation.write(kind, &moves));
     eprintln!(
@@ -224,5 +284,16 @@ fn name(format: Format) -> &'static str {
     match format {
         Format::Kitty => "Kitty graphics",
         _ => "RGBA pixels",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn half_turns_become_two_quarter_turns() {
+        let moves: MoveSequence = "R2 U' 2Rw2".parse().unwrap();
+        assert_eq!(quarter_turns(&moves).to_string(), "R R U' Rw Rw");
     }
 }
