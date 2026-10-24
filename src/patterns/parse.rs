@@ -123,6 +123,7 @@ pub(super) fn parse_generators(text: &str) -> Result<Vec<(String, Generator)>, S
                 length: length
                     .parse()
                     .map_err(|_| format!("bad length in {line:?}"))?,
+                number: 0,
                 moves: moves.to_owned(),
             },
         ));

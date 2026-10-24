@@ -19,6 +19,9 @@
 
 mod bases;
 mod detector;
+mod groups;
+mod import;
+mod imported_file;
 mod model;
 mod parse;
 
@@ -27,6 +30,11 @@ pub use detector::{
     cycles_of_moves, cycles_of_state, detect, Cycle, Cycles, Fingerprint, Match, Membership,
     Operation, OrbitCycles, OrbitStat, Order, Report, Symmetry, Verdict,
 };
+pub use import::{
+    decode_text, import_tab, read_plain, ImportOptions, ImportProblem, ImportReport, ImportRow,
+    Imported,
+};
+pub use imported_file::{identify_imported, looks_imported, read_imported, write_imported};
 
 use std::sync::OnceLock;
 
@@ -98,6 +106,8 @@ pub struct Generator {
     pub status: Status,
     /// Number of moves in `metric`.
     pub length: usize,
+    /// Running number among the generators of the pattern (`id#n`), from 1.
+    pub number: usize,
     /// WCA text; ranges (`2-3Rw`) in the `Range` metric.
     pub moves: String,
 }
@@ -132,6 +142,13 @@ fn parse_range(token: &str) -> Option<LayerMove> {
     ))
 }
 
+/// One level of the category tree, with its name in both languages.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Group {
+    pub de: String,
+    pub en: String,
+}
+
 /// A named pattern with its definitions and generators.
 #[derive(Debug, Clone)]
 pub struct Pattern {
@@ -139,6 +156,15 @@ pub struct Pattern {
     pub name: String,
     pub aliases: Vec<String>,
     pub description: String,
+    /// Catalogue id, at most 12 characters: `cu:<code>` for the built-in library, `<source>:<code>`
+    /// for imported tables (for example `ct:A200.01`).
+    pub catalogue: String,
+    /// The place in the tree of categories, outermost first (up to three levels).
+    pub group: Vec<Group>,
+    /// Author and year, as the source gives them.
+    pub provenance: String,
+    /// Where an imported pattern came from; `None` for the built-in library.
+    pub origin: Option<String>,
     defs: Vec<(usize, Def)>,
     generators: Vec<Generator>,
 }
@@ -150,6 +176,10 @@ impl Pattern {
             name: id.to_owned(),
             aliases: Vec::new(),
             description: String::new(),
+            catalogue: format!("cu:{id}"),
+            group: Vec::new(),
+            provenance: String::new(),
+            origin: None,
             defs: Vec::new(),
             generators: Vec::new(),
         }
@@ -162,7 +192,11 @@ impl Pattern {
 
     /// The pattern as a cube state, `None` if it is not defined for that size.
     pub fn state(&self, kind: PuzzleKind) -> Option<Facelets> {
-        let (_, def) = self.defs.iter().find(|(size, _)| *size == kind.size())?;
+        let Some((_, def)) = self.defs.iter().find(|(size, _)| *size == kind.size()) else {
+            // No structural definition (an imported pattern): replay its generator.
+            let sequence = self.generator(kind.size(), None)?.sequence().ok()?;
+            return Facelets::solved(kind).apply(&sequence).ok();
+        };
         Some(def.state(kind))
     }
 
@@ -181,9 +215,15 @@ impl Pattern {
             .min_by_key(|g| g.length)
     }
 
+    /// Whether `key` is the id, name or an alias (case, spaces and hyphens ignored).
+    pub fn is_named(&self, key: &str) -> bool {
+        self.matches(key)
+    }
+
     fn matches(&self, key: &str) -> bool {
         let key = squash(key);
         squash(&self.id) == key
+            || squash(&self.catalogue) == key
             || squash(&self.name) == key
             || self.aliases.iter().any(|a| squash(a) == key)
     }
@@ -206,12 +246,17 @@ pub fn all() -> &'static [Pattern] {
             .unwrap_or_else(|e| panic!("patterns.txt: {e}"));
         let generators = parse::parse_generators(include_str!("generators.txt"))
             .unwrap_or_else(|e| panic!("generators.txt: {e}"));
-        for (id, generator) in generators {
+        for (id, mut generator) in generators {
             let pattern = list
                 .iter_mut()
                 .find(|p| p.id == id)
                 .unwrap_or_else(|| panic!("generators.txt: unknown pattern {id:?}"));
+            generator.number = pattern.generators.len() + 1;
             pattern.generators.push(generator);
+        }
+        for pattern in &mut list {
+            pattern.group = groups::builtin_group(&pattern.id);
+            pattern.catalogue = format!("cu:{}", groups::builtin_code(&pattern.id));
         }
         list
     })
@@ -224,3 +269,6 @@ pub fn find(name: &str) -> Option<&'static Pattern> {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod import_tests;

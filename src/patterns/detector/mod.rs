@@ -29,6 +29,7 @@ mod text;
 #[cfg(test)]
 mod tests;
 
+pub(crate) use canon::canonical;
 pub use cycles::{Cycle, Cycles, OrbitCycles, Order};
 pub use fingerprint::{Fingerprint, OrbitStat};
 pub use library::Match;
