@@ -53,8 +53,10 @@ impl Background {
 /// Whether the icons carry their move number.
 #[derive(Clone, Copy, PartialEq, Eq, Default, ValueEnum)]
 pub enum Numbers {
-    /// A small grey move number in the top-left corner of every icon
+    /// On, except in SVG files written by `moves`, which have none
     #[default]
+    Auto,
+    /// A small grey move number in the top-left corner of every icon
     On,
     /// No numbers
     Off,
@@ -64,7 +66,7 @@ pub enum Numbers {
 /// whole move list, the same index that `recover --at-move` takes.
 pub(crate) fn numbered(icon: Icon, number: usize, numbers: Numbers, backdrop: Backdrop) -> Icon {
     match numbers {
-        Numbers::On => icon.numbered(number, backdrop),
+        Numbers::Auto | Numbers::On => icon.numbered(number, backdrop),
         Numbers::Off => icon,
     }
 }

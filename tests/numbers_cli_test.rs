@@ -56,3 +56,18 @@ fn text_pictures_and_plain_output_do_not_change() {
     let (ok, _, _) = cubacle(&["solve", "-s", "R", "--numbers", "off"]);
     assert!(!ok, "--numbers needs --icons");
 }
+
+#[test]
+fn svg_files_have_no_numbers_unless_asked() {
+    let svg = |numbers: Option<&str>| {
+        let mut args = vec!["moves", "R", "--size", "3", "--icons", "--format", "svg"];
+        if let Some(mode) = numbers {
+            args.extend(["--numbers", mode]);
+        }
+        let (ok, out, err) = cubacle(&args);
+        assert!(ok, "{err}");
+        out
+    };
+    assert_eq!(svg(None), svg(Some("off")));
+    assert_ne!(svg(None), svg(Some("on")));
+}
