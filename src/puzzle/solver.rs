@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use super::{Facelets, MoveSequence, PuzzleKind, SolveStage};
+use super::{Facelets, MoveSequence, PuzzleKind, SolveStage, Target};
 
 /// Limits for one solve. The defaults impose none beyond the engine's own.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -126,5 +126,53 @@ pub trait Solver {
     /// rather than timed is described on the engine.
     fn solve_improving(&self, facelets: &Facelets, options: &SolveOptions) -> SolveResult {
         self.solve(facelets, options)
+    }
+
+    /// Finds moves that take `start` to any state of a target that may leave
+    /// stickers open. The result's message says whether the answer is proven
+    /// shortest ("shortest: ...") or the best found ("best found: ...").
+    ///
+    /// The default fails with [`Failure::InvalidInput`] and a message that the
+    /// engine cannot solve partial targets; engines override it as they gain
+    /// support. A complete target is solved by [`Solver::solve`] on the
+    /// relative state, never by this method.
+    fn solve_to(&self, start: &Facelets, target: &Target, options: &SolveOptions) -> SolveResult {
+        let _ = (start, options);
+        let size = target.kind().size();
+        SolveResult {
+            outcome: Err(Failure::InvalidInput),
+            message: Some(format!(
+                "unsupported: the {size}x{size}x{size} engine cannot solve targets with open stickers yet"
+            )),
+            metrics: SolveMetrics::default(),
+            stages: Vec::new(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct Stub;
+
+    impl Solver for Stub {
+        fn kind(&self) -> PuzzleKind {
+            PuzzleKind::Cube3
+        }
+
+        fn solve(&self, _: &Facelets, _: &SolveOptions) -> SolveResult {
+            unreachable!("not called")
+        }
+    }
+
+    #[test]
+    fn the_default_solve_to_says_it_is_unsupported() {
+        let start = Facelets::solved(PuzzleKind::Cube3);
+        let target = Target::masked(&start, |position| position < 9);
+        let result = Stub.solve_to(&start, &target, &SolveOptions::default());
+        assert_eq!(result.outcome, Err(Failure::InvalidInput));
+        let message = result.message.unwrap();
+        assert!(message.contains("unsupported") && message.contains("3x3x3"));
     }
 }
