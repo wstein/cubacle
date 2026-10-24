@@ -10,3 +10,4 @@ Raw-material notes, category backend.
 - [[Backend deployment and hardening]]
 - [[Server review fixes]]
 - [[The REST responses always carry the move counts]]
+- [[The solve response carries all seven counts under metrics]]

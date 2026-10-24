@@ -31,7 +31,7 @@ The line shows the four counts most useful for the cube: `htm qtm stm` for the 2
 | `moves` | after the sequence, counted on the words as typed (see [Words, not expansions](#words-not-expansions)) |
 | `moves --metrics`, `convert --metrics` | all seven counts: `metrics: htm 4, qtm 5, stm 3, etm 4, obtm 4, btm 3, atm 1` |
 
-The REST API is not changed; see [API](api.md). Adding the counts to the solve and recover responses is a follow-up.
+The REST solve answer always carries all seven counts as `metrics`; see [Move counts in the API](api.md#move-counts).
 
 ## The model
 

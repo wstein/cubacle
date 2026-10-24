@@ -34,7 +34,7 @@ The server binds to the local machine by default. It has no authentication, so d
 | `GET /v1/scramble?moves=25&size=3` | `moves`: 1 to 200; `size`: 2 to 7; `notation`?: `wca`, `sign` or `sse` | `{"scramble":"U' L2 F2 D U2"}` |
 | `GET /v1/random?size=3` | `size`: 2 to 7 (only 2 to 5 have engines) | `{"kind":"2x2x2","facelets":"...","token":"..."}` |
 | `POST /v1/convert` | `{"cube" or "scramble","size"?,"scheme"?}` | `{"kind","facelets","token"?}` |
-| `POST /v1/solve` | `{"cube" or "scramble","size"?,"scheme"?,"maxMoves"?,"budgetMs"?,"minProbes"?,"improve"?,"slices"?,"notation"?,"optimise"?,"target"?}` | `{"kind","solution","length","compressed"?,"compressedLength"?,"elapsedMicros"}` |
+| `POST /v1/solve` | `{"cube" or "scramble","size"?,"scheme"?,"maxMoves"?,"budgetMs"?,"minProbes"?,"improve"?,"slices"?,"notation"?,"optimise"?,"target"?}` | `{"kind","solution","length","metrics","compressed"?,"compressedLength"?,"compressedMetrics"?,"elapsedMicros"}` |
 
 For `POST` requests, send the header `Content-Type: application/json`.
 
@@ -50,7 +50,7 @@ For `POST` requests, send the header `Content-Type: application/json`.
 | `minProbes` | Optional, 3x3x3 only. Keep improving the solution until this many probes were made, 1 to 100000000. Counts work, not time, so the answer is the same on every machine. See [3x3x3 performance](engines/3x3.md). |
 | `improve` | Optional, 3x3x3 only. Keep improving until `budgetMs` is spent and return the best solution found; `budgetMs` is required and `minProbes` cannot be combined with it. Spending the budget is not an error once a solution exists. |
 | `notation` | Optional, `wca` (default), `sign` or `sse`. How the `solution` is written: `Rw`, `3Rw` or `r`, `3r` or `TR`, `T3R` (see [Move notations](cli.md#move-notations)). Also a query parameter of `/v1/scramble`. Anything else is a 400. |
-| `optimise` | Optional, `ranges`. Adds `compressed` (the solution with layer ranges such as `2-3r`, in the chosen `notation`) and `compressedLength` to the answer; `solution` and `length` are unchanged. Anything else is a 400. See [`--optimise`](cli.md). |
+| `optimise` | Optional, `ranges`. Adds `compressed` (the solution with layer ranges such as `2-3r`, in the chosen `notation`), `compressedLength` and `compressedMetrics` to the answer; `solution`, `length` and `metrics` are unchanged. Anything else is a 400. See [`--optimise`](cli.md). |
 
 | `target` | Optional, `/v1/solve` only. Solve to this state instead of to the solved cube; the `solution` takes the start (`cube` or `scramble`) to it. How the server reads the text: if it is exactly `superflip`, `checkerboard` or `cube-in-cube` it is that pattern (3x3x3 only); otherwise, if it parses as a cube (an Orbit64 token, URFDLB facelets or colours, read with `scheme`), it is that cube; otherwise it is read as a move expression applied to the solved cube of the start's size. Cube text always wins over a move expression, as it does for the start on the command line. See [Solve to a target](cli.md#solve-to-a-target). |
 
@@ -72,8 +72,8 @@ curl -s -XPOST localhost:8080/v1/solve -H 'Content-Type: application/json' \
 ```
 
 ```json
-{"kind":"3x3x3","solution":"L' U' F B' R U D' F L2 D2 F' U2 F' R2 L2 F' R2 F2 U2 L","length":20,"elapsedMicros":162}
-{"kind":"3x3x3","solution":"U R U R F2 R L' U2 R' B2 R' D2 R' L F2","length":15,"elapsedMicros":16}
+{"kind":"3x3x3","solution":"L' U' F B' R U D' F L2 D2 F' U2 F' R2 L2 F' R2 F2 U2 L","length":20,"metrics":{"htm":20,"qtm":28,"stm":20,"etm":20,"obtm":20,"btm":20,"atm":17},"elapsedMicros":299}
+{"kind":"3x3x3","solution":"U R U R F2 R L' U2 R' B2 R' D2 R' L F2","length":15,"metrics":{"htm":15,"qtm":20,"stm":15,"etm":15,"obtm":15,"btm":15,"atm":13},"elapsedMicros":49}
 {"error":{"code":"bad_input","message":"the start is a 3x3x3 but the target is a 2x2x2"}}
 ```
 
@@ -98,10 +98,25 @@ curl -s -XPOST localhost:8080/v1/solve \
 The solve request returns:
 
 ```json
-{"kind":"3x3x3","solution":"B R L B L' U' D B D2 R2 F2 R2 L2 D R2 L2 U' L2 U' F2 R","length":21,"elapsedMicros":389}
+{"kind":"3x3x3","solution":"B R L B L' U' D B D2 R2 F2 R2 L2 D R2 L2 U' L2 U' F2 R","length":21,"metrics":{"htm":21,"qtm":30,"stm":21,"etm":21,"obtm":21,"btm":21,"atm":17},"elapsedMicros":616}
 ```
 
 The `elapsedMicros` value varies between runs.
+
+### Move counts
+
+Every solve answer carries `metrics`: the length of `solution` in all seven metrics of [Move metrics](metrics.md), as integers, always in the key order `htm`, `qtm`, `stm`, `etm`, `obtm`, `btm`, `atm`. The command line shows three or four of them on its `metrics:` line; the server always sends all seven, so a client picks what it needs and ignores the rest. The counts are those of `cubacle::metrics::count` on the returned moves (`length` is the solver's own count, `moves N` on the command line). The same object under `compressedMetrics` counts `compressed` when `optimise` asked for it. The counts are part of every answer and cannot be turned off.
+
+The server has no `recover` endpoint, so there is no route variant to count; `/v1/solve` is the only answer with moves.
+
+Before and after, the same request (`{"cube":"A4ib8aejxj4Y","maxMoves":21,"budgetMs":2000,"optimise":"ranges"}`), run against the server:
+
+```json
+{"kind":"3x3x3","solution":"B R L B L' U' D B D2 R2 F2 R2 L2 D R2 L2 U' L2 U' F2 R","length":21,"compressed":"B R L B L' U' D B D2 R2 F2 R2 L2 D R2 L2 U' L2 U' F2 R","compressedLength":21,"elapsedMicros":1062}
+{"kind":"3x3x3","solution":"B R L B L' U' D B D2 R2 F2 R2 L2 D R2 L2 U' L2 U' F2 R","length":21,"metrics":{"htm":21,"qtm":30,"stm":21,"etm":21,"obtm":21,"btm":21,"atm":17},"compressed":"B R L B L' U' D B D2 R2 F2 R2 L2 D R2 L2 U' L2 U' F2 R","compressedLength":21,"compressedMetrics":{"htm":21,"qtm":30,"stm":21,"etm":21,"obtm":21,"btm":21,"atm":17},"elapsedMicros":616}
+```
+
+The first line is the answer before the counts were added, the second after. Plain solve options are unchanged: the server uses the default `SolveOptions` (no probe minimum) unless the request sets `minProbes`, whereas the command line makes 3000 probes on a plain 3x3x3 solve.
 
 `convert` also answers the Orbit64 token of the cube (`token`), left out when the stickers are not a cube. Tokens of every size from 2x2x2 to 7x7x7 are accepted. A 4x4x4 token converts and solves. A 6x6x6 or 7x7x7 token converts and solves:
 
@@ -114,7 +129,7 @@ curl -s -XPOST localhost:8080/v1/solve \
 
 ```json
 {"kind":"4x4x4","facelets":"DLLDLLDLBFLFLRBRDRDLFBRLUURUUDDUFUUFLDFDRBUFURRLLBDFFFDFFFBRFBFRRDDDBLUUBURBRULBBFBBUDRURBLLBRDU","token":"BJStkD4cayBhsWj6eHgDZLTP1th"}
-{"kind":"4x4x4","solution":"D' Uw Rw' Fw' U' F' Rw' L' D' R Uw' R2 U F' B U2 R' Uw2 F Rw2 B' Fw2 D2 Uw2 R Uw2 D' R' L B L2 U2 F D' B' R2 U' B2 D2 L2 D2 R2 F2 U2 R' Rw Lw' Fw' Bw","length":49,"elapsedMicros":71955}
+{"kind":"4x4x4","solution":"D' Uw Rw' Bw' R' F' Uw' U' F' D Bw' D2 B R' L B2 D' Fw2 L Dw2 L' Lw2 F2 Bw2 D Fw2 F' U' D R D2 B2 L F' R' U2 B' R2 F2 D2 F2 U2 L2 B2 U'","length":45,"metrics":{"htm":45,"qtm":63,"stm":55,"etm":45,"obtm":45,"btm":45,"atm":38},"elapsedMicros":256354}
 ```
 
 A 4x4x4 solution has about 48 moves. Its last wide turns (`Rw Lw'` and the like, at most four) turn the whole cube back to the standard orientation, because a 4x4x4 has no fixed centres; the cube is solved exactly after them. The tables (12 MB) are built at startup, and each solve uses one thread, so concurrent requests do not compete for cores.
@@ -134,7 +149,7 @@ curl -s -XPOST localhost:8080/v1/solve \
 {"kind":"5x5x5","solution":"Fw' D F' Rw U B' Uw' Lw' U Bw ...","length":67,"elapsedMicros":28246}
 ```
 
-The solution is shortened here; it has 67 moves; the time is that of the command-line run of the same cube with warm tables and will differ.
+The solution is shortened here, and the `metrics` object is left out; it has 67 moves; the time is that of the command-line run of the same cube with warm tables and will differ.
 
 ## Errors
 
@@ -180,7 +195,7 @@ The server has deliberately no CORS layer, and it requires JSON bodies, so cross
 
 ## Notation of the answer
 
-A 7x7x7 solved with `"notation":"wca"` (the default) and `"notation":"sign"`, the same cube and the same 187 moves (the start and the end of `solution` are shown):
+A 7x7x7 solved with `"notation":"wca"` (the default) and `"notation":"sign"`, the same cube and the same 187 moves (the start and the end of `solution` are shown, the `metrics` object is left out):
 
 ```json
 {"kind":"7x7x7","solution":"U 3Uw 3Lw' B' 3Rw 3Bw 3Uw 3Lw 3Bw2 3Uw Bw2 3Lw F2 ... U' L2 R","length":187}
