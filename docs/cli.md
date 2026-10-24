@@ -467,7 +467,7 @@ This prints the length of the solution of a random 4x4x4 (rotation included), be
 
 ## Apply a scramble
 
-A scramble is move notation in WCA, SiGN or SSE spelling (see [Move notations](#move-notations)) with the moves separated by whitespace. Besides the canonical forms (`R`, `R2`, `R'`, and wide or inner-layer moves such as `Rw` or `2R`), these whole-token aliases are accepted:
+A scramble is move notation in WCA, SiGN or SSE spelling (see [Move notations](#move-notations)) with the moves separated by whitespace or a middle dot `·` (`R·U·R'·U'`). Besides the canonical forms (`R`, `R2`, `R'`, and wide or inner-layer moves such as `Rw` or `2R`), these whole-token aliases are accepted:
 
 | Written | Read as |
 | --- | --- |

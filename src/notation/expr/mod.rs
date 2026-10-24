@@ -2,6 +2,7 @@ mod error;
 
 pub use error::ExprError;
 
+use super::sign::is_separator;
 use crate::puzzle::{Face, Move, MoveSequence, NotationError, PuzzleKind, Turn};
 
 /// The most moves an expression may expand to.
@@ -78,7 +79,7 @@ impl Reader {
     fn sequence(&mut self, depth: usize) -> Result<(Vec<Move>, Stop), ExprError> {
         let mut out = Vec::new();
         loop {
-            while self.peek().is_some_and(char::is_whitespace) {
+            while self.peek().is_some_and(is_separator) {
                 self.at += 1;
             }
             let item = match self.peek() {
@@ -176,13 +177,13 @@ impl Reader {
         Ok(out)
     }
 
-    /// One move word: everything up to whitespace or a bracket, `*`, `,` `:`.
+    /// One move word: everything up to whitespace, `·` or a bracket, `*`, `,` `:`.
     /// A layer range is several moves.
     fn word(&mut self) -> Result<Vec<Move>, ExprError> {
         let start = self.at;
         while self
             .peek()
-            .is_some_and(|c| !c.is_whitespace() && !"()[]*,:".contains(c))
+            .is_some_and(|c| !is_separator(c) && !"()[]*,:".contains(c))
         {
             self.at += 1;
         }

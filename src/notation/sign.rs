@@ -135,13 +135,18 @@ pub fn parse_move(token: &str) -> Result<Move, MovesError> {
     })
 }
 
-/// Moves separated by whitespace, each in WCA, SiGN or SSE spelling (mixing is
+/// Whether `c` separates two moves: whitespace or a middle dot `·`.
+pub(crate) fn is_separator(c: char) -> bool {
+    c.is_whitespace() || c == '·'
+}
+
+/// Moves separated by whitespace or `·`, each in WCA, SiGN or SSE spelling (mixing is
 /// fine). A layer range such as `2-3r` is expanded into its plain moves. SSE
 /// twists that depend on the cube size (`M W S C`) are refused here, because
 /// no size is given; [`crate::notation::parse_expression`] reads them.
 pub fn parse_moves(text: &str) -> Result<MoveSequence, MovesError> {
     let mut moves = Vec::new();
-    for word in text.split_whitespace() {
+    for word in text.split(is_separator).filter(|word| !word.is_empty()) {
         match super::range::expand(word) {
             Some(range) => moves.extend(range?),
             None => match super::sse::expand(word, None) {
