@@ -6,6 +6,7 @@ mod moves_cmd;
 mod optimal_cmd;
 mod partial_cmd;
 mod patterns_cmd;
+mod patterns_import_cmd;
 mod phase_dots;
 mod ram;
 mod recover_cmd;

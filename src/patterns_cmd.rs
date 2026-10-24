@@ -35,6 +35,8 @@ enum Action {
     /// Print a state as piece cycles with orientation marks and the order of
     /// the permutation (moves give the exact order; colours only on 2x2x2 and 3x3x3)
     Cycles(IdentifyArgs),
+    /// Import a tab-separated pattern table (CubeTwister `PatternExportTab.txt` layout)
+    Import(crate::patterns_import_cmd::ImportArgs),
 }
 
 #[derive(Args)]
@@ -87,6 +89,10 @@ pub fn run(args: PatternsArgs) -> Result<(), String> {
         Some(Action::Find(find)) => find_state(&find, args.size.unwrap_or(3)),
         Some(Action::Identify(identify)) => identify_state(&identify, args.size.unwrap_or(3)),
         Some(Action::Cycles(cycles)) => cycles_state(&cycles, args.size.unwrap_or(3)),
+        Some(Action::Import(import)) => {
+            let dir = crate::patterns_import_cmd::default_data_dir()?;
+            crate::patterns_import_cmd::run(import, &dir, args.size)
+        }
     }
 }
 
