@@ -5,7 +5,9 @@ use std::io::{IsTerminal, Read, Write};
 use std::path::PathBuf;
 
 use clap::Args;
-use cubacle::notation::{parse_expression, parse_grouped, to_wca_token, ColourScheme, Notation};
+use cubacle::notation::{
+    axis_units, parse_expression, parse_grouped, to_wca_token, ColourScheme, Item, Notation,
+};
 use cubacle::puzzle::{Facelets, Move, MoveSequence, PuzzleKind, Turn};
 use cubacle::ranges::{compress, compressed_text, Optimise};
 use cubacle::render::{icon, Action};
@@ -42,9 +44,11 @@ pub struct MovesArgs {
     optimise: Option<Optimise>,
     #[command(flatten)]
     pictures: PictureArgs,
-    /// With --icons, draw the groups marked by "·" and "( )": dots (default)
-    /// or none (one icon per move)
-    #[arg(long, requires = "icons", value_enum, default_value_t)]
+    /// Hand units: dots (default) draws the groups marked by "·" and "( )",
+    /// none draws one icon per move (both with --icons), axis ignores the marks
+    /// and groups turns of one axis with disjoint layers (U D', R L); without
+    /// --icons it writes the moves with " · " between those units
+    #[arg(long, value_enum, default_value_t)]
     group: GroupMode,
     /// With --icons, the output format
     #[arg(long, requires = "icons", value_enum, default_value = "auto")]
@@ -103,6 +107,8 @@ enum GroupMode {
     Dots,
     /// One icon per move, as without the dots
     None,
+    /// Turns about one axis on disjoint layers are one unit, as in the ATM metric
+    Axis,
 }
 
 /// The expression words joined, or standard input for a lone "-".
@@ -132,6 +138,35 @@ pub fn run(args: MovesArgs) -> Result<(), String> {
     let kind = kind_of(args.size)?;
     let text = read_text(&args.expression)?;
     let moves = expand(&text, kind)?;
+    if !args.pictures.icons && args.group != GroupMode::Axis && args.group != GroupMode::default() {
+        return Err(
+            "--group dots and --group none need --icons; without it only --group axis applies"
+                .into(),
+        );
+    }
+    if args.group == GroupMode::Axis && !args.pictures.icons {
+        if args.expand.is_some() || args.optimise.is_some() {
+            return Err("--group axis cannot be combined with --expand or --optimise".into());
+        }
+        let tree = axis_units(moves.moves(), kind, &[]);
+        let units: Vec<String> = tree
+            .items
+            .iter()
+            .filter_map(|item| match item {
+                Item::Group(unit) => Some(
+                    args.notation
+                        .write(kind, &MoveSequence::new(unit.flatten())),
+                ),
+                Item::Move(_) => None,
+            })
+            .collect();
+        println!("{}", units.join(" · "));
+        eprintln!(
+            "{}",
+            metrics_out::text_line(&text, kind, &moves, args.metrics)
+        );
+        return Ok(());
+    }
     if args.pictures.icons {
         if args.metrics {
             eprintln!("{}", metrics_out::text_line(&text, kind, &moves, true));
@@ -206,7 +241,10 @@ fn draw(
         // Step pictures, as `solve --icons` shows them.
         let options = pictures.options(args.scheme, args.notation);
         let mut pictures = Pictures::new(args.size, &options);
-        if args.group == GroupMode::Dots && (text.contains('·') || text.contains('(')) {
+        if args.group == GroupMode::Axis {
+            let tree = axis_units(moves.moves(), kind, &[]);
+            pictures = pictures.grouped(Layout::of(&tree));
+        } else if args.group == GroupMode::Dots && (text.contains('·') || text.contains('(')) {
             let tree = parse_grouped(text, kind).map_err(|error| error.to_string())?;
             pictures = pictures.grouped(Layout::of(&tree));
         }

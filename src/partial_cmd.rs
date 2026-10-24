@@ -70,7 +70,17 @@ pub fn run(args: &SolveArgs, start: &Facelets, target: &Target) -> Result<(), St
             if let Some(message) = &result.message {
                 eprintln!("{message}");
             }
-            let (text, _) = phase_dots::write(args.notation, kind, &solution, &[], false, false);
+            let (text, _) = phase_dots::write(
+                args.notation,
+                kind,
+                &solution,
+                &[],
+                false,
+                phase_dots::Grouping {
+                    phases: false,
+                    axis: false,
+                },
+            );
             println!("{text}");
             Ok(())
         }

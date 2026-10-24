@@ -216,10 +216,12 @@ struct SolveArgs {
     /// reach any such state. The moves printed take the start to the target.
     #[arg(long, value_name = "TARGET")]
     to: Option<String>,
-    /// Mark the solver phases in the answer with " · " (none: a plain list). A
-    /// solution of one phase (the 2x2x2) has no dot; the 3x3x3 has the G1 stage
-    #[arg(long, value_enum, default_value_t, conflicts_with = "icons")]
-    group: phase_dots::SolveGroup,
+    /// Mark hand units in the answer with " · ": phases (the solver phases; a
+    /// solution of one phase, the 2x2x2, has no dot), axis (turns about one
+    /// axis on disjoint layers, as in ATM) or both, "phases,axis" (a unit
+    /// never crosses a phase border); none: a plain list
+    #[arg(long, value_enum, value_delimiter = ',', conflicts_with = "icons")]
+    group: Vec<phase_dots::SolveGroup>,
     #[command(flatten)]
     pictures: steps::PictureArgs,
 }
@@ -558,7 +560,7 @@ fn solve(args: SolveArgs) -> Result<(), String> {
             // The engine's own stages where it reports them, else the state-based cut.
             let found = if args.verbose
                 || args.pictures.icons
-                || args.group == phase_dots::SolveGroup::Phases
+                || phase_dots::Grouping::of(&args.group).phases
             {
                 from_stages(&result.stages, solution.len())
                     .or_else(|| phases(&facelets, &solution).ok())
@@ -578,7 +580,8 @@ fn solve(args: SolveArgs) -> Result<(), String> {
                 options.target = target;
                 return steps::print_solution(&start, &solution, &found, &options);
             }
-            let dots = args.group == phase_dots::SolveGroup::Phases;
+            let grouping = phase_dots::Grouping::of(&args.group);
+            let dots = grouping.dots();
             let ranges = args.optimise == Some(Optimise::Ranges);
             let (text, count) = phase_dots::write(
                 args.notation,
@@ -586,7 +589,7 @@ fn solve(args: SolveArgs) -> Result<(), String> {
                 &solution,
                 &found,
                 ranges,
-                dots,
+                grouping,
             );
             if ranges {
                 eprintln!("compressed moves {count}");
