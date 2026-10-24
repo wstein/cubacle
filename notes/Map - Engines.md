@@ -37,3 +37,5 @@ Raw-material notes, category engines.
 - [[A study of stickersolve shows what to adopt and what not]]
 - [[Fingertrick ranking only orders solutions of the shortest length]]
 - [[One pattern search serves solve, the library and patterns find]]
+- [[A pattern detector reads structure from the cubie state]]
+- [[The detector explains patterns and never replaces the search]]
