@@ -432,12 +432,18 @@ fn solve_icons_draws_the_start_state_before_move_one() {
     assert!(ok);
     let lines: Vec<&str> = icons.lines().collect();
     assert!(lines[0].starts_with("Start state: "));
-    assert_eq!(lines[1], "Start state");
-    assert!(lines[2].starts_with("state, folded view"), "{}", lines[2]);
+    // no heading between the token line and the picture
+    assert!(lines[1].starts_with("state, folded view"), "{}", lines[1]);
     let step = icons.find("move 1 of ").unwrap();
-    assert!(icons.find("Start state\n").unwrap() < step);
+    assert!(icons.find("state, folded view").unwrap() < step);
     let (_, urf, _) = cubacle(&["solve", "-s", "R U F", "--icons", "--views", "urf"]);
-    assert!(urf.contains("Start state\nstate, seen from URF"), "{urf}");
+    assert!(
+        urf.lines()
+            .nth(1)
+            .unwrap()
+            .starts_with("state, seen from URF"),
+        "{urf}"
+    );
     // moves has no start state
     let (_, moves, _) = cubacle(&["moves", "R", "--icons", "--format", "text"]);
     assert!(!moves.contains("Start state"));
@@ -731,4 +737,28 @@ fn plain_solve_is_a_counted_improvement_and_fast_is_the_first_answer() {
     let (ok, capped, error) = cubacle(&["solve", "-m", "21", cube]);
     assert!(ok, "{error}");
     assert_eq!(first, capped, "-m keeps the default improvement");
+}
+
+#[test]
+fn state_pictures_have_no_headline_and_sit_in_the_rows() {
+    let (ok, out, _) = cubacle(&[
+        "solve",
+        "-s",
+        "R U F' D2 L B",
+        "--icons",
+        "--graphics",
+        "kitty",
+        "--columns",
+        "4",
+    ]);
+    assert!(ok);
+    assert!(!out.contains("compare it with your cube"), "{out:?}");
+    assert!(!out.lines().any(|l| l == "Start state"), "{out:?}");
+    // the start picture (two cells) and two moves fill row one, four moves
+    // row two, the picture after the phase (two cells) row three
+    assert_eq!(out.matches("\x1b_Ga=T").count(), 3, "{out:?}");
+    // the phase block ends with its token line, on a line of its own
+    let token = out.find("State after phase 1 as token: ").unwrap();
+    assert!(token > out.rfind("\x1b_Ga=T").unwrap());
+    assert!(out[token..].lines().next().unwrap().len() > 30);
 }

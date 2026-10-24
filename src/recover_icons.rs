@@ -72,7 +72,7 @@ pub(crate) fn render(
     } else {
         Vec::new()
     };
-    out.push_str(&pictures.steps(current, moves, &found)?);
+    out.push_str(&pictures.steps(current, moves, &found, false)?);
     Ok(out)
 }
 
@@ -87,7 +87,7 @@ pub(crate) fn render_fresh(
     let found = from_stages(stages, moves.len())
         .or_else(|| phases(current, moves).ok())
         .unwrap_or_default();
-    pictures.steps(current, moves, &found)
+    pictures.steps(current, moves, &found, false)
 }
 
 #[cfg(test)]

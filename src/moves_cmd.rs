@@ -210,7 +210,7 @@ fn draw(
             let tree = parse_grouped(text, kind).map_err(|error| error.to_string())?;
             pictures = pictures.grouped(Layout::of(&tree));
         }
-        let steps = pictures.steps(&start, moves, &[])?;
+        let steps = pictures.steps(&start, moves, &[], false)?;
         return std::io::stdout()
             .lock()
             .write_all(steps.as_bytes())

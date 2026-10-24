@@ -194,6 +194,14 @@ impl Icon {
         self
     }
 
+    /// The icon without the thin frame of a whole-cube picture, for a picture
+    /// that sits among move icons in a row and needs no frame to tell it apart.
+    #[must_use]
+    pub fn unframed(mut self) -> Icon {
+        self.shapes.retain(|s| s.part != scene::Part::Frame);
+        self
+    }
+
     /// The notation shown beside the cube, e.g. `Rw2` or `2R2`.
     pub fn label(&self) -> &str {
         &self.label

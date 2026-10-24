@@ -376,7 +376,7 @@ fn kitty(
     Ok(out)
 }
 
-fn spacer(width: u32) -> Raster {
+pub(super) fn spacer(width: u32) -> Raster {
     Raster {
         width,
         height: 1,

@@ -13,14 +13,13 @@ use cubacle::puzzle::{Facelets, Move, MoveSequence, Turn};
 use cubacle::render::{icon, Action, Icon, Raster, Style};
 
 use crate::icons::{
-    default_height, detect_stdout, numbered, show, style, Background, Graphics, GraphicsMode,
-    Numbers,
+    default_height, detect_stdout, show, style, Background, Graphics, GraphicsMode, Numbers,
 };
-use crate::rows;
 use crate::terminal::{self, Terminal};
-use crate::views::{kitty_block, kitty_state, Views};
+use crate::views::{kitty_state, Views};
 
 mod groups;
+mod kitty;
 pub use groups::Layout;
 
 /// What `solve --icons` was asked for.
@@ -120,22 +119,11 @@ pub(crate) fn phase_line(phase: &Phase) -> String {
     )
 }
 
-/// The line above the picture of the cube after a phase.
-pub(crate) fn state_heading(phase: &Phase) -> String {
-    format!(
-        "State after phase {} - compare it with your cube",
-        phase.number
-    )
-}
-
 /// The line that gives the start state as an Orbit64 token.
 pub(crate) fn start_line(state: &Facelets) -> Result<String, String> {
     let token = orbit64::encode(state).map_err(|error| error.to_string())?;
     Ok(format!("Start state: {token}\n"))
 }
-
-/// The heading above the picture of the start state.
-pub(crate) const START_HEADING: &str = "Start state";
 
 /// The line that names the state a solution leads to, as an Orbit64 token.
 pub(crate) fn target_line(state: &Facelets) -> Result<String, String> {
@@ -294,35 +282,42 @@ impl<'a> Pictures<'a> {
         self
     }
 
-    /// The move pictures of a solution (no start line, no final moves line).
+    /// The move pictures of a solution (no start line, no final moves line); with
+    /// `with_start` the picture of the start state comes first.
     pub fn steps(
         &self,
         start: &Facelets,
         solution: &MoveSequence,
         found: &[Phase],
+        with_start: bool,
     ) -> Result<String, String> {
         if let Some(layout) = &self.layout {
             return groups::steps(self, start, solution, layout);
         }
+        if self.graphics == Graphics::Kitty && solution.is_empty() {
+            return Ok(if with_start {
+                self.start_state(start)
+            } else {
+                String::new()
+            });
+        }
         if self.graphics == Graphics::Kitty {
-            kitty_steps(
-                start,
-                solution,
-                found,
-                self.options,
-                &self.terminal,
-                &self.style,
-                self.collapse_empty,
-            )
+            kitty::kitty_steps(self, start, solution, found, with_start)
         } else {
-            text_steps(
+            let mut out = if with_start {
+                self.start_state(start)
+            } else {
+                String::new()
+            };
+            out.push_str(&text_steps(
                 start,
                 solution,
                 found,
                 self.graphics,
                 &self.style,
                 self.options.notation,
-            )
+            )?);
+            Ok(out)
         }
     }
 
@@ -344,11 +339,11 @@ impl<'a> Pictures<'a> {
         ])
     }
 
-    /// The start state under the heading `Start state`, in the current view;
-    /// its token is the line `Start state: TOKEN` above.
+    /// The start state in the current view, directly below its token line
+    /// `Start state: TOKEN`, with no heading of its own.
     pub fn start_state(&self, start: &Facelets) -> String {
         let drawn = self.options.views.icons(start, None, &self.style);
-        format!("{START_HEADING}\n{}", self.picture(&drawn))
+        self.picture(&drawn)
     }
 
     /// The pictures of one state: one image on a graphics terminal, else text.
@@ -390,8 +385,7 @@ pub fn print_solution(
     if let Some(target) = &options.target {
         out.push_str(&target_line(target)?);
     }
-    out.push_str(&pictures.start_state(start));
-    out.push_str(&pictures.steps(start, solution, found)?);
+    out.push_str(&pictures.steps(start, solution, found, true)?);
     let mut stdout = std::io::stdout().lock();
     stdout
         .write_all(out.as_bytes())
@@ -426,75 +420,10 @@ fn text_steps(
         for phase in found.iter().filter(|p| p.moves.end == index + 1) {
             if !phase.moves.is_empty() {
                 out.push_str(&token_line(phase, &state)?);
+                if index + 1 < total {
+                    out.push('\n');
+                }
             }
-        }
-    }
-    Ok(out)
-}
-
-fn kitty_steps(
-    start: &Facelets,
-    solution: &MoveSequence,
-    found: &[Phase],
-    options: &SolutionIcons,
-    terminal: &Terminal,
-    style: &Style,
-    collapse_empty: bool,
-) -> Result<String, String> {
-    let total = solution.len();
-    let moves = solution.moves();
-    let mut state = start.clone();
-    let mut out = String::new();
-    // all icons have one size; the first one tells the width
-    let width = match moves.first() {
-        Some(first) => {
-            icon(&state, &Action::Layer(*first), style)
-                .map_err(|error| error.to_string())?
-                .to_rgba(style.size)
-                .width
-        }
-        None => 0,
-    };
-    let lone = lone_quarters(moves);
-    let per_row = rows::per_row(terminal.width_px, width, rows::GAP, options.columns);
-    // Without phases (a route that is not from solver stages) the moves form
-    // one segment that has no heading and no state picture.
-    let whole = [Phase {
-        number: 0,
-        name: "",
-        moves: 0..total,
-    }];
-    let named = !found.is_empty();
-    let phases = if named { found } else { &whole };
-    for (at, phase) in phases.iter().enumerate() {
-        if named {
-            if let Some(heading) = heading_at(phases, at, collapse_empty, total) {
-                out.push_str(&heading);
-                out.push('\n');
-            }
-        }
-        if phase.moves.is_empty() {
-            continue;
-        }
-        for row in rows::rows(phase.moves.clone(), per_row) {
-            let mut rasters = Vec::with_capacity(row.len());
-            for (at, mv) in row.clone().zip(&moves[row.clone()]) {
-                let action = Action::Layer(*mv);
-                let drawn = icon(&state, &action, style).map_err(|error| error.to_string())?;
-                let drawn = numbered(drawn, at + 1, options.numbers, style.backdrop);
-                let raster = drawn.to_rgba(style.size);
-                rasters.push(row_icon(raster, lone[at]));
-                state = action.apply(&state).map_err(|error| error.to_string())?;
-            }
-            let strip = Raster::hstack(&rasters, rows::GAP);
-            out.push_str(&kitty_block(&strip, terminal.cell.1));
-        }
-        if named {
-            out.push_str(&state_heading(phase));
-            out.push('\n');
-            let drawn = options.views.icons(&state, None, style);
-            out.push_str(&kitty_state(&drawn, style, terminal, options.columns));
-            out.push_str(&token_line(phase, &state)?);
         }
     }
     Ok(out)
@@ -623,10 +552,6 @@ mod tests {
         assert_eq!(
             phase_heading(&one, 5),
             "Phase 1: solve (1 move, move 1 of 5)"
-        );
-        assert_eq!(
-            state_heading(&phase),
-            "State after phase 2 - compare it with your cube"
         );
     }
 }
