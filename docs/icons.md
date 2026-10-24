@@ -117,7 +117,7 @@ On a Kitty-graphics terminal the solution is shown in phases (see below) and the
 | `--icon-size PIXELS` | Icon height; all icons have the same size. Default: 32 per cube layer, at least 96. |
 | `--columns N` | Icons per row. Default: as many as fit. Wide rows are cut off by the terminal, so a large `N` is your own choice. |
 | `--background dark\|light` | What the icons are seen on. Default: asked from the terminal, dark when it does not answer. |
-| `--views both\|urf\|net\|all` | Pictures of a whole cube: the two corners (`both`, default), URF only (`urf`), the flat net (`net`) or the net and the two corners (`all`). See [Two views of a state](#two-views-of-a-state) and [The flat net](#the-flat-net). |
+| `--views folded\|both\|urf\|net\|all` | Pictures of a whole cube: the folded view (`folded`, default), the two corners (`both`), URF only (`urf`), the flat net (`net`) or the net and the two corners (`all`). See [The folded view](#the-folded-view), [Two views of a state](#two-views-of-a-state) and [The flat net](#the-flat-net). |
 
 ### Phases
 
@@ -183,13 +183,33 @@ cargo build --release --features quarter-frame
 
 There is no command-line option or environment variable for it.
 
+### The folded view
+
+`--views folded`, the default, draws a whole cube as one picture. The corner U, F, R is drawn in perspective as in every icon (U a parallelogram on top, F a large upright square at the lower left, R a parallelogram on the right) and the three hidden faces are unfolded flat around it, undistorted, as in the cross net: L directly left of F and D directly below F, both as large as F, and B right of the R parallelogram with its top at the top of the drawing.
+
+```text
+        U U U      B B B
+       U U U       B B B
+    L  F F F R     B B B
+       F F F R
+       D D D
+```
+
+Every sticker appears exactly once, the three corner faces keep their 3D look and the other three read like the net. The flat faces are oriented as in the net (U edge on top for L and B, F at the top edge of D), so every edge shared by two faces continues across the gap. Amber marks of `recover --icons` sit on the differing stickers of the perspective faces (drawn in the same perspective) and of the flat faces; each differing sticker is marked once. The picture is 1.44 times as wide as it is high; measured at the default height, from the start picture of `solve --icons`:
+
+| Cube | 2x2x2 | 3x3x3 | 4x4x4 | 5x5x5 | 6x6x6 | 7x7x7 |
+| --- | --- | --- | --- | --- | --- | --- |
+| Pixels (width x height) | 139 x 96 | 138 x 96 | 184 x 128 | 230 x 160 | 275 x 192 | 321 x 224 |
+
+It is one image; like `net` it is never split, so on a terminal narrower than the picture lower `--icon-size` (the default height is 32 per layer, at least 96). Without graphics the text picture is the corner with the flat faces beside it, as in the sample under [Recover with icons](#recover-with-icons). Tests check that each of the 6 n x n stickers is drawn once with its colour and place for sizes 2 to 7, that stickers of one cubie meet across the gaps, that every differing sticker has exactly one mark, and the text of a solved 3x3x3.
+
 ### Two views of a state
 
-A move icon shows the cube from the Up-Right-Front corner (URF), so the Left, Back and Down faces are hidden. The picture of a whole state (`State after phase N - compare it with your cube` in `solve --icons`, `Should be` and `Is now` in `recover --icons`) is therefore drawn twice, side by side in one image: the URF view on the left and the view from the opposite Down-Left-Back corner (DBL) on the right. Together they show every sticker of the six faces exactly once. Move icons stay URF only.
+A move icon shows the cube from the Up-Right-Front corner (URF), so the Left, Back and Down faces are hidden. The picture of a whole state (`State after phase N - compare it with your cube` in `solve --icons`, `Should be` and `Is now` in `recover --icons`) can be drawn twice with `--views both`, side by side in one image: the URF view on the left and the view from the opposite Down-Left-Back corner (DBL) on the right. Together they show every sticker of the six faces exactly once. Move icons stay URF only.
 
 The four side faces form one belt from left to right, every face upright (its U edge on top): F and R in the left picture, then B and L in the right one. The right picture is the cube seen from below: B is the large face in front, L the narrow side on its right, and D lies under B. Physically: hold the cube with U up, turn it around its vertical axis (`y2`) so that B faces you and L is on your right, then bend down and look up at it from below. A turn of the cube about the vertical axis keeps U up, so B and L stay upright; seen from underneath, D appears below them. (Turning the cube over, for example with `x2`, would put the side faces upside down, which is why the second view is not drawn that way.) Tests check this against the facelet layout: every sticker of D, L and B lands on a visible face of the `y2`-turned cube, the two views cover each sticker once, the side faces are drawn in the order F, R, B, L with their U edge on top, and every amber mark lies on its sticker.
 
-On a Kitty terminal the two pictures are one image. When that image is wider than the terminal, or `--columns 1` is given, the two views are stacked, one image each. With `--views urf` only the URF picture is drawn (`net` and `all` add the flat net, below). Without graphics `solve --icons` prints no state picture (only the token line), and `recover --icons` prints each state as two text pictures, one below the other, each with a heading that names its corner (`state, seen from URF: ...`, `state, seen from DBL, turned so that B is in front: ...`; the second shows B and L side by side with D below them); `--views urf` leaves out the second.
+On a Kitty terminal the two pictures are one image. When that image is wider than the terminal, or `--columns 1` is given, the two views are stacked, one image each. With `--views urf` only the URF picture is drawn (`net` and `all` add the flat net, below). Without graphics `solve --icons` prints the start state (see below) but no state picture after a phase, and with `--views both` `recover --icons` prints each state as two text pictures, one below the other, each with a heading that names its corner (`state, seen from URF: ...`, `state, seen from DBL, turned so that B is in front: ...`; the second shows B and L side by side with D below them); `--views urf` leaves out the second.
 
 ### The flat net
 
@@ -222,7 +242,7 @@ B Y W  R B O  Y R R  Y O R
 
 ### Checkpoints
 
-`solve --icons` writes the cube as an [Orbit64 token](cli.md) (the text `convert --to token` writes) at these places: the line `Start state: TOKEN` once at the top, and the line `State after phase N as token: TOKEN` after each phase that has moves, below the state picture on a graphics terminal and after its last step otherwise. A phase with nothing to do has no line. The last token is the solved cube. Keep the start token; after a phase, the token of your own cube can be compared with the printed one. Plain `solve` without `--icons` prints no token.
+`solve --icons` also draws the start state, under the heading `Start state` in the current view, right after the line `Start state: TOKEN` and before step 1 (on a pipe too; `recover --icons` keeps its `Should be` and `Is now` pictures, `moves --icons` has no start state). It writes the cube as an [Orbit64 token](cli.md) (the text `convert --to token` writes) at these places: the line `Start state: TOKEN` once at the top, and the line `State after phase N as token: TOKEN` after each phase that has moves, below the state picture on a graphics terminal and after its last step otherwise. A phase with nothing to do has no line. The last token is the solved cube. Keep the start token; after a phase, the token of your own cube can be compared with the printed one. Plain `solve` without `--icons` prints no token.
 
 ### How the terminal is asked
 
@@ -245,46 +265,36 @@ cubacle recover -s "R U2 F' D L2 B R' U' F2 D2 L B'" --now FDDRURLDBRDBLRFFDUUBU
 
 The usual text of `recover` comes first. After it:
 
-1. When a mistake or a nearest cube was found, two pictures of the whole cube: `Should be, after step N (the last correct one)`, the cube of the printed solution after the last correct move, and `Is now`, the cube you typed. Each has its Orbit64 token below it. Compare the two to see what differs: on a Kitty terminal every sticker of `Is now` whose colour differs from `Should be` carries a small amber square, in the view (URF or DBL) that shows its face, so all of them are marked. In every mode the line `Stickers that differ: N of M` counts them over all faces. With `--views urf` the hidden faces are not drawn, so only the stickers of U, R and F are marked and the line says so; `net` and `all` mark every one.
+1. When a mistake or a nearest cube was found, two pictures of the whole cube: `Should be, after step N (the last correct one)`, the cube of the printed solution after the last correct move, and `Is now`, the cube you typed. Each has its Orbit64 token below it. Compare the two to see what differs: on a Kitty terminal every sticker of `Is now` whose colour differs from `Should be` carries a small amber square, in the view that shows its face (the corner or a flat face with `folded`, URF or DBL with `both`), so all of them are marked. In every mode the line `Stickers that differ: N of M` counts them over all faces. With `--views urf` the hidden faces are not drawn, so only the stickers of U, R and F are marked and the line says so; `folded`, `both`, `net` and `all` mark every one.
 2. The moves to do now (the way back, or the fresh solution when that is recommended), one picture per step as in `solve --icons`, with the quarter-turn note (and the optional frame). Phase headings and `State after phase N as token` lines appear only when the moves are a fresh solution that reports solver stages; a way back has none. In `recover` (not in `solve`) a run of phases with nothing to do is one heading, `Phases 1-5: nothing to do`; a single empty phase keeps its own line.
 
 Without graphics the pictures are the text pictures of `solve --icons`:
 
 ```text
 Should be, after step 4 (the last correct one)
-state, seen from URF: U up, F towards you, R on your right
-   B Y O
-  R W R
- Y R B
-O B O W W G
-W G B O R W
-R B O Y R R
-
-state, seen from DBL, turned so that B is in front: B, L, D below
-W B W R Y G
-G B O G O O
-Y O R B Y W
- G Y Y
-  G Y G
-   B W G
+state, folded view: corner U F R, with L, D and B flat around it
+          B Y O     W B W
+         R W R      G B O
+        Y R B       Y O R
+R Y G  O B O W W G
+G O O  W G B O R W
+B Y W  R B O Y R R
+       G W B
+       G Y G
+       Y Y G
 
 token: Enl7Pqxeueao
 Is now
-state, seen from URF: U up, F towards you, R on your right
-   G Y Y
-  R W R
- O Y B
-W B W R Y B
-W G B O R G
-O B O G Y W
-
-state, seen from DBL, turned so that B is in front: B, L, D below
-R O Y R W G
-O B G W O O
-R B O Y R W
- G W B
-  G Y G
-   Y R B
+state, folded view: corner U F R, with L, D and B flat around it
+          G Y Y     R O Y
+         R W R      O B G
+        O Y B       R B O
+R W G  W B W R Y B
+W O O  W G B O R G
+Y R W  O B O G Y W
+       B R Y
+       G Y G
+       B W G
 
 token: FpkdfDU1GuT4
 Stickers that differ: 31 of 54 (all marked amber in graphics rows, in the view that shows them).

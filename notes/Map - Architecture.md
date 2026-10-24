@@ -20,3 +20,4 @@ Raw-material notes, category architecture.
 - [[Whole-cube pictures show two opposite corners]]
 - [[A flat net shows every sticker undistorted]]
 - [[Patterns are defined by structure and searched]]
+- [[The folded view is the default for whole-cube pictures]]
