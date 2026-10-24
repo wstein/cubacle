@@ -49,7 +49,7 @@ The first two lines go to standard error. `moves N` is always printed there, `el
 | `--slices` | 4x4x4 and 5x5x5: allow single inner layers (`2R`) in the answer where they make it shorter. Default: outer layers and two-layer turns only. See [the move metric](performance.md#move-metric). |
 | `--notation <wca\|sign\|sse>` | How the solution is written. Default `wca` (`Rw`, `3Rw`); `sign` writes `r`, `3r`; `sse` writes `TR`, `T3R`, `MR` (see [Move notations](#move-notations)). With `--icons` it also sets the move lines and the last line; the icon labels stay WCA. |
 | `--optimise ranges` | After the solve, with no search: adjacent turns of one axis are written as layer ranges where that is shorter (`2-3r` in sign, `2-3Rw` in wca, `V2R`, `M2R` or `N2-4R` in sse; only contiguous layers). Off by default. The solution is the same state; stderr reports `moves N` (as solved), `compressed moves M` and, after the metrics line of the plain answer, `compressed metrics: ...`; stdout holds the compressed text. Not combined with `--icons`. On 20 random 4x4x4 to 7x7x7 solutions it saved 0 to 2 moves (2 of 20 saved any, both 7x7x7), on 14 human 4x4x4+ states 0 to 5, because the solvers already merge most axis runs. |
-| `--group <none\|phases>` | `phases` writes the solution with ` · ` between the solver phases that the engine reports (see [Hand units](#hand-units)); `none` (default) is the plain list. Not with `--icons`. With `--optimise ranges` each phase is compressed on its own, so no range crosses a dot. |
+| `--group <none\|phases\|axis>` | `phases` writes the solution with ` · ` between the solver phases that the engine reports (see [Hand units](#hand-units)); `axis` writes ` · ` between hand units by axis (turns about one axis on disjoint layers); both are given as `--group phases,axis`; `none` (default) is the plain list. Not with `--icons`. With `--optimise ranges` each phase is compressed on its own, so no range crosses a dot. |
 | `--icons` | Show each move as an icon. The output begins with `Start state: TOKEN`, then the start state as a picture (on rows of its own, one and a half times as large as a move icon, with a frame), has a line `State after phase N as token: TOKEN` after each phase but the last, and ends with `End state: TOKEN`, the end picture and `Moves: …`, so that a checkpoint can be compared with your cube. See [Move icons](icons.md#checkpoints). |
 | `--icon-size <PIXELS>` | With `--icons`: icon height in pixels. Default: 32 per cube layer, at least 96. |
 | `--background <dark\|light>` | With `--icons`: what the icons are seen on. It sets the notation colour and the dimming. Default: the terminal is asked (`OSC 11`), dark when it does not answer. |
@@ -716,7 +716,31 @@ cubacle solve --size 4 --group phases "R U 2R 2U' Fw 2L' B2 D 2D' R' U2 2F Uw Rw
 B' L' F' R Bw Dw' · B F' R' Dw2 L' Rw2 Fw' · D' L' R' Fw2 U' Bw2 R2 L' F2 Dw2 R U Rw2 · U B U L2 B2 D2 F' U F2 L2 D2 R B2 L F2 R2 U2 L' B' L
 ```
 
-The dotted answer is read back by `moves` as the same moves (a test checks it for wca, sign and sse). The 2x2x2 and the 3x3x3 (min2phase) report no stage ends: in the runs made for this page the whole solution was one phase and no dot was written. The REST backend returns a flat string; it has no groups.
+`--group axis` cuts by axis instead. Consecutive turns about the same axis whose layers do not overlap are one unit, because one grip turns them together (the axial move of the ATM metric, see [Move metrics](metrics.md)): `U D'`, `R L`, `Rw Lw` on a 4x4x4 or `2R 2L'` on a 5x5x5. A turn that overlaps the layers already in the unit starts the next one (`U D' U` is `U D' · U`), and so does a turn of another axis. A layer range written as two turns, `2-3Rw` (`3Rw R'`), is one block. A rotation joins the unit of its own axis as in ATM, so `R x L` is `R Rw L' · L` (`x` is written `Rw L'`); a rotation of another axis starts a unit. Marks typed in the input are ignored by `moves --group axis`: the units are the ones cut here. Run on a 3x3x3 and a 7x7x7:
+
+```sh
+cubacle moves --group axis "U D' R L F B2 R U"
+cubacle moves --size 3 --group axis "R x L U"
+cubacle moves --size 7 --group axis "R L Rw Lw 2-3Rw 2-3Lw U"
+```
+
+```text
+U D' · R L · F B2 · R · U
+R Rw L' · L · U
+R L · Rw Lw · 3Rw R' 3Lw L' · U
+```
+
+Without `--icons` `moves --group axis` writes the dotted line (`--group none` needs `--icons`; `--expand` and `--optimise` cannot be combined with it). With `--icons` the units are drawn with brackets as for typed dots (`group 1 of 5: U D'`). `solve --group axis` puts the dots into the answer:
+
+```sh
+cubacle solve --size 4 --group axis "R U 2R 2U' Fw 2L' B2 D 2D' R' U2 2F Uw Rw' F2 Lw"
+```
+
+```text
+B' · L' · F' · R · Bw · Dw' · B F' · R' · Dw2 · L' Rw2 · Fw' · D' · L' R' · Fw2 · U' · Bw2 · R2 L' · F2 · Dw2 · R · U · Rw2 · U · B · U · L2 · B2 · D2 · F' · U · F2 · L2 · D2 · R · B2 · L · F2 · R2 · U2 · L' · B' · L
+```
+
+`--group phases,axis` combines the two. The phase border wins: a unit never crosses it, so the dots are those of `phases` plus those of `axis`, and `U | D'` split across two phases is `U · D'` although `axis` alone writes `U D'` (the 4x4x4 answer above has the same dots both ways; a unit test covers the split). With `--optimise ranges` each unit is compressed on its own. `solve --group axis` has no icons form (`--icons` stays the phase pictures). The dotted answer is read back by `moves` as the same moves (a test checks it for wca, sign and sse). The 2x2x2 and the 3x3x3 (min2phase) report no stage ends: in the runs made for this page the whole solution was one phase and no dot was written. The REST backend returns a flat string; it has no groups.
 
 ### Middle slices and whole-cube rotations
 

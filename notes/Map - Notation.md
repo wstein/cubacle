@@ -7,6 +7,7 @@ Raw-material notes, category notation.
 
 - [[Input notations]]
 - [[Move metrics count turns of contiguous blocks]]
+- [[Hand units by axis follow the ATM metric]]
 - [[Orbit64 tokens]]
 - [[Solve icons checkpoints are Orbit64 tokens]]
 - [[Quarter turn frame is off by default]]
