@@ -11,3 +11,4 @@ Raw-material notes, category project.
 - [[Roadmap by cube size]]
 - [[Shorter solutions beat compute time]]
 - [[Third-party pattern collections give names and facts, never move lists]]
+- [[A review of the cube tools of Randelshofer sets the order of seven ideas]]
