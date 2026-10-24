@@ -2,6 +2,7 @@ mod icons;
 mod improve;
 mod moves_cmd;
 mod patterns_cmd;
+mod phase_dots;
 mod recover_cmd;
 mod recover_icons;
 mod rows;
@@ -30,7 +31,7 @@ use cubacle::phases::{from_stages, phases};
 use cubacle::puzzle::{
     reaches, relative_state, Facelets, Failure, PuzzleKind, SolveOptions, Solver,
 };
-use cubacle::ranges::{compressed_text, Optimise};
+use cubacle::ranges::Optimise;
 
 /// Rubik's cube solver and generator.
 #[derive(Parser)]
@@ -163,6 +164,10 @@ struct SolveArgs {
     /// start to the target.
     #[arg(long, value_name = "TARGET")]
     to: Option<String>,
+    /// Mark the solver phases in the answer with " · " (none: a plain list). A
+    /// solution of one phase (the 2x2x2) has no dot; the 3x3x3 has the G1 stage
+    #[arg(long, value_enum, default_value_t, conflicts_with = "icons")]
+    group: phase_dots::SolveGroup,
     #[command(flatten)]
     pictures: steps::PictureArgs,
 }
@@ -424,7 +429,10 @@ fn solve(args: SolveArgs) -> Result<(), String> {
             }
             eprintln!("moves {}", solution.len());
             // The engine's own stages where it reports them, else the state-based cut.
-            let found = if args.verbose || args.pictures.icons {
+            let found = if args.verbose
+                || args.pictures.icons
+                || args.group == phase_dots::SolveGroup::Phases
+            {
                 from_stages(&result.stages, solution.len())
                     .or_else(|| phases(&facelets, &solution).ok())
                     .unwrap_or_default()
@@ -441,13 +449,20 @@ fn solve(args: SolveArgs) -> Result<(), String> {
                 options.target = target;
                 return steps::print_solution(&start, &solution, &found, &options);
             }
-            if args.optimise == Some(Optimise::Ranges) {
-                let (text, count) = compressed_text(args.notation, facelets.kind(), &solution);
+            let dots = args.group == phase_dots::SolveGroup::Phases;
+            let ranges = args.optimise == Some(Optimise::Ranges);
+            let (text, count) = phase_dots::write(
+                args.notation,
+                facelets.kind(),
+                &solution,
+                &found,
+                ranges,
+                dots,
+            );
+            if ranges {
                 eprintln!("compressed moves {count}");
-                println!("{text}");
-                return Ok(());
             }
-            println!("{}", args.notation.write(facelets.kind(), &solution));
+            println!("{text}");
             Ok(())
         }
         Err(Failure::InvalidInput) if target.is_some() => Err(format!(
