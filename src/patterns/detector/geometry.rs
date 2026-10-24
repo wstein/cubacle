@@ -140,7 +140,6 @@ fn build(kind: PuzzleKind) -> Tables {
 }
 
 /// The image of `state` under symmetry `g`: the sticker at `i` goes to `perm[i]`.
-#[cfg(test)]
 pub(crate) fn image(kind: PuzzleKind, state: &[u8], g: usize) -> Vec<u8> {
     let mut out = vec![0; state.len()];
     for (&to, &colour) in tables(kind).perm[g].iter().zip(state) {

@@ -6,6 +6,7 @@ use super::{Report, Symmetry};
 
 impl fmt::Display for Report {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write_matches(f, &self.matches)?;
         write_symmetry(f, &self.symmetry)
     }
 }
@@ -64,6 +65,16 @@ fn write_symmetry(f: &mut fmt::Formatter<'_>, symmetry: &Symmetry) -> fmt::Resul
                 .collect();
             writeln!(f, "  {} x {class}: {}", operations.len(), list.join(", "))?;
         }
+    }
+    Ok(())
+}
+
+fn write_matches(f: &mut fmt::Formatter<'_>, matches: &[super::Match]) -> fmt::Result {
+    if matches.is_empty() {
+        return writeln!(f, "pattern: no library match");
+    }
+    for m in matches {
+        writeln!(f, "pattern: {} ({}), {}", m.name, m.id, m.relation)?;
     }
     Ok(())
 }

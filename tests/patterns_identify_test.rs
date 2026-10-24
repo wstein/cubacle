@@ -44,3 +44,23 @@ fn a_bad_cube_is_an_error() {
     let (ok, _) = identify(&["not a cube"]);
     assert!(!ok);
 }
+
+#[test]
+fn a_library_pattern_is_named() {
+    let (ok, text) = identify(&["U2 D2 R2 L2 F2 B2"]);
+    assert!(ok);
+    assert!(
+        text.contains("pattern: Checkerboard (checkerboard), exactly"),
+        "{text}"
+    );
+    let (ok, text) = identify(&["--size", "5", "2U' 2R 2F2"]);
+    assert!(ok);
+    assert!(text.contains("pattern: no library match"), "{text}");
+}
+
+#[test]
+fn a_turned_cube_is_still_the_pattern() {
+    let (ok, text) = identify(&["x U2 D2 R2 L2 F2 B2"]);
+    assert!(ok);
+    assert!(text.contains("(checkerboard)"), "{text}");
+}
