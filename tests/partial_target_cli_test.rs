@@ -1,7 +1,7 @@
 //! `solve --to` with open stickers (X or ?): the moves reach every constrained
 //! sticker, complete targets keep their old output, and errors are clear.
 
-use cubacle::notation::{parse_expression, parse_partial};
+use cubacle::notation::{named_subset, parse_expression, parse_partial};
 use cubacle::puzzle::{Facelets, MoveSequence, PuzzleKind};
 use std::process::Command;
 
@@ -54,6 +54,28 @@ fn a_2x2_target_with_open_stickers_is_reached_and_proved_shortest() {
         let target = parse_partial(to, None).unwrap().unwrap();
         assert!(target.reached_by(&start, &moves), "{to}: {out}");
     }
+}
+
+#[test]
+fn the_cross_on_a_3x3_is_reached_in_the_fewest_moves() {
+    for name in ["cross", "cross-u", "cross-r"] {
+        let scramble = "R U2 F' D L2 B R' U F2 D' L B2 U' R F D2 L' U";
+        let start = cube(PuzzleKind::Cube3, scramble);
+        let (ok, out, err) = cubacle(&["solve", &start.to_string(), "--to", name]);
+        assert!(ok, "{name}: {err}");
+        assert!(err.contains("shortest"), "{err}");
+        let moves: MoveSequence = out.parse().unwrap();
+        assert!(moves.len() <= 8, "{name}: {out}");
+        let target = named_subset(name, PuzzleKind::Cube3).unwrap().unwrap();
+        assert!(target.reached_by(&start, &moves), "{name}: {out}");
+    }
+}
+
+#[test]
+fn a_subset_name_is_refused_on_the_wrong_size() {
+    let (ok, _, err) = cubacle(&["solve", "--size", "2", "R U", "--to", "cross"]);
+    assert!(!ok);
+    assert!(err.contains("3x3x3") && err.contains("2x2x2"), "{err}");
 }
 
 #[test]

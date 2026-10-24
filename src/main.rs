@@ -29,8 +29,8 @@ use cubacle::engines::two::PocketSolver;
 use cubacle::generate;
 use cubacle::notation::orbit64;
 use cubacle::notation::{
-    colour_scheme_of, named_target, parse_cube, parse_expression, parse_partial, ColourScheme,
-    Notation,
+    colour_scheme_of, named_subset, named_target, parse_cube, parse_expression, parse_partial,
+    ColourScheme, Notation,
 };
 use cubacle::phases::{from_stages, phases};
 use cubacle::puzzle::{
@@ -195,7 +195,9 @@ struct SolveArgs {
     /// Solve to this state instead of to the solved cube: an Orbit64 token,
     /// URFDLB facelets, W/R/G/Y/O/B colours or a move expression applied to the
     /// solved cube of the start's size (one argument: quote it), or one of the
-    /// names superflip, checkerboard, cube-in-cube. An X (or ?) in facelets or
+    /// names superflip, checkerboard, cube-in-cube, or the subset cross (3x3x3:
+    /// the down cross; cross-u, cross-r, cross-f, cross-l, cross-b pick the
+    /// face, the rest is free). An X (or ?) in facelets or
     /// colours marks a sticker that may show any colour; the moves printed
     /// reach any such state. The moves printed take the start to the target.
     #[arg(long, value_name = "TARGET")]
@@ -357,6 +359,9 @@ fn read_target(text: &str, args: &SolveArgs, start: &Facelets) -> Result<Target,
         return named
             .map(|state| Target::complete(&state))
             .map_err(|error| format!("--to: {error}"));
+    }
+    if let Some(subset) = named_subset(text, start.kind()) {
+        return subset.map_err(|error| format!("--to: {error}"));
     }
     if let Some(partial) =
         parse_partial(text, args.input.scheme).map_err(|error| format!("--to: {error}"))?

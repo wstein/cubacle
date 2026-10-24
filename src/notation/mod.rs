@@ -12,6 +12,7 @@ mod scheme;
 mod sign;
 mod sse;
 mod sse_write;
+mod subset;
 
 pub use alphabet::{parse_alphabet, AlphabetError, NAMED_SETS};
 pub use expr::{
@@ -23,3 +24,4 @@ pub use partial::parse_partial;
 pub use scheme::{ColourScheme, SchemeError};
 pub use sign::{parse_move, parse_moves, to_wca_token, MovesError, Notation};
 pub(crate) use sse_write::write_layer_move as write_sse_layer_move;
+pub use subset::{named_subset, NAMED_SUBSETS};
