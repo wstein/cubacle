@@ -151,6 +151,9 @@ struct SolveArgs {
     /// 3x3x3 only: with --improve, search the six orientations concurrently (needs -b)
     #[arg(long)]
     parallel: bool,
+    /// 3x3x3: return the first solution found, as before the counted default (plain solve makes 3000 probes for a shorter one)
+    #[arg(long, conflicts_with_all = ["improve", "parallel", "probes"])]
+    fast: bool,
     /// Also print timing and search statistics to stderr
     #[arg(short, long)]
     verbose: bool,
@@ -444,6 +447,7 @@ fn solve(args: SolveArgs) -> Result<(), String> {
         None => solver_for(facelets.kind()),
     };
 
+    let restricted_set = restricted.is_some();
     // A restricted set has no default limit: its answers are longer than 21.
     let mut options = match restricted {
         Some(_) => SolveOptions::default(),
@@ -456,7 +460,10 @@ fn solve(args: SolveArgs) -> Result<(), String> {
         options = options.with_time_budget(Duration::from_millis(millis));
     }
     options = options.with_slices(args.slices);
-    let result = match improve::mode(&args) {
+    let mode = improve::mode(&args).or_else(|| {
+        improve::default_mode(&args, facelets.kind(), target.is_some(), restricted_set)
+    });
+    let result = match mode {
         Some(mode) if facelets.kind() == PuzzleKind::Cube3 => {
             improve::solve(&facelets, options, mode, args.verbose)
         }

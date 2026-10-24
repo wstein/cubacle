@@ -44,7 +44,7 @@ fn every_notation_of_one_cube_gets_the_same_solution() {
         ],
     ];
     for cube in notations {
-        let mut args = vec!["solve"];
+        let mut args = vec!["solve", "--fast"];
         args.extend(cube);
         let (ok, solution, error) = cubacle(&args);
         assert!(ok, "{cube:?}: {error}");
@@ -713,4 +713,19 @@ fn graphics_flag_and_variable_choose_the_pictures() {
     assert!(!out.status.success());
     let err = String::from_utf8_lossy(&out.stderr);
     assert!(err.contains("auto, kitty, ansi, plain"), "{err}");
+}
+
+#[test]
+fn plain_solve_is_a_counted_improvement_and_fast_is_the_first_answer() {
+    let cube = "A4ib8aejxj4Y";
+    let (ok, fast, error) = cubacle(&["solve", "--fast", cube]);
+    assert!(ok, "{error}");
+    assert_eq!(fast, SOLUTION);
+    let (ok, first, error) = cubacle(&["solve", cube]);
+    assert!(ok, "{error}");
+    let (_, second, _) = cubacle(&["solve", cube]);
+    assert_eq!(first, second, "plain solve is deterministic");
+    assert!(first.split_whitespace().count() <= fast.split_whitespace().count());
+    let (_, probes, _) = cubacle(&["solve", "--probes", "3000", cube]);
+    assert_eq!(first, probes, "the default is --probes 3000");
 }

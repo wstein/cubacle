@@ -29,6 +29,26 @@ pub(crate) fn mode(args: &SolveArgs) -> Option<Mode> {
     }
 }
 
+/// Probes of the counted default of a plain 3x3x3 `solve`.
+const DEFAULT_PROBES: u64 = 3000;
+
+/// The mode of a plain 3x3x3 `solve`: a counted improvement. It is not used
+/// with `--fast`, a target, a move set or an explicit limit (`-m`, `-b`).
+pub(crate) fn default_mode(
+    args: &SolveArgs,
+    kind: PuzzleKind,
+    has_target: bool,
+    restricted: bool,
+) -> Option<Mode> {
+    let plain = kind == PuzzleKind::Cube3
+        && !args.fast
+        && !has_target
+        && !restricted
+        && args.max_moves.is_none()
+        && args.budget_ms.is_none();
+    plain.then_some(Mode::Probes(DEFAULT_PROBES))
+}
+
 /// Rejects improve flags that do not fit the cube or each other.
 pub(crate) fn check(args: &SolveArgs, kind: PuzzleKind) -> Result<(), String> {
     if args.parallel && !args.improve {
