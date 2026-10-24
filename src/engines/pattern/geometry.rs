@@ -2,7 +2,7 @@
 //! `new[i] = old[src[i]]`, built from the same layout as `Facelets::apply`
 //! (the search replays its result with the library before printing it).
 
-use cubacle::puzzle::{Face, LayerMove, Turn};
+use crate::puzzle::{Face, LayerMove, Turn};
 
 type Vec3 = [i32; 3];
 

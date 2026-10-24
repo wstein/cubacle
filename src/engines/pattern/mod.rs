@@ -10,10 +10,15 @@
 //! unchanged.
 //!
 //! Files: `library` (the macros), `search` (meet in the middle over their
-//! products).
+//! products), and for the generator search of `examples/pattern_search`:
+//! `geometry` (sticker tables), `steps` (the move sets) and `bidir` (the
+//! bidirectional search over them).
 
+pub mod bidir;
+pub mod geometry;
 mod library;
 mod search;
+pub mod steps;
 
 use std::sync::OnceLock;
 use std::time::Instant;

@@ -9,10 +9,10 @@
 
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use cubacle::puzzle::{Face, LayerMove, Turn};
+use crate::puzzle::{Face, LayerMove, Turn};
 
-use crate::geometry::{compose, invert, source_table};
-use crate::search::Step;
+use super::bidir::Step;
+use super::geometry::{compose, invert, source_table};
 
 const POSITIVE: [Face; 3] = [Face::R, Face::U, Face::F];
 const NEGATIVE: [Face; 3] = [Face::L, Face::D, Face::B];

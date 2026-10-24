@@ -10,7 +10,7 @@
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
-use crate::geometry::{apply, hash};
+use super::geometry::{apply, hash};
 
 /// One step of the search: a state permutation and what it costs.
 pub struct Step {

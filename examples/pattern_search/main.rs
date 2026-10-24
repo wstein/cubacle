@@ -9,7 +9,7 @@
 //! * `MODE`: `outer` (outer blocks from a face: `R`, `Rw`, `3Rw`), `range`
 //!   (any block of adjacent layers, `2-3Rw`), or `sym-outer` / `sym-range`
 //!   (the same metrics over macro moves that turn mirror-symmetric layer sets,
-//!   see `moves.rs`; a much smaller space that reaches the big cubes).
+//!   see `steps`; a much smaller space that reaches the big cubes).
 //! * `face` is `outer` with single outer-layer turns only (the 3x3x3 half-turn
 //!   metric); the result is also replayed on the bigger cubes and every size
 //!   where it builds the pattern is printed (it only turns the outer layers).
@@ -17,24 +17,20 @@
 //! * `TURNS`: `half` (half turns only, a much smaller group) or `all`.
 //!
 //! The search runs from the solved cube forwards and from the target
-//! backwards (`search.rs`), so a result over the full move set is a shortest
+//! backwards (`bidir`), so a result over the full move set is a shortest
 //! sequence in that set; the symmetric modes are exact only inside their
 //! smaller set and are reported as `best-known`. On even cubes the target may
 //! be in any orientation. The result is replayed with the library before it
 //! is printed. The only input is the structural definition of the pattern.
 
-mod geometry;
-mod moves;
-mod search;
-
 use std::time::Duration;
 
+use cubacle::engines::pattern::bidir::{self, Limits, Outcome};
+use cubacle::engines::pattern::{geometry, steps};
 use cubacle::notation::Notation;
 use cubacle::patterns;
 use cubacle::puzzle::{Facelets, LayerMove, MoveSequence, PuzzleKind};
 use cubacle::ranges::write_move;
-
-use search::{Limits, Outcome};
 
 fn colours(state: &Facelets) -> Vec<u8> {
     state.stickers().iter().map(|f| *f as u8).collect()
@@ -94,13 +90,13 @@ fn main() {
     let range = mode.ends_with("range");
     let lifted = mode == "face";
     let set = if symmetric {
-        moves::symmetric(n, range, half_only)
+        steps::symmetric(n, range, half_only)
     } else {
-        moves::plain(n, range, half_only, mode == "face")
+        steps::plain(n, range, half_only, mode == "face")
     };
     let solved = colours(&Facelets::solved(kind));
     let targets = geometry::seeds(n, &target);
-    let outcome = search::search(&set.steps, vec![solved.clone()], targets.clone(), &limits);
+    let outcome = bidir::search(&set.steps, vec![solved.clone()], targets.clone(), &limits);
     let Outcome::Found(path, cost) = outcome else {
         let Outcome::NotFound(reason) = outcome else {
             unreachable!()
