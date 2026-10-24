@@ -1,7 +1,11 @@
 //! The `patterns` subcommand: list the pattern library, or show one pattern
 //! with its generators.
 
+use std::time::Duration;
+
 use clap::{Args, Subcommand};
+use cubacle::engines::pattern::{find_generator, Cap, DEFAULT_MAX_MEMORY_MB};
+use cubacle::notation::{ColourScheme, Notation};
 use cubacle::patterns::{self, Generator, Metric, Pattern};
 
 #[derive(Args)]
@@ -22,13 +26,61 @@ enum Action {
         #[arg(num_args = 1.., required = true)]
         name: Vec<String>,
     },
+    /// Find the shortest known generator of a cube state: the moves that build it from the solved cube
+    Find(FindArgs),
+}
+
+#[derive(Args)]
+pub struct FindArgs {
+    /// An Orbit64 token, URFDLB facelets, W/R/G/Y/O/B colours or a move
+    /// expression for a cube of --size (3 unless given); spaces are allowed and
+    /// need no quoting
+    #[arg(num_args = 1.., required_unless_present = "scramble", conflicts_with = "scramble")]
+    cube: Vec<String>,
+    /// Use the cube this scramble makes (on a cube of --size)
+    #[arg(short, long)]
+    scramble: Option<String>,
+    /// Colour scheme of colour input: boy, jp or six letters in URFDLB order
+    #[arg(long)]
+    scheme: Option<ColourScheme>,
+    /// Hard memory cap of the searches in megabytes
+    #[arg(long, value_name = "MB", default_value_t = DEFAULT_MAX_MEMORY_MB)]
+    max_memory: usize,
+    /// Hard time limit in milliseconds (default: none, the cap ends the search)
+    #[arg(short, long)]
+    budget_ms: Option<u64>,
+    /// How to write the moves: wca (Rw, 3Rw) sign (r, 3r) or sse (TR, T3R)
+    #[arg(long, default_value = "wca")]
+    notation: Notation,
 }
 
 pub fn run(args: PatternsArgs) -> Result<(), String> {
     match args.action {
         None => list(args.size),
         Some(Action::Show { name }) => show(&name.join(" "), args.size),
+        Some(Action::Find(find)) => find_state(&find, args.size.unwrap_or(3)),
     }
+}
+
+/// `patterns find`: the moves that build a state from the solved cube.
+fn find_state(args: &FindArgs, size: usize) -> Result<(), String> {
+    let state = match &args.scramble {
+        Some(scramble) => crate::scrambled(scramble, crate::kind_of(size)?)?,
+        None => crate::parse_text(&args.cube.join(" "), args.scheme, size)?.0,
+    };
+    let cap = Cap::megabytes(args.max_memory);
+    let time = args.budget_ms.map(Duration::from_millis);
+    let generator = find_generator(&state, cap, time).map_err(|error| error.to_string())?;
+    eprintln!("moves {}", generator.moves.len());
+    match (&generator.note, generator.proven) {
+        (_, true) => {
+            eprintln!("shortest: no sequence of fewer moves exists (searched exhaustively)")
+        }
+        (Some(note), false) => eprintln!("best known, a shorter one may exist ({note})"),
+        (None, false) => eprintln!("best known, a shorter one may exist"),
+    }
+    println!("{}", args.notation.write(state.kind(), &generator.moves));
+    Ok(())
 }
 
 /// The shortest generator of a size in both metrics, as `outer/range` lengths.

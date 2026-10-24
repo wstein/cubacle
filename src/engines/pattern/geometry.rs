@@ -78,6 +78,11 @@ pub fn source_table(n: usize, mv: &LayerMove) -> Vec<usize> {
     src
 }
 
+/// The colour of every sticker of a state, as the search stores it.
+pub fn colours(state: &crate::puzzle::Facelets) -> Vec<u8> {
+    state.stickers().iter().map(|f| *f as u8).collect()
+}
+
 pub fn invert(src: &[usize]) -> Vec<usize> {
     let mut inv = vec![0; src.len()];
     for (i, &s) in src.iter().enumerate() {

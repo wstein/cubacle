@@ -142,3 +142,51 @@ fn a_hand_built_7x7x7_is_solved_in_38_moves() {
     assert_eq!(solution.len(), 38);
     assert!(state.apply(solution).unwrap().is_solved());
 }
+
+#[test]
+fn a_tiny_cap_cuts_the_table_and_the_miss_is_not_complete() {
+    let search = PatternSearch::new(PuzzleKind::Cube5, Cap { max_bytes: 1 << 20 }, None).unwrap();
+    assert!(search.capped());
+    let pattern = cube(PuzzleKind::Cube5, CUBE_IN_CUBE);
+    // A cut table may still hit; what it must never do is claim a complete miss.
+    match search.solve(&pattern, None) {
+        Probe::Found(found) => assert!(pattern.apply(&found).unwrap().is_solved()),
+        Probe::Missing { complete } => assert!(!complete),
+    }
+}
+
+#[test]
+fn the_default_cap_leaves_the_table_whole() {
+    let search = PatternSearch::new(PuzzleKind::Cube5, Cap::default(), None).unwrap();
+    assert!(!search.capped());
+    let pattern = cube(PuzzleKind::Cube5, CUBE_IN_CUBE);
+    let Probe::Found(found) = search.solve(&pattern, None) else {
+        panic!("the cube in a cube is a product of macros");
+    };
+    assert!(found.len() <= 15);
+}
+
+#[test]
+fn a_filter_keeps_only_macros_made_of_allowed_moves() {
+    let half_turns = |mv: &Move| mv.turn == Turn::Half;
+    let search = PatternSearch::new(PuzzleKind::Cube5, Cap::default(), Some(&half_turns)).unwrap();
+    assert!(search.macro_count() > 0);
+    let checkerboard = cube(PuzzleKind::Cube5, "R2 L2 U2 D2 F2 B2");
+    let Probe::Found(found) = search.solve(&checkerboard, None) else {
+        panic!("a checkerboard is a half-turn macro");
+    };
+    assert!(found.moves().iter().all(|mv| mv.turn == Turn::Half));
+    assert!(checkerboard.apply(&found).unwrap().is_solved());
+    // The six spot needs quarter turns: no macro of half turns builds it.
+    let spots = cube(PuzzleKind::Cube5, "U D' R L' F B' U D'");
+    assert!(matches!(
+        search.solve(&spots, None),
+        Probe::Missing { complete: true }
+    ));
+}
+
+#[test]
+fn a_filter_that_leaves_no_macro_is_an_error() {
+    let nothing = |_: &Move| false;
+    assert!(PatternSearch::new(PuzzleKind::Cube4, Cap::default(), Some(&nothing)).is_err());
+}

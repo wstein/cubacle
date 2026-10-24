@@ -1,20 +1,29 @@
-//! The pattern shortcut: known patterns before the reduction.
+//! The pattern engine: macros, the searches over them, and the shortcut that
+//! tries known patterns before a reduction.
 //!
 //! Cubes that a person built from classic patterns (checkerboard, six spot,
 //! cube in a cube, ...) are far from a random state in the number of turns that
-//! undo them, but a reduction engine does not see that: it solves them as it
-//! solves any cube. [`PatternShortcut`] wraps such an engine. It lets the
-//! engine solve as usual, then searches for the cube as a short product of
-//! pattern macros (see `library`), and answers with whichever solution has
-//! fewer moves. A cube that is no such product gets the engine's answer
-//! unchanged.
+//! undo them, but a reduction engine does not see that. This module finds such
+//! cubes as short products of pattern macros (see `library`), for two users:
 //!
-//! Files: `library` (the macros, built from `crate::patterns::bases`), `search` (meet in the middle over their
-//! products), and for the generator search of `examples/pattern_search`:
+//! * [`PatternShortcut`] wraps a reduction engine. It lets the engine solve as
+//!   usual, then searches for the cube as a product of macros and answers with
+//!   whichever solution has fewer moves. A cube that is no such product gets
+//!   the engine's answer unchanged.
+//! * [`find_generator`] (the `patterns find` command) looks for the shortest
+//!   generator of a state, with an exact search for shorter ones.
+//!
+//! Every search takes a [`Cap`] on its memory. A search that reaches the cap
+//! stops and says so; it never claims that nothing exists.
+//!
+//! Files: `library` (the macros, built from `crate::patterns::bases`),
+//! `search` (meet in the middle over their products), `find` (the generator
+//! search), and for the generator search of `examples/pattern_search`:
 //! `geometry` (sticker tables), `steps` (the move sets) and `bidir` (the
 //! bidirectional search over them).
 
 pub mod bidir;
+mod find;
 pub mod geometry;
 mod library;
 mod search;
@@ -24,21 +33,116 @@ use std::sync::OnceLock;
 use std::time::Instant;
 
 use crate::puzzle::{
-    Facelets, Failure, PuzzleKind, SolveMetrics, SolveOptions, SolveResult, SolveStage, Solver,
+    Facelets, Failure, Move, MoveSequence, PuzzleKind, SolveMetrics, SolveOptions, SolveResult,
+    SolveStage, Solver,
 };
+pub use find::{find_generator, Generator, NotFound};
 use library::Library;
 use search::Table;
 
-/// What the shortcut searches with, built once per solver.
-struct Search {
+/// The memory cap in megabytes when none is given.
+pub const DEFAULT_MAX_MEMORY_MB: usize = 1500;
+
+/// A hard limit on the memory a search may use.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Cap {
+    pub max_bytes: usize,
+}
+
+impl Cap {
+    pub fn megabytes(mb: usize) -> Cap {
+        Cap {
+            max_bytes: mb.saturating_mul(1 << 20),
+        }
+    }
+}
+
+impl Default for Cap {
+    fn default() -> Cap {
+        Cap::megabytes(DEFAULT_MAX_MEMORY_MB)
+    }
+}
+
+/// What a probe of the macro search found.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Probe {
+    /// Moves that solve the cube.
+    Found(MoveSequence),
+    /// No product of macros solves it. `complete` is false when the cap or
+    /// the deadline cut the search short, so that a product may exist.
+    Missing { complete: bool },
+}
+
+/// The macro search for one cube size: the macros and their table.
+pub struct PatternSearch {
     library: Library,
     table: Table,
+    merge: bool,
+}
+
+impl PatternSearch {
+    /// Builds the macros of `kind` and the table of their products within
+    /// `cap`. With `allow`, only macros whose moves all pass it are used (and
+    /// the answer keeps exactly those moves, no merging into ranges); an
+    /// error says when no macro is left.
+    pub fn new(
+        kind: PuzzleKind,
+        cap: Cap,
+        allow: Option<&dyn Fn(&Move) -> bool>,
+    ) -> Result<PatternSearch, String> {
+        let library = Library::build(kind, allow);
+        if library.macros.is_empty() {
+            return Err(
+                "no pattern macro is made only of the allowed moves; the set cannot be searched as pattern macros"
+                    .to_owned(),
+            );
+        }
+        let table = Table::build(&library, cap);
+        Ok(PatternSearch {
+            library,
+            table,
+            merge: allow.is_none(),
+        })
+    }
+
+    pub fn kind(&self) -> PuzzleKind {
+        self.library.kind
+    }
+
+    pub fn macro_count(&self) -> usize {
+        self.library.macros.len()
+    }
+
+    /// Whether the cap stopped the table before it was complete.
+    pub fn capped(&self) -> bool {
+        self.table.capped()
+    }
+
+    /// A sentence on what cut the search short, for messages.
+    pub(crate) fn limit_text(&self, cap: Cap) -> String {
+        if self.capped() {
+            format!("memory cap of {} MB reached", cap.max_bytes >> 20)
+        } else {
+            "time budget ran out".to_owned()
+        }
+    }
+
+    /// The shortest solution that is a product of macros, if one is within
+    /// reach before `deadline`.
+    pub fn solve(&self, state: &Facelets, deadline: Option<Instant>) -> Probe {
+        match self.table.solve(&self.library, state, deadline, self.merge) {
+            Some(found) => Probe::Found(found),
+            None => Probe::Missing {
+                complete: !self.table.capped() && deadline.is_none_or(|d| Instant::now() < d),
+            },
+        }
+    }
 }
 
 /// A solver for the 4x4x4 and bigger that tries known patterns as well.
 pub struct PatternShortcut {
     inner: Box<dyn Solver>,
-    search: OnceLock<Search>,
+    search: OnceLock<Option<PatternSearch>>,
 }
 
 impl std::fmt::Debug for PatternShortcut {
@@ -59,12 +163,10 @@ impl PatternShortcut {
         }
     }
 
-    fn search(&self) -> &Search {
-        self.search.get_or_init(|| {
-            let library = Library::build(self.inner.kind());
-            let table = Table::build(&library);
-            Search { library, table }
-        })
+    fn search(&self) -> Option<&PatternSearch> {
+        self.search
+            .get_or_init(|| PatternSearch::new(self.inner.kind(), Cap::default(), None).ok())
+            .as_ref()
     }
 
     fn applies(&self) -> bool {
@@ -91,8 +193,10 @@ impl PatternShortcut {
         if deadline.is_some_and(|d| Instant::now() >= d) {
             return answer;
         }
-        let search = self.search();
-        let Some(found) = search.table.solve(&search.library, facelets, deadline) else {
+        let Some(search) = self.search() else {
+            return answer;
+        };
+        let Probe::Found(found) = search.solve(facelets, deadline) else {
             return answer;
         };
         let longest = options.max_moves.map_or(usize::MAX, usize::from);

@@ -74,6 +74,34 @@ pub fn plain(n: usize, range: bool, half_only: bool, face_only: bool) -> Moves {
     Moves { steps, text }
 }
 
+/// Every plain move once, one step each: every single layer, and the outer
+/// block of `2..n-1` layers from each face of an axis, with every turn (or the
+/// half turn only). A single layer counts from the positive face, the last
+/// layer is the outer layer of the negative one, so no two moves are alike.
+pub fn layer_moves(n: usize, half_only: bool) -> Moves {
+    let turns: &[Turn] = if half_only {
+        &[Turn::Half]
+    } else {
+        &[Turn::Clockwise, Turn::Half, Turn::CounterClockwise]
+    };
+    let top = (n - 1) as u8;
+    let mut text = Vec::new();
+    for axis in 0..3 {
+        for &turn in turns {
+            for depth in 1..=top {
+                text.push(vec![LayerMove::new(POSITIVE[axis], depth, depth, turn)]);
+            }
+            text.push(vec![LayerMove::new(NEGATIVE[axis], 1, 1, turn)]);
+            for depth in 2..=top {
+                text.push(vec![LayerMove::new(POSITIVE[axis], 1, depth, turn)]);
+                text.push(vec![LayerMove::new(NEGATIVE[axis], 1, depth, turn)]);
+            }
+        }
+    }
+    let steps = text.iter().map(|m| step_of(n, m)).collect();
+    Moves { steps, text }
+}
+
 /// Fewest outer blocks for every net-turn vector of one axis (base 4, layer 0
 /// from the positive face), with the moves, by breadth-first search.
 fn outer_table(n: usize) -> HashMap<Vec<u8>, Vec<(bool, usize, usize)>> {

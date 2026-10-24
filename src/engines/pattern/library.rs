@@ -91,11 +91,15 @@ fn step_of_moves(kind: PuzzleKind, moves: &[Move]) -> Step {
 }
 
 impl Library {
-    pub(super) fn build(kind: PuzzleKind) -> Library {
+    /// The macros of `kind`; with `allow`, only those whose moves all pass it.
+    pub(super) fn build(kind: PuzzleKind, allow: Option<&dyn Fn(&Move) -> bool>) -> Library {
         let layers = MAX_LAYER.min(kind.size() - 1);
         let mut macros: Vec<Macro> = Vec::new();
         let mut seen: HashMap<Vec<usize>, usize> = HashMap::new();
         let mut add = |name: String, moves: Vec<Move>, macros: &mut Vec<Macro>| {
+            if allow.is_some_and(|ok| !moves.iter().all(ok)) {
+                return;
+            }
             let step = step_of_moves(kind, &moves);
             match seen.get(&step.forward) {
                 Some(&index) if macros[index].moves.len() <= moves.len() => {}
@@ -141,6 +145,18 @@ impl Library {
                 }
             }
         }
+        if allow.is_some() {
+            // The search walks a product back with the inverse macros, so a
+            // macro whose inverse the allowed moves do not make is unusable.
+            let present: std::collections::HashSet<&Vec<usize>> =
+                macros.iter().map(|m| &m.step.forward).collect();
+            let keep: Vec<bool> = macros
+                .iter()
+                .map(|m| present.contains(&m.step.backward))
+                .collect();
+            let mut flags = keep.into_iter();
+            macros.retain(|_| flags.next().unwrap_or(false));
+        }
         let index: HashMap<Vec<usize>, usize> = macros
             .iter()
             .enumerate()
@@ -154,13 +170,17 @@ impl Library {
         Library { kind, macros }
     }
 
-    /// The plain moves of a product of macros, shortened by merging turns of
-    /// one axis (see [`crate::ranges`]).
-    pub(super) fn sequence(&self, path: &[usize]) -> MoveSequence {
+    /// The plain moves of a product of macros. With `merge` they are
+    /// shortened by merging turns of one axis (see [`crate::ranges`]); that
+    /// may use moves no macro has, so a restricted search leaves it off.
+    pub(super) fn sequence(&self, path: &[usize], merge: bool) -> MoveSequence {
         let raw: Vec<Move> = path
             .iter()
             .flat_map(|&m| self.macros[m].moves.iter().copied())
             .collect();
+        if !merge {
+            return MoveSequence::new(raw);
+        }
         let packed = crate::ranges::compress(self.kind, &MoveSequence::new(raw));
         crate::ranges::expand(&packed)
     }
@@ -178,7 +198,7 @@ mod tests {
 
     #[test]
     fn every_macro_has_an_inverse() {
-        let library = Library::build(PuzzleKind::Cube5);
+        let library = Library::build(PuzzleKind::Cube5, None);
         assert!(library.macros.len() > 100);
         let identity: Vec<usize> = (0..PuzzleKind::Cube5.facelet_count()).collect();
         for (i, m) in library.macros.iter().enumerate() {
@@ -194,7 +214,7 @@ mod tests {
 
     #[test]
     fn a_macro_permutes_like_the_facelet_model() {
-        let library = Library::build(PuzzleKind::Cube4);
+        let library = Library::build(PuzzleKind::Cube4, None);
         for m in library.macros.iter().step_by(37) {
             let solved = Facelets::solved(PuzzleKind::Cube4);
             let moved = solved.apply(&MoveSequence::new(m.moves.clone())).unwrap();
