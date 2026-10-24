@@ -40,3 +40,5 @@ Raw-material notes, category engines.
 - [[A pattern detector reads structure from the cubie state]]
 - [[The detector explains patterns and never replaces the search]]
 - [[Partial targets are solved as a goal-set search]]
+- [[An optimal mode is a measured clean-room design]]
+- [[Vector code exists for NEON, AVX2 and AVX-512 with one fallback]]

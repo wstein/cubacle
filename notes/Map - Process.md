@@ -11,3 +11,4 @@ Raw-material notes, category process.
 - [[Searches are capped at 1.5 GB and run one at a time]]
 - [[The Rust toolchain is raised after the queue, the minimum version stays 1.85]]
 - [[Rare test failures had two separate causes]]
+- [[Large hosts measure the big tables, the Mac sets the default]]
