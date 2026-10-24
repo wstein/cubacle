@@ -10,5 +10,8 @@ A partial target is solved per engine as a search for any state in a goal set. T
 - [[A partial target is a map from slots to allowed colours]]
 - [[A target is solved as a relative state]]
 - [[Pattern states are projections onto layer sets]]
+- [[The 2x2 reaches open stickers by a search from the whole goal set]]
+- [[The 3x3 reaches open stickers by an edge search or by completions]]
+- [[The goal predicate of moves and all is Target matches]]
 
 Source: docs/design/dont-care-targets.md, lines 90-190

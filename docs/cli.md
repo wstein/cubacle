@@ -39,7 +39,7 @@ The first two lines go to standard error. `moves N` is always printed there, `el
 | `-s`, `--scramble <MOVES>` | Solve the cube produced by this scramble instead of reading one. |
 | `--size <N>` | Cube size for `--scramble`: 2 to 7, default 3. A cube given as text has its size already. |
 | `--scheme <SCHEME>` | Colour scheme for colour input. See [Colour schemes](#colour-schemes). |
-| `--to <TARGET>` | Solve to a state other than the solved cube. See [Solve to a target](#solve-to-a-target). |
+| `--to <TARGET>` | Solve to a state other than the solved cube, or to any state that matches a target with open stickers (`X`). See [Solve to a target](#solve-to-a-target) and [Targets with open stickers](#targets-with-open-stickers). |
 | `-m`, `--max-moves <N>` | Longest solution to accept. Default: 21 for the 2x2x2 and 3x3x3, none for the 4x4x4 and 5x5x5. Also caps the default 3000 probes. |
 | `-b`, `--budget-ms <MS>` | Hard time limit in milliseconds. Given on a 3x3x3 it also restores the first-answer search (no default 3000 probes). |
 | `--fast` | 3x3x3 only. Print the first solution found, about 20.6 moves on average, in a few milliseconds. Without it a plain `solve` of a 3x3x3 makes 3000 probes (see [Shorter solutions](#shorter-solutions)). Not with `--probes`, `--improve` or `--parallel`. |
@@ -91,6 +91,56 @@ Rules and limits:
 - 2x2x2: it has no centres to fix its frame, and its solver ends in any of the 24 orientations, so the target counts as reached when the cube shows it after a rotation of the whole cube.
 - With `--icons` the output has `Target state: TOKEN` below `Start state: TOKEN`, and the move pictures end in the target.
 - A target is one argument, so `--to` does not read standard input.
+
+### Targets with open stickers
+
+A `--to` target may leave stickers open: the printed moves then reach any state that shows the right colour on every sticker that is fixed. An open sticker is written `X` (a `?` is read as `X`). Lowercase `x` stays the cube rotation and is never a sticker. A text is a target with open stickers when it has the length of a cube string (24, 54, 96, ...) and an `X` or `?` among face letters (`URFDLB`) or colour letters (`WRGYOB`, read with `--scheme`); every other text is read as above, and a target without an open sticker keeps the old code path and the old output, byte for byte. Orbit64 tokens cannot express open stickers.
+
+Two names stand for a 3x3x3 subset over the solved cube: `cross` (the four edges of the down face, both stickers each, and the centres) and `cross-u`, `cross-r`, `cross-f`, `cross-d`, `cross-l`, `cross-b` for the cross of another face. A name is only taken as the whole text.
+
+```sh
+cubacle solve --size 2 "R U F2 R' U' F R2 U F'" --to UUUURRRRXXXXXXXXXXXXXXXX
+cubacle solve "R U2 F' D L2 B R' U F2 D' L B2 U' R2 F D2 L' U B' R" --to cross
+cubacle solve "R U2 F' D L2 B R' U F2 D' L B2 U' R2 F D2 L' U B' R" --to cross-u
+```
+
+```text
+moves 7
+metrics: htm 7, qtm 9, stm 7
+shortest: proved by a search from the whole goal set of 24 states
+U' R2 F2 R U F U
+moves 4
+metrics: htm 4, qtm 6, stm 4
+shortest: proved by an exact search over the 4 edges the target names
+L2 D2 L' F'
+moves 5
+metrics: htm 5, qtm 5, stm 5
+shortest: proved by an exact search over the 4 edges the target names
+R U R' B U
+```
+
+The line after the metrics says what the answer is. `shortest` is printed only where the search proves it; otherwise the line says `best found`, and a target the engine cannot handle is refused, never answered with a longer or unproven solution under the word shortest.
+
+| Size | Targets with open stickers | Answer |
+|---|---|---|
+| 2x2x2 | any mask | shortest, by a search from the whole goal set (24 rotations of the cube count, as for complete targets) |
+| 3x3x3 | up to five whole edges and the centres (`cross`, `cross-u`, ...) | shortest, by an exact search over those edges |
+| 3x3x3 | any mask that allows at most 24 complete cubes (for example one corner open) | best found: the shortest of the two-phase answers to each cube; `--probes N` makes them shorter, 16 moves instead of 20 in the example below |
+| 3x3x3 | more (a face, F2L) | refused with `unsupported: the target allows more than 24 complete cubes` |
+| 4x4x4 and larger | any | refused with `unsupported: the 4x4x4 engine cannot solve targets with open stickers yet` |
+
+```sh
+cubacle solve "R U2 F' D L2 B R' U F2 D' L B2 U' R2 F D2 L' U B' R" --probes 3000 --to UUUUUUUUXXRRRRRRRRFFXFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB
+```
+
+```text
+moves 16
+metrics: htm 16, qtm 22, stm 16
+best found: the shortest of the two-phase answers to 1 complete cube(s) the target allows, not proven shortest
+U2 B U' D R' L2 U2 R F2 D2 B' R2 B D' L' F'
+```
+
+Errors name the case: `unreachable: no state of the 2x2x2 meets the target (all 3674160 states tested)` for three stickers of one corner all `U`; `the target needs colour U on 12 stickers but a cube has only 4 of it; the target is contradictory` for too many of a colour; `contradictory: no edge of the cube has the colours U and D`; `unreachable: the target wants another colour on a centre, and the centres of a 3x3x3 never move`; `--to: cross is a 3x3x3 subset, not a 2x2x2 one`. With a target that has open stickers `--moves`, `--all`, `--count`, `--icons`, `--improve` and `--parallel` are refused for now. Measured on a quiet machine in release (fixed scrambles, one process at a time): any 2x2x2 mask 0.25 to 0.3 s and about 30 MB (a plain 2x2x2 solve is 0.08 s and 21 MB), the 3x3x3 cross 0.03 s and 4.5 MB, a cross and one more edge 0.7 s and 25 MB, one or two corners open 0.04 s.
 
 ### Shorter solutions
 

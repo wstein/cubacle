@@ -6,7 +6,7 @@ weight: 40
 
 # Don't-care targets
 
-Status: concept, the eight decisions below were approved by the owner on 2026-10-24 as recommended. No code has changed. Numbers marked
+Status: the eight decisions below were approved by the owner on 2026-10-24 as recommended; the first release is partly built, see section 11 for what is done and what is not. Numbers marked
 **[E]** are estimates, not measurements; numbers marked **[M]** were run for this
 paper. Only ideas from the study of a GPL sticker solver were used (see the note
 "A study of stickersolve shows what to adopt and what not"); no code or text.
@@ -328,3 +328,40 @@ Total **[E]** about 60 h. Steps 1 to 6 give stories 1 (cross on 2x2, partial on
    stop count; settle before step 3.
 8. **Moved centres on 4x4+.** Recommend allow them only as colour targets, keep
    refusing complete identity-based targets with moved centres.
+
+## 11. Status of the first release
+
+Built, in this order (the order differs from section 8 where noted); the three checks pass at the tip.
+
+| Step of section 8 | State |
+|---|---|
+| 1. `Target` type and the `X`/`?` parser | done: `puzzle::Target`, `notation::parse_partial` |
+| 2. `read_target` returns a `Target` | done; a target that is a state keeps the old path, byte-identical (22 fixed-input commands over sizes 2 to 7 compared with a binary built before the change: identical, including exit codes) |
+| 3. `solve_to` on the `Solver` trait | done, with the default "unsupported" error; built before the 2x2 so the engines could override it |
+| 4. 2x2 by a multi-source search | done, proven shortest |
+| 5. 3x3 by completion enumeration | done: at most 24 completions, best found (not proven shortest) |
+| 6. Named subsets | partly: `cross` and `cross-<face>`; `layer` and `centres` are not built |
+| 7. 3x3 cross and F2L with relaxed tables | partly: whole edges up to five, exact (the cross and its parts); F2L, a face and other masks with more than 24 completions are refused |
+| 8. 4x4 and 5x5 centres, moved centres as colour targets | not built: `reduce` in the 4x4 engine runs its three phases in one go to a 3x3x3, and a centres-only goal inside them was not looked for yet |
+| 9. Server | not built, by decision of this task; the REST `target` field would take the same text and `reached` is still optional |
+| 10. Docs and notes | done for the CLI, the 2x2 and 3x3 engine pages and the notes |
+
+Choices that go beyond the paper:
+
+- **Rotation on the 2x2.** As for complete targets, a 2x2x2 goal counts after any of the 24 whole-cube rotations, so "U face white" means "some face white".
+- **Decision 7, the interface.** The shared goal predicate is `Target::matches` (a map from sticker to allowed colours, tested on a state) and the stop count stays the `--count` of the list options. `--moves`, `--all` and `--count` still search for the solved state of a relative cube; taking a target means testing `matches` where they test "solved". That step is not built, so these options are refused with a partial target.
+- **Decision 5.** The result message begins `shortest:` only where the engine proved it and `best found:` otherwise; an unsupported target is refused, never answered by another method.
+- **Decision 3.** The model keeps colour sets of any size; the text form writes only one colour or `X`. `Target::to_text` is `None` for a set of two to five colours.
+
+Measured in release on a quiet machine, fixed scrambles, one process at a time, three runs each (the estimates are those of section 4.4):
+
+| Case | Estimate [E] | Measured [M] |
+|---|---|---|
+| 2x2x2, any mask tried (U; U+R; U+R+F; 20 stickers; none) | tens of ms, 4 MB | 0.25 to 0.31 s wall, 30 to 35 MB (the plain solve is 0.08 s, 21 MB; the goal test of 3.67 million states and the 14 MB frontier are the difference) |
+| 3x3x3 cross (four edges, 190,080 states) | well under a second | 0.03 s, 4.5 MB; 4, 6, 6 moves on three scrambles, 5 for `cross-u`, all proven shortest |
+| 3x3x3 cross and one more edge (12P5 * 2^5 = 7,962,624 entries) | cross + 1 pair 37 MB, not built | 0.7 s, 25 MB |
+| 3x3x3 one or two corners open (1 and 3 completions) | threshold needs a measurement | 0.04 s; 20 moves, 16 with `--probes 3000` |
+| 3x3x3 F2L | seconds to minutes | not built |
+| 4x4x4 centres only | existing stage tables, about 12 MB | not built |
+
+Open questions: how far the completion threshold of 24 can be raised (it is a node limit of 200,000 in the enumeration, not a measured optimum); whether the 2x2 goal test should be faster (an incremental test would take it near the plain solve); the meaning of "cross" on a cube whose centres are not home, which is moot for the 3x3x3 (centres never move) and needs a decision with the 4x4 centres work.

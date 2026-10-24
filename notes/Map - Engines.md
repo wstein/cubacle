@@ -53,3 +53,6 @@ Raw-material notes, category engines.
 - [[Subgroup tests are exact only where pieces describe the group]]
 - [[Cycles use our own spelling and the order comes from the cycle type]]
 - [[Reading cycles as input is an open item]]
+- [[The 2x2 reaches open stickers by a search from the whole goal set]]
+- [[The 3x3 reaches open stickers by an edge search or by completions]]
+- [[The goal predicate of moves and all is Target matches]]
