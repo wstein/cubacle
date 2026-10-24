@@ -8,6 +8,7 @@ impl fmt::Display for Report {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write_matches(f, &self.matches)?;
         write_fingerprint(f, &self.fingerprint)?;
+        write_subgroups(f, &self.subgroups)?;
         write_symmetry(f, &self.symmetry)
     }
 }
@@ -112,6 +113,18 @@ fn write_fingerprint(f: &mut fmt::Formatter<'_>, fingerprint: &super::Fingerprin
             _ => {}
         }
         writeln!(f, "  {what}: {}", parts.join(", "))?;
+    }
+    Ok(())
+}
+
+fn write_subgroups(f: &mut fmt::Formatter<'_>, subgroups: &[super::Membership]) -> fmt::Result {
+    for m in subgroups {
+        let (word, why) = match m.verdict {
+            super::Verdict::Member => ("yes", String::new()),
+            super::Verdict::NotMember => ("no", format!(": {}", m.why)),
+            super::Verdict::Possible => ("possible", format!(" ({})", m.why)),
+        };
+        writeln!(f, "in {}: {word}{why}", m.name)?;
     }
     Ok(())
 }

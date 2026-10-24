@@ -315,3 +315,41 @@ fn the_text_of_a_known_sequence() {
     assert!(text.contains("corners: "), "{text}");
     assert!(text.contains("order: 105"), "{text}");
 }
+
+#[test]
+fn subgroup_verdicts_are_invariant_under_turning_and_renaming() {
+    let kind = PuzzleKind::Cube3;
+    let texts = [
+        "U R2 F2 D' L2 B2 U2",
+        "R2 U2 F2 B2 L2 D2",
+        "R U R' U'",
+        "R U",
+    ];
+    for text in texts {
+        let cube = Facelets::solved(kind)
+            .apply(&text.parse().unwrap())
+            .unwrap();
+        let state = colours(&cube);
+        let verdicts = |c: &Facelets| {
+            let mut v: Vec<String> = detect(c)
+                .subgroups
+                .iter()
+                // <R,U> and <R,U,F> name faces, which a turn changes.
+                .filter(|m| !m.name.starts_with('<'))
+                .map(|m| format!("{}={:?}", m.name.split(',').next().unwrap(), m.verdict))
+                .collect();
+            v.sort();
+            v
+        };
+        let want = verdicts(&cube);
+        for g in 0..48 {
+            let seen = renamed(&image(kind, &state, g), NAMINGS[1 + g % 3]);
+            // G1 names an axis, which a turn permutes; compare the multiset of verdicts.
+            let mut got = verdicts(&canon::facelets(&seen));
+            let mut expect = want.clone();
+            got.sort();
+            expect.sort();
+            assert_eq!(got, expect, "{text} symmetry {g}");
+        }
+    }
+}

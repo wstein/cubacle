@@ -116,3 +116,21 @@ fn cycles_of_a_bad_cube_is_an_error() {
     let (ok, _) = cycles(&["not a cube"]);
     assert!(!ok);
 }
+
+#[test]
+fn subgroups_are_reported_for_a_3x3x3() {
+    let (ok, text) = identify(&["U2 D2 R2 L2 F2 B2"]);
+    assert!(ok);
+    assert!(
+        text.contains("in half-turn group <U2,D2,R2,L2,F2,B2>: yes"),
+        "{text}"
+    );
+    assert!(text.contains("in edges only: yes"), "{text}");
+    let (ok, text) = identify(&["R U"]);
+    assert!(ok);
+    assert!(text.contains("in <R,U>: possible"), "{text}");
+    assert!(
+        text.contains("in G1 domino group, U/D axis: no: a corner is twisted"),
+        "{text}"
+    );
+}

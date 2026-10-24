@@ -24,8 +24,8 @@ mod parse;
 
 pub use bases::{bases, Base};
 pub use detector::{
-    cycles_of_moves, cycles_of_state, detect, Cycle, Cycles, Fingerprint, Match, Operation,
-    OrbitCycles, OrbitStat, Order, Report, Symmetry,
+    cycles_of_moves, cycles_of_state, detect, Cycle, Cycles, Fingerprint, Match, Membership,
+    Operation, OrbitCycles, OrbitStat, Order, Report, Symmetry, Verdict,
 };
 
 use std::sync::OnceLock;

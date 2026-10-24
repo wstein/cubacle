@@ -18,9 +18,11 @@ mod canon;
 mod cycles;
 mod fingerprint;
 mod geometry;
+mod halfturn;
 mod library;
 mod matching;
 mod pieces;
+mod subgroup;
 mod symmetry;
 mod text;
 
@@ -30,6 +32,7 @@ mod tests;
 pub use cycles::{Cycle, Cycles, OrbitCycles, Order};
 pub use fingerprint::{Fingerprint, OrbitStat};
 pub use library::Match;
+pub use subgroup::{Membership, Verdict};
 pub use symmetry::{Operation, Symmetry};
 
 use crate::puzzle::{Facelets, MoveSequence, PuzzleKind};
@@ -49,6 +52,8 @@ pub struct Report {
     /// Per piece orbit: how many pieces are displaced, twisted or flipped,
     /// and the cycle type where pieces can be told apart.
     pub fingerprint: Fingerprint,
+    /// Well-known subgroups the state is, or may be, in (see `subgroup`).
+    pub subgroups: Vec<Membership>,
 }
 
 /// The sticker colours of a cube as numbers 0 to 5 in `URFDLB` order.
@@ -66,6 +71,7 @@ pub fn detect(cube: &Facelets) -> Report {
         matches: library::matches(kind, &state, &canon),
         canonical: canon::facelets(&canon),
         fingerprint: fingerprint::fingerprint(kind, &state),
+        subgroups: subgroup::memberships(kind, &state),
     }
 }
 

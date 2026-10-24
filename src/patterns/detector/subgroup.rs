@@ -7,6 +7,7 @@
 //! "possible", which is not a proof of membership (use `solve --moves` for
 //! that).
 
+use super::halfturn::in_half_turn_group;
 use super::pieces::{frames, Cube, Frame};
 use crate::puzzle::PuzzleKind;
 
@@ -29,6 +30,15 @@ pub struct Membership {
     pub verdict: Verdict,
     /// The reason in a few words.
     pub why: String,
+}
+
+/// `a` or `an` before a piece name.
+pub(super) fn article(word: &str) -> &'static str {
+    if word.starts_with('e') {
+        "an"
+    } else {
+        "a"
+    }
 }
 
 /// The answer of a test in one frame: yes, or the reason for no.
@@ -87,7 +97,10 @@ fn untouched_home(cube: &Cube, turned: &[usize]) -> Answer {
         }
         let reading = cube.read(&place, order);
         if !(reading.placed && reading.oriented) {
-            return Err(format!("a {what} these faces never touch is moved"));
+            return Err(format!(
+                "{} {what} these faces never touch is moved",
+                article(what)
+            ));
         }
     }
     if at_home(cube, centre_stickers(cube)) {
@@ -136,7 +149,10 @@ fn verdict(answers: Vec<Answer>, exact: bool) -> (Verdict, String) {
         if exact {
             (Verdict::Member, "yes".to_owned())
         } else {
-            (Verdict::Possible, "no piece outside the group's reach".to_owned())
+            (
+                Verdict::Possible,
+                "no piece outside the group's reach".to_owned(),
+            )
         }
     } else {
         let why = answers
@@ -179,6 +195,10 @@ pub(crate) fn memberships(kind: PuzzleKind, state: &[u8]) -> Vec<Membership> {
             let (v, why) = g1(axis);
             add(&format!("G1 domino group, {name} axis"), (v, why));
         }
+        add(
+            "half-turn group <U2,D2,R2,L2,F2,B2>",
+            run(&|c| in_half_turn_group(c), true),
+        );
         // U=0, R=1, F=2 as face indices.
         add("<R,U>", run(&|c| untouched_home(c, &[0, 1]), false));
         add("<R,U,F>", run(&|c| untouched_home(c, &[0, 1, 2]), false));
