@@ -47,7 +47,7 @@ The first two lines go to standard error. `moves N` is always printed there, `el
 | `--parallel` | 3x3x3 only, with `--improve` and `-b`: search the six orientations at once. Measured no better than plain `--improve`. |
 | `--slices` | 4x4x4 and 5x5x5: allow single inner layers (`2R`) in the answer where they make it shorter. Default: outer layers and two-layer turns only. See [the move metric](performance.md#move-metric). |
 | `--notation <wca\|sign\|sse>` | How the solution is written. Default `wca` (`Rw`, `3Rw`); `sign` writes `r`, `3r`; `sse` writes `TR`, `T3R`, `MR` (see [Move notations](#move-notations)). With `--icons` it also sets the step lines and the last line; the icon labels stay WCA. |
-| `--optimise ranges` | After the solve, with no search: adjacent turns of one axis are written as layer ranges where that is shorter (`2-3r` in sign, `2-3Rw` in wca, `V2R`, `M2R` or `N2-4R` in sse; only contiguous layers). Off by default. The solution is the same state; stderr reports `moves N` (as solved) and `compressed moves M`, and stdout holds the compressed text. Not combined with `--icons`. On 20 random 4x4x4 to 7x7x7 solutions it saved 0 to 2 moves (2 of 20 saved any, both 7x7x7), on 14 human 4x4x4+ states 0 to 5, because the solvers already merge most axis runs. |
+| `--optimise ranges` | After the solve, with no search: adjacent turns of one axis are written as layer ranges where that is shorter (`2-3r` in sign, `2-3Rw` in wca, `V2R`, `M2R` or `N2-4R` in sse; only contiguous layers). Off by default. The solution is the same state; stderr reports `moves N` (as solved), `compressed moves M` and, after the metrics line of the plain answer, `compressed metrics: ...`; stdout holds the compressed text. Not combined with `--icons`. On 20 random 4x4x4 to 7x7x7 solutions it saved 0 to 2 moves (2 of 20 saved any, both 7x7x7), on 14 human 4x4x4+ states 0 to 5, because the solvers already merge most axis runs. |
 | `--group <none\|phases>` | `phases` writes the solution with ` · ` between the solver phases that the engine reports (see [Hand units](#hand-units)); `none` (default) is the plain list. Not with `--icons`. With `--optimise ranges` each phase is compressed on its own, so no range crosses a dot. |
 | `--icons` | Show each step as an icon. The output begins with `Start state: TOKEN`, then the start state as a picture under the heading `Start state`, and has a line `State after phase N as token: TOKEN` after each phase, so that a checkpoint can be compared with your cube. See [Move icons](icons.md#checkpoints). |
 | `--icon-size <PIXELS>` | With `--icons`: icon height in pixels. Default: 32 per cube layer, at least 96. |
@@ -102,6 +102,42 @@ cubacle solve -s "R U2 F' D L2 B R' U' F2 D2 L B' R2 U F D' L' B2 R U2 F L D B'"
 `--probes N` is repeatable: the same cube and N give the same solution everywhere. `--improve` is timed: it runs for the whole budget and the result depends on the machine. Reaching the budget after a solution was found is not an error. Measured on 500 random cubes (mean moves): 20.83 by default; 19.16 for `--probes 1000` (42 ms per cube); 18.59 for `--probes 10000` (466 ms); 18.99 for `--improve -b 100`; 18.48 for `--improve -b 1000`. The full table and the commands are in [3x3x3 performance](engines/3x3.md#shorter-solutions-moves-against-probes-and-time).
 
 Without `--improve`, `--parallel` is refused, and so is `--parallel` without `-b`: it would never return. The 2x2x2 is already optimal and the 4x4x4 and 5x5x5 have no improve modes yet; all three refuse these options with a one-line error.
+
+### Move counts
+
+`solve` writes `moves N` and one more line to standard error, the counts in the common move metrics (`htm qtm stm` up to the 3x3x3, `obtm qtm stm btm` from the 4x4x4). Standard output is unchanged. The page [Move metrics](metrics.md) defines each count, says what the solvers minimise (the move count of their own alphabet, not QTM or STM) and lists where else the line appears.
+
+```sh
+cubacle solve -s "R U R' U' F2 D L2 B'"
+```
+
+```text
+moves 18
+metrics: htm 18, qtm 26, stm 18
+B U' R2 L U' L' U R2 L2 D' L2 U L2 D' B2 D F2 B2
+```
+
+(The first two lines are standard error, the last one standard output.) `moves` prints the same line for the sequence it is given, counted on the words as typed, and `--metrics` on `moves` and `convert` prints all seven counts instead:
+
+```sh
+cubacle moves --metrics "R2 L' M x"
+cubacle moves --expand quarter "R2 U' F2"
+cubacle moves --size 5 --optimise ranges "3Rw R'"
+cubacle convert --metrics -s "R U2"
+```
+
+```text
+R2 L' 2L Rw L'
+metrics: htm 4, qtm 5, stm 3, etm 4, obtm 4, btm 3, atm 1
+R R U' F F
+metrics: htm 5, qtm 5, stm 5
+2-3Rw
+metrics: obtm 2, qtm 2, stm 2, btm 1
+metrics: htm 2, qtm 3, stm 2, etm 2, obtm 2, btm 2, atm 2
+FUUFUUFUULLLRRRRRRUBBFFDFFDDDBDDBDDBRRRLLLLLLFFDUBBUBB
+```
+
+`moves --expand quarter` writes every half turn as two quarter turns (QTM form; exact, no search) and `moves --optimise ranges` writes block turns as layer ranges, as `solve --optimise ranges` does. They do not combine, and `convert` has no move output to rewrite.
 
 ### Known patterns
 
@@ -494,7 +530,7 @@ GWGWWGGGGWWWWRRWRWRRRGGRRGRBYBBYYBBBYOYYOOYYYOBOBBOOOO
 GWGWWGGGGWWWWRRWRWRRRGGRRGRYBYYBBYYYBOBBOOBBBOYOYYOOOO
 ```
 
-`convert` also takes a move expression (see [Apply a scramble](#apply-a-scramble)); `--size` picks the cube. This nested expression of slices, rotations and repeats on a 7x7x7 gives 294 letters, one per sticker:
+`convert` also takes a move expression (see [Apply a scramble](#apply-a-scramble)); `--size` picks the cube. With `--metrics` it also prints the seven [move counts](metrics.md) of the expression on stderr (a cube as input is refused). This nested expression of slices, rotations and repeats on a 7x7x7 gives 294 letters, one per sticker:
 
 ```sh
 cubacle convert --size 7 "((M' U)*4 y' z')*3" --to color --scheme western
