@@ -14,9 +14,9 @@ Every command that prints moves adds one line to standard error after `moves N`.
 
 ```text
 $ cubacle solve -s "R U R' U' F2 D L2 B'"
-moves 18
-metrics: htm 18, qtm 26, stm 18
-B U' R2 L U' L' U R2 L2 D' L2 U L2 D' B2 D F2 B2
+moves 8
+metrics: htm 8, qtm 10, stm 8
+B L2 D' F2 U R U' R'
 ```
 
 The line shows the four counts most useful for the cube: `htm qtm stm` for the 2x2x2 and 3x3x3, and `obtm qtm stm btm` from the 4x4x4, where wide turns and inner layers make the block counts differ. `moves N` is unchanged.

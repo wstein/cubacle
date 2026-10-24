@@ -17,7 +17,7 @@ cubacle solve A4ib8aejxj4Y
 ```
 
 ```text
-B R L B L' U' D B D2 R2 F2 R2 L2 D R2 L2 U' L2 U' F2 R
+B R' D' R B U R U' B2 U' D B' R' B U
 ```
 
 You can also solve the cube produced by a scramble:
@@ -40,8 +40,9 @@ The first two lines go to standard error. `moves N` is always printed there, `el
 | `--size <N>` | Cube size for `--scramble`: 2 to 7, default 3. A cube given as text has its size already. |
 | `--scheme <SCHEME>` | Colour scheme for colour input. See [Colour schemes](#colour-schemes). |
 | `--to <TARGET>` | Solve to a state other than the solved cube. See [Solve to a target](#solve-to-a-target). |
-| `-m`, `--max-moves <N>` | Longest solution to accept. Default: 21 for the 2x2x2 and 3x3x3, none for the 4x4x4 and 5x5x5. |
-| `-b`, `--budget-ms <MS>` | Hard time limit in milliseconds. |
+| `-m`, `--max-moves <N>` | Longest solution to accept. Default: 21 for the 2x2x2 and 3x3x3, none for the 4x4x4 and 5x5x5. Given on a 3x3x3 it also restores the first-answer search (no default 3000 probes). |
+| `-b`, `--budget-ms <MS>` | Hard time limit in milliseconds. Given on a 3x3x3 it also restores the first-answer search (no default 3000 probes). |
+| `--fast` | 3x3x3 only. Print the first solution found, about 20.6 moves on average, in a few milliseconds. Without it a plain `solve` of a 3x3x3 makes 3000 probes (see [Shorter solutions](#shorter-solutions)). Not with `--probes`, `--improve` or `--parallel`. |
 | `--probes <N>` | 3x3x3 only. Keep improving the solution until N probes were made. Counts work, not time, so the answer is the same on every machine. |
 | `--improve` | 3x3x3 only. Keep improving until the time budget (`-b`, default 1000 ms) is spent, then print the best solution found. |
 | `--parallel` | 3x3x3 only, with `--improve` and `-b`: search the six orientations at once. Measured no better than plain `--improve`. |
@@ -92,14 +93,14 @@ Rules and limits:
 
 ### Shorter solutions
 
-By default `solve` stops at the first solution, about 20.8 moves on average for a 3x3x3. Two modes look for a shorter one:
+A plain `solve` of a 3x3x3 makes at least 3000 probes, a counted improvement: the same answer on every machine, never longer than the first solution, 19.0 moves on average for random cubes (20.7 for the first solution), 90 ms on average and under 0.2 s at most on 30 fixed random cubes (about 0.6 s at worst on a loaded machine). `--fast` returns the first solution instead, in about 1 ms of search. The default is replaced by an explicit `--probes`, `--improve`, `--moves`, `--to`, `-m` or `-b`, which keep their own meaning; the 2x2x2 is unchanged, and so are the 4x4x4 and larger (their 3x3x3 stage asks for 500 probes). `recover` and `patterns` do not use it. Two modes look for a still shorter one:
 
 ```sh
 cubacle solve -s "R U2 F' D L2 B R' U' F2 D2 L B' R2 U F D' L' B2 R U2 F L D B'" --probes 1000 -v
 cubacle solve -s "R U2 F' D L2 B R' U' F2 D2 L B' R2 U F D' L' B2 R U2 F L D B'" --improve -b 100 -v
 ```
 
-`--probes N` is repeatable: the same cube and N give the same solution everywhere. `--improve` is timed: it runs for the whole budget and the result depends on the machine. Reaching the budget after a solution was found is not an error. Measured on 500 random cubes (mean moves): 20.83 by default; 19.16 for `--probes 1000` (42 ms per cube); 18.59 for `--probes 10000` (466 ms); 18.99 for `--improve -b 100`; 18.48 for `--improve -b 1000`. The full table and the commands are in [3x3x3 performance](engines/3x3.md#shorter-solutions-moves-against-probes-and-time).
+`--probes N` is repeatable: the same cube and N give the same solution everywhere. `--improve` is timed: it runs for the whole budget and the result depends on the machine. Reaching the budget after a solution was found is not an error. Measured on 500 random cubes (mean moves): 20.83 for the first solution (`--fast`); 19.16 for `--probes 1000` (42 ms per cube); 18.59 for `--probes 10000` (466 ms); 18.99 for `--improve -b 100`; 18.48 for `--improve -b 1000`. The full table and the commands are in [3x3x3 performance](engines/3x3.md#shorter-solutions-moves-against-probes-and-time).
 
 Without `--improve`, `--parallel` is refused, and so is `--parallel` without `-b`: it would never return. The 2x2x2 is already optimal and the 4x4x4 and 5x5x5 have no improve modes yet; all three refuse these options with a one-line error.
 
@@ -112,9 +113,9 @@ cubacle solve -s "R U R' U' F2 D L2 B'"
 ```
 
 ```text
-moves 18
-metrics: htm 18, qtm 26, stm 18
-B U' R2 L U' L' U R2 L2 D' L2 U L2 D' B2 D F2 B2
+moves 8
+metrics: htm 8, qtm 10, stm 8
+B L2 D' F2 U R U' R'
 ```
 
 (The first two lines are standard error, the last one standard output.) `moves` prints the same line for the sequence it is given, counted on the words as typed, and `--metrics` on `moves` and `convert` prints all seven counts instead:
@@ -245,7 +246,7 @@ cubacle solve --size 4 --scramble "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F Uw Rw' F2 
 Uw' Rw' Uw L' Fw U' B2 Rw' D B Uw2 Rw' Fw2 R2 Rw2 U F Fw2 L2 U' D' Rw2 F' Uw2 L U L' D' B L U2 L' D' F2 B2 U' L2 F2 U2 F2 D' L2 B Rw' Lw Fw Bw'
 ```
 
-The solution has 47 moves. The last four, `Rw' Lw Fw Bw'`, are the rotation: each pair of opposite wide turns, such as `Rw' Lw`, turns the whole cube, and at most four turns bring any cube to the standard orientation. The solutions of 1000 random cubes have 47.5 moves on average (44.3 without the rotation). The tool replays every 4x4x4 solution on the cube and exits with an error if it does not solve it. With a move limit the solution cannot meet, `solve` fails:
+The solution has 43 moves and needs no rotation. Some answers end with up to four whole-cube turns such as `Rw' Lw Fw Bw'`: each pair of opposite wide turns, such as `Rw' Lw`, turns the whole cube, and at most four turns bring any cube to the standard orientation. The solutions of 1000 random cubes have 47.5 moves on average (44.3 without the rotation). The tool replays every 4x4x4 solution on the cube and exits with an error if it does not solve it. With a move limit the solution cannot meet, `solve` fails:
 
 ```sh
 cubacle solve --size 4 -s "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F Uw Rw' F2 Lw" -m 30
