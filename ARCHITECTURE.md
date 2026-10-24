@@ -26,6 +26,9 @@ src/
     three/        the 3x3x3 two-phase engine (Min2PhaseSolver), with its
                   private worker pool in pool.rs
     two/          the optimal 2x2x2 engine (PocketSolver)
+    optimal/      the provably shortest 3x3x3 solutions (OptimalSolver): pattern
+                  databases, IDA*, one unsafe vector module; the default engine is
+                  injected as the upper bound
     five/         the 5x5x5 reduction engine (FiveSolver), finishing with an
                   injected 3x3x3 Solver
     four/         the 4x4x4 reduction engine (FourSolver), finishing with an

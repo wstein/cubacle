@@ -155,6 +155,35 @@ cubacle solve -s "R U2 F' D L2 B R' U' F2 D2 L B' R2 U F D' L' B2 R U2 F L D B'"
 
 Without `--improve`, `--parallel` is refused, and so is `--parallel` without `-b`: it would never return. The 2x2x2 is already optimal and the 4x4x4 and 5x5x5 have no improve modes yet; all three refuse these options with a one-line error.
 
+### Shortest solutions
+
+`--optimal` finds a provably shortest solution (half-turn metric) of a 3x3x3. The default engine answers first, with the same 3000 probes as a plain `solve`; it is the fallback and the upper bound. Then an iterative deepening search, guided by pattern databases that are built once and kept in the cache directory (`CUBACLE_CACHE_DIR`, else `~/.cache/cubacle`), looks for a shorter one, starting at the lower bound and going up one move at a time. A solution found this way is the shortest, because no shorter length was left. `-b` (default 60000 ms) and `--nodes N` (a count, the same on every machine) end the search. If the search ends first, the default answer is printed and stderr says how far the proof got:
+
+```sh
+cubacle solve --optimal -s "R U F' D2 L B' R2 U F2 D L2"
+cubacle solve --optimal -b 3000 -s "R U F' D2 L B' R2 U F2 D L2 B' U2 R F D' L2 U' B2 R' F2 U D2"
+```
+
+```text
+optimal search with the large pruning tables (555 MB)
+optimal: no solution is shorter than 11 moves
+moves 11
+metrics: htm 11, qtm 15, stm 11
+L2 D' F2 U' R2 B L' D2 F U' R'
+```
+
+```text
+optimal search with the large pruning tables (555 MB)
+not proven shortest: the default engine's 18 moves; no solution is shorter than 14 (stopped after 3000 ms)
+moves 18
+metrics: htm 18, qtm 24, stm 18
+L' U2 F' L F U' D F B2 L B' D' L2 B2 D R2 B2 U
+```
+
+The second run proves only that no solution has fewer than 14 moves, and prints the default engine's 18. The answer is never longer than the default one, and every answer is replayed on the cube before it is printed. The first run in a cache directory builds the tables, which takes a few minutes (Small: about 50 s of CPU; Large: about 6 minutes of CPU) and prints its progress on stderr.
+
+`--max-memory MB` (default 1500) picks the tables: the large set (555 MB) when it fits, else the small one (86 MB), else an error. `--optimal` needs the 3x3x3 and cannot be combined with `--fast`, `--probes`, `--improve`, `--parallel`, `--moves`, `--to`, `--all` or `--count`. **Random cubes are mostly out of reach on one core of a laptop:** a cube that needs 17 or 18 moves takes billions of nodes, minutes to hours. Measured numbers, by length, are on [3x3x3 performance](engines/3x3.md#optimal-solutions).
+
 ### Move counts
 
 `solve` writes `moves N` and one more line to standard error, the counts in the common move metrics (`htm qtm stm` up to the 3x3x3, `obtm qtm stm btm` from the 4x4x4). Standard output is unchanged. The page [Move metrics](metrics.md) defines each count, says what the solvers minimise (the move count of their own alphabet, not QTM or STM) and lists where else the line appears.
