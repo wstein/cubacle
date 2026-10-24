@@ -3,6 +3,7 @@
 //! Every engine, whatever the cube size, is described by the same types: a
 //! [`PuzzleKind`], a [`Facelets`] state, a [`MoveSequence`] and a [`Solver`].
 
+mod alphabet;
 mod apply;
 mod axis;
 mod cubies;
@@ -15,6 +16,8 @@ mod relative;
 mod solver;
 mod stages;
 
+pub use alphabet::Alphabet;
+pub(crate) use alphabet::{inner_layer_set, layer_set};
 pub use apply::ApplyError;
 pub(crate) use apply::{destinations, locate};
 pub(crate) use axis::normalise;

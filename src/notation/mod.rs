@@ -1,6 +1,7 @@
 //! Ways of writing a cube down: Orbit64 tokens, colour schemes and input
 //! detection. Everything here translates text into [`crate::puzzle`] types.
 
+mod alphabet;
 mod expr;
 mod input;
 mod named;
@@ -11,6 +12,7 @@ mod sign;
 mod sse;
 mod sse_write;
 
+pub use alphabet::{parse_alphabet, AlphabetError, NAMED_SETS};
 pub use expr::{
     parse_expression, parse_grouped, ExprError, Group, Item, MAX_DEPTH, MAX_EXPANDED_MOVES,
 };
