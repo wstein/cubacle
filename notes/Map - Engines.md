@@ -32,3 +32,8 @@ Raw-material notes, category engines.
 - [[Bisect over max_moves is unsound under a time budget]]
 - [[A target is solved as a relative state]]
 - [[Pattern shortcut finds hand-built cubes]]
+- [[Pattern search speed comes from measuring first, then symmetry, compact states and cores]]
+- [[A partial target is a map from slots to allowed colours]]
+- [[A study of stickersolve shows what to adopt and what not]]
+- [[Fingertrick ranking only orders solutions of the shortest length]]
+- [[One pattern search serves solve, the library and patterns find]]

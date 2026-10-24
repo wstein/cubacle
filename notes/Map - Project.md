@@ -9,3 +9,5 @@ Raw-material notes, category project.
 - [[Licensing]]
 - [[Fork policy]]
 - [[Roadmap by cube size]]
+- [[Shorter solutions beat compute time]]
+- [[Third-party pattern collections give names and facts, never move lists]]
