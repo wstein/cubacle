@@ -272,6 +272,29 @@ D2 → (half turn)
 
 The Kitty output transmits raw RGBA (`a=T,f=32`) in chunks of at most 4096 base64 bytes, with `m=1` on every chunk but the last. It first erases the terminal rows that the image covers, steps back up, draws the image with `C=1` (the cursor does not move) and then steps down below it, so older text cannot show through and later output does not overlap. The icon background is transparent by default, so it takes the colours of a terminal and does not drift against other backgrounds. `--opaque` paints a solid backdrop of the `--background` colour instead (`moves --icons` only). In `solve --icons` the image is drawn at its own pixel size, without `r`, so a row is as wide as computed; the number of rows to erase is its height divided by the cell height, rounded up. For `moves --icons` with `--format kitty`, only the height in rows (`r`) is sent, from an assumed 16 pixels per row. See [How the terminal is asked](#how-the-terminal-is-asked) for the width and the background. The encoding is covered by unit tests; the drawing was seen in a Kitty-protocol terminal by the owner.
 
+## Forcing the graphics and terminals
+
+`--graphics auto|kitty|ansi|plain` (on `moves`, `solve` and `recover`, with `--icons`) and the variable `CUBACLE_GRAPHICS` with the same values choose how the pictures are drawn. The flag wins over the variable, and the variable over `auto`. An invalid value is refused with the accepted ones listed (`[possible values: auto, kitty, ansi, plain]`).
+
+- `auto` (the default) decides in this order. Standard output not a terminal, `TERM=dumb` or `NO_COLOR` give plain text. The variables listed under [Terminal support](#terminal-support) give Kitty graphics. Otherwise the terminal is asked once (below), and coloured text is drawn only when it does not answer.
+- `kitty`, `ansi` and `plain` are used as given, also when standard output is not a terminal: `--graphics kitty` writes the escape sequences into a pipe or a file.
+
+**The question.** Terminals that support the Kitty protocol without being named by a variable (for example `herdr`, which answers `kitty icat --detect-support` with `stream`) are found by asking. In one write the program sends `ESC _ G i=31,q=1 ESC \` (no payload and no action, so nothing is stored), the query of the protocol specification `ESC _ G i=31,s=1,v=1,a=q,t=d,f=24;AAAA ESC \` and, as the sentinel, `ESC [ c` (DA1). Any graphics reply that carries `i=31` counts, an error reply as well as `OK`, because an error shows that the terminal parsed the command. The replies seen: kitty answers `Gi=31;EINVAL:Zero width/height not allowed` and `Gi=31;OK`, `herdr` answers `Gi=31;EINVAL: dimensions required`. The sentinel's answer comes after the others, so the program reads until it arrives and nothing is left in the input of the shell; with no answer it stops after 200 ms. A DA1 answer without a graphics reply means no support. The question is asked only for `auto`, only when the variables left coloured text as the result, only when standard input and output are terminals and only once per process. The tty is in a short raw mode that is restored on every path.
+
+I ran the program against a fake terminal on a pty (a script that answers what the program writes): with the kitty replies and DA1 the output was Kitty images (0.28 s in all, including the width query); with only DA1 coloured text, at once; with no answer at all coloured text after 0.21 s, and the program exited normally.
+
+**tmux and screen.** Inside `tmux` and `screen` (`TMUX` or `STY` is set, or `TERM` starts with `screen` or `tmux`) nothing is asked, as for the width and the background; the images would need a passthrough that is not implemented. On the pty the program wrote no query there. `--graphics kitty` still forces the images, which show only where the multiplexer passes them on.
+
+**In the shell configuration.** To fix the choice for a terminal that is not found, put the variable in the startup file of the shell:
+
+```sh
+# ~/.bashrc or ~/.zshrc
+export CUBACLE_GRAPHICS=kitty
+# fish: set -Ux CUBACLE_GRAPHICS kitty
+```
+
+`--graphics auto` on the command line undoes it for one run.
+
 ## Use the module
 
 ```rust
