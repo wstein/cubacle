@@ -197,7 +197,7 @@ pub fn reaches(start: &Facelets, moves: &MoveSequence, target: &Facelets) -> boo
 
 /// The 24 whole-cube rotations of a 2x2x2, as the turns of opposite layers
 /// that make them.
-fn rotations() -> Vec<MoveSequence> {
+pub(super) fn rotations() -> Vec<MoveSequence> {
     let turn = |face, turn| Move::new(face, 1, false, turn);
     let axes = [
         [

@@ -15,6 +15,7 @@ mod orbits;
 mod relative;
 mod solver;
 mod stages;
+mod target;
 
 pub use alphabet::Alphabet;
 pub(crate) use alphabet::{inner_layer_set, layer_set};
@@ -31,3 +32,4 @@ pub use relative::{reaches, relative_state, RelativeError};
 pub use solver::{Failure, SolveMetrics, SolveOptions, SolveResult, Solver};
 pub(crate) use stages::stage_ends;
 pub use stages::SolveStage;
+pub use target::{Target, TargetError};

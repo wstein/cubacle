@@ -21,6 +21,8 @@ pub enum InputError {
         scheme: ColourScheme,
     },
     Orbit64(Orbit64Error),
+    /// A partial target that no state can meet.
+    Target(String),
 }
 
 impl fmt::Display for InputError {
@@ -36,6 +38,7 @@ impl fmt::Display for InputError {
                 write!(f, "the centres do not match the colour scheme {scheme}")
             }
             InputError::Orbit64(error) => error.fmt(f),
+            InputError::Target(reason) => f.write_str(reason),
         }
     }
 }

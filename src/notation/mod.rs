@@ -6,6 +6,7 @@ mod expr;
 mod input;
 mod named;
 pub mod orbit64;
+mod partial;
 mod range;
 mod scheme;
 mod sign;
@@ -18,6 +19,7 @@ pub use expr::{
 };
 pub use input::{colour_scheme_of, parse_cube, InputError};
 pub use named::{named_target, NAMED_TARGETS};
+pub use partial::parse_partial;
 pub use scheme::{ColourScheme, SchemeError};
 pub use sign::{parse_move, parse_moves, to_wca_token, MovesError, Notation};
 pub(crate) use sse_write::write_layer_move as write_sse_layer_move;
