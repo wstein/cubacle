@@ -177,6 +177,87 @@ The spelling:
 
 Reading this spelling back as input is not implemented.
 
+## Importing pattern files
+
+`cubacle patterns import` reads a tab-separated pattern table, in the layout of the `PatternExportTab.txt` files of Werner Randelshofer's CubeTwister, and keeps the verified patterns next to the built-in library. cubacle ships none of that data. His pattern database is all rights reserved; it is not part of this repository, is never bundled and is never downloaded by cubacle. If you use it, you use it under the terms of its author, which you have to check yourself. The importer was written from the shape of one file, in our own words below, and its tests use invented lines.
+
+**The layout.** One line is one generator of one pattern; fields are separated by tabs, and the text may be UTF-8 or a legacy 8-bit encoding (read as Latin-1 when it is not UTF-8). The fields are:
+
+1. the pattern code: a letter, three digits, a dot and two digits (for example `A200.01`; any code of 1 to 9 letters, digits, dots and hyphens is accepted, anything else is reported and skipped, never shortened);
+2. the number of the generator: the same code on several lines means alternative generators of the same pattern;
+3. to 8. three levels of grouping (category, subgroup, sub-subgroup), each with a German and an English name; the last level names the pattern;
+9. the generator;
+10. to 13. four counts, probably block turns, face turns, quarter turns and the order of the sequence, where a `*` seems to mark a proven minimum (unverified; not imported);
+14. the cycles of the parts (not imported, cubacle computes its own);
+15. to 17. author and year, and notes. The author text is kept as provenance.
+
+The cube size is not in the file. It is read from the name of the folder (`2xPocket`, `3xRubik`, `4xRevenge`, `5xProfessor`, `6xVCube6`, `7xVCube7` are the six folders) or given with `--size N`.
+
+**The moves.** The plain spelling is a space-separated list of face letters with `2` for a half turn and `-` (or `'`) for the inverse. When that does not parse, the field is read by the expression reader of `solve` (see [Command-line guide](cli.md)) after turning a `-` behind a move or bracket into `'`. Brackets with a repeat count, `'` on a bracket, wide turns and layer prefixes therefore read as in our other commands; small letters read as SiGN wide turns (`r` is `Rw`). What cubacle cannot read is reported per line: a layer or wide turn that does not exist on the folder's cube, and any construct not listed here. The moves of the 2x2x2 sample were all plain face turns; how the bigger folders write wide and slice turns has not been verified.
+
+**Checking.** Every sequence is replayed on a solved cube of that size. A line that does not have 9 fields, does not parse, does not apply to the cube or builds another state than the first line of its pattern is reported with its line number on standard error and skipped; the import does not stop. `--dry-run` also recounts every accepted line (block, face and quarter turns with `src/metrics`, the order as in `patterns cycles`) and prints each claimed count that differs, as a check of our counting and of the file. A table with synthetic lines (invented, in this layout):
+
+```sh
+cubacle patterns import tables/3xDemo/demo.txt --dry-run
+```
+
+```text
+3x3x3: 4 lines, 4 verified by replay, 3 patterns, 0 problems
+counts: 0 of 16 claimed values differ from ours
+```
+
+Without `--dry-run` the verified patterns are written in our own format (`id | catalogue | size | number | name | aliases | groups | provenance | description | moves`, one line per generator) to `~/.cache/cubacle/patterns/imported/` (`CUBACLE_CACHE_DIR` and `XDG_CACHE_HOME` apply as for the table caches; `--out FILE` writes elsewhere). `--name-prefix P` goes in front of the ids and names, and `--source XX` sets the two-letter tag of the catalogue ids (default `ct`). A URL is refused with a hint: cubacle has no HTTP client and does not download. Fetch the file yourself with `curl -o FILE URL`.
+
+**Catalogue ids.** Every pattern has an id of at most 12 characters, `xx:code`: a two-letter source and a code of up to 9 characters from letters, digits, `.` and `-`. The built-ins use `cu:` with a short readable code (`cu:checker`, `cu:sixspot`, `cu:sixcentre`, `cu:foursp`, `cu:fourcen`, `cu:cubecube`, `cu:ccc`, `cu:superflip`, `cu:cenopp`, `cu:cencyc`); imported patterns keep the author's code (`ct:A200.01`). `show` takes a name, an alias, the short id or the catalogue id (case is not significant), and `#n` after it selects the generator with that number: `cubacle patterns show ct:X1.01#2`. The group path is separate from the id.
+
+**Configuration.** `cubacle.toml` lists the pattern sources. It is looked up as `--config FILE`, then `$CUBACLE_CONFIG`, then `./cubacle.toml`, then `~/.config/cubacle/cubacle.toml` (`$XDG_CONFIG_HOME/cubacle/` when set). Without any file the list is the built-in library alone. [`cubacle.example.toml`](https://github.com/wstein/cubacle/blob/develop/cubacle.example.toml) in the repository root has the built-in entry active and the CubeTwister URLs commented out; uncomment them only after you have checked the terms and downloaded the files.
+
+```toml
+[patterns]
+files = ["builtin", "tables/3xDemo/demo.txt"]   # paths are relative to this file
+# cache_dir = "~/.cache/cubacle/patterns"
+auto_fetch = false   # read but without effect: downloading is not built in
+```
+
+An entry is a string, or `{ path = "...", size = 3, name_prefix = "x-" }`. A file starting with our header line (the output of `import`) is read as it is; any other file is read as a table and verified again each time. A URL entry is looked up in `<cache_dir>/downloads/`; when it is not there, `cubacle patterns sources` and every other `patterns` command print a warning with the `curl -o` line that puts it there. A broken entry is a warning and never hides the rest. Errors in the TOML name the file and the line.
+
+```sh
+cubacle patterns sources
+```
+
+```text
+config: cubacle.toml
+data directory: ~/.cache/cubacle/patterns
+builtin: the built-in library
+tables/3xDemo/demo.txt: 3 patterns, 0 of 4 lines skipped (see `patterns import --dry-run`)
+```
+
+With imports configured, `patterns` appends `imported from FILE` to the rows of imported patterns, `show` prints the catalogue id, the group path, the author text and every generator by number, and `identify` adds an `imported:` line for every imported pattern the state equals up to turning, mirroring and recolouring (equal canonical forms). Without imports every output is unchanged.
+
+**The tree.** `cubacle patterns --tree` is the overview by category: headings for the category levels, then per pattern its catalogue id, name, number of generators and the shortest generator length per size. The flat list stays the default.
+
+```sh
+cubacle patterns --tree --size 3
+```
+
+```text
+Simple patterns
+  cu:checker	Checkerboard	2 generators	3:3
+  cu:sixspot	Six spots	2 generators	3:6
+  cu:foursp	Four spots	2 generators	3:6
+Cube in a cube
+  cu:cubecube	Cube in a cube	1 generator	3:15
+Flips
+  cu:superflip	Superflip	1 generator	3:20
+Demo patterns
+  Slices
+    ct:X1.01	Two slices	2 generators	3:2
+    ct:X1.02	Pair	1 generator	3:2
+    ct:X1.03	Loop	1 generator	3:6
+```
+
+The built-ins have one level: Simple patterns (checkerboard, six spots, four spots and their centre variants), Cube in a cube (cube in a cube, cube in a cube in a cube), Flips (superflip) and Centres (the two centre patterns). The length counts moves as written in the generator (for a built-in the shorter of the outer and range metrics, for an import the number of turns).
+
 ## How the generators were found
 
 `examples/pattern_search` runs a bidirectional search over cost levels from the solved cube and from the pattern (in every orientation on even cubes) and replays its answer with the library before printing it:

@@ -6,7 +6,7 @@ weight: 3
 
 # Command-line guide
 
-The `cubacle` tool has eight subcommands: `solve`, `recover`, `convert`, `scramble`, `random`, `facelets`, `moves` and `patterns` (see [Patterns](patterns.md); its actions are `show`, `find`, `identify` for the structure of a state and `cycles` for its part cycles and order). Run `cubacle <command> --help` for the full option list.
+The `cubacle` tool has eight subcommands: `solve`, `recover`, `convert`, `scramble`, `random`, `facelets`, `moves` and `patterns` (see [Patterns](patterns.md); its actions are `show`, `find`, `identify` for the structure of a state and `cycles` for its part cycles and order, `import` for pattern tables, `sources` for the pattern files in use and `--tree` for the overview by category; see "Importing pattern files"). Run `cubacle <command> --help` for the full option list.
 
 ## Solve a cube
 

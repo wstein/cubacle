@@ -60,3 +60,5 @@ Raw-material notes, category engines.
 - [[The 2x2 reaches open stickers by a search from the whole goal set]]
 - [[The 3x3 reaches open stickers by an edge search or by completions]]
 - [[The goal predicate of moves and all is Target matches]]
+- [[A pattern table is read by structure and every line is replayed]]
+- [[Pattern files are listed in cubacle.toml and the default is the built-in library]]
