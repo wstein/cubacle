@@ -167,8 +167,9 @@ struct SolveArgs {
     /// Use only these moves: a list in any notation ("R U R2 U'", taken
     /// literally), generators ("<R,U>": every turn of R and U), or a name: htm
     /// (no restriction, the default), qtm, half-turns, quarter-slices. On the
-    /// 3x3x3 the answer is shortest in the set; a cube the set cannot solve
-    /// is reported at once
+    /// 3x3x3 the answer is shortest in the set, except qtm (the default
+    /// answer in quarter turns, not proven shortest); a cube the set cannot
+    /// solve is reported at once
     #[arg(long, value_name = "SET", conflicts_with_all = ["improve", "parallel", "probes", "slices"])]
     moves: Option<String>,
     /// 3x3x3 only: list every solution of the shortest length (with --moves, within the set), one order of commuting moves
