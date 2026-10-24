@@ -1,3 +1,4 @@
+mod enumerate_cmd;
 mod icons;
 mod improve;
 mod moves_cmd;
@@ -165,6 +166,18 @@ struct SolveArgs {
     /// is reported at once
     #[arg(long, value_name = "SET", conflicts_with_all = ["improve", "parallel", "probes", "slices"])]
     moves: Option<String>,
+    /// 3x3x3 only: list every solution of the shortest length (with --moves, within the set), one order of commuting moves
+    #[arg(long, conflicts_with_all = ["improve", "parallel", "probes", "slices", "optimise", "icons", "count"])]
+    all: bool,
+    /// 3x3x3 only: list this many solutions, shortest first, then stop
+    #[arg(long, value_name = "N", conflicts_with_all = ["improve", "parallel", "probes", "slices", "optimise", "icons"])]
+    count: Option<usize>,
+    /// With --all or --count: also list the solutions up to this many moves, grouped by length
+    #[arg(long, value_name = "D")]
+    depth: Option<u8>,
+    /// With --all or --count: list every order of commuting moves
+    #[arg(long)]
+    raw: bool,
     /// Hard memory cap in megabytes for the tables of --moves
     #[arg(long, value_name = "MB", default_value_t = 1500)]
     max_memory: usize,
@@ -395,6 +408,10 @@ fn solve(args: SolveArgs) -> Result<(), String> {
         Some(text) => restricted_cmd::read_set(text, facelets.kind())?,
         None => None,
     };
+    enumerate_cmd::check(&args, facelets.kind())?;
+    if enumerate_cmd::wanted(&args) {
+        return enumerate_cmd::run(&args, &start, &facelets, target.as_ref(), restricted);
+    }
     let solver = match &restricted {
         Some(alphabet) => restricted_cmd::solver_for(alphabet.clone(), args.max_memory)?,
         None => solver_for(facelets.kind()),

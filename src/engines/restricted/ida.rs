@@ -36,6 +36,8 @@ pub(super) struct Ida<'a> {
     pub(super) nodes: u64,
     path: Vec<usize>,
     timed_out: bool,
+    cancel: Option<&'a dyn Fn() -> bool>,
+    pub(super) cancelled: bool,
 }
 
 enum Flow {
@@ -52,7 +54,16 @@ impl<'a> Ida<'a> {
             nodes: 0,
             path: Vec::new(),
             timed_out: false,
+            cancel: None,
+            cancelled: false,
         }
+    }
+
+    /// Asks `cancel` at every node; when it says yes the search ends as if
+    /// timed out, with `cancelled` set.
+    pub(super) fn with_cancel(mut self, cancel: &'a dyn Fn() -> bool) -> Self {
+        self.cancel = Some(cancel);
+        self
     }
 
     /// The shortest solution of at most `max_depth` letters.
@@ -101,6 +112,11 @@ impl<'a> Ida<'a> {
         self.nodes += 1;
         if self.deadline.is_some_and(|d| Instant::now() >= d) {
             self.timed_out = true;
+            return Flow::Continue;
+        }
+        if self.cancel.is_some_and(|cancel| cancel()) {
+            self.timed_out = true;
+            self.cancelled = true;
             return Flow::Continue;
         }
         match self.table.bound(state) {

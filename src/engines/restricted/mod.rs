@@ -14,6 +14,7 @@
 //!   prune the search (derived from the alphabet, not assumed).
 //! * `invariants`: the quick proof that a cube is out of reach (orbits,
 //!   parity, twist and flip sums), so that it is reported at once.
+//! * `enumerate`: listing the solutions of each length instead of one.
 //! * `expand`: for big alphabets (the quarter turns), the default engine's
 //!   answer written in the letters; not shortest, and said so.
 //!
@@ -22,6 +23,7 @@
 //! only; a table of the alphabet's own, searched from the solved cube, is
 //! exact for any alphabet and is the bound here.
 
+mod enumerate;
 mod expand;
 mod ida;
 mod invariants;
@@ -35,6 +37,8 @@ use crate::puzzle::{
     Alphabet, Facelets, Failure, Move, MoveSequence, PuzzleKind, SolveMetrics, SolveOptions,
     SolveResult, Solver,
 };
+use enumerate::Lister;
+pub use enumerate::{EnumerateEnd, EnumerateRequest};
 use ida::{Ended, Ida};
 use invariants::{Invariants, Reach};
 use letters::{Letters, State, N};
@@ -46,6 +50,19 @@ pub const DEFAULT_TABLE_ENTRIES: usize = 2_000_000;
 
 /// The longest solution searched for when the caller sets no limit.
 const DEFAULT_MAX_MOVES: u8 = 40;
+
+/// What a listing found and how it ended.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Listing {
+    /// Solutions handed to the caller.
+    pub found: usize,
+    /// The length of the shortest solution (0 when the search was cancelled
+    /// before it was known).
+    pub shortest: usize,
+    pub end: EnumerateEnd,
+    /// Nodes searched, both for the shortest length and for the listing.
+    pub nodes: u64,
+}
 
 /// What is built once per solver.
 struct Built {
@@ -132,6 +149,108 @@ impl SubsetSolver {
         })
     }
 
+    /// Lists the solutions of `facelets`: all of the shortest length, and with
+    /// `request.longest` those of each longer length up to it, shortest first.
+    /// `emit` gets each solution as it is found and says whether to go on;
+    /// `cancel` is asked at every node. Only one order of commuting moves is
+    /// listed, unless `request.raw`.
+    pub fn enumerate(
+        &self,
+        facelets: &Facelets,
+        request: &EnumerateRequest,
+        options: &SolveOptions,
+        emit: &mut dyn FnMut(&MoveSequence) -> bool,
+        cancel: &dyn Fn() -> bool,
+    ) -> Result<Listing, SolveResult> {
+        let started = Instant::now();
+        if facelets.kind() != PuzzleKind::Cube3 {
+            return Err(Self::failed(
+                Failure::InvalidInput,
+                "the cube is not a 3x3x3".to_owned(),
+                started,
+            ));
+        }
+        let deadline = options.time_budget.map(|budget| started + budget);
+        let built = self.built(deadline);
+        let state = state_of(facelets);
+        self.reach(built, &state, started)?;
+        let limit = options.max_moves.unwrap_or(DEFAULT_MAX_MOVES);
+        let mut search = Ida::new(&built.letters, &built.table, deadline).with_cancel(cancel);
+        let shortest = match search.solve(&state, limit) {
+            Ended::Found(path) => path.len(),
+            Ended::NotInGroup => {
+                return Err(Self::failed(
+                    Failure::Exhausted,
+                    format!(
+                        "not solvable with {}: the cube is not in the group these moves make",
+                        self.alphabet.label()
+                    ),
+                    started,
+                ));
+            }
+            Ended::NoneWithin(depth) => {
+                return Err(Self::failed(
+                    Failure::Exhausted,
+                    format!(
+                        "no solution of at most {depth} moves in {}",
+                        self.alphabet.label()
+                    ),
+                    started,
+                ));
+            }
+            Ended::TimedOut if search.cancelled => {
+                return Ok(Listing {
+                    found: 0,
+                    shortest: 0,
+                    end: EnumerateEnd::Cancelled,
+                    nodes: search.nodes,
+                });
+            }
+            Ended::TimedOut => {
+                return Err(Self::failed(
+                    Failure::BudgetExhausted,
+                    format!("the time budget ran out ({} nodes)", search.nodes),
+                    started,
+                ));
+            }
+        };
+        let last = request
+            .longest
+            .map_or(shortest, |longest| usize::from(longest).max(shortest))
+            .min(usize::from(limit).max(shortest));
+        let mut lister = Lister::new(&built.letters, &built.table, deadline, cancel, request);
+        let mut length = shortest;
+        while length <= last && lister.ended.is_none() {
+            lister.list(&state, length as u8, &mut |letters| {
+                let moves: Vec<Move> = letters
+                    .iter()
+                    .map(|&i| built.letters.letters[i].mv)
+                    .collect();
+                emit(&MoveSequence::new(moves))
+            });
+            length += 1;
+        }
+        Ok(Listing {
+            found: lister.found,
+            shortest,
+            end: lister.ended.unwrap_or(EnumerateEnd::Complete),
+            nodes: search.nodes + lister.nodes,
+        })
+    }
+
+    /// Whether the cube can be solved at all with the alphabet.
+    fn reach(&self, built: &Built, state: &State, started: Instant) -> Result<(), SolveResult> {
+        match built.invariants.check(state) {
+            Ok(()) => Ok(()),
+            Err(Reach::NoCube(why)) => Err(Self::failed(Failure::InvalidInput, why, started)),
+            Err(Reach::Outside(why)) => Err(Self::failed(
+                Failure::Exhausted,
+                format!("not solvable with {}: {why}", self.alphabet.label()),
+                started,
+            )),
+        }
+    }
+
     fn failed(failure: Failure, message: String, started: Instant) -> SolveResult {
         SolveResult {
             outcome: Err(failure),
@@ -195,18 +314,8 @@ impl Solver for SubsetSolver {
         let deadline = options.time_budget.map(|budget| started + budget);
         let built = self.built(deadline);
         let state = state_of(facelets);
-        match built.invariants.check(&state) {
-            Ok(()) => {}
-            Err(Reach::NoCube(why)) => {
-                return Self::failed(Failure::InvalidInput, why, started);
-            }
-            Err(Reach::Outside(why)) => {
-                return Self::failed(
-                    Failure::Exhausted,
-                    format!("not solvable with {}: {why}", self.alphabet.label()),
-                    started,
-                );
-            }
+        if let Err(failed) = self.reach(built, &state, started) {
+            return failed;
         }
         // A big alphabet: the default engine's answer, rewritten.
         if let (Some(words), Some(helper)) = (&built.words, &self.helper) {
@@ -293,5 +402,7 @@ impl Solver for SubsetSolver {
     }
 }
 
+#[cfg(test)]
+mod list_tests;
 #[cfg(test)]
 mod tests;

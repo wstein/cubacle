@@ -60,6 +60,18 @@ impl Alphabet {
         }
     }
 
+    /// The 18 face turns of a cube, as a list of moves (not the unrestricted
+    /// marker): the alphabet a listing of solutions uses by default.
+    pub fn face_turns(kind: PuzzleKind) -> Alphabet {
+        let mut moves = Vec::new();
+        for face in Face::ALL {
+            for turn in [Turn::Clockwise, Turn::Half, Turn::CounterClockwise] {
+                moves.push(Move::new(face, 1, false, turn));
+            }
+        }
+        Alphabet::new(kind, "htm", moves)
+    }
+
     /// The alphabet of `moves` (each kept once, in the order given). Moves
     /// that do not exist on the cube are left out.
     pub fn new(kind: PuzzleKind, label: impl Into<String>, moves: Vec<Move>) -> Alphabet {
