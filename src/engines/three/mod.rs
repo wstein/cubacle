@@ -4,12 +4,14 @@
 //! `tables` (move and pruning tables, built once per [`Min2PhaseSolver`]
 //! family), `twist_flip` (the twist-flip pruning table), `coordinates` and `search` (the iterative-deepening search),
 //! `engine` (string-level entry points, parsing and the worker pool) and
-//! `solver` (the [`crate::puzzle::Solver`] adapter, the only public item).
+//! `solver` (the [`crate::puzzle::Solver`] adapter, the only public item) and
+//! `partial` (targets with open stickers, built on the adapter's `solve`).
 
 mod consts;
 mod coordinates;
 mod cubie;
 mod engine;
+mod partial;
 mod pool;
 mod search;
 mod solver;

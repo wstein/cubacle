@@ -11,7 +11,7 @@ use super::stats::{SolveOutcome, SolveStats};
 use super::tables::{self, SharedTables};
 use crate::puzzle::{
     Face, Facelets, Failure, MoveSequence, PuzzleKind, SolveMetrics, SolveOptions, SolveResult,
-    Solver,
+    Solver, Target,
 };
 
 /// The longest solution the engine searches for when no limit is given.
@@ -184,6 +184,10 @@ impl Solver for Min2PhaseSolver {
 
     fn prepare(&self) {
         tables::get(&self.tables);
+    }
+
+    fn solve_to(&self, start: &Facelets, target: &Target, options: &SolveOptions) -> SolveResult {
+        super::partial::solve_to(self, start, target, options)
     }
 
     fn solve(&self, facelets: &Facelets, options: &SolveOptions) -> SolveResult {
