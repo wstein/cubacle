@@ -259,8 +259,11 @@ mod tests {
     fn the_distance_equals_the_brute_force_minimum_over_completions() {
         let mut rng = Lcg(7);
         for round in 0..6 {
-            let start = scramble(&mut rng, 5 + round % 3);
+            // a few turns from the goal, so the brute force stays shallow
             let goal = scramble(&mut rng, 6);
+            let away = ["U", "R'", "F2", "U'", "R", "F'"];
+            let text: Vec<&str> = (0..4 + round % 2).map(|_| away[rng.next(6)]).collect();
+            let start = goal.apply(&text.join(" ").parse().unwrap()).unwrap();
             // keep about a third of the stickers of a reachable goal
             let keep: Vec<bool> = (0..24).map(|_| rng.next(3) == 0).collect();
             let target = Target::masked(&goal, |position| keep[position]);
