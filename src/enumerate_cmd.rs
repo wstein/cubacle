@@ -55,7 +55,8 @@ pub fn run(
 ) -> Result<(), String> {
     let kind = facelets.kind();
     let alphabet = alphabet.unwrap_or_else(|| Alphabet::face_turns(kind));
-    let entries = (args.max_memory.saturating_mul(1 << 20) / 70).min(DEFAULT_TABLE_ENTRIES);
+    let entries =
+        (args.max_memory.unwrap_or(1500).saturating_mul(1 << 20) / 70).min(DEFAULT_TABLE_ENTRIES);
     let solver = SubsetSolver::new(alphabet)
         .map_err(|error| format!("--moves: {error}"))?
         .with_table_entries(entries);

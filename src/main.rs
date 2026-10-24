@@ -7,6 +7,7 @@ mod optimal_cmd;
 mod partial_cmd;
 mod patterns_cmd;
 mod phase_dots;
+mod ram;
 mod recover_cmd;
 mod recover_icons;
 mod restricted_cmd;
@@ -200,9 +201,11 @@ struct SolveArgs {
     /// With --optimal: stop after this many search nodes (the same on every machine)
     #[arg(long, value_name = "N", requires = "optimal")]
     nodes: Option<u64>,
-    /// Hard memory cap in megabytes for the tables of --moves and --optimal
-    #[arg(long, value_name = "MB", default_value_t = 1500)]
-    max_memory: usize,
+    /// Hard memory cap in megabytes for the tables of --moves (default 1500) and
+    /// --optimal (default: half of the available memory of this machine, at most
+    /// 16000)
+    #[arg(long, value_name = "MB")]
+    max_memory: Option<usize>,
     /// Solve to this state instead of to the solved cube: an Orbit64 token,
     /// URFDLB facelets, W/R/G/Y/O/B colours or a move expression applied to the
     /// solved cube of the start's size (one argument: quote it), or one of the
@@ -489,7 +492,9 @@ fn solve(args: SolveArgs) -> Result<(), String> {
         optimal_cmd::solver(args.max_memory, args.nodes)?
     } else {
         match &restricted {
-            Some(alphabet) => restricted_cmd::solver_for(alphabet.clone(), args.max_memory)?,
+            Some(alphabet) => {
+                restricted_cmd::solver_for(alphabet.clone(), args.max_memory.unwrap_or(1500))?
+            }
             None => solver_for(facelets.kind()),
         }
     };

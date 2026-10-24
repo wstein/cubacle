@@ -14,6 +14,8 @@ repository = "https://github.com/wstein/cubacle"
 [dependencies]
 rand = "0.10.3"
 clap = { version = "4.6.7", features = ["derive", "env"] }
+# Physical and available memory, to size the tables of --optimal.
+sysinfo = { version = "0.39.6", default-features = false, features = ["system"] }
 
 [features]
 # Draws an amber frame around a lone quarter turn in the Kitty rows of `--icons`.
