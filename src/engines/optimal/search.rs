@@ -64,6 +64,14 @@ impl<'a> Search<'a> {
     /// Looks for a solution of exactly `limit` moves or fewer (the caller has
     /// shown that none is shorter than `limit`).
     pub(crate) fn run(&mut self, cube: &Cube, limit: u8) -> (Ended, Vec<u8>) {
+        if limit == 0 {
+            let ended = if cube.is_solved() {
+                Ended::Found
+            } else {
+                Ended::Exhausted
+            };
+            return (ended, Vec::new());
+        }
         let found = self.dfs(cube, limit, 6, 0);
         if found {
             (Ended::Found, self.path[..usize::from(limit)].to_vec())

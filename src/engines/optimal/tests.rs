@@ -119,6 +119,20 @@ fn a_node_budget_falls_back_to_the_upper_bound() {
 }
 
 #[test]
+fn a_scramble_that_cancels_needs_no_move() {
+    let moves = [0, 2, 3, 5];
+    let report = solver("cancel", &moves)
+        .solve_report(
+            &scramble(&moves),
+            &SolveOptions::default(),
+            &Limits::default(),
+        )
+        .unwrap();
+    assert!(report.proven);
+    assert!(report.solution.is_empty());
+}
+
+#[test]
 fn the_solved_cube_needs_no_move() {
     let report = solver("solved", &[])
         .solve_report(
