@@ -40,7 +40,7 @@ The first two lines go to standard error. `moves N` is always printed there, `el
 | `--size <N>` | Cube size for `--scramble`: 2 to 7, default 3. A cube given as text has its size already. |
 | `--scheme <SCHEME>` | Colour scheme for colour input. See [Colour schemes](#colour-schemes). |
 | `--to <TARGET>` | Solve to a state other than the solved cube. See [Solve to a target](#solve-to-a-target). |
-| `-m`, `--max-moves <N>` | Longest solution to accept. Default: 21 for the 2x2x2 and 3x3x3, none for the 4x4x4 and 5x5x5. Given on a 3x3x3 it also restores the first-answer search (no default 3000 probes). |
+| `-m`, `--max-moves <N>` | Longest solution to accept. Default: 21 for the 2x2x2 and 3x3x3, none for the 4x4x4 and 5x5x5. Also caps the default 3000 probes. |
 | `-b`, `--budget-ms <MS>` | Hard time limit in milliseconds. Given on a 3x3x3 it also restores the first-answer search (no default 3000 probes). |
 | `--fast` | 3x3x3 only. Print the first solution found, about 20.6 moves on average, in a few milliseconds. Without it a plain `solve` of a 3x3x3 makes 3000 probes (see [Shorter solutions](#shorter-solutions)). Not with `--probes`, `--improve` or `--parallel`. |
 | `--probes <N>` | 3x3x3 only. Keep improving the solution until N probes were made. Counts work, not time, so the answer is the same on every machine. |
@@ -93,7 +93,7 @@ Rules and limits:
 
 ### Shorter solutions
 
-A plain `solve` of a 3x3x3 makes at least 3000 probes, a counted improvement: the same answer on every machine, never longer than the first solution, 19.0 moves on average for random cubes (20.7 for the first solution), 90 ms on average and under 0.2 s at most on 30 fixed random cubes (about 0.6 s at worst on a loaded machine). `--fast` returns the first solution instead, in about 1 ms of search. The default is replaced by an explicit `--probes`, `--improve`, `--moves`, `--to`, `-m` or `-b`, which keep their own meaning; the 2x2x2 is unchanged, and so are the 4x4x4 and larger (their 3x3x3 stage asks for 500 probes). `recover` and `patterns` do not use it. Two modes look for a still shorter one:
+A plain `solve` of a 3x3x3 makes at least 3000 probes, a counted improvement: the same answer on every machine, never longer than the first solution, 19.0 moves on average for random cubes (20.7 for the first solution), 90 ms on average and under 0.2 s at most on 30 fixed random cubes (about 0.6 s at worst on a loaded machine). `--fast` returns the first solution instead, in about 1 ms of search. The default is replaced by an explicit `--probes`, `--improve`, `--moves`, `--to` or `-b`, which keep their own meaning; the 2x2x2 is unchanged, and so are the 4x4x4 and larger (their 3x3x3 stage asks for 500 probes). `recover` and `patterns` do not use it. Two modes look for a still shorter one:
 
 ```sh
 cubacle solve -s "R U2 F' D L2 B R' U' F2 D2 L B' R2 U F D' L' B2 R U2 F L D B'" --probes 1000 -v

@@ -728,4 +728,7 @@ fn plain_solve_is_a_counted_improvement_and_fast_is_the_first_answer() {
     assert!(first.split_whitespace().count() <= fast.split_whitespace().count());
     let (_, probes, _) = cubacle(&["solve", "--probes", "3000", cube]);
     assert_eq!(first, probes, "the default is --probes 3000");
+    let (ok, capped, error) = cubacle(&["solve", "-m", "21", cube]);
+    assert!(ok, "{error}");
+    assert_eq!(first, capped, "-m keeps the default improvement");
 }

@@ -33,7 +33,8 @@ pub(crate) fn mode(args: &SolveArgs) -> Option<Mode> {
 const DEFAULT_PROBES: u64 = 3000;
 
 /// The mode of a plain 3x3x3 `solve`: a counted improvement. It is not used
-/// with `--fast`, a target, a move set or an explicit limit (`-m`, `-b`).
+/// with `--fast`, a target, a move set or a time budget (`-b`); `-m` still
+/// applies and caps the length the probes may accept.
 pub(crate) fn default_mode(
     args: &SolveArgs,
     kind: PuzzleKind,
@@ -44,7 +45,6 @@ pub(crate) fn default_mode(
         && !args.fast
         && !has_target
         && !restricted
-        && args.max_moves.is_none()
         && args.budget_ms.is_none();
     plain.then_some(Mode::Probes(DEFAULT_PROBES))
 }
