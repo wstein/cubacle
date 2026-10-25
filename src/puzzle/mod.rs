@@ -28,6 +28,8 @@ pub use kind::PuzzleKind;
 pub use layer_move::LayerMove;
 pub use moves::{Move, MoveSequence, NotationError, Turn};
 pub(crate) use orbits::{centre_orbits, wing_orbits};
+#[cfg(test)]
+pub(crate) use relative::relative_by;
 pub use relative::{reaches, relative_state, RelativeError};
 pub use solver::{Failure, SolveMetrics, SolveOptions, SolveResult, Solver};
 pub(crate) use stages::stage_ends;

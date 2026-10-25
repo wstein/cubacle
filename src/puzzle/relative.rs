@@ -206,7 +206,7 @@ pub fn relative_state(start: &Facelets, target: &Facelets) -> Result<Facelets, R
 
 /// [`relative_state`] with the loose equal pieces paired in cell order or, for
 /// tests that show the choice does not matter, in reverse order.
-fn relative_by(
+pub(crate) fn relative_by(
     start: &Facelets,
     target: &Facelets,
     reversed: bool,

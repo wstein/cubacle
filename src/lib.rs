@@ -11,6 +11,7 @@
 //! | [`notation`] | Orbit64, colour schemes, input detection | `puzzle` |
 //! | [`generate`] | random states and scrambles | `puzzle` |
 //! | [`engines`] | the 2x2x2 and 3x3x3 solvers | `puzzle` (and `notation` for the 2x2x2) |
+//! | [`centres`] | the route to a target whose centres differ in colour on one face | `puzzle` |
 //! | [`phases`] | the phases of a solution, from the engine's stages or the cube state | `puzzle` |
 //! | [`recover`] | where a cube went wrong in a printed solution, and the cheapest way back | `puzzle` |
 //! | [`metrics`] | move counts in seven metrics (HTM, QTM, STM, ETM, OBTM, BTM, ATM) | `puzzle` |
@@ -31,6 +32,7 @@
 //! assert!(cube.apply(solution).unwrap().is_solved());
 //! ```
 
+pub mod centres;
 pub mod engines;
 pub mod generate;
 pub mod metrics;

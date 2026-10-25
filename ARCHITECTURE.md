@@ -12,6 +12,8 @@ src/
   notation/       Orbit64, colour schemes, input detection and parsing
   generate/       random states and scrambles
   phases/         the phases of a solution, from the engine's stages or the cube state
+  centres/        the route to a target whose centres differ in colour on one face: a goal with
+                  uniform centres, solved by an engine through the Solver trait, then a centre fix-up
   metrics/        move counts in HTM, QTM, STM, ETM, OBTM, BTM and ATM
   ranges/         post-solve compression of axis runs into layer ranges (2-3r)
   render/         move icons (SVG, RGBA, Kitty graphics, text) from puzzle types
@@ -44,6 +46,7 @@ puzzle  <-  notation  <-  engines  <-  apps (CLI, server)
    ^            ^              ^
    +--- generate               |
    +--- phases                 |
+   +--- centres                 |
    +--- render                 |
    +--- recover                 |
    +--- reduction  ------------+   (used by the reduction engines only)
@@ -52,7 +55,7 @@ puzzle  <-  notation  <-  engines  <-  apps (CLI, server)
 - `puzzle` depends on nothing else in the crate.
 - `metrics` depends only on `puzzle`; it counts and never rewrites.
 - `ranges` depends on `puzzle` and `notation` (it writes its moves in a `Notation`).
-- `notation`, `generate`, `phases`, `recover` and `render` depend only on `puzzle`. `render` is pure
+- `notation`, `generate`, `phases`, `centres`, `recover` and `render` depend only on `puzzle`. `render` is pure
   (no I/O, no global state) and never names `notation`: the CLI maps a colour
   scheme to a `render::Palette`. Terminal detection lives in the CLI.
 - `reduction` depends only on `puzzle`, knows no cube, and is crate-private.
@@ -61,6 +64,7 @@ puzzle  <-  notation  <-  engines  <-  apps (CLI, server)
 - An engine depends on `puzzle` (and, for the 2x2x2, on the Orbit64 corner
   tables in `notation`). Engines never use each other's internals: they meet
   the world only through the `Solver` trait and `puzzle` types.
+- `centres` uses an engine only through the `Solver` trait it is handed, never a concrete engine.
 - Applications (the CLI and the server) sit on top and may use everything.
 - The worker pool lives in `engines/three/pool.rs` and is private to that engine.
 
