@@ -273,7 +273,10 @@ fn invalid_inputs_are_reported_not_panicked_on() {
     let twisted: String = chars.into_iter().collect();
     let result = solver.solve(&Facelets::parse(&twisted).unwrap(), &options);
     assert_eq!(result.outcome, Err(Failure::InvalidInput));
-    assert!(result.message.unwrap().contains("twist"));
+    assert_eq!(
+        result.message.as_deref(),
+        Some("the corners are invalid: one corner is twisted on its own")
+    );
 
     // Two stickers swapped between faces: counts stay valid, pieces do not.
     let mut chars: Vec<char> = solved.chars().collect();

@@ -432,6 +432,9 @@ impl Solver for PocketSolver {
                 Some(format!("expected a 2x2x2, got a {size}x{size}x{size}")),
             );
         }
+        if let Err(reason) = crate::notation::check(facelets) {
+            return finish(Err(Failure::InvalidInput), Some(reason.to_string()));
+        }
         let normalised = match normalise(facelets) {
             Ok(normalised) => normalised,
             Err(message) => return finish(Err(Failure::InvalidInput), Some(message)),
