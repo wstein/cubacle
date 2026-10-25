@@ -1,4 +1,5 @@
 mod error;
+mod glued;
 mod grouped;
 
 pub use error::ExprError;
@@ -218,6 +219,31 @@ impl Reader {
             self.at += 1;
         }
         let word: String = self.chars[start..self.at].iter().collect();
+        match self.one(&word, start) {
+            Err(error) => match self.glued(&word, start) {
+                Some(moves) => Ok(moves),
+                None => Err(error),
+            },
+            done => done,
+        }
+    }
+
+    /// A word of several moves written without spaces (see [`glued`]): every
+    /// piece must parse, else the word keeps its original error.
+    fn glued(&self, word: &str, start: usize) -> Option<Vec<Move>> {
+        let mut out = Vec::new();
+        for (offset, piece) in glued::pieces(word)? {
+            out.extend(
+                self.one(piece, start + word[..offset].chars().count())
+                    .ok()?,
+            );
+        }
+        Some(out)
+    }
+
+    /// One move word as a single move or range.
+    fn one(&self, word: &str, start: usize) -> Result<Vec<Move>, ExprError> {
+        let word = word.to_owned();
         if let Some(range) = super::range::expand(&word) {
             let moves = range.map_err(|error| ExprError::Sign {
                 position: start,

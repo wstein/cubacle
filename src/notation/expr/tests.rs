@@ -264,3 +264,33 @@ fn an_unclosed_group_is_reported_where_it_opens() {
         Err(ExprError::Unbalanced { position: 5 })
     );
 }
+
+#[test]
+fn moves_written_together_are_cut_at_unambiguous_places() {
+    let three = PuzzleKind::Cube3;
+    let five = PuzzleKind::Cube5;
+    assert_eq!(expand("R'U'", three).unwrap(), "R' U'");
+    assert_eq!(
+        expand("R U'F", three).unwrap(),
+        expand("R U' F", three).unwrap()
+    );
+    assert_eq!(expand("NBL", five).unwrap(), expand("NB L", five).unwrap());
+    assert_eq!(
+        expand("TL'NR", five).unwrap(),
+        expand("TL' NR", five).unwrap()
+    );
+    assert_eq!(
+        expand("F2NR'", five).unwrap(),
+        expand("F2 NR'", five).unwrap()
+    );
+    assert_eq!(expand("(R'U')2", three).unwrap(), "R' U' R' U'");
+}
+
+#[test]
+fn ambiguous_or_unlikely_words_stay_errors() {
+    let three = PuzzleKind::Cube3;
+    // `F2R` could be `F2 R` or `F 2R`; `RU` and `R22` have no cut at all.
+    for word in ["F2R", "RU", "R22", "R'U'Q", "R-U"] {
+        assert!(parse_expression(word, three).is_err(), "{word}");
+    }
+}
