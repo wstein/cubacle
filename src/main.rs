@@ -26,6 +26,7 @@ mod steps;
 mod template_cmd;
 mod terminal;
 mod views;
+mod within_cmd;
 
 use std::io::Read;
 use std::process::ExitCode;
@@ -235,6 +236,23 @@ struct SolveArgs {
     /// 16000)
     #[arg(long, value_name = "MB")]
     max_memory: Option<usize>,
+    /// For a cube that is only slightly scrambled: find an optimal route of at
+    /// most K moves (1 to 7; write --within=5, plain --within means 6), searched
+    /// from both ends, to the solved cube or to any --to state, in the alphabet
+    /// the normal solver uses (--slices adds inner layers, --blocks every block
+    /// of up to three layers). Limited by --max-time (default 60000 ms) and
+    /// --max-memory (default 1000). Exit code 2: no route within K moves; 3: a
+    /// limit ended the search
+    #[arg(long, value_name = "K", num_args = 0..=1, require_equals = true, default_missing_value = "6", value_parser = clap::value_parser!(u8).range(1..=7))]
+    within: Option<u8>,
+    /// With --within: also allow the blocks of two and three layers from either
+    /// side and the layers 2-3 (more routes, a larger search)
+    #[arg(long)]
+    blocks: bool,
+    /// With --within: when no route of at most K moves exists, solve with the
+    /// normal solver (the same options as without --within) and print its answer
+    #[arg(long)]
+    then_solve: bool,
     /// Solve to this state instead of to the solved cube: an Orbit64 token,
     /// URFDLB facelets, W/R/G/Y/O/B colours or a move expression applied to the
     /// solved cube of the start's size (one argument: quote it), or one of the
@@ -531,6 +549,7 @@ fn default_options(kind: PuzzleKind) -> SolveOptions {
 }
 
 fn solve(args: SolveArgs) -> Result<(), String> {
+    within_cmd::check(&args)?;
     if let Some(now) = &args.now {
         let depth = args.depth.unwrap_or(3);
         if depth > 5 {
@@ -565,6 +584,11 @@ fn solve(args: SolveArgs) -> Result<(), String> {
         .as_deref()
         .map(|text| read_target(text, &args, &start))
         .transpose()?;
+    if let Some(k) = args.within {
+        if let within_cmd::Done::Printed = within_cmd::run(&args, k, &start, target.as_ref())? {
+            return Ok(());
+        }
+    }
     // A target with open stickers is a set of states, not one: the engine
     // searches for the set. Every other target is a state and keeps the
     // relative-state path below.

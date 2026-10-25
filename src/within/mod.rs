@@ -94,14 +94,20 @@ pub struct Report {
 }
 
 /// How an alphabet is called and what its length is counted in, for messages.
+///
+/// The outer blocks all touch the outside, so their count is HTM (OBTM from
+/// the 4x4x4, the same rule). A single inner layer is one move here but two in
+/// HTM, so with slices the count is BTM, one per block. The layers 2-3 are
+/// written as two plain moves (`3Rw R'`) and count once, which no metric of
+/// the plain moves does, so that alphabet counts blocks.
 pub fn describe(kit: Kit, kind: PuzzleKind) -> (&'static str, &'static str) {
     let big = kind.size() >= 4;
     match kit {
-        Kit::Outer if big => ("outer-block", "htm"),
+        Kit::Outer if big => ("outer-block", "obtm"),
         Kit::Outer => ("face-turn", "htm"),
-        Kit::Slices if big => ("outer-block and slice", "htm"),
-        Kit::Slices => ("face-turn and slice", "htm"),
-        Kit::Blocks => ("all-block", "blocks, a block of layers 2-3 counting once"),
+        Kit::Slices if big => ("outer-block and slice", "btm"),
+        Kit::Slices => ("face-turn and slice", "btm"),
+        Kit::Blocks => ("all-block", "blocks, layers 2-3 counting once"),
     }
 }
 
