@@ -11,6 +11,14 @@ Status: spike, not merged into the public CLI or REST. The code is
 marked **[M]** were measured for this paper (release build, one Apple Silicon
 core, `nice`); every command below was run.
 
+The reference implementation of the canonical form is flix-orbit64 (tag v0.9.0, Apache-2.0,
+`FORMAT.md`, sections "Canonical form" and "Facelet geometry"); the rule text lives
+there and this Rust code follows it. This paper explains the rule and records the
+Rust measurements. The shared conformance suite is `tests/canonical_vectors.txt`
+(17 token vectors, 76 facelet vectors and the pinned failures of the reference),
+checked by `canonical::tests::every_reference_vector_gives_the_reference_token`
+and `every_reference_failure_is_an_error`; Rust and the reference agree on all of them.
+
 ## 1. Goal
 
 A pattern is a color state: pieces of one color are interchangeable. Its
@@ -42,15 +50,14 @@ Let `S` be the sticker string of a cube (`6 n^2` colors, `U R F D L B` = 0 to 5)
    - even cube: there are no centers, so the three colors of the corner in the
      URF slot become `U R F` in turning order and the three colors that share no
      corner with them (the opposite colors) become `D L B`.
-3. **Handedness.** If the result is not a cube (a mirror image has the corner
-   colors in reversed turning order), `C(S)` is mirrored across the R/L plane
-   once and step 2 is repeated. The first attempt that encodes is used.
-4. **Token.** The result is encoded by `orbit64::encode`. A state that is no
-   cube in either attempt (twisted corner, parity) is an error with the reason of
-   the first attempt.
+3. **Token.** The result is encoded by `orbit64::encode`. A state that is no
+   cube (twisted corner, parity) is an error. There is no mirroring step and no
+   second attempt: the reachable states are closed under mirroring, so a mirror
+   image renames to a cube as well (the reference proved the retry unreachable;
+   the Rust spike had it and it never fired in the tests).
 
 The token is a function of `C(S)` only, so it is invariant. It is injective on
-classes because step 2 and 3 only recolor and mirror, which keeps the state in
+classes because step 2 only recolors, which keeps the state in
 its class: `C(decode(token)) = C(S)`, checked in the tests. The solved cube of
 every size is the token of `A` repeated (`AAAAA`, `AAAAAAAAAAAA`, ...).
 
@@ -139,11 +146,11 @@ loops are small constants times `n^2`), once or twice. Measured above.
   would need an order over the 24 rotations only; not tried.
 - **Stability.** The token depends on the Orbit64 slot convention
   `orbit64-Nxn-draft@1` (see "Orbit64 slot numbering caveat"), on the sticker
-  order `URFDLB`, on the choice of the R/L mirror and of the URF corner. Any of
+  order `URFDLB`, on the facelet geometry and on the URF corner. Any of
   them changing renames every identifier; a stored identifier should carry the
   convention name.
 - **Unreachable states have no token.** Only reachable cubes are encoded; the
-  error names the reason of the unmirrored attempt, which may be less exact than
+  error may be less exact than
   the usual `check` message for a recolored input.
 - **Partial states.** A target with don't-care stickers is not a cube state and
   has no token.
