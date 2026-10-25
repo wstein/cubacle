@@ -17,6 +17,7 @@ mod recover_cmd;
 mod recover_icons;
 mod restricted_cmd;
 mod rows;
+mod solved_start;
 mod stage_phases;
 mod state_check;
 mod steps;
@@ -99,7 +100,7 @@ struct InputArgs {
     /// An Orbit64 token, URFDLB facelets, W/R/G/Y/O/B colours, or (when the
     /// text is no cube) a move expression such as "(R U)*3" for a cube of
     /// --size; spaces are allowed and need no quoting. "-" reads stdin.
-    #[arg(num_args = 1.., required_unless_present = "scramble", conflicts_with = "scramble")]
+    #[arg(num_args = 1.., conflicts_with = "scramble")]
     cube: Vec<String>,
     /// Solve the cube produced by this scramble instead
     #[arg(short, long)]
@@ -255,7 +256,11 @@ struct SolveArgs {
 }
 
 fn main() -> ExitCode {
-    match run(Cli::parse()) {
+    let matches = <Cli as clap::CommandFactory>::command().get_matches();
+    let cli = <Cli as clap::FromArgMatches>::from_arg_matches(&matches)
+        .unwrap_or_else(|error| error.exit());
+    solved_start::note_size_given(&matches);
+    match run(cli) {
         Ok(()) => ExitCode::SUCCESS,
         Err(message) => {
             eprintln!("error: {message}");
@@ -359,6 +364,7 @@ fn read_input(input: &InputArgs) -> Result<(Facelets, Option<ColourScheme>), Str
         return Ok((scrambled(scramble, kind_of(input.size)?)?, None));
     }
     let text = match input.cube.as_slice() {
+        [] => return Err(solved_start::NO_CUBE.into()),
         [single] if single == "-" => {
             let mut text = String::new();
             std::io::stdin()
@@ -505,7 +511,10 @@ fn solve(args: SolveArgs) -> Result<(), String> {
         };
         return recover_cmd::run_now(&shared, now, &args.way, depth);
     }
-    let start = read_cube(&args.input)?;
+    let start = match solved_start::of_target(&args)? {
+        Some(solved) => solved,
+        None => read_cube(&args.input)?,
+    };
     let target = args
         .to
         .as_deref()
