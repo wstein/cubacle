@@ -160,10 +160,12 @@ Two throw-away spike branches (`spike/template` and `spike/template-count`) expl
 
 For the 5x5x5 example above there are 393 120 target assignments with the centre `Z` included in `unique`, and 15 321 600 without it. Of these, the second spike (commit `d6a9751`) found these reachable colour states:
 
-| Reading | Assignments | Reachable colour states | Share | Up to the 24 rotations |
-| --- | --- | --- | --- | --- |
-| With `Z` in `unique` | 393 120 | 2 640 | 0.67 % | 126 |
-| Without `Z` | 15 321 600 | 28 032 | 0.18 % | 1 236 |
+| Reading | Assignments | Reachable colour states | Share |
+| --- | --- | --- | --- |
+| With `Z` in `unique` | 393 120 | 2 640 | 0.67 % |
+| Without `Z` | 15 321 600 | 28 032 | 0.18 % |
+
+These state counts are to be re-confirmed after the mirrored-corner fix of the 5x5x5 engine.
 
 The only reasons for rejection are non-symmetry of `a` and `b`, mirrored corners, and corner/middle-edge parity. Corner twist and edge flip never reject. The result is the same for both readings of `c`.
 
