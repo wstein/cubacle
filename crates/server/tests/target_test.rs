@@ -86,6 +86,18 @@ async fn smaller_and_larger_cubes_have_targets_too() {
 }
 
 #[tokio::test]
+async fn a_target_with_mixed_centres_is_reached_by_a_centre_fix_up() {
+    // inner slices and wide turns leave centres of one colour mixed on a face
+    let end = cube(PuzzleKind::Cube4, "2R 2U' 2F");
+    solved_to(4, "R U Rw Fw", json!("2R 2U' 2F"), &end).await;
+    solved_to(4, "R U Rw Fw", json!(end.to_string()), &end).await;
+    let end = cube(PuzzleKind::Cube4, "Rw");
+    solved_to(4, "", json!("Rw"), &end).await;
+    let end = cube(PuzzleKind::Cube5, "2R 4U' Fw");
+    solved_to(5, "R U F2", json!("2R 4U' Fw"), &end).await;
+}
+
+#[tokio::test]
 async fn a_cube_string_wins_over_a_move_expression() {
     // "UUUU..." is a 3x3x3 in facelets; a text that is no cube is moves
     let solved = Facelets::solved(PuzzleKind::Cube3);
@@ -101,6 +113,10 @@ async fn a_bad_target_is_refused() {
         .collect();
     stickers.swap(8, 10);
     let broken: String = stickers.into_iter().collect();
+    // two centre stickers of different orbits swapped: no 5x5 looks so
+    let mut stickers = cube(PuzzleKind::Cube5, "").stickers().to_vec();
+    stickers.swap(6, 32);
+    let swapped = Facelets::from_stickers(stickers).unwrap().to_string();
     for (body, status, needle) in [
         (
             json!({"scramble": "R U", "target": two}),
@@ -128,9 +144,9 @@ async fn a_bad_target_is_refused() {
             "impossible",
         ),
         (
-            json!({"scramble": "R U", "size": 4, "target": "Rw"}),
+            json!({"scramble": "R U", "size": 5, "target": swapped}),
             StatusCode::UNPROCESSABLE_ENTITY,
-            "centres",
+            "centre orbit",
         ),
     ] {
         let (got, value) = post("/v1/solve", body.clone()).await;

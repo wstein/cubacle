@@ -31,6 +31,7 @@ use axum::middleware::{self, Next};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
+use cubacle::centres;
 use cubacle::engines::dwalton::DwaltonSolver;
 use cubacle::engines::five::FiveSolver;
 use cubacle::engines::four::FourSolver;
@@ -39,7 +40,7 @@ use cubacle::engines::two::PocketSolver;
 use cubacle::generate;
 
 use cubacle::notation::orbit64;
-use cubacle::notation::{parse_cube, ColourScheme, Notation};
+use cubacle::notation::{parse_cube, parse_expression, ColourScheme, Notation};
 use cubacle::puzzle::{
     reaches, relative_state, Facelets, Failure, PuzzleKind, RelativeError, SolveOptions, Solver,
 };
@@ -545,6 +546,7 @@ async fn solve(
             },
         )
     })?;
+    let target_text = request.target.clone();
     let target = match request.target {
         Some(text) => Some(read_target(text, scheme, kind).await?),
         None => None,
@@ -552,7 +554,11 @@ async fn solve(
     let has_target = target.is_some();
     // The cube to solve: the start itself, or what is left of it after the
     // target is taken out.
+    // A target whose centres differ in colour on one face is reached by a
+    // centre fix-up, planned with the engine inside the solve below.
+    let mixed = target.as_ref().is_some_and(|t| !centres::uniform(t));
     let facelets = match &target {
+        Some(_) if mixed => start.clone(),
         Some(target) => relative_state(&start, target).map_err(|e| match e {
             RelativeError::SizeMismatch { .. } => ApiError::bad_input(e.to_string()),
             RelativeError::ImpossiblePiece { .. } => ApiError::new(
@@ -560,11 +566,10 @@ async fn solve(
                 "impossible_cube",
                 e.to_string(),
             ),
-            RelativeError::CentresMoved => ApiError::new(
-                StatusCode::UNPROCESSABLE_ENTITY,
-                "unreachable_target",
-                e.to_string(),
-            ),
+            // targets with mixed centres take the centre fix-up and never get here
+            RelativeError::CentresMoved => {
+                ApiError::new(StatusCode::INTERNAL_SERVER_ERROR, "internal", e.to_string())
+            }
         })?,
         None => start.clone(),
     };
@@ -643,12 +648,23 @@ async fn solve(
     let (six, seven) = (state.six.clone(), state.seven.clone());
     let result = tokio::task::spawn_blocking(move || {
         let _permit = permit; // released when the solve finishes
+        let run = |engine: &dyn Solver| {
+            if mixed {
+                // the moves of the target, when given as moves, bound the fix-up
+                let hint = target_text
+                    .as_deref()
+                    .and_then(|text| parse_expression(text, kind).ok());
+                centres::solve_to(engine, &start, &wanted, &options, hint.as_ref())
+            } else {
+                engine.solve(&facelets, &options)
+            }
+        };
         let result = match kind {
             PuzzleKind::Cube2 => return Some(PocketSolver::new().solve(&facelets, &options)),
-            PuzzleKind::Cube4 => four.solve(&facelets, &options),
-            PuzzleKind::Cube5 => five.solve(&facelets, &options),
-            PuzzleKind::Cube6 => six.solve(&facelets, &options),
-            PuzzleKind::Cube7 => seven.solve(&facelets, &options),
+            PuzzleKind::Cube4 => run(&four),
+            PuzzleKind::Cube5 => run(&five),
+            PuzzleKind::Cube6 => run(six.as_ref()),
+            PuzzleKind::Cube7 => run(seven.as_ref()),
             _ if improve => three.solve_with_minimum_time(&facelets, &options, budget),
             _ => three.solve(&facelets, &options),
         };

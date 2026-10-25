@@ -52,7 +52,7 @@ For `POST` requests, send the header `Content-Type: application/json`.
 | `notation` | Optional, `wca` (default), `sign` or `sse`. How the `solution` is written: `Rw`, `3Rw` or `r`, `3r` or `TR`, `T3R` (see [Move notations](cli.md#move-notations)). Also a query parameter of `/v1/scramble`. Anything else is a 400. |
 | `optimise` | Optional, `ranges`. Adds `compressed` (the solution with layer ranges such as `2-3r`, in the chosen `notation`), `compressedLength` and `compressedMetrics` to the answer; `solution`, `length` and `metrics` are unchanged. Anything else is a 400. See [`--optimise`](cli.md). |
 
-| `target` | Optional, `/v1/solve` only. Solve to this state instead of to the solved cube; the `solution` takes the start (`cube` or `scramble`) to it. How the server reads the text: if it is exactly `superflip`, `checkerboard` or `cube-in-cube` it is that pattern (3x3x3 only); otherwise, if it parses as a cube (an Orbit64 token, URFDLB facelets or colours, read with `scheme`), it is that cube; otherwise it is read as a move expression applied to the solved cube of the start's size. Cube text always wins over a move expression, as it does for the start on the command line. See [Solve to a target](cli.md#solve-to-a-target). |
+| `target` | Optional, `/v1/solve` only. Solve to this state instead of to the solved cube; the `solution` takes the start (`cube` or `scramble`) to it. How the server reads the text: if it is exactly `superflip`, `checkerboard` or `cube-in-cube` it is that pattern (3x3x3 only); otherwise, if it parses as a cube (an Orbit64 token, URFDLB facelets or colours, read with `scheme`), it is that cube; otherwise it is read as a move expression applied to the solved cube of the start's size. Cube text always wins over a move expression, as it does for the start on the command line. On a 4x4x4 to 7x7x7 a target whose centres of one kind show different colours on one face (built with inner slices or wide turns) is reached by a centre fix-up, the last moves of the `solution`; `maxMoves` and `budgetMs` count the whole route. See [Solve to a target](cli.md#solve-to-a-target) and [Targets with mixed centres](cli.md#targets-with-mixed-centres). |
 
 Other sizes answer 400 to `minProbes` and `improve`.
 
@@ -77,7 +77,7 @@ curl -s -XPOST localhost:8080/v1/solve -H 'Content-Type: application/json' \
 {"error":{"code":"bad_input","message":"the start is a 3x3x3 but the target is a 2x2x2"}}
 ```
 
-A target of another size is a 400. A target with an impossible piece is a 422 `impossible_cube`; a state the engine finds impossible only while solving says `the start or the target state is impossible`. On a 4x4x4 or larger, a target whose centres are out of place (reached by wide or inner turns) is a 422 `unreachable_target`: the solvers cannot aim for it. The 2x2x2 reaches the target up to a rotation of the whole cube. `/v1/convert` has no `target` and answers 400 to it, like any unknown field.
+A target of another size is a 400. A target with an impossible piece is a 422 `impossible_cube`; a state the engine finds impossible only while solving says `the start or the target state is impossible`. A target with the wrong centre colours (a colour on more or fewer than four places of an orbit, or centres no cube has) is a 422 `impossible_cube`; a middle-slice target of the 5x5x5 or 7x7x7 is reached too. A route that cannot be finished within `maxMoves` is a 422 `no_solution_within_limit`, one that the time budget ends a 504 `budget_exhausted`, as for any target. The 2x2x2 reaches the target up to a rotation of the whole cube. `/v1/convert` has no `target` and answers 400 to it, like any unknown field.
 
 ### Examples
 
@@ -167,7 +167,6 @@ Errors have this shape:
 | 413 | `payload_too_large` | Body larger than `--max-body-bytes`. |
 | 415 | `unsupported_media_type` | `POST` without `Content-Type: application/json`. |
 | 422 | `impossible_cube` | The cube state cannot be reached by legal moves. |
-| 422 | `unreachable_target` | A `target` of a 4x4x4 or larger shows centres of one kind on one face in different colours; the message says to use one colour per face (4x4) or per face and orbit (5x5 and up) and to build other patterns from their generator (`cubacle patterns show <id>`). |
 | 422 | `no_solution_within_limit` | No solution within `maxMoves`. |
 | 429 | `busy` | All solver slots are in use. The response has `Retry-After: 1`. |
 | 500 | `internal` | A handler or solver thread panicked, or an engine reached a state it cannot explain. |
