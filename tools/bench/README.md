@@ -48,3 +48,16 @@ that pass it. The thresholds of `PatternKind` come from this table.
 
 It uses the library only (no solver, no external data); the numbers repeat
 from run to run.
+
+With `local` as the first argument it measures tables you keep on disk instead.
+Name them in `CUBACLE_LOCAL_TABLES` (files separated by `:`, the cube size is
+read from a name such as `4xRevenge`):
+
+    CUBACLE_LOCAL_TABLES=/data/3xRubik.txt:/data/4xRevenge.txt \
+      cargo run --release --example kind_rates local
+
+It prints only aggregates: the patternness bands, the share of each kind, how
+many patterns reach 90 in patternness or have a kind, and how well `identify`
+recognises the held-out 30 % of the patterns (the library is the built-in set
+and the other 70 %, split by a hash of the id) against random scrambles. No
+table belongs to this repository.

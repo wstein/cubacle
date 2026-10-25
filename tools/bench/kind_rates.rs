@@ -14,6 +14,14 @@
 //! and prints, per size and per criterion threshold, the share of each set that
 //! passes. A criterion that passes many short scrambles cannot be a decision.
 //! It uses the library only; no solver is run.
+//!
+//! `kind_rates local [SCRAMBLES]` instead reads the tables named by the
+//! environment variable `CUBACLE_LOCAL_TABLES` (files separated by `:`, the
+//! size taken from a name such as `4xRevenge`; nothing is bundled) and prints
+//! only aggregates: patternness bands, kind shares, the acceptance goal and
+//! recognition of held-out patterns, see `kind_local.rs`.
+
+mod kind_local;
 
 use std::env;
 
@@ -97,6 +105,15 @@ fn share(set: &[Measures], pass: impl Fn(&Measures) -> bool) -> f64 {
 
 fn main() {
     let args: Vec<String> = env::args().collect();
+    if args.get(1).map(String::as_str) == Some("local") {
+        let tables = kind_local::tables();
+        let mut rng = Rng(0x9E37_79B9_7F4A_7C15);
+        kind_local::report_measures(&tables);
+        kind_local::report_identify(&tables, &mut |kind, length| {
+            scrambled(kind, &mut rng, length)
+        });
+        return;
+    }
     let per_length: usize = args.get(1).and_then(|a| a.parse().ok()).unwrap_or(30);
     let random: usize = args.get(2).and_then(|a| a.parse().ok()).unwrap_or(200);
     let mut rng = Rng(0x2545_F491_4F6C_DD1D);
