@@ -18,3 +18,4 @@ Raw-material notes, category open-items.
 - [[Pattern states are projections onto layer sets]]
 - [[Don't-care targets follow eight owner decisions]]
 - [[Open owner decisions of 2026-10-24 are recorded]]
+- [[Don't-care targets leave two follow-ups for later]]
