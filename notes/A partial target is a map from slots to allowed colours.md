@@ -11,3 +11,5 @@ A target with don't-care stickers is stored as a map from position to an optiona
 - [[Don't-care stickers are written X or named as a subset]]
 
 Source: owner decision of 2026-10-24, lines 1-1
+
+Planned follow-up: [[A conditional search takes a schema grid and a guard]] would generalise these targets with variables.

@@ -11,3 +11,5 @@ Two follow-ups of the don't-care targets are not built: colour subsets between o
 - [[Open items]]
 
 Source: docs/design/dont-care-targets.md, lines 87-93
+
+Planned follow-up: [[Generator pictures show only the moved stickers]] draws unmoved stickers as don't-care.

@@ -13,3 +13,5 @@ The prototype that tries known patterns before the reduction and the library wit
 
 Source: src/engines/pattern/mod.rs, lines 1-40
 Source: src/patterns/mod.rs, lines 1-40
+
+Planned: [[A conditional search takes a schema grid and a guard]] would add a template mode to this search.
