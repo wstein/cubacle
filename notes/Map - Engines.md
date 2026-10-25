@@ -34,6 +34,7 @@ Raw-material notes, category engines.
 - [[Bisect over max_moves is unsound under a time budget]]
 - [[A target is solved as a relative state]]
 - [[Same-coloured inner pieces are equal and there is no strict mode]]
+- [[Equal pieces are matched fixed points first]]
 - [[Pattern shortcut finds hand-built cubes]]
 - [[Pattern search speed comes from measuring first, then symmetry, compact states and cores]]
 - [[A partial target is a map from slots to allowed colours]]

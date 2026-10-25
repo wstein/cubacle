@@ -68,14 +68,14 @@ cubacle random | cubacle solve -
 
 ### What solved means
 
-`solve` works on colours: a cube is solved when every face shows one colour. Inner pieces of one colour that cannot be told apart by looking, such as the centres of the 4x4x4 to 7x7x7, are interchangeable, so two cubes that differ only by a swap of same-coloured centres are the same cube and get the same answer. There is no strict mode that tells them apart. For the same reason a `--to` target on the 4x4x4 and larger cannot ask for a scrambled arrangement of same-coloured centres:
+`solve` works on colours: a cube is solved when every face shows one colour. Inner pieces of one colour that cannot be told apart by looking, such as the centres of the 4x4x4 to 7x7x7, are interchangeable, so two cubes that differ only by a swap of same-coloured centres are the same cube and get the same answer. There is no strict mode that tells them apart. For the same reason a `--to` target on the 4x4x4 and larger cannot ask for a scrambled arrangement of same-coloured centres, that is for centres of one kind on one face in different colours (`Rw` moves half of the centres of the front face away). Targets whose faces show one colour per kind of centre are fine, also when the centres sit on other faces:
 
 ```sh
 cubacle solve --size 4 "R U" --to Rw
 ```
 
 ```text
-error: the target has centres out of place; the solvers can only reach a target whose centres are on their own faces (turns of the outer layers keep them there)
+error: the target has centres of different colours where the solvers cannot tell them apart (the centres of one kind on one face must show one colour)
 ```
 
 ### Solve to a target
@@ -100,7 +100,7 @@ Rules and limits:
 
 - Start and target must have the same size: `the start is a 3x3x3 but the target is a 2x2x2`.
 - An impossible start or target is rejected: `the start or the target state is impossible`.
-- 4x4x4 and larger: the target holds exactly, with orientation, but its centres must be on their own faces, because the solvers cannot tell centres of one colour apart and so cannot aim for a scrambled arrangement. Turns of the outer layer (`R`, `U'`) keep them there, wide and inner turns do not; `--to Rw` fails with `the target has centres out of place`.
+- 4x4x4 and larger: the target holds exactly, with orientation, but its centres of one kind (one orbit) on one face must show one colour, because the solvers cannot tell centres of one colour apart and so cannot aim for a scrambled arrangement. Equal pieces are paired fixed points first, so the centres may sit on other faces: `solve --size 4 "R U" --to "Rw2 Lw2"` prints `U' R' Rw2 Lw2`. A single wide turn leaves half of a face's centres in another colour: `--to Rw` fails with `the target has centres of different colours`.
 - 2x2x2: it has no centres to fix its frame, and its solver ends in any of the 24 orientations, so the target counts as reached when the cube shows it after a rotation of the whole cube.
 - With `--icons` the output has `Target state: TOKEN` below `Start state: TOKEN`, and the move pictures end in the target.
 - A target is one argument, so `--to` does not read standard input.
