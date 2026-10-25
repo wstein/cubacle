@@ -41,6 +41,7 @@ Raw-material notes, category engines.
 - [[One pattern search serves solve, the library and patterns find]]
 - [[A pattern detector reads structure from the cubie state]]
 - [[Patternness is symmetry and uniformity, calibrated on random cubes and the library]]
+- [[Imported patterns carry their patternness in a versioned TSV cache]]
 - [[The detector explains patterns and never replaces the search]]
 - [[Partial targets are solved as a goal-set search]]
 - [[An optimal mode is a measured clean-room design]]

@@ -254,7 +254,7 @@ cubacle patterns import tables/3xDemo/demo.txt --dry-run
 counts: 0 of 16 claimed values differ from ours
 ```
 
-Without `--dry-run` the verified patterns are written in our own format (`id | catalogue | size | number | name | aliases | groups | provenance | description | moves`, one line per generator) to `~/.cache/cubacle/patterns/imported/` (`CUBACLE_CACHE_DIR` and `XDG_CACHE_HOME` apply as for the table caches; `--out FILE` writes elsewhere). `--name-prefix P` goes in front of the ids and names, and `--source XX` sets the two-letter tag of the catalogue ids (default `ct`). A URL is refused with a hint: cubacle has no HTTP client and does not download. Fetch the file yourself with `curl -o FILE URL`.
+Without `--dry-run` the verified patterns are written in our own format to `~/.cache/cubacle/patterns/imported/` as `NAME.tsv`: a tab-separated file whose first line is `#cubacle-patterns 1 patternness-v1` (format version and patternness formula version), then `#source LABEL`, then one line per generator with `id`, `catalogue`, `size`, `number`, `name`, `aliases`, `groups`, `provenance`, `description`, `patternness` (an integer 0 to 100, or `-`) and the `moves` as the last field. The patternness is computed at import time; when the version in a file differs from the program's, the stored values are ignored, computed again and the file is rewritten the next time it is loaded (`CUBACLE_CACHE_DIR` and `XDG_CACHE_HOME` apply as for the table caches; `--out FILE` writes elsewhere). `--name-prefix P` goes in front of the ids and names, and `--source XX` sets the two-letter tag of the catalogue ids (default `ct`). A URL is refused with a hint: cubacle has no HTTP client and does not download. Fetch the file yourself with `curl -o FILE URL`.
 
 **Catalogue ids.** Every pattern has an id of at most 12 characters, `xx:code`: a two-letter source and a code of up to 9 characters from letters, digits, `.` and `-`. The built-ins use `cu:` with a short readable code (`cu:checker`, `cu:sixspot`, `cu:sixcentre`, `cu:foursp`, `cu:fourcen`, `cu:cubecube`, `cu:ccc`, `cu:superflip`, `cu:cenopp`, `cu:cencyc`); imported patterns keep the author's code (`ct:A200.01`). `show` takes a name, an alias, the short id or the catalogue id (case is not significant), and `#n` after it selects the generator with that number: `cubacle patterns show ct:X1.01#2`. The group path is separate from the id.
 
@@ -281,6 +281,15 @@ tables/3xDemo/demo.txt: 3 patterns, 0 of 4 lines skipped (see `patterns import -
 ```
 
 With imports configured, `patterns` appends `imported from FILE` to the rows of imported patterns, `show` prints the catalogue id, the group path, the author text and every generator by number, and `identify` adds an `imported:` line for every imported pattern the state equals up to turning, mirroring and recolouring (equal canonical forms). Without imports every output is unchanged.
+
+**Patternness in lists.** `patterns --sort patternness` puts the most pattern-like first and adds a `patternness` column (the highest over the sizes shown); `--min-patternness N` keeps the patterns at or above N. Both work with `--tree`, and without them the output is unchanged. `show` prints `3x3x3 patternness: 33 %` per size, and `import --dry-run` prints one line per pattern and a summary:
+
+```text
+ct:D1.01	patternness 87 %
+ct:D1.02	patternness 100 %
+ct:D1.03	patternness 33 %
+patternness: mean 73.3 %, lowest 33 %, 1 of 3 at least 95 %
+```
 
 **The tree.** `cubacle patterns --tree` is the overview by category: headings for the category levels, then per pattern its catalogue id, name, number of generators and the shortest generator length per size. The flat list stays the default.
 
