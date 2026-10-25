@@ -67,3 +67,4 @@ Raw-material notes, category engines.
 - [[The goal predicate of moves and all is Target matches]]
 - [[A pattern table is read by structure and every line is replayed]]
 - [[Pattern files are listed in cubacle.toml and the default is the built-in library]]
+- [[Pattern sources are downloaded by cubacle itself from the user's config]]
