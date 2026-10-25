@@ -353,3 +353,43 @@ fn subgroup_verdicts_are_invariant_under_turning_and_renaming() {
         }
     }
 }
+
+#[test]
+fn patternness_is_100_for_solved_and_high_for_library_patterns() {
+    for kind in PuzzleKind::ALL {
+        assert_eq!(super::patternness(&Facelets::solved(kind)), 100, "{kind:?}");
+        for pattern in patterns::all() {
+            if let Some(cube) = pattern.state(kind) {
+                let score = super::patternness(&cube);
+                assert!(score >= 95, "{} on {kind:?}: {score}", pattern.id);
+            }
+        }
+    }
+}
+
+#[test]
+fn patternness_of_random_scrambles_stays_low() {
+    for kind in PuzzleKind::ALL {
+        if kind == PuzzleKind::Cube2 {
+            continue;
+        }
+        for seed in 1..=30 {
+            let score = super::patternness(&random_cube(kind, seed, 60));
+            assert!(score < 50, "{kind:?} seed {seed}: {score}");
+        }
+    }
+}
+
+#[test]
+fn patternness_is_the_same_for_every_turn_and_renaming() {
+    let kind = PuzzleKind::Cube3;
+    let cube = patterns::find("cube-in-cube").unwrap().state(kind).unwrap();
+    let state = colours(&cube);
+    for g in [3, 11, 29, 47] {
+        let seen = renamed(&image(kind, &state, g), NAMINGS[2]);
+        assert_eq!(
+            super::patternness(&canon::facelets(&seen)),
+            super::patternness(&cube)
+        );
+    }
+}

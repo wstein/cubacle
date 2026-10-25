@@ -157,3 +157,21 @@ fn centre_orbits_are_named_by_their_position() {
     assert!(text.contains("x-centres (corner side):"), "{text}");
     assert!(text.contains("+-centres (edge side):"), "{text}");
 }
+
+#[test]
+fn patternness_is_printed() {
+    let (ok, text) = identify(&["R R'"]);
+    assert!(ok);
+    assert!(text.contains("patternness: 100 %"), "{text}");
+    let (ok, text) = identify(&["--size", "5", "-s", "R U 2R' 3Fw 2U 3Dw' F"]);
+    assert!(ok);
+    let line = text
+        .lines()
+        .find(|l| l.starts_with("patternness: "))
+        .unwrap();
+    let value: u32 = line["patternness: ".len()..]
+        .trim_end_matches(" %")
+        .parse()
+        .unwrap();
+    assert!(value < 50, "{line}");
+}

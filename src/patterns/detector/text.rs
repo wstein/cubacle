@@ -22,6 +22,7 @@ impl fmt::Display for Detailed<'_> {
 impl Report {
     fn write(&self, f: &mut fmt::Formatter<'_>, verbose: bool) -> fmt::Result {
         write_matches(f, &self.matches)?;
+        writeln!(f, "patternness: {} %", self.patternness)?;
         write_fingerprint(f, &self.fingerprint)?;
         write_subgroups(f, &self.subgroups)?;
         write_symmetry(f, &self.symmetry, verbose)

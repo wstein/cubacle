@@ -22,6 +22,7 @@ mod geometry;
 mod halfturn;
 mod library;
 mod matching;
+mod patternness;
 mod pieces;
 mod subgroup;
 mod symmetry;
@@ -34,6 +35,7 @@ pub(crate) use canon::canonical;
 pub use cycles::{Cycle, Cycles, OrbitCycles, Order};
 pub use fingerprint::{Fingerprint, OrbitStat};
 pub use library::Match;
+pub use patternness::PATTERNNESS_VERSION;
 pub use subgroup::{Membership, Verdict};
 pub use symmetry::{Operation, Symmetry};
 pub use text::Detailed;
@@ -57,6 +59,8 @@ pub struct Report {
     pub fingerprint: Fingerprint,
     /// Well-known subgroups the state is, or may be, in (see `subgroup`).
     pub subgroups: Vec<Membership>,
+    /// How much the state looks like a pattern, 0 to 100 (see `patternness`).
+    pub patternness: u8,
 }
 
 /// The sticker colours of a cube as numbers 0 to 5 in `URFDLB` order.
@@ -69,13 +73,25 @@ pub fn detect(cube: &Facelets) -> Report {
     let kind = cube.kind();
     let state = colours(cube);
     let canon = canon::canonical(kind, &state);
+    let symmetry = symmetry::symmetry_of(kind, &state);
+    let fingerprint = fingerprint::fingerprint(kind, &state);
     Report {
-        symmetry: symmetry::symmetry_of(kind, &state),
+        patternness: patternness::patternness(&symmetry, &fingerprint.orbits),
+        symmetry,
         matches: library::matches(kind, &state, &canon),
         canonical: canon::facelets(&canon),
-        fingerprint: fingerprint::fingerprint(kind, &state),
+        fingerprint,
         subgroups: subgroup::memberships(kind, &state),
     }
+}
+
+/// How much a state looks like a pattern, 0 (irregular) to 100 (the solved
+/// cube). A measure of symmetry and uniformity, not a probability.
+pub fn patternness(cube: &Facelets) -> u8 {
+    let kind = cube.kind();
+    let state = colours(cube);
+    let symmetry = symmetry::symmetry_of(kind, &state);
+    patternness::patternness(&symmetry, &fingerprint::fingerprint(kind, &state).orbits)
 }
 
 /// The cycles in which a move sequence carries the pieces of a cube of `kind`,
