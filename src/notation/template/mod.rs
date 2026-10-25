@@ -1,9 +1,17 @@
 //! Templates: a schema grid says which stickers share a colour, a guard
 //! restricts the colours the placeholders may take.
 
-#[allow(dead_code)] // the parser and the evaluator use it from the next commit on
+// Nothing builds a template yet; the next commits add the schema and `Template`.
+#[allow(dead_code)]
 mod ast;
-#[allow(dead_code)] // the parsers use it from the next commit on
 mod error;
+#[allow(dead_code)]
+mod eval;
+#[allow(dead_code)]
+mod guard;
+#[allow(dead_code)]
+mod lexer;
+#[allow(dead_code)]
+mod resolve;
 
 pub use error::TemplateError;
