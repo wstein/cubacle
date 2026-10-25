@@ -26,7 +26,8 @@ impl Report {
         write_closest(f, self)?;
         write_fingerprint(f, &self.fingerprint)?;
         write_subgroups(f, &self.subgroups)?;
-        write_symmetry(f, &self.symmetry, verbose)
+        write_symmetry(f, &self.symmetry, verbose)?;
+        write_types(f, self)
     }
 
     /// The report with every symmetry operation listed (`identify -v`).
@@ -49,6 +50,24 @@ fn short_class(class: &str) -> &'static str {
         "quarter turn and mirror" => "quarter-turn mirror",
         _ => "sixth-turn mirror",
     }
+}
+
+/// The symmetry and antisymmetry types; nothing for an asymmetric cube.
+fn write_types(f: &mut fmt::Formatter<'_>, report: &Report) -> fmt::Result {
+    if let Some(s) = &report.symmetry_type {
+        writeln!(f, "symmetry: {} (order {})", s.name, s.order)?;
+    }
+    if let Some(a) = &report.antisymmetry {
+        writeln!(
+            f,
+            "antisymmetry: {} (order {}, {} symmetries and {} antisymmetries)",
+            a.name,
+            a.order,
+            a.symmetries,
+            a.order - a.symmetries
+        )?;
+    }
+    Ok(())
 }
 
 fn write_symmetry(f: &mut fmt::Formatter<'_>, symmetry: &Symmetry, verbose: bool) -> fmt::Result {

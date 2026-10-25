@@ -203,3 +203,50 @@ fn the_closest_patterns_and_the_partial_match_are_named() {
         "{line}"
     );
 }
+
+#[test]
+fn a_symmetric_cube_gets_its_symmetry_type_lines_appended() {
+    let (ok, text) = identify(&["R2 L2"]);
+    assert!(ok);
+    assert!(text.contains("\nsymmetry: D4h (order 16)\n"), "{text}");
+    assert!(
+        text.contains("\nantisymmetry: D4h+1' (order 32, 16 symmetries and 16 antisymmetries)\n"),
+        "{text}"
+    );
+    let old = text.find("symmetry: 16 of 48 operations fix it").unwrap();
+    assert!(old < text.find("\nsymmetry: D4h").unwrap());
+}
+
+#[test]
+fn an_asymmetric_cube_gets_no_type_lines() {
+    let (ok, text) = identify(&["R U F' L D2 B R2 U'"]);
+    assert!(ok);
+    assert!(
+        text.contains("symmetry: 1 of 48 operations fix it"),
+        "{text}"
+    );
+    assert!(!text.contains("antisymmetry:"), "{text}");
+    assert!(
+        text.lines().all(|l| !l.starts_with("symmetry: C1")),
+        "{text}"
+    );
+}
+
+#[test]
+fn a_big_cube_gets_a_symmetry_type_but_no_antisymmetry() {
+    let (ok, text) = identify(&["--size", "5", "R2 L2"]);
+    assert!(ok);
+    assert!(text.contains("\nsymmetry: D4h (order 16)\n"), "{text}");
+    assert!(!text.contains("antisymmetry:"), "{text}");
+}
+
+#[test]
+fn a_2x2x2_gets_no_antisymmetry_and_no_panic() {
+    let (ok, text) = identify(&["--size", "2", "R U"]);
+    assert!(ok);
+    assert!(!text.contains("antisymmetry:"), "{text}");
+    let (ok, text) = identify(&["--size", "2", "R2 L2 U2 D2"]);
+    assert!(ok);
+    assert!(text.contains("\nsymmetry: Oh (order 48)\n"), "{text}");
+    assert!(!text.contains("antisymmetry:"), "{text}");
+}

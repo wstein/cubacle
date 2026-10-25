@@ -19,6 +19,7 @@ mod centre_names;
 mod cycles;
 mod fingerprint;
 pub(super) mod geometry;
+mod group;
 mod halfturn;
 mod kind;
 mod library;
@@ -27,9 +28,11 @@ mod measures;
 mod patternness;
 mod pieces;
 mod similarity;
+mod stabiliser;
 mod subgroup;
 mod symmetry;
 mod text;
+mod typename;
 
 #[cfg(test)]
 mod tests;
@@ -42,6 +45,7 @@ pub use library::Match;
 pub use measures::{measures, Measures};
 pub use patternness::PATTERNNESS_VERSION;
 pub use similarity::{Partial, Similar};
+pub use stabiliser::{Antisymmetry, SymmetryType};
 pub use subgroup::{Membership, Verdict};
 pub use symmetry::{Operation, Symmetry};
 pub use text::Detailed;
@@ -54,6 +58,13 @@ use crate::puzzle::{Facelets, MoveSequence, PuzzleKind};
 pub struct Report {
     /// The symmetries that fix the state, up to a colour swap.
     pub symmetry: Symmetry,
+    /// The conjugacy class of the symmetry group in the cube's 48 symmetries
+    /// (`D4h`, `C2v#1`, ...); `None` when only the identity fixes the state.
+    pub symmetry_type: Option<SymmetryType>,
+    /// The class of the group of symmetries and antisymmetries (operations
+    /// that give the inverse cube) in the 96 of `M x C2`; `None` without
+    /// antisymmetry. Told on the 3x3x3 only (it has fixed centres).
+    pub antisymmetry: Option<Antisymmetry>,
     /// The smallest sticker string in the state's orbit under the 48
     /// symmetries and every renaming of the colours, as a cube: equal for
     /// states that differ only by turning, mirroring or recolouring.
@@ -95,6 +106,9 @@ pub fn detect_with(cube: &Facelets, extra: &[Pattern], closest: usize) -> Report
     let state = colours(cube);
     let canon = canon::canonical(kind, &state);
     let symmetry = symmetry::symmetry_of(kind, &state);
+    let inverse = stabiliser::inverse_colours(cube);
+    let (symmetry_type, antisymmetry) =
+        stabiliser::types(stabiliser::stabiliser(kind, &state, inverse.as_deref()));
     let fingerprint = fingerprint::fingerprint(kind, &state);
     let extra = library::extra_entries(kind, extra);
     let (closest, partial) = similarity::closest(kind, &state, &extra, closest);
@@ -103,6 +117,8 @@ pub fn detect_with(cube: &Facelets, extra: &[Pattern], closest: usize) -> Report
         partial,
         patternness: patternness::patternness(&symmetry, &fingerprint.orbits),
         symmetry,
+        symmetry_type,
+        antisymmetry,
         matches: library::matches(kind, &state, &canon, &extra),
         canonical: canon::facelets(&canon),
         fingerprint,

@@ -38,6 +38,22 @@ impl Sym {
         self.m[0][0] + self.m[1][1] + self.m[2][2]
     }
 
+    /// The product `self * other` (apply `other` first).
+    pub(crate) fn times(self, other: Sym) -> Sym {
+        let mut m = [[0; 3]; 3];
+        for (i, row) in m.iter_mut().enumerate() {
+            for (j, cell) in row.iter_mut().enumerate() {
+                *cell = (0..3).map(|k| self.m[i][k] * other.m[k][j]).sum();
+            }
+        }
+        Sym { m }
+    }
+
+    /// `(determinant, trace)`: together they tell the kind of operation.
+    pub(crate) fn kind_key(self) -> (i32, i32) {
+        (self.det(), self.trace())
+    }
+
     pub(crate) fn is_mirror(self) -> bool {
         self.det() < 0
     }
