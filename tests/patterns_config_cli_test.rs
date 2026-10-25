@@ -138,3 +138,43 @@ fn config_errors_name_file_and_line_and_a_bad_entry_is_a_warning() {
     assert!(err.contains("warning: missing/3xA/x.txt"), "{err}");
     assert!(err.contains("curl -o"), "{err}");
 }
+
+#[test]
+fn patterns_sort_and_filter_by_patternness() {
+    let (dir, _) = setup("score");
+    let (ok, out, err) = run(&dir, &["patterns", "--size", "3", "--sort", "patternness"]);
+    assert!(ok, "{err}");
+    assert!(
+        out.starts_with("id\tname\tsizes (outer/range moves)\tpatternness\n"),
+        "{out}"
+    );
+    assert!(
+        out.contains("t1-01\tPair\t3:2/2\t87 %\timported from t.txt"),
+        "{out}"
+    );
+    let (_, plain, _) = run(&dir, &["patterns", "--size", "3"]);
+    assert!(!plain.contains("patternness"), "{plain}");
+    let (ok, none, _) = run(
+        &dir,
+        &["patterns", "--size", "3", "--min-patternness", "101"],
+    );
+    assert!(!ok || !none.contains("t1-01"), "{none}");
+    let (ok, some, _) = run(
+        &dir,
+        &[
+            "patterns",
+            "--size",
+            "3",
+            "--min-patternness",
+            "95",
+            "--tree",
+        ],
+    );
+    assert!(ok);
+    assert!(
+        some.contains("ct:T1.02\tSlice\t1 generator\t3:2\t100 %"),
+        "{some}"
+    );
+    let (_, shown, _) = run(&dir, &["patterns", "show", "ct:T1.01"]);
+    assert!(shown.contains("3x3x3 patternness: 87 %"), "{shown}");
+}

@@ -22,8 +22,20 @@ pub struct PatternsArgs {
     /// shortest length per size, instead of the flat list
     #[arg(long)]
     tree: bool,
+    /// Order the list: `patternness` puts the most pattern-like first (with a
+    /// patternness column)
+    #[arg(long, value_enum)]
+    sort: Option<SortKey>,
+    /// List only patterns whose patternness (the highest over the sizes shown) is at least N
+    #[arg(long, value_name = "N", value_parser = clap::value_parser!(u8).range(0..=100))]
+    min_patternness: Option<u8>,
     #[command(subcommand)]
     action: Option<Action>,
+}
+
+#[derive(Clone, Copy, clap::ValueEnum)]
+enum SortKey {
+    Patternness,
 }
 
 #[derive(Subcommand)]
@@ -110,7 +122,13 @@ pub fn run(args: PatternsArgs) -> Result<(), String> {
         library
     };
     match args.action {
-        None => list(&library(), args.size, args.tree),
+        None => list(
+            &library(),
+            args.size,
+            args.tree,
+            args.sort,
+            args.min_patternness,
+        ),
         Some(Action::Show { name }) => show(&library(), &name.join(" "), args.size),
         Some(Action::Find(find)) => find_state(&find, args.size.unwrap_or(3)),
         Some(Action::Identify(identify)) => identify_state(
@@ -261,32 +279,56 @@ fn list(
     library: &crate::patterns_config::Library,
     size: Option<usize>,
     tree: bool,
+    sort: Option<SortKey>,
+    min: Option<u8>,
 ) -> Result<(), String> {
+    let scored = sort.is_some() || min.is_some();
+    let mut items: Vec<(&Pattern, u8)> = library
+        .all()
+        .filter(|p| !sizes_of(p, size).is_empty())
+        .map(|p| (p, shown_patternness(p, size)))
+        .filter(|(_, score)| min.is_none_or(|m| *score >= m))
+        .collect();
+    if sort.is_some() {
+        items.sort_by_key(|(_, score)| std::cmp::Reverse(*score));
+    }
     if tree {
-        let items: Vec<&Pattern> = library
-            .all()
-            .filter(|p| !sizes_of(p, size).is_empty())
+        let items: Vec<(&Pattern, Option<u8>)> = items
+            .into_iter()
+            .map(|(p, score)| (p, scored.then_some(score)))
             .collect();
         print_tree(&items, 0, size);
         return Ok(());
     }
-    println!("id\tname\tsizes (outer/range moves)");
-    for pattern in library.all() {
+    println!(
+        "id\tname\tsizes (outer/range moves){}",
+        if scored { "\tpatternness" } else { "" }
+    );
+    for (pattern, score) in items {
         let sizes = sizes_of(pattern, size);
-        if sizes.is_empty() {
-            continue;
-        }
         let text: Vec<String> = sizes
             .iter()
             .map(|s| format!("{s}:{}", lengths(pattern, *s)))
             .collect();
         print!("{}\t{}\t{}", pattern.id, pattern.name, text.join(" "));
+        if scored {
+            print!("\t{score} %");
+        }
         match &pattern.origin {
             Some(origin) => println!("\timported from {origin}"),
             None => println!(),
         }
     }
     Ok(())
+}
+
+/// The highest patternness of a pattern over the sizes shown.
+fn shown_patternness(pattern: &Pattern, size: Option<usize>) -> u8 {
+    sizes_of(pattern, size)
+        .into_iter()
+        .filter_map(|s| pattern.patternness(s))
+        .max()
+        .unwrap_or(0)
 }
 
 /// The group path shown in the tree: an imported table's last level is the
@@ -305,9 +347,9 @@ fn tree_path(pattern: &Pattern) -> &[patterns::Group] {
 }
 
 /// Patterns under one heading, then the headings below it, in first-seen order.
-fn print_tree(items: &[&Pattern], depth: usize, size: Option<usize>) {
+fn print_tree(items: &[(&Pattern, Option<u8>)], depth: usize, size: Option<usize>) {
     let pad = "  ".repeat(depth);
-    for pattern in items.iter().filter(|p| tree_path(p).len() == depth) {
+    for (pattern, score) in items.iter().filter(|(p, _)| tree_path(p).len() == depth) {
         let sizes: Vec<String> = sizes_of(pattern, size)
             .iter()
             .map(|s| {
@@ -326,8 +368,9 @@ fn print_tree(items: &[&Pattern], depth: usize, size: Option<usize>) {
             .iter()
             .filter(|g| size.is_none_or(|wanted| wanted == g.size))
             .count();
+        let score = score.map_or(String::new(), |s| format!("\t{s} %"));
         println!(
-            "{pad}{}\t{}\t{count} {}\t{}",
+            "{pad}{}\t{}\t{count} {}\t{}{score}",
             pattern.catalogue,
             pattern.name,
             if count == 1 {
@@ -339,17 +382,17 @@ fn print_tree(items: &[&Pattern], depth: usize, size: Option<usize>) {
         );
     }
     let mut seen: Vec<&str> = Vec::new();
-    for pattern in items {
+    for (pattern, _) in items {
         let path = tree_path(pattern);
         if path.len() <= depth || seen.contains(&path[depth].en.as_str()) {
             continue;
         }
         let heading = &path[depth].en;
         seen.push(heading);
-        let below: Vec<&Pattern> = items
+        let below: Vec<(&Pattern, Option<u8>)> = items
             .iter()
             .copied()
-            .filter(|p| tree_path(p).get(depth).is_some_and(|g| g.en == *heading))
+            .filter(|(p, _)| tree_path(p).get(depth).is_some_and(|g| g.en == *heading))
             .collect();
         println!("{pad}{heading}");
         print_tree(&below, depth + 1, size);
@@ -401,9 +444,16 @@ fn show_numbered(
         println!("imported from {origin}");
     }
     let mut shown = 0;
+    let mut scored: Vec<usize> = Vec::new();
     for g in pattern.generators() {
         if size.is_some_and(|s| s != g.size) || number.is_some_and(|n| n != g.number) {
             continue;
+        }
+        if !scored.contains(&g.size) {
+            scored.push(g.size);
+            if let Some(score) = pattern.patternness(g.size) {
+                println!("{0}x{0}x{0} patternness: {score} %", g.size);
+            }
         }
         shown += 1;
         println!("{0}x{0}x{0} #{1}: {2} moves", g.size, g.number, g.length);
@@ -451,9 +501,8 @@ fn show(
     }
     for s in sizes {
         println!("{s}x{s}x{s}");
-        if let Some(state) = cubacle::puzzle::PuzzleKind::of_size(s).and_then(|k| pattern.state(k))
-        {
-            println!("  patternness: {} %", patterns::patternness(&state));
+        if let Some(score) = pattern.patternness(s) {
+            println!("  patternness: {score} %");
         }
         for metric in [Span::Outer, Span::Range] {
             let Some(generator) = pattern.generator(s, Some(metric)) else {
