@@ -13,6 +13,6 @@ The library that `identify` matches and ranks against is the active one: the bui
 
 - [[Pattern states are projections onto layer sets]]
 - [[One pattern search serves solve, the library and patterns find]]
-- [[The stabiliser of a state is classified by conjugacy class of subgroup]]
+- [[The stabilizer of a state is classified by conjugacy class of subgroup]]
 
 Source: owner decision of 2026-10-24, lines 1-1

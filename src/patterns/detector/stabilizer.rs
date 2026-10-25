@@ -1,10 +1,10 @@
 //! The symmetry type of a state: which conjugacy class of subgroups of `M`
-//! (symmetry) and of `M x C2` (symmetry and antisymmetry) its stabiliser is.
+//! (symmetry) and of `M x C2` (symmetry and antisymmetry) its stabilizer is.
 //!
-//! A symmetry `g` fixes a state `s` when `s` after `g` is `s` with the colours
+//! A symmetry `g` fixes a state `s` when `s` after `g` is `s` with the colors
 //! renamed. It is an antisymmetry when `s` after `g` is the inverse cube of
-//! `s`, again up to a renaming of the colours. The inverse is defined by the
-//! colours on the 2x2x2 and the 3x3x3, where every piece can be told apart;
+//! `s`, again up to a renaming of the colors. The inverse is defined by the
+//! colors on the 2x2x2 and the 3x3x3, where every piece can be told apart;
 //! on bigger cubes equal pieces make it ambiguous, so only symmetry is typed.
 
 use super::geometry::{symmetries, tables};
@@ -35,8 +35,8 @@ pub struct Antisymmetry {
     pub symmetries: usize,
 }
 
-/// The inverse of a 3x3x3 as sticker colours, if the colours are a cube's.
-pub(crate) fn inverse_colours(cube: &Facelets) -> Option<Vec<u8>> {
+/// The inverse of a 3x3x3 as sticker colors, if the colors are a cube's.
+pub(crate) fn inverse_colors(cube: &Facelets) -> Option<Vec<u8>> {
     let kind = cube.kind();
     if kind.size() != 3 {
         return None;
@@ -47,8 +47,8 @@ pub(crate) fn inverse_colours(cube: &Facelets) -> Option<Vec<u8>> {
 }
 
 /// The elements of `M x C2` that fix the state: `g` for a symmetry, `g + 48`
-/// for an antisymmetry (when the inverse colours are given).
-pub(crate) fn stabiliser(kind: PuzzleKind, state: &[u8], inverse: Option<&[u8]>) -> Set {
+/// for an antisymmetry (when the inverse colors are given).
+pub(crate) fn stabilizer(kind: PuzzleKind, state: &[u8], inverse: Option<&[u8]>) -> Set {
     let mut set: Set = 0;
     for (g, perm) in tables(kind).perm.iter().enumerate() {
         if colour_map(state, state, perm).is_some() {
@@ -69,7 +69,7 @@ fn is_subgroup(set: Set) -> bool {
     closure(&gens) == set
 }
 
-/// The types, from the stabiliser (symmetry only if it is not trivial).
+/// The types, from the stabilizer (symmetry only if it is not trivial).
 pub(crate) fn types(set: Set) -> (Option<SymmetryType>, Option<Antisymmetry>) {
     let low = set & ((1 << 48) - 1);
     let symmetry = (low.count_ones() > 1).then(|| SymmetryType {
@@ -98,8 +98,8 @@ mod tests {
 
     fn of(cube: &Facelets) -> (Option<SymmetryType>, Option<Antisymmetry>) {
         let state = colours(cube);
-        let inverse = inverse_colours(cube);
-        types(stabiliser(cube.kind(), &state, inverse.as_deref()))
+        let inverse = inverse_colors(cube);
+        types(stabilizer(cube.kind(), &state, inverse.as_deref()))
     }
 
     #[test]
@@ -112,11 +112,11 @@ mod tests {
     }
 
     #[test]
-    fn a_random_looking_cube_has_a_trivial_stabiliser() {
+    fn a_random_looking_cube_has_a_trivial_stabilizer() {
         for kind in [PuzzleKind::Cube2, PuzzleKind::Cube3] {
             let c = cube(kind, "R U2 F' L D R' B U F2 L'");
             let state = colours(&c);
-            let set = stabiliser(kind, &state, inverse_colours(&c).as_deref());
+            let set = stabilizer(kind, &state, inverse_colors(&c).as_deref());
             // Only the identity can fix such a state.
             assert_eq!(types(set), (None, None), "{kind:?}");
         }
@@ -150,7 +150,7 @@ mod tests {
     }
 
     #[test]
-    fn the_stabiliser_is_a_subgroup_and_conjugating_keeps_its_type() {
+    fn the_stabilizer_is_a_subgroup_and_conjugating_keeps_its_type() {
         for kind in [PuzzleKind::Cube3] {
             for moves in [
                 "R",
@@ -162,8 +162,8 @@ mod tests {
             ] {
                 let c = cube(kind, moves);
                 let state = colours(&c);
-                let inverse = inverse_colours(&c).unwrap();
-                let set = stabiliser(kind, &state, Some(&inverse));
+                let inverse = inverse_colors(&c).unwrap();
+                let set = stabilizer(kind, &state, Some(&inverse));
                 assert!(is_subgroup(set), "{moves}");
                 let expect = types(set);
                 for g in 0..48 {
@@ -171,7 +171,7 @@ mod tests {
                     // its inverse's picture the same way.
                     let turned = image(kind, &state, g);
                     let turned_inverse = image(kind, &inverse, g);
-                    let again = types(stabiliser(kind, &turned, Some(&turned_inverse)));
+                    let again = types(stabilizer(kind, &turned, Some(&turned_inverse)));
                     assert_eq!(again, expect, "{moves} after symmetry {g}");
                 }
             }
@@ -188,13 +188,13 @@ mod tests {
         ] {
             let c = cube(kind, "R2 L2");
             let state = colours(&c);
-            let (s, a) = types(stabiliser(kind, &state, None));
+            let (s, a) = types(stabilizer(kind, &state, None));
             assert_eq!(a, None);
             let s = s.expect("R2 L2 is symmetric");
             assert_eq!((s.name.as_str(), s.order), ("D4h", 16), "{kind:?}");
             for g in 0..48 {
                 let turned = image(kind, &state, g);
-                assert_eq!(types(stabiliser(kind, &turned, None)).0, Some(s.clone()));
+                assert_eq!(types(stabilizer(kind, &turned, None)).0, Some(s.clone()));
             }
         }
     }
