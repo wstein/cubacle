@@ -384,7 +384,19 @@ builtin: the built-in library
 tables/3xDemo/demo.txt: 3 patterns, 0 of 4 lines skipped (see `patterns import --dry-run`)
 ```
 
-With imports configured, `patterns` appends `imported from FILE` to the rows of imported patterns, `show` prints the catalogue id, the group path, the author text and every generator by number, and `identify` adds an `imported:` line for every imported pattern the state equals up to turning, mirroring and recolouring (equal canonical forms). Without imports every output is unchanged.
+With imports configured, `patterns` appends `imported from FILE` to the rows of imported patterns, `show` prints the catalogue id, the group path, the author text and every generator by number, and `identify` matches and ranks against the active library, the built-in patterns plus every imported source of the config. A state that equals an imported pattern up to turning, mirroring and recolouring (equal canonical forms) gets a `pattern:` line and an `imported:` line, and imported patterns appear in `closest:` and `partial:` with their catalogue id; `--closest N` lists N patterns instead of three. With a 3x3 table of two invented patterns:
+
+```text
+$ cubacle patterns identify -s "U2 D2"
+pattern: Slice (ct:D1.02), turned, with colours renamed
+closest: Slice (ct:D1.02) 100 %, Four spots 85 %, Solved cube 78 %
+imported: ct:D1.02 Slice (imported from demo.txt)
+$ cubacle patterns identify -s "R2 L2 U"
+pattern: no library match
+closest: Slice (ct:D1.02) 70 %, Four spots 67 %, Solved cube 59 %
+```
+
+Without imports every output is unchanged.
 
 **Patternness in lists.** `patterns --sort patternness` puts the most pattern-like first and adds a `patternness` column (the highest over the sizes shown); `--min-patternness N` keeps the patterns at or above N. Both work with `--tree`, and without them the output is unchanged. `show` prints `3x3x3 patternness: 33 %` per size, and `import --dry-run` prints one line per pattern and a summary:
 

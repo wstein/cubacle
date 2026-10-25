@@ -7,6 +7,8 @@ A cube is recognised as a pattern from its structure, not by searching: how many
 
 Centre orbits are named by their cell distance from the face edges (x on diagonals, + on mid-lines, oblique otherwise), never by colour; the fingerprint code is not a lookup key, so renaming it changes no matching. `identify` prints the symmetry summary and class counts, and the per-operation lines only with `-v`.
 
+The library that `identify` matches and ranks against is the active one: the built-in patterns plus every imported source of the effective config, passed in once per run (`detect_with`); `closest` lists three by default and `--closest N` changes that. Imported patterns carry their catalogue id.
+
 ## Links
 
 - [[Pattern states are projections onto layer sets]]
