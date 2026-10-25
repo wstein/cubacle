@@ -25,14 +25,14 @@ pub struct Match {
     pub relation: String,
 }
 
-struct Entry {
-    id: &'static str,
-    name: &'static str,
-    state: Vec<u8>,
+pub(super) struct Entry {
+    pub(super) id: &'static str,
+    pub(super) name: &'static str,
+    pub(super) state: Vec<u8>,
     canon: Vec<u8>,
 }
 
-fn entries(kind: PuzzleKind) -> &'static [Entry] {
+pub(super) fn entries(kind: PuzzleKind) -> &'static [Entry] {
     static CELLS: [OnceLock<Vec<Entry>>; 6] = [
         OnceLock::new(),
         OnceLock::new(),

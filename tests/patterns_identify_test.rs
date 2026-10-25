@@ -175,3 +175,25 @@ fn patternness_is_printed() {
         .unwrap();
     assert!(value < 50, "{line}");
 }
+
+#[test]
+fn the_closest_patterns_and_the_partial_match_are_named() {
+    let (ok, text) = identify(&["R"]);
+    assert!(ok);
+    assert!(text.contains("closest: Solved cube "), "{text}");
+    let moves = "F (R U')2 WF U' F R' D L F D2 F2 WD NB MD' TF2 TD2 TF' TL' TD' TR TF' TU MF' (TU TR')2 TF'";
+    let (ok, text) = identify(&["--size", "5", moves]);
+    assert!(ok);
+    let line = text
+        .lines()
+        .find(|l| l.starts_with("partial: "))
+        .expect(&text);
+    assert!(
+        line.contains("corners, edges, x-centres (corner side) match Solved cube exactly"),
+        "{line}"
+    );
+    assert!(
+        line.contains("wings (depth 1)") && line.contains("differ"),
+        "{line}"
+    );
+}

@@ -24,6 +24,7 @@ mod library;
 mod matching;
 mod patternness;
 mod pieces;
+mod similarity;
 mod subgroup;
 mod symmetry;
 mod text;
@@ -36,6 +37,7 @@ pub use cycles::{Cycle, Cycles, OrbitCycles, Order};
 pub use fingerprint::{Fingerprint, OrbitStat};
 pub use library::Match;
 pub use patternness::PATTERNNESS_VERSION;
+pub use similarity::{Partial, Similar};
 pub use subgroup::{Membership, Verdict};
 pub use symmetry::{Operation, Symmetry};
 pub use text::Detailed;
@@ -61,6 +63,12 @@ pub struct Report {
     pub subgroups: Vec<Membership>,
     /// How much the state looks like a pattern, 0 to 100 (see `patternness`).
     pub patternness: u8,
+    /// The three library patterns the state is closest to (the solved cube
+    /// included), closest first.
+    pub closest: Vec<Similar>,
+    /// The orbits in which the state equals the closest pattern that matches
+    /// in some orbits and not in others.
+    pub partial: Option<Partial>,
 }
 
 /// The sticker colours of a cube as numbers 0 to 5 in `URFDLB` order.
@@ -75,7 +83,10 @@ pub fn detect(cube: &Facelets) -> Report {
     let canon = canon::canonical(kind, &state);
     let symmetry = symmetry::symmetry_of(kind, &state);
     let fingerprint = fingerprint::fingerprint(kind, &state);
+    let (closest, partial) = similarity::closest(kind, &state);
     Report {
+        closest,
+        partial,
         patternness: patternness::patternness(&symmetry, &fingerprint.orbits),
         symmetry,
         matches: library::matches(kind, &state, &canon),

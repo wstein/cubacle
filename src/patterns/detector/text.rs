@@ -23,6 +23,7 @@ impl Report {
     fn write(&self, f: &mut fmt::Formatter<'_>, verbose: bool) -> fmt::Result {
         write_matches(f, &self.matches)?;
         writeln!(f, "patternness: {} %", self.patternness)?;
+        write_closest(f, self)?;
         write_fingerprint(f, &self.fingerprint)?;
         write_subgroups(f, &self.subgroups)?;
         write_symmetry(f, &self.symmetry, verbose)
@@ -118,6 +119,37 @@ fn write_symmetry(f: &mut fmt::Formatter<'_>, symmetry: &Symmetry, verbose: bool
                 .collect();
             writeln!(f, "  {} x {class}: {}", operations.len(), list.join(", "))?;
         }
+    }
+    Ok(())
+}
+
+fn write_closest(f: &mut fmt::Formatter<'_>, report: &Report) -> fmt::Result {
+    if !report.closest.is_empty() {
+        let list: Vec<String> = report
+            .closest
+            .iter()
+            .map(|s| format!("{} {} %", s.name, s.percent))
+            .collect();
+        writeln!(f, "closest: {}", list.join(", "))?;
+    }
+    if let Some(p) = &report.partial {
+        let same = p.same.join(", ");
+        let verb = if p.same.len() == 1 {
+            "matches"
+        } else {
+            "match"
+        };
+        let differ = p.differ.join(", ");
+        let verb2 = if p.differ.len() == 1 {
+            "differs"
+        } else {
+            "differ"
+        };
+        writeln!(
+            f,
+            "partial: {same} {verb} {} exactly; {differ} {verb2}",
+            p.name
+        )?;
     }
     Ok(())
 }
