@@ -222,6 +222,25 @@ mod tests {
         assert_eq!(size_from_name("9xBig/F"), None);
     }
 
+    /// The prefix letters of the SSE tables read as in `moves`, one reader.
+    #[test]
+    fn the_reader_takes_sse_prefixes_like_the_moves_command() {
+        let kind = PuzzleKind::Cube7;
+        let read = reader(kind);
+        for word in ["VB", "T2R'", "NL2", "M3R2", "WF"] {
+            let text = format!("{word} U");
+            assert_eq!(
+                read(&text).unwrap().to_string(),
+                parse_expression(&text, kind).unwrap().to_string(),
+                "{word}"
+            );
+        }
+        assert_eq!(
+            read("U \u{b7} VB").unwrap().to_string(),
+            read("U VB").unwrap().to_string()
+        );
+    }
+
     #[test]
     fn the_reader_falls_back_to_expressions() {
         let read = reader(PuzzleKind::Cube3);

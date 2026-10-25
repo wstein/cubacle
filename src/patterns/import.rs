@@ -104,7 +104,26 @@ pub fn read_plain(field: &str) -> Result<MoveSequence, String> {
 
 type Reader<'a> = &'a dyn Fn(&str) -> Result<MoveSequence, String>;
 
+/// The moves without a trailing note. The tables put a vertical tab and then
+/// the pieces the pattern moves in brackets after the moves, such as
+/// `(uf,dr)` or `(+lb)`: lower-case piece names, commas, `+` and `-` only.
+/// Anywhere else a vertical tab is white space between moves.
+pub(crate) fn strip_note(field: &str) -> &str {
+    let Some((head, tail)) = field.trim_end().rsplit_once('\u{b}') else {
+        return field;
+    };
+    let note = tail.trim();
+    let piece = |c: char| c.is_ascii_lowercase() || matches!(c, ',' | '+' | '-');
+    match note.strip_prefix('(').and_then(|n| n.strip_suffix(')')) {
+        Some(inner) if !head.trim().is_empty() && !inner.is_empty() && inner.chars().all(piece) => {
+            head
+        }
+        _ => field,
+    }
+}
+
 fn replay(kind: PuzzleKind, field: &str, read: Reader) -> Result<(MoveSequence, Facelets), String> {
+    let field = strip_note(field);
     if field.trim().is_empty() {
         return Err("no moves".to_owned());
     }

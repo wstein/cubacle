@@ -185,6 +185,20 @@ fn utf8_and_a_byte_order_mark_are_read_as_utf8() {
 }
 
 #[test]
+fn a_bracketed_list_of_pieces_after_a_vertical_tab_is_a_note() {
+    for note in ["(uf,dr)", "(+lb)", "(-dbl)"] {
+        let text = row("Z7.01", 1, "Note", &format!("R2 U2 R2\u{b}{note}"));
+        let got = import_tab(&text, &options(3), &read_plain);
+        assert_eq!(got.report.accepted, 1, "{note}: {:?}", got.report.problems);
+        assert_eq!(got.rows[0].moves.to_string(), "R2 U2 R2");
+    }
+    // moves in brackets after a vertical tab are moves, not a note
+    assert_eq!(import::strip_note("R2\u{b}(U R)"), "R2\u{b}(U R)");
+    assert_eq!(import::strip_note("\u{b}(uf)"), "\u{b}(uf)");
+    assert_eq!(import::strip_note("R2 U2"), "R2 U2");
+}
+
+#[test]
 fn a_vertical_tab_between_moves_is_white_space() {
     let text = row("Z6.01", 1, "Tab", "R2\u{b}U2 R2");
     let got = import_tab(&text, &options(3), &read_plain);
