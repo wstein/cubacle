@@ -593,11 +593,32 @@ Fresh solution: R2 D' R U' Fw D2 Fw B2 U2 F2 Dw' D2 F' Dw2 L B' R L' Bw2 Rw2 F' 
 
 (plus `preparing the 4x4x4 tables ...` on standard error.) Only if the normal search finds nothing, the 23 other orientations of the whole cube are tried, and a cube that fits one is reported with the turns (`x`, `y`, `z`) that rotate it back: `Your cube is held differently from the original: turn the whole cube (x') to match it.` The moves printed then assume that orientation.
 
+#### Towards a target
+
+When the solution leads to a target and not to the solved cube (see [Solve to a target](#solve-to-a-target)), add `--to` with the same target to `--now`. The printed solution is then the one `solve --to` gives (or your `--solution`, which must lead the original cube to the target), the mistake is searched along it, and the way back leads to the target. The target is read as for `solve --to`, as moves or as a state, and gets the same refusals (for a 4x4x4 and larger, one color per face or per face and orbit). A target with open stickers (`X`) is refused with `--to: with --now the target must be a complete cube, without open stickers`; a `--solution` that misses the target gets `the solution does not lead the original cube to the target`. Every other option of `--now` keeps its meaning.
+
+```sh
+cubacle solve -s "R U2 F' D L2 B R' U' F2 D2 L B'" --to "R2 U2 F2 D" --now UDDDUUDUUFFBLRRBBFLLLBFFLLLDDUDDUUUDBFFLLRFBBRRRFBBRRR
+```
+
+```text
+Your cube is off the path of the solution.
+Most likely: mistake at move 22, phase 2 (solve): the extra move U was made after the last move.
+You had done 21 of 21 moves when you stopped.
+Recover: undo 1 move by turning U', then continue with the end. That is 1 moves in all.
+Fresh: solve your cube again from where it is, 11 moves.
+Recommended: recover, 10 moves fewer than solving fresh.
+Moves now: U'
+Then continue with the end of the printed solution.
+```
+
+With `--icons` the pictures show the real cubes, and the end state is the target, not a solved cube. Both cubes are mapped to the problem of the solved cube first (the relative state of each against the target), the search runs there, and the same moves are applied to the real cubes; the tests replay every answer on the real cube and compare it with the target.
+
 These options belong to `solve --now`. All but `--now` itself need it, and `--notation`, `-v`, the cube options and the picture options are the ones of a plain `solve`.
 
 | Option | Meaning |
 | --- | --- |
-| `--now <CUBE>` | The cube as it is now, an Orbit64 token, facelets or colours (quote it when it has spaces). Switches `solve` to this mode. It cannot be combined with `-m`, `-b`, `--probes`, `--improve`, `--parallel`, `--fast`, `--optimise`, `--slices`, `--moves`, `--all`, `--count`, `--raw`, `--optimal`, `--nodes`, `--max-memory`, `--to` or `--group`. |
+| `--now <CUBE>` | The cube as it is now, an Orbit64 token, facelets or colors (quote it when it has spaces). Switches `solve` to this mode. It cannot be combined with `-m`, `-b`, `--probes`, `--improve`, `--parallel`, `--fast`, `--optimise`, `--slices`, `--moves`, `--all`, `--count`, `--raw`, `--optimal`, `--nodes`, `--max-memory` or `--group`. With `--to` the way leads to the target (see [Towards a target](#towards-a-target)). |
 | `--solution <MOVES>` | The solution the person followed, in WCA, SiGN or SSE, groups and ranges allowed (see [Move notations](#move-notations)). Default: the one `solve` prints for the original cube. |
 | `--notation <wca\|sign\|sse>` | How the moves in the explanation and in `Moves now:` are written. Default `wca`. |
 | `--at-move <N>` | The move you did last before you noticed the mismatch, counting from 1. The mistake is at move N or before; later moves are ignored. |

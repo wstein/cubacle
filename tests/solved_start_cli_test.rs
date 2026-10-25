@@ -93,7 +93,7 @@ fn no_cube_error_text() {
 fn now_needs_a_real_cube() {
     let (ok, _, error) = cubacle(&["solve", "--now", "x", "--to", "R"]);
     assert!(!ok);
-    assert!(error.contains("--now") && error.contains("--to"), "{error}");
+    assert!(error.contains("no cube given"), "{error}");
     let (ok, _, error) = cubacle(&["solve", "--now", "x"]);
     assert!(!ok);
     assert!(error.contains("no cube given"), "{error}");

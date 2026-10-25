@@ -154,11 +154,12 @@ struct SolveArgs {
     input: InputArgs,
     /// The cube as it is now, after following the solution of the cube above
     /// and going wrong: says where the mistake was and the way back (an
-    /// Orbit64 token, URFDLB facelets or colours; quote it when it has spaces)
+    /// Orbit64 token, URFDLB facelets or colors; quote it when it has spaces).
+    /// With --to the way back leads to the target, not to the solved cube
     #[arg(long, value_name = "CUBE", conflicts_with_all = [
         "max_moves", "budget_ms", "probes", "improve", "parallel", "fast", "optimise",
-        "slices", "moves", "all", "count", "raw", "optimal", "nodes", "max_memory", "to",
-        "group", "pattern_aware",
+        "slices", "moves", "all", "count", "raw", "optimal", "nodes", "max_memory", "group",
+        "pattern_aware",
     ])]
     now: Option<String>,
     #[command(flatten)]
@@ -511,7 +512,19 @@ fn solve(args: SolveArgs) -> Result<(), String> {
         if depth > 5 {
             return Err(format!("--depth must be 0 to 5 with --now, not {depth}"));
         }
+        let target = match &args.to {
+            Some(text) => {
+                let start = read_cube(&args.input)?;
+                let target = read_target(text, &args, &start)?;
+                Some(target.as_state().ok_or_else(|| {
+                    "--to: with --now the target must be a complete cube, without open stickers"
+                        .to_owned()
+                })?)
+            }
+            None => None,
+        };
         let shared = recover_cmd::Shared {
+            target: target.as_ref(),
             input: &args.input,
             verbose: args.verbose,
             notation: args.notation,

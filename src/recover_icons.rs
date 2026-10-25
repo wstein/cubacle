@@ -72,8 +72,8 @@ fn moves_line(options: &SolutionIcons, original: &Facelets, parts: &[&MoveSequen
 /// one line. `printed` are the phases of the printed solution.
 pub(crate) fn render(
     options: &SolutionIcons,
-    original: &Facelets,
-    current: &Facelets,
+    (original, current): (&Facelets, &Facelets),
+    relative: &Facelets,
     plan: &Plan,
     printed: &[Phase],
     fresh_stages: &[SolveStage],
@@ -134,7 +134,7 @@ pub(crate) fn render(
             out.push_str(&moves_line(options, original, &[moves, &rest]));
         }
         _ => {
-            let found = stage_phases::of(fresh_stages, current, moves);
+            let found = stage_phases::of(fresh_stages, relative, moves);
             out.push_str(&pictures.steps(current, moves, &found, false)?);
             out.push_str(&moves_line(options, original, &[moves]));
         }
@@ -145,12 +145,12 @@ pub(crate) fn render(
 /// The steps of a fresh solution of the cube as it is (`solve --now --fresh`).
 pub(crate) fn render_fresh(
     options: &SolutionIcons,
-    current: &Facelets,
+    (current, relative): (&Facelets, &Facelets),
     moves: &MoveSequence,
     stages: &[SolveStage],
 ) -> Result<String, String> {
     let pictures = Pictures::new(current.kind().size(), options).collapsing_empty_phases();
-    let found = stage_phases::of(stages, current, moves);
+    let found = stage_phases::of(stages, relative, moves);
     pictures.steps(current, moves, &found, false)
 }
 

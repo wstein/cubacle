@@ -5,8 +5,10 @@ use std::time::{Duration, Instant};
 
 use clap::Args;
 use cubacle::notation::{parse_cube, parse_expression, Notation};
-use cubacle::puzzle::{Facelets, MoveSequence, PuzzleKind};
-use cubacle::recover::{diagnose_staged, locate, Advice, Limits, PhaseInfo, Plan, Scope};
+use cubacle::puzzle::{relative_state, Facelets, MoveSequence, PuzzleKind};
+use cubacle::recover::{
+    diagnose_staged, locate, Advice, Limits, PhaseInfo, Plan, RecoverError, Scope,
+};
 
 use crate::metrics_out;
 use crate::recover_icons;
@@ -51,6 +53,8 @@ pub(crate) struct RecoverOptions {
 
 /// What the way back shares with the command that asks for it.
 pub(crate) struct Shared<'a> {
+    /// The cube the way leads to (`--to`); `None` is the solved cube.
+    pub(crate) target: Option<&'a Facelets>,
     pub(crate) input: &'a InputArgs,
     pub(crate) verbose: bool,
     pub(crate) notation: Notation,
@@ -67,16 +71,27 @@ pub(crate) fn run_now(
 ) -> Result<(), String> {
     let notation = shared.notation;
     let input = shared.input;
-    let original = read_cube(input)?;
-    let current = parse_cube(now, input.scheme).map_err(|e| format!("--now: {e}"))?;
-    crate::state_check::require(&current).map_err(|e| format!("--now: {e}"))?;
-    if current.kind() != original.kind() {
+    let real_original = read_cube(input)?;
+    let real_current = parse_cube(now, input.scheme).map_err(|e| format!("--now: {e}"))?;
+    crate::state_check::require(&real_current).map_err(|e| format!("--now: {e}"))?;
+    if real_current.kind() != real_original.kind() {
         return Err(format!(
             "the original cube is a {0}x{0}x{0} and the current one a {1}x{1}x{1}",
-            original.kind().size(),
-            current.kind().size()
+            real_original.kind().size(),
+            real_current.kind().size()
         ));
     }
+    // Towards a target both cubes become what is left of them once the target
+    // is taken out; the target is then the solved cube and the engine below
+    // needs no other case. Moves act the same on both, so the answer is the
+    // same moves on the real cubes.
+    let (original, current) = match shared.target {
+        Some(target) => (
+            relative_state(&real_original, target).map_err(|e| e.to_string())?,
+            relative_state(&real_current, target).map_err(|e| e.to_string())?,
+        ),
+        None => (real_original.clone(), real_current.clone()),
+    };
     let solver = solver_for(original.kind());
     let options = default_options(original.kind());
     let started = Instant::now();
@@ -96,7 +111,7 @@ pub(crate) fn run_now(
             let options = shared.pictures.options(input.scheme, notation);
             print!(
                 "{}",
-                recover_icons::render_fresh(&options, &current, &moves, &stages)?
+                recover_icons::render_fresh(&options, (&real_current, &current), &moves, &stages)?
             );
         }
         return Ok(());
@@ -139,11 +154,17 @@ pub(crate) fn run_now(
         phase_starts: infos.iter().map(|p| p.start).collect(),
     });
     // Exactly on the path: nothing to compare with.
-    let on_path = locate(&original, &current, &solution).map_err(|e| e.to_string())?;
+    let not_a_solution = |e: RecoverError| match (e, shared.target) {
+        (RecoverError::NotASolution, Some(_)) => {
+            "the solution does not lead the original cube to the target".to_owned()
+        }
+        (e, _) => e.to_string(),
+    };
+    let on_path = locate(&original, &current, &solution).map_err(not_a_solution)?;
     let mut fresh_stages = Vec::new();
     let (diagnosis, fresh) = if on_path.is_some() {
         let staged = diagnose_staged(&original, &current, &solution, &limits, hint.as_ref());
-        (staged.map_err(|e| e.to_string())?.diagnosis, None)
+        (staged.map_err(not_a_solution)?.diagnosis, None)
     } else {
         // The search and the fresh solve run side by side.
         thread::scope(|scope| {
@@ -182,9 +203,7 @@ pub(crate) fn run_now(
             if let Err(reason) = &fresh {
                 eprintln!("warning: no fresh solution ({reason})");
             }
-            diagnosis
-                .map_err(|e| e.to_string())
-                .map(|d| (d, fresh.ok()))
+            diagnosis.map_err(not_a_solution).map(|d| (d, fresh.ok()))
         })?
     };
     let plan = Plan::new(diagnosis, solution, fresh).with_phases(infos);
@@ -205,7 +224,14 @@ pub(crate) fn run_now(
         let options = shared.pictures.options(input.scheme, notation);
         print!(
             "{}",
-            recover_icons::render(&options, &original, &current, &plan, &found, &fresh_stages)?
+            recover_icons::render(
+                &options,
+                (&real_original, &real_current),
+                &current,
+                &plan,
+                &found,
+                &fresh_stages
+            )?
         );
     }
     Ok(())
