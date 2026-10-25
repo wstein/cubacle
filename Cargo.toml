@@ -27,6 +27,10 @@ name = "five_compare"
 path = "tools/bench/five_compare.rs"
 
 [[example]]
+name = "kind_rates"
+path = "tools/bench/kind_rates.rs"
+
+[[example]]
 name = "four_compare"
 path = "tools/bench/four_compare.rs"
 

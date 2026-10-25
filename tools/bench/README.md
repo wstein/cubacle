@@ -36,3 +36,15 @@ solvers is replayed with `Facelets::apply`; the Java rotation letters (`x`,
 and without the final rotation, the time per cube, and how many cubes have the
 same phases 1 to 3 as Java. Run it with `CUBACLE_THREADS=1` for the
 single-thread numbers; the Java solver is single-threaded.
+
+## Pattern kinds
+
+`kind_rates` prints, per cube size 2 to 7 and per criterion threshold, the share
+of deterministic short scrambles (4 to 12 turns of random layers), of
+irregular "random" states (150-turn scrambles) and of the built-in patterns
+that pass it. The thresholds of `PatternKind` come from this table.
+
+    cargo run --release --example kind_rates [PER_LENGTH [RANDOM]]
+
+It uses the library only (no solver, no external data); the numbers repeat
+from run to run.
