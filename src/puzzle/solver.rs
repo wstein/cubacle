@@ -66,6 +66,9 @@ pub struct SolveMetrics {
 pub enum Failure {
     /// The state cannot exist, or does not match the solver's cube size.
     InvalidInput,
+    /// A reachable state whose face centers are not on their own faces (a
+    /// middle-slice turn moved them), for a solver that needs them in place.
+    CentersOffFace,
     /// The time budget ran out before a solution was found.
     BudgetExhausted,
     /// The space was searched out within the move limit and holds no solution.

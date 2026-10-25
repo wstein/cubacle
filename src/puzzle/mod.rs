@@ -6,6 +6,7 @@
 mod alphabet;
 mod apply;
 mod axis;
+mod centers;
 mod cubies;
 mod facelets;
 mod kind;
@@ -23,6 +24,7 @@ pub(crate) use alphabet::{inner_layer_set, layer_set};
 pub use apply::ApplyError;
 pub(crate) use apply::{destinations, locate};
 pub(crate) use axis::normalise;
+pub(crate) use centers::centers_off_face;
 pub(crate) use cubies::five_orbits;
 pub use facelets::{Face, Facelets, FaceletsError};
 pub use kind::PuzzleKind;

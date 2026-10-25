@@ -441,6 +441,21 @@ hint: turn one corner back
 
 `moves --from` and `facelets` take move expressions, so their states are always possible. The REST server answers an impossible start with `422 impossible_cube` and the same text.
 
+### Face centers off their faces
+
+A middle-slice turn (`2R` on a 3x3x3, `3R` on a 5x5x5, `2-6Rw` on a 7x7x7) moves the centers of the faces. That cube is reachable, not impossible, but the 3x3x3, 5x5x5 and 7x7x7 solvers need the center of each face on its own face. They say so, with exit status 1 and nothing on standard output:
+
+```sh
+cubacle solve --size 7 --scramble "2-6Rw"
+```
+
+```text
+error: the face centers are not on their own faces (a middle-slice turn moved them); this solver needs the centers of each face in place
+hint: turn the cube so the centers match, or undo the slice turn
+```
+
+The REST server answers `422 centers_off_face` with the same first sentence. Two centers that are swapped, which no turn can do, are still an impossible cube.
+
 ## Solve a 4x4x4
 
 Give `solve` a 96-sticker cube, or a scramble with `--size 4`. A 4x4x4 scramble may turn the first two layers of a face (`R`, `2R`) and use wide turns (`Rw`); the 4x4x4 has no fixed centres, so the solver brings the cube to the standard colour scheme and the solution may end with whole-cube rotations.
@@ -467,7 +482,7 @@ The first 4x4x4 solve prints `preparing the 4x4x4 tables (built now, about 12 MB
 
 ## Solve a 5x5x5
 
-Give `solve` a 150-sticker cube, or a scramble with `--size 5`. A 5x5x5 scramble may turn the first two layers of a face (`R`, `2R`); the middle layer (`3R`, `3Rw`) is not allowed, because it moves the face centres, which the solver keeps fixed. Two-layer turns (`Rw`) are fine.
+Give `solve` a 150-sticker cube, or a scramble with `--size 5`. A 5x5x5 scramble may turn the first two layers of a face (`R`, `2R`); the middle layer (`3R`, `3Rw`) is not allowed, because it moves the face centers, which the solver keeps fixed (see [Face centers off their faces](#face-centers-off-their-faces)). Two-layer turns (`Rw`) are fine.
 
 ```sh
 cubacle solve --size 5 --scramble "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F" | wc -w
@@ -849,7 +864,7 @@ A scramble is move notation in WCA, SiGN or SSE spelling (see [Move notations](#
 | `R3` | `R'` |
 | `R2'`, `R'2` | `R2` |
 
-Moves must be separated: a run such as `RUR'` and a lone `-` are rejected. A 3x3x3 whose centres a wide or inner-layer move has displaced cannot be solved; `solve` reports that instead of a wrong solution ("the centres have moved"). The same holds for a rotation (`x`, `y`, `z`): `cubacle solve -s x` on a 3x3x3 fails, while the 2x2x2 and 4x4x4, which have no fixed centres, solve such a cube (`cubacle solve --size 2 -s x` works).
+Moves must be separated: a run such as `RUR'` and a lone `-` are rejected. A 3x3x3 whose centers a wide or inner-layer move has displaced cannot be solved; `solve` reports that instead of a wrong solution (see [Face centers off their faces](#face-centers-off-their-faces)). The same holds for a rotation (`x`, `y`, `z`): `cubacle solve -s x` on a 3x3x3 fails, while the 2x2x2 and 4x4x4, which have no fixed centers, solve such a cube (`cubacle solve --size 2 -s x` works).
 
 ### Repeated groups
 

@@ -724,6 +724,12 @@ async fn solve(
                 "the cube state is impossible"
             }),
         )),
+        Err(Failure::CentersOffFace) => Err(ApiError::new(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "centers_off_face",
+            "the face centers are not on their own faces (a middle-slice turn moved them); \
+             this solver needs the centers of each face in place",
+        )),
         Err(Failure::BudgetExhausted) => Err(ApiError::new(
             StatusCode::GATEWAY_TIMEOUT,
             "budget_exhausted",

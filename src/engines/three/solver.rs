@@ -220,12 +220,8 @@ fn wrong_size(cube: &Facelets, started: Instant) -> Option<SolveResult> {
         .into_iter()
         .all(|face| cube.stickers()[face as usize * 9 + 4] == face);
     (!centres_home).then(|| {
-        failed(
-            Failure::InvalidInput,
-            "the centres have moved; only cubes with fixed centres can be solved, so wide and inner-layer moves are not allowed".to_owned(),
-            started,
-            None,
-        )
+        let (failure, why) = crate::puzzle::centers_off_face(cube);
+        failed(failure, why, started, None)
     })
 }
 
@@ -382,15 +378,15 @@ mod centre_tests {
         let solver = Min2PhaseSolver::new();
         for moves in ["Rw U", "2R", "2Rw' F"] {
             let result = solver.solve(&scrambled(moves), &SolveOptions::default());
-            assert_eq!(result.outcome, Err(Failure::InvalidInput), "{moves}");
-            assert!(result.message.unwrap().contains("centres"), "{moves}");
+            assert_eq!(result.outcome, Err(Failure::CentersOffFace), "{moves}");
+            assert!(result.message.unwrap().contains("centers"), "{moves}");
         }
         let cube = scrambled("Rw U");
         let results = solver.solve_batch(std::slice::from_ref(&cube), &SolveOptions::default());
-        assert_eq!(results[0].outcome, Err(Failure::InvalidInput));
+        assert_eq!(results[0].outcome, Err(Failure::CentersOffFace));
         let solved = Facelets::solved(PuzzleKind::Cube3);
         let pattern = solver.solve_pattern(&cube, &solved, &SolveOptions::default());
-        assert_eq!(pattern.outcome, Err(Failure::InvalidInput));
+        assert_eq!(pattern.outcome, Err(Failure::CentersOffFace));
     }
 
     #[test]

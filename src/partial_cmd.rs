@@ -87,6 +87,7 @@ pub fn run(args: &SolveArgs, start: &Facelets, target: &Target) -> Result<(), St
         Err(failure) => Err(result.message.unwrap_or_else(|| {
             match failure {
                 Failure::InvalidInput => "the start or the target is impossible",
+                Failure::CentersOffFace => crate::CENTERS_OFF_FACE,
                 Failure::BudgetExhausted => "the time budget ran out",
                 Failure::Exhausted => "no solution within the move limit",
                 Failure::Internal => "internal error",

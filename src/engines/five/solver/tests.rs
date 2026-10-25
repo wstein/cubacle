@@ -233,7 +233,7 @@ fn wrong_size_and_impossible_cubes_fail_as_invalid_input() {
         .unwrap();
     assert_eq!(
         solver.solve(&cube, &SolveOptions::default()).outcome,
-        Err(Failure::InvalidInput)
+        Err(Failure::CentersOffFace)
     );
 }
 

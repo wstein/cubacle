@@ -189,7 +189,10 @@ impl PatternShortcut {
     ) -> SolveResult {
         if !self.applies()
             || options.reduce_only
-            || answer.outcome == Err(Failure::InvalidInput)
+            || matches!(
+                answer.outcome,
+                Err(Failure::InvalidInput | Failure::CentersOffFace)
+            )
             || facelets.is_solved()
         {
             return answer;

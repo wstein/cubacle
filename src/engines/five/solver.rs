@@ -117,12 +117,10 @@ impl FiveSolver {
 
 /// The colour index of every sticker (the face it belongs to), provided the
 /// six face centres are where they started.
-fn colours_of(facelets: &Facelets) -> Result<[u8; 150], &'static str> {
+fn colors_of(facelets: &Facelets) -> Result<[u8; 150], (Failure, String)> {
     let stickers = facelets.stickers();
     if (0..6).any(|face| stickers[face * 25 + 12] != Face::ALL[face]) {
-        return Err(
-            "the face centres have moved (a middle-slice turn?); the engine keeps them fixed",
-        );
+        return Err(crate::puzzle::centers_off_face(facelets));
     }
     let mut out = [0u8; 150];
     for (slot, face) in out.iter_mut().zip(stickers) {
@@ -246,9 +244,9 @@ impl FiveSolver {
                 "the solver for the 3x3x3 stage does not solve 3x3x3 cubes",
             );
         }
-        let colours = match colours_of(facelets) {
+        let colours = match colors_of(facelets) {
             Ok(colours) => colours,
-            Err(why) => return fail(Failure::InvalidInput, why),
+            Err((failure, why)) => return fail(failure, &why),
         };
         let cube = match Cubie::from_colours(&colours) {
             Ok(cube) => cube,

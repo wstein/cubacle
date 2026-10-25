@@ -167,7 +167,7 @@ fn a_5x5_reaches_a_slice_target() {
 }
 
 #[test]
-fn a_target_with_the_wrong_centre_colours_is_still_refused() {
+fn a_target_with_the_wrong_center_colors_is_still_refused() {
     // two centre stickers of different orbits swapped: no cube looks so
     let mut stickers = cube(5, "").stickers().to_vec();
     stickers.swap(6, 32);

@@ -103,12 +103,8 @@ impl DwaltonSolver {
         if self.kind == PuzzleKind::Cube7 {
             let stickers = cube.stickers();
             if (0..6).any(|face| stickers[face * 49 + 24] != Face::ALL[face]) {
-                return fail(
-                    Failure::InvalidInput,
-                    "the face centres have moved (a middle-slice turn?); the engine keeps them fixed"
-                        .into(),
-                    &tally,
-                );
+                let (failure, why) = crate::puzzle::centers_off_face(cube);
+                return fail(failure, why, &tally);
             }
         }
         // The Orbit64 codec checks that the pieces form a reachable cube; do it

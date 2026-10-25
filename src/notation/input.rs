@@ -258,7 +258,7 @@ mod tests {
     }
 
     #[test]
-    fn repeated_centre_colours_are_reported() {
+    fn repeated_center_colors_are_reported() {
         let text = "WWWWWWWWWWWWWWWWWWGGGGGGGGGBBBBBBBBBOOOOOOOOOYYYYYYYYY";
         assert!(matches!(
             parse_cube(text, None),

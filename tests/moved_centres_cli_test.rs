@@ -25,10 +25,16 @@ fn assert_refused(size: &str, scramble: &str) {
     assert_eq!(code, Some(1), "{size}: {err}");
     assert!(out.is_empty(), "{size}: {out}");
     assert!(
-        err.lines()
-            .any(|l| l.starts_with("error:") && l.contains("centres")),
+        err.lines().any(|l| l
+            == "error: the face centers are not on their own faces (a middle-slice turn moved them); this solver needs the centers of each face in place"),
         "{size}: {err}"
     );
+    assert!(
+        err.lines()
+            .any(|l| l == "hint: turn the cube so the centers match, or undo the slice turn"),
+        "{size}: {err}"
+    );
+    assert!(!err.contains("impossible"), "{size}: {err}");
 }
 
 #[test]

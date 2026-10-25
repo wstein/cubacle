@@ -167,6 +167,7 @@ Errors have this shape:
 | 413 | `payload_too_large` | Body larger than `--max-body-bytes`. |
 | 415 | `unsupported_media_type` | `POST` without `Content-Type: application/json`. |
 | 422 | `impossible_cube` | The cube state cannot be reached by legal moves. |
+| 422 | `centers_off_face` | The face centers are not on their own faces (a middle-slice turn moved them); the 3x3x3, 5x5x5 and 7x7x7 solvers need them in place. |
 | 422 | `no_solution_within_limit` | No solution within `maxMoves`. |
 | 429 | `busy` | All solver slots are in use. The response has `Retry-After: 1`. |
 | 500 | `internal` | A handler or solver thread panicked, or an engine reached a state it cannot explain. |

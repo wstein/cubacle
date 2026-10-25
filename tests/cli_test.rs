@@ -268,7 +268,7 @@ fn a_tight_move_limit_fails_quickly() {
 fn a_scramble_that_moves_the_centres_is_reported_not_mis_solved() {
     let (ok, _, error) = cubacle(&["solve", "--scramble", "Rw U"]);
     assert!(!ok);
-    assert!(error.contains("centres"), "{error}");
+    assert!(error.contains("centers"), "{error}");
     assert!(!error.contains("internal error"), "{error}");
 }
 
@@ -317,7 +317,7 @@ fn a_5x5_failure_is_reported_and_never_replayed_wrongly() {
     // The middle layer moves the face centres, which no engine solves.
     let (ok, _, error) = cubacle(&["solve", "--size", "5", "--scramble", "3R U"]);
     assert!(!ok);
-    assert!(error.contains("centres"), "{error}");
+    assert!(error.contains("centers"), "{error}");
     let (ok, _, error) = cubacle(&["solve", "--size", "5", "-m", "5", "-s", "2R U 2F' R"]);
     assert!(!ok);
     assert!(error.contains("move limit"), "{error}");

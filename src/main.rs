@@ -262,6 +262,9 @@ struct SolveArgs {
     pictures: steps::PictureArgs,
 }
 
+/// The text of a face center error, as `solve` prints it after `error: `.
+pub(crate) const CENTERS_OFF_FACE: &str = "the face centers are not on their own faces (a middle-slice turn moved them); this solver needs the centers of each face in place";
+
 fn main() -> ExitCode {
     let matches = <Cli as clap::CommandFactory>::command().get_matches();
     let cli = <Cli as clap::FromArgMatches>::from_arg_matches(&matches)
@@ -759,6 +762,11 @@ fn solve(args: SolveArgs) -> Result<(), String> {
 /// The text of a failed solve, as `solve` and `solve --now` print it.
 fn failure_message(failure: Failure, message: Option<String>) -> String {
     let reason = match failure {
+        Failure::CentersOffFace => {
+            return format!(
+            "{CENTERS_OFF_FACE}\nhint: turn the cube so the centers match, or undo the slice turn"
+        )
+        }
         Failure::InvalidInput => "the cube state is impossible",
         Failure::BudgetExhausted => "the time budget ran out",
         Failure::Exhausted => "no solution within the move limit",

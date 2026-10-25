@@ -22,6 +22,7 @@ fn describe(solver: &dyn Solver, facelets: &Facelets, options: &SolveOptions) ->
         Ok(solution) => format!("ok {solution}"),
         Err(
             failure @ (Failure::InvalidInput
+            | Failure::CentersOffFace
             | Failure::BudgetExhausted
             | Failure::Exhausted
             | Failure::Internal),

@@ -175,7 +175,7 @@ fn colours_default_to_the_scheme_they_were_read_in() {
 fn a_3x3_with_moved_centres_cannot_be_solved_but_a_2x2_can() {
     let (ok, _, error) = cubacle(&["solve", "-s", "x"]);
     assert!(!ok);
-    assert!(error.contains("centres have moved"), "{error}");
+    assert!(error.contains("not on their own faces"), "{error}");
     let (ok, _, error) = cubacle(&["solve", "--size", "2", "-s", "x"]);
     assert!(ok, "{error}");
 }
