@@ -18,7 +18,7 @@ mod canon;
 mod centre_names;
 mod cycles;
 mod fingerprint;
-mod geometry;
+pub(super) mod geometry;
 mod halfturn;
 mod kind;
 mod library;

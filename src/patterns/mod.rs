@@ -25,6 +25,7 @@ mod import;
 mod imported_file;
 mod model;
 mod parse;
+mod route;
 
 pub use bases::{bases, Base};
 pub use decode::{decode_bytes, decode_text, Encoding};
@@ -39,6 +40,7 @@ pub use import::{
 pub use imported_file::{
     identify_imported, imported_is_stale, looks_imported, read_imported, write_imported,
 };
+pub use route::{KnownRoute, RouteIndex};
 
 use std::sync::OnceLock;
 
