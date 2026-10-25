@@ -7,6 +7,19 @@
 
 use super::coords::Coords;
 use super::layout::Layout;
+use crate::notation::{Impossible, PieceKind};
+use crate::puzzle::Face;
+
+/// The faces of the cubie that holds `facelets`, such as `URF`.
+fn place_of(layout: &Layout, facelets: &[usize]) -> String {
+    let letter = |&at: &usize| Face::ALL[layout.solved_face(at)].letter();
+    facelets.iter().map(letter).collect()
+}
+
+/// The colours `seen` as face letters.
+fn letters(seen: &[usize]) -> String {
+    seen.iter().map(|&c| Face::ALL[c].letter()).collect()
+}
 
 /// The stickers of a cube whose pieces are as `coords` say, canonical pose.
 pub(super) fn place(layout: &Layout, coords: &Coords) -> Vec<usize> {
@@ -75,14 +88,16 @@ fn read_oriented(
     layout: &Layout,
     stickers: &[usize],
     table: &[Vec<usize>],
-    what: &str,
-) -> Result<(Vec<usize>, Vec<usize>), String> {
+    kind: PieceKind,
+) -> Result<(Vec<usize>, Vec<usize>), Impossible> {
     let mut perm = Vec::with_capacity(table.len());
     let mut turn = Vec::with_capacity(table.len());
-    for (slot, facelets) in table.iter().enumerate() {
+    for facelets in table {
         let seen: Vec<usize> = facelets.iter().map(|&at| stickers[at]).collect();
-        let (piece, twist) = identify(layout, table, &seen).ok_or_else(|| {
-            format!("the {what} in slot {slot} shows colours no {what} of a cube has")
+        let (piece, twist) = identify(layout, table, &seen).ok_or_else(|| Impossible::Sticker {
+            kind,
+            place: place_of(layout, facelets),
+            seen: letters(&seen),
         })?;
         perm.push(piece);
         turn.push(twist);
@@ -92,22 +107,25 @@ fn read_oriented(
 
 /// The pieces of a cube shown by `stickers`, which are in the canonical pose.
 /// `Err` says in plain words which slot shows what no piece can show.
-pub(super) fn read(layout: &Layout, stickers: &[usize]) -> Result<Coords, String> {
-    let (corner_perm, corner_twist) = read_oriented(layout, stickers, &layout.corners, "corner")?;
+pub(super) fn read(layout: &Layout, stickers: &[usize]) -> Result<Coords, Impossible> {
+    let (corner_perm, corner_twist) =
+        read_oriented(layout, stickers, &layout.corners, PieceKind::Corner)?;
     let (midge_perm, midge_flip) = if layout.midges.is_empty() {
         (Vec::new(), Vec::new())
     } else {
-        read_oriented(layout, stickers, &layout.midges, "edge")?
+        read_oriented(layout, stickers, &layout.midges, PieceKind::Edge)?
     };
     let mut wings = Vec::new();
     for table in &layout.wings {
         let mut perm = Vec::with_capacity(24);
-        for (slot, facelets) in table.iter().enumerate() {
+        for facelets in table {
             let seen: Vec<usize> = facelets.iter().map(|&at| stickers[at]).collect();
             let piece = (0..table.len())
                 .find(|&piece| layout.piece_colours(table, piece) == seen)
-                .ok_or_else(|| {
-                    format!("the wing in slot {slot} shows colours no wing of a cube has")
+                .ok_or_else(|| Impossible::Sticker {
+                    kind: PieceKind::Wing,
+                    place: place_of(layout, facelets),
+                    seen: letters(&seen),
                 })?;
             perm.push(piece);
         }
@@ -149,6 +167,9 @@ mod tests {
         let layout = Layout::new(3);
         let mut stickers: Vec<usize> = (0..54).map(|i| i / 9).collect();
         stickers.swap(8, 29);
-        assert!(read(&layout, &stickers).unwrap_err().contains("corner"));
+        assert!(read(&layout, &stickers)
+            .unwrap_err()
+            .to_string()
+            .contains("corner"));
     }
 }

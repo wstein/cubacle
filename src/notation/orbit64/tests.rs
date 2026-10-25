@@ -205,7 +205,7 @@ fn impossible_facelets_are_refused_with_a_sentence() {
     let twisted = Facelets::from_stickers(stickers).unwrap();
     let error = encode(&twisted).unwrap_err();
     assert!(matches!(error, Orbit64Error::Impossible(_)), "{error}");
-    assert!(error.to_string().contains("twists"), "{error}");
+    assert!(error.to_string().contains("twisted"), "{error}");
 
     // Two edges swapped: corner and edge parity disagree.
     let swapped = Facelets::solved(PuzzleKind::Cube3)

@@ -9,6 +9,7 @@
 //! significant digit first, the digits are one big mixed-radix number.
 
 use super::frame::FRAME_COUNT;
+use crate::notation::{Impossible, PieceKind};
 
 /// Twist and flip digits are little-endian: the first slot is the units digit.
 const TWIST_STATES: u32 = 2187;
@@ -128,10 +129,10 @@ fn orientations(mut value: u32, count: usize, radix: u32) -> Vec<usize> {
     out
 }
 
-fn centre_digits(colours: &[usize], out: &mut Vec<u32>) -> Result<(), String> {
+fn centre_digits(colours: &[usize], out: &mut Vec<u32>) -> Result<(), Impossible> {
     let counts_ok = (0..6).all(|c| colours.iter().filter(|&&x| x == c).count() == 4);
     if colours.len() != 24 || !counts_ok {
-        return Err("a centre orbit does not hold each colour exactly four times".into());
+        return Err(Impossible::CentreColours);
     }
     let mut remaining: Vec<usize> = (0..24).collect();
     for colour in 0..5 {
@@ -179,32 +180,32 @@ fn unrank_centres(digits: &mut impl Iterator<Item = u32>) -> Vec<usize> {
 impl Coords {
     /// The digits of the state in the order of [`radices`], without the frame.
     /// `Err` says in plain words why the pieces are not those of a cube.
-    pub(super) fn digits(&self, n: usize) -> Result<Vec<u32>, String> {
+    pub(super) fn digits(&self, n: usize) -> Result<Vec<u32>, Impossible> {
         if !is_permutation(&self.corner_perm, 8) {
-            return Err("the corners are not eight different pieces".into());
+            return Err(Impossible::NotDistinct(PieceKind::Corner));
         }
         if self.corner_twist.len() != 8 || self.corner_twist.iter().sum::<usize>() % 3 != 0 {
-            return Err("the corner twists do not add up to a multiple of three".into());
+            return Err(Impossible::CornerTwist);
         }
         let mut out = Vec::new();
         lehmer(&self.corner_perm, 8, &mut out);
         out.push(orientation_value(&self.corner_twist, 3));
         if n % 2 == 1 {
             if !is_permutation(&self.midge_perm, 12) {
-                return Err("the edges are not twelve different pieces".into());
+                return Err(Impossible::NotDistinct(PieceKind::Edge));
             }
             if self.midge_flip.len() != 12 || self.midge_flip.iter().sum::<usize>() % 2 != 0 {
-                return Err("the edge flips do not add up to an even number".into());
+                return Err(Impossible::EdgeFlip);
             }
             if parity(&self.corner_perm) != parity(&self.midge_perm) {
-                return Err("the corner and edge permutations have different parity".into());
+                return Err(Impossible::Parity);
             }
             lehmer(&self.midge_perm, 10, &mut out);
             out.push(orientation_value(&self.midge_flip, 2));
         }
         for wing in &self.wings {
             if !is_permutation(wing, 24) {
-                return Err("the wings are not twenty-four different pieces".into());
+                return Err(Impossible::NotDistinct(PieceKind::Wing));
             }
             lehmer(wing, 24, &mut out);
         }
@@ -280,10 +281,14 @@ mod tests {
     fn faults_are_reported_in_plain_words() {
         let mut coords = Coords::from_digits(3, &vec![0; radices(3).len()]);
         coords.corner_perm.swap(0, 1);
-        assert!(coords.digits(3).unwrap_err().contains("parity"));
+        assert!(coords.digits(3).unwrap_err() == Impossible::Parity);
         coords.corner_twist[0] = 1;
-        assert!(coords.digits(3).unwrap_err().contains("twists"));
+        assert!(coords.digits(3).unwrap_err() == Impossible::CornerTwist);
         coords.corner_perm[0] = 2;
-        assert!(coords.digits(3).unwrap_err().contains("corners"));
+        assert!(coords
+            .digits(3)
+            .unwrap_err()
+            .to_string()
+            .contains("corners"));
     }
 }

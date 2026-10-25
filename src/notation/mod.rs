@@ -4,6 +4,7 @@
 mod alphabet;
 mod axis;
 mod expr;
+mod impossible;
 mod input;
 mod named;
 pub mod orbit64;
@@ -20,6 +21,7 @@ pub use axis::axis_units;
 pub use expr::{
     parse_expression, parse_grouped, ExprError, Group, Item, MAX_DEPTH, MAX_EXPANDED_MOVES,
 };
+pub use impossible::{check, Impossible, PieceKind};
 pub use input::{colour_scheme_of, parse_cube, InputError};
 pub use named::{named_target, NAMED_TARGETS};
 pub use partial::parse_partial;

@@ -19,6 +19,7 @@
 
 use std::fmt;
 
+use super::impossible::Impossible;
 use crate::puzzle::{Face, Facelets, FaceletsError};
 
 mod big;
@@ -50,7 +51,7 @@ pub enum Orbit64Error {
     NotACube(FaceletsError),
     /// The facelets are well formed but their pieces cannot be those of a cube,
     /// for example a twisted corner or mismatched corner and edge parity.
-    Impossible(String),
+    Impossible(Impossible),
 }
 
 impl fmt::Display for Orbit64Error {
@@ -66,7 +67,7 @@ impl fmt::Display for Orbit64Error {
             ),
             Orbit64Error::OutOfRange => write!(f, "orbit64 token is out of range for its cube"),
             Orbit64Error::NotACube(error) => write!(f, "orbit64 token is not a cube: {error}"),
-            Orbit64Error::Impossible(why) => write!(f, "this is not a cube state: {why}"),
+            Orbit64Error::Impossible(why) => write!(f, "this is not a cube state ({why})"),
         }
     }
 }
@@ -164,9 +165,7 @@ pub fn encode(facelets: &Facelets) -> Result<String, Orbit64Error> {
                 .all(|(face, &at)| upright[at] == face);
             centred.then_some((rank, upright))
         });
-        let (rank, upright) = found.ok_or_else(|| {
-            Orbit64Error::Impossible("the fixed centres are not a rotation of the cube".into())
-        })?;
+        let (rank, upright) = found.ok_or(Orbit64Error::Impossible(Impossible::FixedCentres))?;
         frame = Some(rank);
         stickers = upright;
     }
@@ -182,9 +181,7 @@ pub fn encode(facelets: &Facelets) -> Result<String, Orbit64Error> {
         value.mul_add(*radix, *digit);
     }
     let width = token_width(size).unwrap_or(0);
-    value
-        .to_base64(width)
-        .ok_or_else(|| Orbit64Error::Impossible("the state does not fit its token".into()))
+    value.to_base64(width).ok_or(Orbit64Error::OutOfRange)
 }
 
 #[cfg(test)]
