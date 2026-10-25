@@ -33,6 +33,12 @@ impl TemplateError {
     pub fn message(&self) -> &str {
         &self.message
     }
+
+    /// The same error for text that starts `lines` lines further down.
+    pub(crate) fn shifted(mut self, lines: usize) -> TemplateError {
+        self.line += lines;
+        self
+    }
 }
 
 impl fmt::Display for TemplateError {
@@ -83,5 +89,12 @@ mod tests {
         assert_eq!(source.error(4, "x").to_string(), "line 2, column 2: x");
         assert_eq!(source.error(5, "x").to_string(), "line 2, column 3: x");
         assert_eq!(source.error(99, "x").column(), 3);
+    }
+
+    #[test]
+    fn shifting_moves_only_the_line() {
+        let error = TemplateError::new(2, 5, "boom").shifted(10);
+        assert_eq!((error.line(), error.column()), (12, 5));
+        assert_eq!(error.message(), "boom");
     }
 }

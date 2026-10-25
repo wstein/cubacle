@@ -16,6 +16,7 @@
 mod ast;
 mod error;
 mod eval;
+mod genfile;
 mod guard;
 mod lexer;
 mod matching;
@@ -29,6 +30,7 @@ use guard::Guard;
 use schema::{Schema, Slot};
 
 pub use error::TemplateError;
+pub use genfile::GenFile;
 
 /// A parsed schema and guard for one cube size.
 #[derive(Debug, Clone)]

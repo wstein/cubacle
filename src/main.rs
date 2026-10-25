@@ -22,6 +22,7 @@ mod solved_start;
 mod stage_phases;
 mod state_check;
 mod steps;
+mod template_cmd;
 mod terminal;
 mod views;
 
@@ -67,6 +68,8 @@ enum Command {
     Order(order_cmd::OrderArgs),
     /// List the pretty patterns (checkerboard, cube in a cube, ...) or show one with its generator
     Patterns(patterns_cmd::PatternsArgs),
+    /// Work with .cubacle template files: check that a schema and guard parse
+    Template(template_cmd::TemplateArgs),
     /// Print a random scramble
     Scramble {
         /// Number of moves
@@ -278,6 +281,7 @@ fn run(cli: Cli) -> Result<(), String> {
         Command::Moves(args) => moves_cmd::run(args),
         Command::Order(args) => order_cmd::run(args),
         Command::Patterns(args) => patterns_cmd::run(args),
+        Command::Template(args) => template_cmd::run(args),
         Command::Convert(args) => {
             let (cube, detected) = read_input(&args.input)?;
             if args.metrics {
