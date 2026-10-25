@@ -142,6 +142,17 @@ struct ConvertArgs {
 struct SolveArgs {
     #[command(flatten)]
     input: InputArgs,
+    /// The cube as it is now, after following the solution of the cube above
+    /// and going wrong: says where the mistake was and the way back (an
+    /// Orbit64 token, URFDLB facelets or colours; quote it when it has spaces)
+    #[arg(long, value_name = "CUBE", conflicts_with_all = [
+        "max_moves", "budget_ms", "probes", "improve", "parallel", "fast", "optimise",
+        "slices", "moves", "all", "count", "raw", "optimal", "nodes", "max_memory", "to",
+        "group",
+    ])]
+    now: Option<String>,
+    #[command(flatten)]
+    way: recover_cmd::RecoverOptions,
     /// Longest solution to accept (default: 21; none for the 4x4x4 and 5x5x5; a limit applies to the whole solution)
     #[arg(short = 'm', long)]
     max_moves: Option<u8>,
@@ -187,7 +198,9 @@ struct SolveArgs {
     /// 3x3x3 only: list this many solutions, shortest first, then stop
     #[arg(long, value_name = "N", conflicts_with_all = ["improve", "parallel", "probes", "slices", "optimise", "icons"])]
     count: Option<usize>,
-    /// With --all or --count: also list the solutions up to this many moves, grouped by length
+    /// With --all or --count: also list the solutions up to this many moves,
+    /// grouped by length. With --now: moves the search for a way back onto the
+    /// path may use, 0 to 5 (default 3)
     #[arg(long, value_name = "D")]
     depth: Option<u8>,
     /// With --all or --count: list every order of commuting moves
@@ -463,6 +476,19 @@ fn default_options(kind: PuzzleKind) -> SolveOptions {
 }
 
 fn solve(args: SolveArgs) -> Result<(), String> {
+    if let Some(now) = &args.now {
+        let depth = args.depth.unwrap_or(3);
+        if depth > 5 {
+            return Err(format!("--depth must be 0 to 5 with --now, not {depth}"));
+        }
+        let shared = recover_cmd::Shared {
+            input: &args.input,
+            verbose: args.verbose,
+            notation: args.notation,
+            pictures: &args.pictures,
+        };
+        return recover_cmd::run_now(&shared, now, &args.way, depth);
+    }
     let start = read_cube(&args.input)?;
     let target = args
         .to

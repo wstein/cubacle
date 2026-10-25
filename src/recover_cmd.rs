@@ -20,35 +20,32 @@ use crate::{default_options, failure_message, read_cube, solver_for, InputArgs};
 pub(crate) struct RecoverOptions {
     /// The solution the person followed (default: the one `solve` prints for
     /// the original cube)
-    #[arg(long, value_name = "MOVES")]
+    #[arg(long, value_name = "MOVES", requires = "now")]
     solution: Option<String>,
     /// The move you stopped at: you did move N (counting from 1) and noticed
     /// the cube no longer matches. The mistake is at move N or before; later
     /// moves are ignored
-    #[arg(long, value_name = "N", value_parser = clap::value_parser!(u32).range(1..))]
+    #[arg(long, value_name = "N", value_parser = clap::value_parser!(u32).range(1..), requires = "now")]
     at_move: Option<u32>,
     /// The move you are sure the cube was still right after (a hint, not a
     /// fact: the search widens past it when nothing is found). Needs --at-move
-    #[arg(long, value_name = "M", requires = "at_move")]
+    #[arg(long, value_name = "M", requires_all = ["at_move", "now"])]
     sure_until: Option<u32>,
     /// Skip the search for the mistake and only solve the current cube
-    #[arg(long)]
+    #[arg(long, requires = "now")]
     fresh: bool,
-    /// Moves the search for a way back onto the path may use, 0 to 5 (default 3)
-    #[arg(long, default_value_t = 3, value_parser = clap::value_parser!(u8).range(0..=5))]
-    depth: u8,
     /// Stray moves after a mistake the search allows, 0 to 3 (default 2)
-    #[arg(long, default_value_t = 2, value_parser = clap::value_parser!(u8).range(0..=3))]
+    #[arg(long, default_value_t = 2, requires = "now", value_parser = clap::value_parser!(u8).range(0..=3))]
     strays: u8,
     /// Look for one mistake only (default: also two)
-    #[arg(long)]
+    #[arg(long, requires = "now")]
     one_mistake: bool,
     /// For two mistakes try every move and every extra move: slow and large on
     /// the big cubes
-    #[arg(long, conflicts_with = "one_mistake")]
+    #[arg(long, conflicts_with = "one_mistake", requires = "now")]
     thorough: bool,
     /// Time limit of the search in milliseconds, 0 for none (default 8000)
-    #[arg(long, default_value_t = 8000, value_name = "MS")]
+    #[arg(long, default_value_t = 8000, requires = "now", value_name = "MS")]
     max_time: u64,
 }
 
@@ -63,6 +60,9 @@ pub(crate) struct RecoverArgs {
     now: String,
     #[command(flatten)]
     options: RecoverOptions,
+    /// Moves the search for a way back onto the path may use, 0 to 5 (default 3)
+    #[arg(long, default_value_t = 3, value_parser = clap::value_parser!(u8).range(0..=5))]
+    depth: u8,
     /// Print timings to standard error
     #[arg(short, long)]
     verbose: bool,
@@ -88,12 +88,17 @@ pub(crate) fn run(args: RecoverArgs) -> Result<(), String> {
         notation: args.notation,
         pictures: &args.pictures,
     };
-    run_now(&shared, &args.now, &args.options)
+    run_now(&shared, &args.now, &args.options, args.depth)
 }
 
 /// Explains where the cube `now` went wrong against the solution of the
 /// original cube, and the way back.
-pub(crate) fn run_now(shared: &Shared, now: &str, way: &RecoverOptions) -> Result<(), String> {
+pub(crate) fn run_now(
+    shared: &Shared,
+    now: &str,
+    way: &RecoverOptions,
+    depth: u8,
+) -> Result<(), String> {
     let notation = shared.notation;
     let input = shared.input;
     let original = read_cube(input)?;
@@ -155,7 +160,7 @@ pub(crate) fn run_now(shared: &Shared, now: &str, way: &RecoverOptions) -> Resul
         );
     }
     let limits = Limits {
-        resume_depth: usize::from(way.depth),
+        resume_depth: usize::from(depth),
         strays: usize::from(way.strays),
         two_mistakes: !way.one_mistake,
         thorough: way.thorough,
