@@ -1,0 +1,6 @@
+name: ring-symmetric
+title: Ring with D4h symmetry
+size: 3
+schema: a a a / a b a / a a a
+where: unique(a*, b*) && symmetric(D4h)
+orbits: corners, edges

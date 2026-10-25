@@ -1,0 +1,25 @@
+{
+  "$schema": "https://wstein.github.io/cubacle/schema/v1/gen-definition.schema.json",
+  "version": 1,
+  "name": "custom-scheme-cross",
+  "title": "Cross in a custom colour scheme",
+  "size": 3,
+  "scheme": {
+    "faces": "ABCDEF",
+    "colours": {
+      "A": "#fff",
+      "B": "#D00000",
+      "C": "#0a0",
+      "D": "#ffd500",
+      "E": "#ff8000",
+      "F": "#0045AD"
+    }
+  },
+  "schema": [
+    [
+      ["?", "A", "?"],
+      ["A", "A", "A"],
+      ["?", "A", "?"]
+    ]
+  ]
+}

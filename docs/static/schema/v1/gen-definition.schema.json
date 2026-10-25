@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wstein.github.io/cubacle/schema/v1/gen-definition.schema.json",
+  "title": "cubacle pattern definition",
+  "description": "What a pattern is: name, size, colour scheme, schema grid, guard, symmetry, order and orbits. The JSON form of a .gen file; both forms are serialisations of one model. Run options are not part of it, see run-options.schema.json.",
+  "type": "object",
+  "properties": {
+    "$schema": { "type": "string", "format": "uri" },
+    "version": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/version" },
+    "name": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/name" },
+    "title": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/title" },
+    "aliases": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/aliases" },
+    "size": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/sizes" },
+    "scheme": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/colourScheme" },
+    "schema": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/faceGrid" },
+    "where": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/guard" },
+    "symmetry": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/symmetryType" },
+    "antisymmetry": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/symmetryType" },
+    "order": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/order" },
+    "orbits": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/orbits" },
+    "fixed": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/orbits" },
+    "alphabet": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/alphabet" },
+    "limits": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/limits" },
+    "tags": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/tags" }
+  },
+  "required": ["version", "name", "size", "schema"],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "$schema": "https://wstein.github.io/cubacle/schema/v1/gen-definition.schema.json",
+      "version": 1,
+      "name": "concentric-squares",
+      "size": 5,
+      "scheme": "western",
+      "schema": [[["a","b","b","b","a"],["b","b","c","b","b"],["b","c","Z","c","b"],["b","b","c","b","b"],["a","b","b","b","a"]]],
+      "where": "unique(a*, b*, c*)"
+    }
+  ]
+}

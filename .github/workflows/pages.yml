@@ -37,6 +37,7 @@ jobs:
           cp site/hugo.toml "$RUNNER_TEMP/site/hugo.toml"
           cp -r site/layouts "$RUNNER_TEMP/site/layouts"
           cp -r docs "$RUNNER_TEMP/site/content"
+          cp -r docs/static "$RUNNER_TEMP/site/static"
           HUGO_CACHEDIR="$RUNNER_TEMP/hugo-cache" "$RUNNER_TEMP/hugo/hugo" --source "$RUNNER_TEMP/site" --destination "$RUNNER_TEMP/public" --noBuildLock --quiet
           test -s "$RUNNER_TEMP/public/index.html"
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0

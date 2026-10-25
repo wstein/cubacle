@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wstein.github.io/cubacle/schema/v1/colour-scheme.schema.json",
+  "title": "cubacle colour scheme",
+  "description": "A standalone colour scheme: six letters for the faces U R F D L B and optional display colours. The JSON form of a .scheme file.",
+  "type": "object",
+  "properties": {
+    "$schema": { "type": "string", "format": "uri" },
+    "version": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/version" },
+    "name": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/name" },
+    "faces": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/schemeLetters" },
+    "colours": {
+      "type": "object",
+      "propertyNames": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/colourLetter" },
+      "additionalProperties": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/hexColour" }
+    }
+  },
+  "required": ["version", "faces"],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "$schema": "https://wstein.github.io/cubacle/schema/v1/colour-scheme.schema.json",
+      "version": 1,
+      "name": "japanese",
+      "faces": "WRGBOY",
+      "colours": { "W": "#fff", "R": "#d00", "G": "#0a0", "B": "#00d", "O": "#f80", "Y": "#ee0" }
+    }
+  ]
+}

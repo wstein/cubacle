@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wstein.github.io/cubacle/schema/v1/search-result.schema.json",
+  "title": "cubacle search result",
+  "description": "Answer of POST /v1/patterns/search. complete is false when a limit stopped the run; what was found so far is kept.",
+  "type": "object",
+  "properties": {
+    "version": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/version" },
+    "complete": { "type": "boolean" },
+    "count": { "description": "Exact number of states when known.", "type": "integer", "minimum": 0 },
+    "states": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "facelets": { "description": "Colour codes of all stickers in the order U R F D L B, row by row.", "type": "string", "minLength": 1 },
+          "tokens": {
+            "description": "The colour of each placeholder, by placeholder with face index (a1, b1).",
+            "type": "object",
+            "propertyNames": { "type": "string", "pattern": "^[a-z][0-9]*$" },
+            "additionalProperties": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/colourLetter" }
+          },
+          "moves": { "description": "A move sequence; only with solve.", "type": "string" },
+          "metric": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/metric" },
+          "status": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/status" }
+        },
+        "required": ["facelets"],
+        "additionalProperties": false
+      }
+    },
+    "limits": {
+      "description": "The limit that stopped the run, if any, and how far it got.",
+      "type": "object",
+      "properties": {
+        "reached": { "enum": ["limit", "maxStates", "budgetMs", "maxMemoryMb", "maxDepth"] },
+        "returned": { "type": "integer", "minimum": 0 },
+        "total": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["reached"],
+      "additionalProperties": false
+    },
+    "error": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/errorInfo" }
+  },
+  "required": ["version", "complete"],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "version": 1,
+      "complete": false,
+      "count": 2640,
+      "states": [{ "facelets": "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB" }],
+      "limits": { "reached": "limit", "returned": 1, "total": 2640 }
+    }
+  ]
+}

@@ -1,0 +1,224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wstein.github.io/cubacle/schema/v1/common.schema.json",
+  "title": "cubacle common definitions",
+  "description": "Shared building blocks of the cubacle JSON schemas, version 1. Only referenced by the other schema files, never used on its own.",
+  "$defs": {
+    "version": {
+      "description": "Format version. Always 1 in this schema family.",
+      "const": 1
+    },
+    "name": {
+      "description": "Pattern id: lowercase a-z, 0-9 and '-', starting with a letter or digit.",
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$",
+      "maxLength": 64,
+      "examples": ["concentric-squares", "checkerboard"]
+    },
+    "title": {
+      "description": "Display title in plain text.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "aliases": {
+      "description": "Other pattern ids for the same pattern.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/name" },
+      "uniqueItems": true
+    },
+    "tags": {
+      "description": "Free tags, lowercase words.",
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+      "uniqueItems": true
+    },
+    "size": {
+      "description": "Cube size N for an N x N x N cube, 2 to 7.",
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 7
+    },
+    "sizes": {
+      "description": "One size or a non-empty list of sizes.",
+      "oneOf": [
+        { "$ref": "#/$defs/size" },
+        {
+          "type": "array",
+          "items": { "$ref": "#/$defs/size" },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      ]
+    },
+    "faceName": {
+      "description": "A face of the cube.",
+      "enum": ["U", "R", "F", "D", "L", "B"]
+    },
+    "token": {
+      "description": "One sticker of the schema grid. A lowercase letter with an optional number is a placeholder that may take any colour (a, b1). A single uppercase letter is a fixed colour read through the colour scheme. '.' and '?' are don't care.",
+      "type": "string",
+      "pattern": "^([a-z][0-9]*|[A-Z]|\\.|\\?)$",
+      "examples": ["a", "b1", "Z", ".", "?"]
+    },
+    "row": {
+      "description": "One row of stickers of a face.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/token" },
+      "minItems": 2,
+      "maxItems": 7
+    },
+    "face": {
+      "description": "One face: N rows of N tokens. The count per face is checked against the size by the reader, as in the text form.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/row" },
+      "minItems": 2,
+      "maxItems": 7
+    },
+    "faceGrid": {
+      "description": "The schema grid: faces in the order U R F D L B, each a list of rows, each a list of tokens. An error path /schema/2/3 means face index 2, row index 3. One face is allowed when the same face pattern applies to all six.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/face" },
+      "minItems": 1,
+      "maxItems": 6
+    },
+    "guard": {
+      "description": "The guard as a string in the guard grammar of the text form. Functions: unique(...), equal(...), count(...), symmetric(TYPE), antisymmetric(TYPE), order(...). Operators: ! NOT, == != < <= > >=, && AND and, || OR or. A '*' after a variable letter stands for the same index in all arguments of the term. The reader parses and checks the string; this schema only restricts the characters.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "pattern": "^[A-Za-z0-9_ ,()!&|=<>*.{}]+$",
+      "examples": ["unique(a*, b*, c*)", "symmetric(D4h) && count(a1, b1) == 2"]
+    },
+    "hexColour": {
+      "description": "Display colour as #RGB or #RRGGBB, hex digits in either case. #RGB expands to #RRGGBB by doubling each digit.",
+      "type": "string",
+      "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$",
+      "examples": ["#fff", "#D00000"]
+    },
+    "colourLetter": {
+      "description": "A one-letter colour code.",
+      "type": "string",
+      "pattern": "^[A-Z]$"
+    },
+    "schemeLetters": {
+      "description": "Six distinct uppercase letters for U R F D L B. Distinctness is checked by the reader.",
+      "type": "string",
+      "pattern": "^[A-Z]{6}$",
+      "examples": ["URFDLB", "ABCDEF"]
+    },
+    "schemeName": {
+      "description": "A built-in scheme name or the name of a scheme file.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "examples": ["western", "boy", "japanese"]
+    },
+    "colourSchemeObject": {
+      "description": "A colour scheme given in place: six letters and optional display colours.",
+      "type": "object",
+      "properties": {
+        "name": { "$ref": "#/$defs/name" },
+        "faces": { "$ref": "#/$defs/schemeLetters" },
+        "colours": {
+          "description": "Display colour for each code that occurs in faces.",
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/colourLetter" },
+          "additionalProperties": { "$ref": "#/$defs/hexColour" }
+        }
+      },
+      "required": ["faces"],
+      "additionalProperties": false
+    },
+    "colourScheme": {
+      "description": "A colour scheme: a built-in name, six inline letters, or an object.",
+      "oneOf": [
+        { "$ref": "#/$defs/schemeName" },
+        { "$ref": "#/$defs/schemeLetters" },
+        { "$ref": "#/$defs/colourSchemeObject" }
+      ]
+    },
+    "orbit": {
+      "description": "An orbit of pieces of the cube. The list follows the names the implementation uses.",
+      "enum": ["corners", "edges", "midges", "wings", "centres", "x-centres", "t-centres"]
+    },
+    "orbits": {
+      "description": "A non-empty set of orbits.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/orbit" },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "symmetryType": {
+      "description": "A Schoenflies name such as D4h. The valid names are the 33 conjugacy classes of subgroups of the cube symmetry group, derived by the implementation; the reader reports unknown names.",
+      "type": "string",
+      "pattern": "^[A-Z][A-Za-z0-9]*$",
+      "examples": ["D4h", "Oh", "C2v"]
+    },
+    "order": {
+      "description": "Order of the generating move sequence: a number, a range {min, max} or a set.",
+      "oneOf": [
+        { "type": "integer", "minimum": 1 },
+        {
+          "type": "object",
+          "properties": {
+            "min": { "type": "integer", "minimum": 1 },
+            "max": { "type": "integer", "minimum": 1 }
+          },
+          "required": ["min", "max"],
+          "additionalProperties": false
+        },
+        {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1 },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      ]
+    },
+    "metric": {
+      "description": "Move metric of a found sequence.",
+      "enum": ["outer", "range"]
+    },
+    "status": {
+      "description": "How well a found sequence is established.",
+      "enum": ["optimal", "half-turn-optimal", "best-known"]
+    },
+    "alphabet": {
+      "description": "Moves used by the move search: outer, slices, blocks, or an explicit list of moves.",
+      "oneOf": [
+        { "enum": ["outer", "slices", "blocks"] },
+        {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      ]
+    },
+    "limits": {
+      "description": "Default limits of the generator. The same names as the run options; the command line or request overrides them.",
+      "type": "object",
+      "properties": {
+        "limit": { "type": "integer", "minimum": 1 },
+        "maxStates": { "type": "integer", "minimum": 1 },
+        "maxTimeMs": { "type": "integer", "minimum": 1 },
+        "maxMemoryMb": { "type": "integer", "minimum": 1 },
+        "maxDepth": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "errorInfo": {
+      "description": "An error. The text form fills line and column, the JSON form fills path (a JSON pointer such as /schema/2/3). Both give a message and, when known, what was expected.",
+      "type": "object",
+      "properties": {
+        "message": { "type": "string" },
+        "expected": { "type": "string" },
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 },
+        "path": { "type": "string", "pattern": "^(/[^/]*)*$" }
+      },
+      "required": ["message"],
+      "additionalProperties": false
+    }
+  }
+}
