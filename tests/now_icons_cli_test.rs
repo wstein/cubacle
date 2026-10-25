@@ -37,7 +37,7 @@ fn now_icons_shows_should_be_and_is_now_then_the_way_back() {
 fn now_icons_draws_the_rollback_then_the_rest_of_the_printed_solution() {
     let (ok, out, _) = cubacle(&["solve", "-s", ORIGINAL, "--now", NOW, "--icons"]);
     assert!(ok);
-    let rollback = out.find("Rollback (undo 3 moves)").expect("rollback");
+    let rollback = out.find("Correction (3 moves)").expect("rollback");
     let r1 = out.find("move R1 of 3: D2").expect("R1");
     let rest = out
         .find("Continue (moves 7-21 of the printed solution)")

@@ -234,7 +234,7 @@ cubacle solve -s "R U2 F' D L2 B R' U' F2 D2 L B'" --now FDDRURLDBRDBLRFFDUUBUUF
 The usual text of `solve --now` comes first. After it:
 
 1. When a mistake or a nearest cube was found, the lines `Should be: TOKEN` (the cube of the printed solution after the last correct move) and `Is now: TOKEN` (the cube you typed), then the two pictures at the size of the start picture of `solve --icons`. On a Kitty terminal they are one image, `Should be` on the left and `Is now` on the right (the line `Left: Should be, after move N (the last correct one). Right: Is now.` says so); when they do not fit the terminal width, or `--columns 1` is given, they are stacked, one image each under its label. Every sticker of `Is now` whose colour differs from `Should be` carries a small amber square, in the view that shows its face (the corner or a flat face with `folded`, URF or DBL with `both`), so all of them are marked. In every mode the line `Stickers that differ: N of M` counts them over all faces. With `--views urf` the hidden faces are not drawn, so only the stickers of U, R and F are marked and the line says so; `folded`, `both`, `net` and `all` mark every one.
-2. When the advice is the way back, two blocks. `Rollback (undo N moves)` draws the moves to do now, one picture per move, numbered R1 to RN (`move R1 of 3: D2` without graphics). `Continue (moves A-B of the printed solution)` draws the rest of the printed solution from the cube the way back ends in, which is the original cube after A-1 printed moves; its icons carry the numbers of the printed solution, the N of `recover --at-move N`. On a Kitty terminal the continue block has the phase headings of the printed solution, cut at move A (`Phase 1: to the G1 subgroup (15 moves, moves 7-21 of 21)`), and the `State after phase N as token` lines; the rollback has none. When the advice is to solve fresh, one block of the fresh moves with its phases as in `solve --icons`. In `recover` (not in `solve`) a run of phases with nothing to do is one heading, `Phases 1-5: nothing to do`; a single empty phase keeps its own line.
+2. When the advice is the way back, two blocks. `Correction (N moves)` draws the moves to do now, one picture per move, numbered R1 to RN (`move R1 of 3: D2` without graphics). `Continue (moves A-B of the printed solution)` draws the rest of the printed solution from the cube the way back ends in, which is the original cube after A-1 printed moves; its icons carry the numbers of the printed solution, the N of `recover --at-move N`. On a Kitty terminal the continue block has the phase headings of the printed solution, cut at move A (`Phase 1: to the G1 subgroup (15 moves, moves 7-21 of 21)`), and the `State after phase N as token` lines; the correction has none. When the advice is to solve fresh, one block of the fresh moves with its phases as in `solve --icons`. In `recover` (not in `solve`) a run of phases with nothing to do is one heading, `Phases 1-5: nothing to do`; a single empty phase keeps its own line.
 3. `End state: TOKEN` and the end picture at the size of the start picture, a blank line, and `Moves: ` with the rollback and the continue moves as one string in the chosen notation (the fresh moves when those are advised).
 
 Without graphics the pictures are the text pictures of `solve --icons`:
@@ -268,7 +268,7 @@ Y R W  O B O G Y W
 
 Stickers that differ: 31 of 54 (all marked amber in graphics rows, in the view that shows them).
 
-Rollback (undo 3 moves)
+Correction (3 moves)
 move R1 of 3: D2
 D2 → (half turn)
    g y y

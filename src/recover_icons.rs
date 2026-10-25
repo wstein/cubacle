@@ -37,10 +37,10 @@ fn right_moves(plan: &Plan) -> Option<usize> {
     }
 }
 
-/// The heading of the block that undoes moves: `Rollback (undo 3 moves)`.
+/// The heading of the block that undoes moves: `Correction (3 moves)`.
 fn rollback_heading(count: usize) -> String {
     let unit = if count == 1 { "move" } else { "moves" };
-    format!("Rollback (undo {count} {unit})")
+    format!("Correction ({count} {unit})")
 }
 
 /// The heading of the rest of the printed solution, `first` and `last`
