@@ -258,7 +258,17 @@ Without `--dry-run` the verified patterns are written in our own format to `~/.c
 
 **Catalogue ids.** Every pattern has an id of at most 12 characters, `xx:code`: a two-letter source and a code of up to 9 characters from letters, digits, `.` and `-`. The built-ins use `cu:` with a short readable code (`cu:checker`, `cu:sixspot`, `cu:sixcentre`, `cu:foursp`, `cu:fourcen`, `cu:cubecube`, `cu:ccc`, `cu:superflip`, `cu:cenopp`, `cu:cencyc`); imported patterns keep the author's code (`ct:A200.01`). `show` takes a name, an alias, the short id or the catalogue id (case is not significant), and `#n` after it selects the generator with that number: `cubacle patterns show ct:X1.01#2`. The group path is separate from the id.
 
-**Configuration.** `cubacle.toml` lists the pattern sources. It is looked up as `--config FILE`, then `$CUBACLE_CONFIG`, then `./cubacle.toml`, then `~/.config/cubacle/cubacle.toml` (`$XDG_CONFIG_HOME/cubacle/` when set). Without any file the list is the built-in library alone. [`cubacle.example.toml`](https://github.com/wstein/cubacle/blob/develop/cubacle.example.toml) in the repository root has the built-in entry active and the CubeTwister URLs commented out; uncomment them only after you have checked the terms and downloaded the files.
+**Configuration.** `cubacle.toml` lists the pattern sources. It is looked up as `--config FILE`, then `$CUBACLE_CONFIG`, then `./cubacle.toml`, then the global file `~/.config/cubacle/config.toml` (`$XDG_CONFIG_HOME/cubacle/config.toml` when set). On the first run, when none of these exists, cubacle creates the global file from [`cubacle.example.toml`](https://github.com/wstein/cubacle/blob/develop/cubacle.example.toml) and prints one line on stderr saying so; if the location is not writable it says that instead and carries on with the built-in library. The created file has the built-in entry active and the six CubeTwister URLs (folders `2xPocket` to `7xVCube7`) commented out: that data belongs to its author, so check his terms first, then download the files and uncomment the entries. cubacle never fetches anything by itself.
+
+```text
+$ cubacle patterns sources        # first run, XDG_CONFIG_HOME=/tmp/cbx/h
+cubacle: created /tmp/cbx/h/cubacle/config.toml (built-in library only; third-party sources are commented out, read the notes inside)
+config: /tmp/cbx/h/cubacle/config.toml
+data directory: ~/.cache/cubacle/patterns
+builtin: the built-in library
+```
+
+When the location cannot be written, the line reads `cubacle: could not create PATH: REASON; continuing with the built-in library` and `patterns sources` prints `config: none (default: the built-in library only)`.
 
 ```toml
 [patterns]
