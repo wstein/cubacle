@@ -71,14 +71,77 @@ fn run(dir: &Path, args: &[&str]) -> (bool, String, String) {
 }
 
 #[test]
-fn without_a_config_only_the_builtin_library_is_listed() {
-    let dir = temp("none");
-    let (ok, out, _) = run(&dir, &["patterns"]);
-    assert!(ok);
+fn the_first_run_creates_the_global_config_and_fetches_nothing() {
+    let dir = temp("first");
+    let global = dir.join(".config/cubacle/config.toml");
+    assert!(!global.exists());
+    let (ok, out, err) = run(&dir, &["patterns"]);
+    assert!(ok, "{err}");
     assert!(out.contains("checkerboard"));
     assert!(!out.contains("imported"), "{out}");
+    assert!(
+        err.contains("created") && err.contains("config.toml"),
+        "{err}"
+    );
+    let text = std::fs::read_to_string(&global).unwrap();
+    assert!(text.contains("\"builtin\""));
+    assert!(text.contains("# \"https://raw.githubusercontent.com/wrandelshofer/CubeTwister/"));
+    assert!(text.contains("7xVCube7"));
+    assert!(!dir.join(".cache").exists(), "nothing is downloaded");
+    // The second run reuses it silently, and `sources` names it.
+    let (ok, _, err) = run(&dir, &["patterns"]);
+    assert!(ok && !err.contains("created"), "{err}");
     let (_, out, _) = run(&dir, &["patterns", "sources"]);
-    assert!(out.contains("config: none"), "{out}");
+    assert!(
+        out.contains("config: ") && out.contains("config.toml"),
+        "{out}"
+    );
+    assert!(out.contains("builtin: the built-in library"), "{out}");
+}
+
+#[test]
+fn xdg_config_home_decides_where_the_global_config_goes() {
+    let dir = temp("xdg");
+    let xdg = dir.join("xdg");
+    let out = Command::new(env!("CARGO_BIN_EXE_cubacle"))
+        .args(["patterns", "sources"])
+        .current_dir(&dir)
+        .env("HOME", &dir)
+        .env("XDG_CONFIG_HOME", &xdg)
+        .env_remove("CUBACLE_CONFIG")
+        .output()
+        .unwrap();
+    assert!(out.status.success());
+    assert!(xdg.join("cubacle/config.toml").is_file());
+    assert!(!dir.join(".config").exists());
+}
+
+#[test]
+fn an_unwritable_location_is_said_and_the_run_continues() {
+    let dir = temp("nowrite");
+    // HOME is a file, so ~/.config cannot be created.
+    let home = dir.join("home-file");
+    std::fs::write(&home, "x").unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_cubacle"))
+        .args(["patterns"])
+        .current_dir(&dir)
+        .env("HOME", &home)
+        .env_remove("XDG_CONFIG_HOME")
+        .env_remove("CUBACLE_CONFIG")
+        .output()
+        .unwrap();
+    assert!(out.status.success());
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(err.contains("could not create"), "{err}");
+    assert!(String::from_utf8_lossy(&out.stdout).contains("checkerboard"));
+}
+
+#[test]
+fn an_explicit_or_local_config_creates_nothing() {
+    let (dir, _) = setup("local");
+    let (ok, _, err) = run(&dir, &["patterns"]);
+    assert!(ok && !err.contains("created"), "{err}");
+    assert!(!dir.join(".config").exists());
 }
 
 #[test]

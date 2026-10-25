@@ -1,6 +1,7 @@
-# Example cubacle configuration. Copy it to ./cubacle.toml or to
-# ~/.config/cubacle/cubacle.toml (or pass it with --config FILE, or set
-# CUBACLE_CONFIG). Without a config file cubacle uses only "builtin".
+# cubacle configuration. cubacle writes this file to
+# ~/.config/cubacle/config.toml ($XDG_CONFIG_HOME/cubacle/config.toml if set)
+# on the first run when no config exists. A ./cubacle.toml in the current
+# directory, --config FILE or CUBACLE_CONFIG take precedence over it.
 
 [patterns]
 # Pattern sources, in order. Paths are relative to this file.
@@ -10,11 +11,14 @@ files = [
     # its author and is NOT part of cubacle; it is used under his terms, which
     # you must check yourself before you use it. cubacle never downloads it for
     # you: fetch the files with curl (see docs/patterns.md), then uncomment the
-    # entries you want.
+    # entries you want. Folders: 2xPocket 3xRubik 4xRevenge 5xProfessor
+    # 6xVCube6 7xVCube7.
     # "https://raw.githubusercontent.com/wrandelshofer/CubeTwister/master/resources/database/2xPocket/PatternExportTab.txt",
     # "https://raw.githubusercontent.com/wrandelshofer/CubeTwister/master/resources/database/3xRubik/PatternExportTab.txt",
     # "https://raw.githubusercontent.com/wrandelshofer/CubeTwister/master/resources/database/4xRevenge/PatternExportTab.txt",
     # "https://raw.githubusercontent.com/wrandelshofer/CubeTwister/master/resources/database/5xProfessor/PatternExportTab.txt",
+    # "https://raw.githubusercontent.com/wrandelshofer/CubeTwister/master/resources/database/6xVCube6/PatternExportTab.txt",
+    # "https://raw.githubusercontent.com/wrandelshofer/CubeTwister/master/resources/database/7xVCube7/PatternExportTab.txt",
     # A local table with an explicit size and a prefix for its names:
     # { path = "tables/mine.txt", size = 3, name_prefix = "my-" },
 ]

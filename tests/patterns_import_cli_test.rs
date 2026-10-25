@@ -37,6 +37,12 @@ fn run(args: &[&str], cache: &PathBuf) -> (bool, String, String) {
     let out = Command::new(env!("CARGO_BIN_EXE_cubacle"))
         .args(args)
         .env("CUBACLE_CACHE_DIR", cache)
+        // never touch the real home: the first run writes a global config
+        .env("HOME", std::env::temp_dir().join("cubacle-test-home"))
+        .env(
+            "XDG_CONFIG_HOME",
+            std::env::temp_dir().join("cubacle-test-xdg"),
+        )
         .output()
         .expect("cubacle runs");
     (

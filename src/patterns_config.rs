@@ -1,8 +1,10 @@
 //! `cubacle.toml`: which pattern files the `patterns` commands read.
 //!
 //! The file is looked up as `--config FILE`, `$CUBACLE_CONFIG`,
-//! `./cubacle.toml`, then `~/.config/cubacle/cubacle.toml` (or
-//! `$XDG_CONFIG_HOME/cubacle/`). Without one, the list is the built-in library.
+//! `./cubacle.toml`, then the global `~/.config/cubacle/config.toml` (or
+//! `$XDG_CONFIG_HOME/cubacle/config.toml`). When none exists, the global file
+//! is created from `cubacle.example.toml` on the first run; nothing is ever
+//! fetched.
 //!
 //! ```toml
 //! [patterns]
@@ -95,9 +97,47 @@ pub fn locate(explicit: Option<&Path>) -> Result<Option<PathBuf>, String> {
     if here.is_file() {
         return Ok(Some(here));
     }
-    Ok(config_home()
-        .map(|d| d.join("cubacle.toml"))
-        .filter(|p| p.is_file()))
+    Ok(global_path().filter(|p| p.is_file()))
+}
+
+fn global_path() -> Option<PathBuf> {
+    config_home().map(|d| d.join("config.toml"))
+}
+
+/// The example, which is also the file written on the first run.
+const EXAMPLE: &str = include_str!("../cubacle.example.toml");
+
+/// Writes the global config from the example if it does not exist yet.
+/// Returns the path when it was created; says on stderr what happened.
+fn create_global() -> Option<PathBuf> {
+    use std::io::Write;
+    let path = global_path()?;
+    let result = path
+        .parent()
+        .map_or(Ok(()), std::fs::create_dir_all)
+        .and_then(|()| {
+            std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&path)
+        })
+        .and_then(|mut f| f.write_all(EXAMPLE.as_bytes()));
+    match result {
+        Ok(()) => {
+            eprintln!(
+                "cubacle: created {} (built-in library only; third-party sources are commented out, read the notes inside)",
+                path.display()
+            );
+            Some(path)
+        }
+        Err(e) => {
+            eprintln!(
+                "cubacle: could not create {}: {e}; continuing with the built-in library",
+                path.display()
+            );
+            None
+        }
+    }
 }
 
 /// 1-based line of a byte offset.
@@ -194,7 +234,10 @@ fn entries(value: &toml::Value) -> Result<Vec<Entry>, String> {
 
 pub fn load(explicit: Option<&Path>) -> Result<Config, String> {
     match locate(explicit)? {
-        None => Ok(Config::default()),
+        None => Ok(create_global().map_or_else(Config::default, |path| Config {
+            path: Some(path),
+            ..Config::default()
+        })),
         Some(path) => {
             let text =
                 std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;

@@ -15,6 +15,12 @@ fn run(command: &str, args: &[&str]) -> (bool, String) {
         .arg("patterns")
         .arg(command)
         .args(args)
+        // never touch the real home: the first run writes a global config
+        .env("HOME", std::env::temp_dir().join("cubacle-test-home"))
+        .env(
+            "XDG_CONFIG_HOME",
+            std::env::temp_dir().join("cubacle-test-xdg"),
+        )
         .output()
         .expect("cubacle runs");
     (
