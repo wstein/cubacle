@@ -101,20 +101,9 @@ fn most_short_scrambles_are_irregular() {
         let kind = PuzzleKind::of_size(size).unwrap();
         let irregular = (1..=60)
             .map(|seed| scrambled(kind, seed, 4 + seed as usize % 9))
-            .filter(|c| matches!(patterns::kind(c), PatternKind::Irreg | PatternKind::Orbit))
+            .filter(|c| patterns::kind(c) == PatternKind::Irreg)
             .count();
         assert!(irregular >= 48, "{size}x{size}x{size}: {irregular} of 60");
-    }
-}
-
-#[test]
-fn the_orbit_kind_never_decides_on_the_small_cubes() {
-    for size in [2, 3] {
-        let kind = PuzzleKind::of_size(size).unwrap();
-        for seed in 1..=60 {
-            let state = scrambled(kind, seed, 4 + seed as usize % 9);
-            assert_ne!(patterns::kind(&state), PatternKind::Orbit);
-        }
     }
 }
 

@@ -192,7 +192,7 @@ pub fn report_measures(tables: &[Table]) {
         kind_lines.push(kind_report(table.size, &imported));
     }
     println!("\n== kinds among the imported patterns (% of patterns) and the acceptance goal");
-    println!("size\tpatterns\tSOLVED\tFEW\tMOSTLY\tSYM\tFACE\tORBIT\tIRREG\tpatternness>=90\tkind not IRREG\tboth ways\tkind not IRREG/ORBIT or patternness>=90\tORBIT deciding and patternness<90");
+    println!("size\tpatterns\tSOLVED\tFEW\tMOSTLY\tSYM\tFACE\tIRREG\tpatternness>=90\tkind not IRREG\tboth ways");
     for line in kind_lines {
         println!("{line}");
     }
@@ -207,20 +207,12 @@ fn kind_report(size: usize, set: &[Measures]) -> String {
         .collect();
     let high = |m: &Measures| m.patternness >= 90;
     let some_kind = |m: &Measures| m.kind() != PatternKind::Irreg;
-    let no_orbit = |m: &Measures| !matches!(m.kind(), PatternKind::Irreg | PatternKind::Orbit);
     format!(
-        "{size}\t{n}\t{}\t{:.1}\t{:.1}\t{:.1}\t{:.1}\t{:.1}",
+        "{size}\t{n}\t{}\t{:.1}\t{:.1}\t{:.1}",
         kinds.join("\t"),
         pct(set.iter().filter(|m| high(m)).count(), n),
         pct(set.iter().filter(|m| some_kind(m)).count(), n),
-        pct(set.iter().filter(|m| high(m) || some_kind(m)).count(), n),
-        pct(set.iter().filter(|m| high(m) || no_orbit(m)).count(), n),
-        pct(
-            set.iter()
-                .filter(|m| m.kind() == PatternKind::Orbit && !high(m))
-                .count(),
-            n
-        )
+        pct(set.iter().filter(|m| high(m) || some_kind(m)).count(), n)
     )
 }
 

@@ -29,7 +29,7 @@ pub struct PatternsArgs {
     /// List only patterns whose patternness (the highest over the sizes shown) is at least N
     #[arg(long, value_name = "N", value_parser = clap::value_parser!(u8).range(0..=100))]
     min_patternness: Option<u8>,
-    /// List only patterns of this kind (SOLVED, FEW, MOSTLY, SYM, FACE, ORBIT,
+    /// List only patterns of this kind (SOLVED, FEW, MOSTLY, SYM, FACE,
     /// IRREG), judged at the size with the highest patternness; adds a kind
     /// column. Library and imported patterns alike
     #[arg(long, value_name = "NAME")]

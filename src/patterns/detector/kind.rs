@@ -12,10 +12,9 @@
 //! | `MOSTLY` | the fixed share is at least 0.6 and the defect is symmetric (at least 0.5) |
 //! | `SYM` | the symmetry share of patternness is at least 0.9 |
 //! | `FACE` | the faces repeat one arrangement, or most faces are simple |
-//! | `ORBIT` | the orbit uniformity is at least 0.9 (4x4x4 and bigger only) |
 //! | `IRREG` | none of the above |
 //!
-//! The face and orbit thresholds depend on the size; they were set from the
+//! The symmetry and face thresholds depend on the size; they were set from the
 //! rates on short scrambles (`tools/bench/kind_rates.rs`, `docs/patterns.md`).
 //! A kind describes the structure of one state; it is not a category of any
 //! collection.
@@ -34,23 +33,21 @@ pub enum PatternKind {
     Mostly,
     Sym,
     Face,
-    Orbit,
     Irreg,
 }
 
 impl PatternKind {
     /// Every kind, in the order the rule tries them.
-    pub const ALL: [PatternKind; 7] = [
+    pub const ALL: [PatternKind; 6] = [
         PatternKind::Solved,
         PatternKind::Few,
         PatternKind::Mostly,
         PatternKind::Sym,
         PatternKind::Face,
-        PatternKind::Orbit,
         PatternKind::Irreg,
     ];
 
-    /// The upper-case name: `SOLVED`, `FEW`, `MOSTLY`, `SYM`, `FACE`, `ORBIT`, `IRREG`.
+    /// The upper-case name: `SOLVED`, `FEW`, `MOSTLY`, `SYM`, `FACE`, `IRREG`.
     pub fn name(self) -> &'static str {
         match self {
             PatternKind::Solved => "SOLVED",
@@ -58,7 +55,6 @@ impl PatternKind {
             PatternKind::Mostly => "MOSTLY",
             PatternKind::Sym => "SYM",
             PatternKind::Face => "FACE",
-            PatternKind::Orbit => "ORBIT",
             PatternKind::Irreg => "IRREG",
         }
     }
@@ -71,7 +67,6 @@ impl PatternKind {
             PatternKind::Mostly => "mostly in place, the moved part is symmetric",
             PatternKind::Sym => "a high symmetry",
             PatternKind::Face => "the faces repeat one arrangement or are simple",
-            PatternKind::Orbit => "every orbit of pieces is moved in a regular way",
             PatternKind::Irreg => "no regularity of the kinds above",
         }
     }
@@ -107,8 +102,6 @@ struct Thresholds {
     faces: f64,
     /// Share of simple faces; `None` where a simple face means nothing.
     simple: Option<f64>,
-    /// Orbit uniformity; `None` where it never decides.
-    orbit: Option<f64>,
 }
 
 fn thresholds(size: usize) -> Thresholds {
@@ -117,19 +110,16 @@ fn thresholds(size: usize) -> Thresholds {
             symmetries: 8,
             faces: 1.0,
             simple: None,
-            orbit: None,
         },
         3 => Thresholds {
             symmetries: 4,
             faces: 0.67,
             simple: Some(0.67),
-            orbit: None,
         },
         _ => Thresholds {
             symmetries: 4,
             faces: 0.5,
             simple: Some(0.67),
-            orbit: Some(1.0),
         },
     }
 }
@@ -150,8 +140,6 @@ impl Measures {
             || limits.simple.is_some_and(|t| self.simple_faces >= t)
         {
             PatternKind::Face
-        } else if limits.orbit.is_some_and(|t| self.orbit >= t) {
-            PatternKind::Orbit
         } else {
             PatternKind::Irreg
         }

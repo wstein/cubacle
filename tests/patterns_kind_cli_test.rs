@@ -65,7 +65,7 @@ fn an_unknown_kind_is_refused_with_the_list() {
     assert!(!output.status.success());
     let err = String::from_utf8_lossy(&output.stderr);
     assert!(
-        err.contains("SOLVED, FEW, MOSTLY, SYM, FACE, ORBIT, IRREG"),
+        err.contains("SOLVED, FEW, MOSTLY, SYM, FACE, IRREG"),
         "{err}"
     );
 }

@@ -222,41 +222,42 @@ The kinds are tried in order and the first that fits wins:
 | `MOSTLY` | fixed is at least 0.6 and defect symmetry at least 0.5 |
 | `SYM` | the symmetry part is at least 0.9 and the number of symmetries reaches the size's minimum |
 | `FACE` | the faces repeat one arrangement, or most are simple |
-| `ORBIT` | orbits is at least the size's threshold (4x4x4 and bigger only) |
 | `IRREG` | none of the above |
 
 The thresholds depend on the size and come from `cargo run --release --example kind_rates`, which counts how many deterministic **short scrambles** (4 to 12 turns of random layers, 30 per length) and 200 long scrambles pass each criterion. Long scrambles are an easy negative (almost nothing passes), short ones are the hard negative, so they decide:
 
-| size | SYM: symmetries at least | FACE: same arrangement at least | FACE: simple faces at least | ORBIT: orbits at least |
-|------|------|------|------|------|
-| 2x2x2 | 8 | 1.00 | never | never |
-| 3x3x3 | 4 | 0.67 | 0.67 | never |
-| 4x4x4 to 7x7x7 | 4 | 0.50 | 0.67 | 1.00 |
+| size | SYM: symmetries at least | FACE: same arrangement at least | FACE: simple faces at least |
+|------|------|------|------|
+| 2x2x2 | 8 | 1.00 | never |
+| 3x3x3 | 4 | 0.67 | 0.67 |
+| 4x4x4 to 7x7x7 | 4 | 0.50 | 0.67 |
 
 Share of the 270 short scrambles per size that end up in each kind, with the same set of long scrambles and the built-in library (in %; the 2x2x2 has one library pattern):
 
-| size | | SOLVED | FEW | MOSTLY | SYM | FACE | ORBIT | IRREG |
-|------|---|------|-----|--------|-----|------|-------|-------|
-| 2x2x2 | short scrambles | 0.4 | 0.0 | 4.4 | 2.2 | 5.9 | 0.0 | 87.0 |
-| | long scrambles | 0 | 0 | 0 | 0 | 0 | 0 | 100 |
-| | library | 0 | 100 | 0 | 0 | 0 | 0 | 0 |
-| 3x3x3 | short scrambles | 0.0 | 0.0 | 3.3 | 2.6 | 0.0 | 0.0 | 94.1 |
-| | long scrambles | 0 | 0 | 0 | 0 | 0 | 0 | 100 |
-| | library | 0 | 0 | 40 | 60 | 0 | 0 | 0 |
-| 4x4x4 | short scrambles | 0.0 | 0.0 | 0.7 | 0.7 | 0.7 | 17.0 | 80.7 |
-| | long scrambles | 0 | 0 | 0 | 0 | 0 | 1.5 | 98.5 |
-| | library | 0 | 0 | 57.1 | 42.9 | 0 | 0 | 0 |
-| 5x5x5 | short scrambles | 0.0 | 0.0 | 1.9 | 0.0 | 0.0 | 7.4 | 90.7 |
-| | long scrambles | 0 | 0 | 0 | 0 | 0 | 0 | 100 |
-| | library | 0 | 22.2 | 44.4 | 33.3 | 0 | 0 | 0 |
-| 6x6x6 | short scrambles | 0.0 | 0.0 | 1.1 | 0.4 | 0.0 | 7.4 | 91.1 |
-| | long scrambles | 0 | 0 | 0 | 0 | 0 | 0 | 100 |
-| | library | 0 | 11.1 | 33.3 | 55.6 | 0 | 0 | 0 |
-| 7x7x7 | short scrambles | 0.0 | 0.0 | 2.2 | 0.4 | 0.4 | 3.7 | 93.3 |
-| | long scrambles | 0 | 0 | 0 | 0 | 0 | 0 | 100 |
-| | library | 0 | 16.7 | 33.3 | 50.0 | 0 | 0 | 0 |
+| size | | SOLVED | FEW | MOSTLY | SYM | FACE | IRREG |
+|------|---|------|-----|--------|-----|------|-------|
+| 2x2x2 | short scrambles | 0.4 | 0.0 | 4.4 | 2.2 | 5.9 | 87.0 |
+| | long scrambles | 0 | 0 | 0 | 0 | 0 | 100 |
+| | library | 0 | 100 | 0 | 0 | 0 | 0 |
+| 3x3x3 | short scrambles | 0.0 | 0.0 | 3.3 | 2.6 | 0.0 | 94.1 |
+| | long scrambles | 0 | 0 | 0 | 0 | 0 | 100 |
+| | library | 0 | 0 | 40 | 60 | 0 | 0 |
+| 4x4x4 | short scrambles | 0.0 | 0.0 | 0.7 | 0.7 | 0.7 | 97.7 |
+| | long scrambles | 0 | 0 | 0 | 0 | 0 | 100 |
+| | library | 0 | 0 | 57.1 | 42.9 | 0 | 0 |
+| 5x5x5 | short scrambles | 0.0 | 0.0 | 1.9 | 0.0 | 0.0 | 98.1 |
+| | long scrambles | 0 | 0 | 0 | 0 | 0 | 100 |
+| | library | 0 | 22.2 | 44.4 | 33.3 | 0 | 0 |
+| 6x6x6 | short scrambles | 0.0 | 0.0 | 1.1 | 0.4 | 0.0 | 98.5 |
+| | long scrambles | 0 | 0 | 0 | 0 | 0 | 100 |
+| | library | 0 | 11.1 | 33.3 | 55.6 | 0 | 0 |
+| 7x7x7 | short scrambles | 0.0 | 0.0 | 2.2 | 0.4 | 0.4 | 97.0 |
+| | long scrambles | 0 | 0 | 0 | 0 | 0 | 100 |
+| | library | 0 | 16.7 | 33.3 | 50.0 | 0 | 0 |
 
-Read the table with care. A short scramble of a few turns of a big cube is genuinely close to a pattern (one turn is `MOSTLY`), so some of these "false positives" are real structure; the point is that `IRREG` is the answer for 80 to 94 % of them. `ORBIT` is the weakest kind: it catches 4 to 17 % of short scrambles on the big cubes and no library pattern (the library is already `FEW`, `MOSTLY` or `SYM`), and on the 4x4x4 even 1.5 % of long scrambles; its threshold cannot go lower without catching more. `FACE` decides no library pattern either. The 2x2x2 has only 3.7 million states, so its symmetric and face-regular shares are high for every threshold. These kinds describe the structure of one state; they are not claimed to reproduce the categories of any pattern collection.
+Read the table with care. A short scramble of a few turns of a big cube is genuinely close to a pattern (one turn is `MOSTLY`), so some of these "false positives" are real structure; the point is that `IRREG` is the answer for 87 to 98 % of them. `FACE` decides no library pattern. The 2x2x2 has only 3.7 million states, so its symmetric and face-regular shares are high for every threshold. These kinds describe the structure of one state; they are not claimed to reproduce the categories of any pattern collection.
+
+There used to be a seventh kind, `ORBIT` (every orbit of pieces moved in a regular way, 4x4x4 and bigger). It was removed after measuring it on a fully decoded collection of 1110 to 1260 imported patterns per size: it decided only 0.3 to 1.6 % of them, and in at most 0.4 % of them no other measure reached 90 (patternness at least 90, or any other kind), while it caught 6 to 16 % of the short scrambles of 4 to 12 turns on the big cubes. Its threshold was already the highest possible (a perfect orbit score), so it could not be made stricter; those states are `IRREG` now.
 
 **Kind in lists.** `patterns --kind NAME` (case does not matter) keeps the library and imported patterns of that kind, judged at the size with the highest patternness (the smallest on a tie), and adds a `kind` column to the flat list; it combines with `--size`, `--sort` and `--min-patternness`, and filters the `--tree` too (which has no kind column).
 
