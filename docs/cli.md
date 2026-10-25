@@ -66,6 +66,18 @@ A cube argument of `-` reads the cube from standard input:
 cubacle random | cubacle solve -
 ```
 
+### What solved means
+
+`solve` works on colours: a cube is solved when every face shows one colour. Inner pieces of one colour that cannot be told apart by looking, such as the centres of the 4x4x4 to 7x7x7, are interchangeable, so two cubes that differ only by a swap of same-coloured centres are the same cube and get the same answer. There is no strict mode that tells them apart. For the same reason a `--to` target on the 4x4x4 and larger cannot ask for a scrambled arrangement of same-coloured centres:
+
+```sh
+cubacle solve --size 4 "R U" --to Rw
+```
+
+```text
+error: the target has centres out of place; the solvers can only reach a target whose centres are on their own faces (turns of the outer layers keep them there)
+```
+
 ### Solve to a target
 
 `--to <TARGET>` makes `solve` print the moves that take the start cube to the target instead of to the solved cube. The target is one argument (quote it) and is read like the start: an Orbit64 token, URFDLB facelets, W/R/G/Y/O/B colours (with `--scheme`), or, when the text is no cube, a move expression applied to the solved cube of the start's size. A text that is exactly `superflip`, `checkerboard` or `cube-in-cube` is the pattern of that name instead; these are 3x3x3 patterns, and other sizes get `--to: superflip is a 3x3x3 pattern, not a 4x4x4 one`. Longer texts such as `superflip R` are not names.

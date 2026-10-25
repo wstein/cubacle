@@ -6,7 +6,7 @@ weight: 8
 
 # Patterns
 
-`cubacle patterns` lists the pretty patterns the library knows; `cubacle patterns show NAME` prints one with its generators. A pattern is defined by its structure (a colour for every sticker as a function of the cube size), never by a move list. Each generator was found by our own search from that definition and is replayed against it by the test suite (`src/patterns/tests.rs`).
+`cubacle patterns` lists the pretty patterns the library knows; `cubacle patterns show NAME` prints one with its generators. A pattern is defined by its structure (a colour for every sticker as a function of the cube size), never by a move list. Each generator was found by our own search from that definition and is replayed against it by the test suite (`src/patterns/tests.rs`). Patterns are sets of colour states: same-coloured inner pieces, such as centres, that look identical count as equal, and there is no strict mode.
 
 ```sh
 cubacle patterns --size 3
