@@ -5,7 +5,7 @@
 //! `T3R` (tier), `NL`, `N4R` (numbered layer), `N2-4R` (numbered range), `V3R`
 //! (void), `M2R` (mid layers), `WR` (all layers between the faces), `SR`,
 //! `S2R`, `S2-4R` (opposing slices) and `CR` (cube rotation). The turn is
-//! nothing, `2`, `'` or `-`. A bare face letter with `-` (`R-`) is `R'`.
+//! nothing, `2`, `2'`, `'` or `-`. A bare face letter with `-` (`R-`) is `R'`.
 //!
 //! Every token expands to plain [`Move`]s at read time, so nothing downstream
 //! knows SSE. A word is SSE when, after the prefix and its numbers, a face
@@ -73,9 +73,9 @@ fn scan(word: &str) -> Option<Result<Token, &'static str>> {
     };
     let turn = match chars.as_str() {
         "" => Turn::Clockwise,
-        "2" => Turn::Half,
+        "2" | "2'" => Turn::Half,
         "'" | "-" => Turn::CounterClockwise,
-        _ => return Some(Err("not a turn: use nothing, 2, ' or -")),
+        _ => return Some(Err("not a turn: use nothing, 2, 2', ' or -")),
     };
     let number = |digits: &str| -> Result<Option<u8>, &'static str> {
         if digits.is_empty() {
@@ -274,6 +274,9 @@ mod tests {
         assert_eq!(show("R-", seven), "R'");
         assert_eq!(show("TR-", seven), "Rw'");
         assert_eq!(show("SR", seven), "R L'");
+        // A half turn may be written 2' as it is in WCA; it is still a half turn.
+        assert_eq!(show("TR2'", seven), "Rw2");
+        assert_eq!(show("N3L2'", seven), "3L2");
     }
 
     #[test]
