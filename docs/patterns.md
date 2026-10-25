@@ -116,6 +116,9 @@ cubacle patterns identify "U2 D2 R2 L2 F2 B2"
 
 ```text
 pattern: Checkerboard (checkerboard), exactly
+patternness: 100 %
+closest: Checkerboard 100 %, Solved cube 56 %, Four spots 56 %
+partial: corners matches Solved cube exactly; edges differs
 fingerprint: C0t0 E12f0(2.2.2.2.2.2)
   corners: 8 pieces, 0 displaced, 0 twisted
   edges: 12 pieces, 12 displaced, 0 flipped, cycles of length 2, 2, 2, 2, 2, 2
@@ -134,9 +137,10 @@ symmetry: 48 of 48 operations fix it (24 rotations, 24 mirrored)
 
 `identify -v` adds one line per class with the axes and the colour renaming of every operation.
 
-The report has four parts.
+The report has these parts.
 
 - **pattern**: the state is put into canonical form, the smallest sticker string under the 48 cube symmetries (24 rotations and their mirror images) and every renaming of the six colours, and looked up among the library patterns and the solved cube of that size. The text after the name says how the state differs from the library's colouring: `exactly`, `turned`, `mirrored`, `with colours renamed`, or a combination. A state that is no library pattern prints `no library match`; a random cube does not match.
+- **patternness** and **closest**: see below; `closest` names the three library patterns (the solved cube included) with the share of stickers that agree after the best of the 48 symmetries and colour renamings, and a `partial:` line says in which orbits the state equals the closest pattern that matches in some (`partial: corners, edges match Solved cube exactly; wings (depth 1) differ`).
 - **fingerprint**: for every piece orbit (corners, edges, wings by depth, centres) the number of displaced pieces, of twisted corners or flipped edges, and, where pieces can be told apart (corners, and the edges of the 3x3x3 and the middle wings of odd cubes), the cycle type of their permutation. The compact code is `C` corners with `t` twisted, `E` edges and `W<depth>:` wings with `f` flipped, `X` (x-centres, on the diagonals of a face), `+` (+-centres, on its mid-lines) and `O` (oblique) centre orbits (the number of misplaced stickers; a ring number follows where a shape has more than one ring, `X2:`), each preceded by the number displaced and followed by the cycle lengths in brackets: `C0t0 E0f12` is the superflip. The code is read in every colour frame and axis order that fits and the least is kept, so a cube, its turned or mirrored image and any renaming of its colours give the same code. On an even cube, which has no fixed centres, the frame is the best matching of colours to faces.
 - **subgroups**: exact tests on the pieces. `corners only`, `edges only` and (4x4x4 up) `centres only` say that nothing else moved. On the 3x3x3, `G1 domino group` (corners untwisted, edges unflipped, the middle-layer edges in the middle layer; one line per axis) and the half-turn group are exact too: the half-turn test checks the classes of four corners and four edges and a table of 648 projected arrangements, and a test walks all 663 552 states of the group to confirm it. `<R,U>` and `<R,U,F>` have no description by pieces, so the test only refutes (a piece those faces never touch is moved) or answers `possible`; `cubacle solve --moves "<R,U>"` is the proof. The tests assume a legal cube.
 - **symmetry**: how many of the 48 symmetries fix the state when the colours may be renamed, how many of those keep every colour literally, and how many operations each class has; `-v` lists the operations with the renaming each needs (a superflip is fixed by all 48 but only after renaming colours; the identity keeps them).
@@ -151,6 +155,39 @@ fingerprint: C0t0 W1:0f12 E0f0 X0 +12
 ```
 
 On a 7x7x7 `identify` takes about 10 ms.
+
+### Patternness
+
+`patternness: NN %` says how much a state looks like a pattern, from 0 (irregular) to 100 (the solved cube). It is a measure of regularity, not a probability, and it is computed by `cubacle::patterns::patternness`. `identify`, `cycles`, `show` and `find` print it.
+
+`patternness = 100 * (0.6 S + 0.4 U)`, rounded, with two parts from 0 to 1.
+
+- **S, symmetry**: `(ln order + ln(keep) / 2) / ln 2`, at most 1, where `order` is the number of the 48 operations that fix the state when colours may be renamed and `keep` the number that fix it with every colour kept. Any symmetry beyond the identity gives 1 (colour-keeping ones count extra); a random cube has none.
+- **U, uniformity**: the mean over the piece orbits of the share of tests an orbit passes: the displaced count is a simple share of the orbit (none, 1/6, 1/4, 1/3, 1/2, 2/3, 3/4, 5/6 or all), so is the twisted or flipped count, and the cycles of the pieces, where known, all have one length.
+
+Calibration, measured with `random_state` (1000 cubes per size) and the library:
+
+| size | random mean | random p95 | random max |
+|------|-------------|------------|------------|
+| 2x2x2 | 22.1 | 40 | 100 (the 2x2x2 has few states, some are symmetric) |
+| 3x3x3 | 23.4 | 33 | 40 |
+| 4x4x4 | 16.5 | 33 | 40 |
+| 5x5x5 | 18.4 | 31 | 36 |
+| 6x6x6 | 16.3 | 29 | 37 |
+| 7x7x7 | 16.0 | 25 | 35 |
+
+The solved cube and every library pattern of every size score 100 (a test checks at least 95). A state with no symmetry cannot score above 40, however regular its orbits are.
+
+The formula was checked once against the pattern tables of the CubeTwister project (Walter Randelshofer; the files were read from a temporary directory and are not part of this repository, only the numbers below are kept). The first version (`ln 6` saturation, weights 0.7 and 0.3) gave 46 % of the 3x3x3 patterns at least 95, because many well-known patterns have only two to four symmetries; saturating at one symmetry beyond the identity and weighting 0.6 and 0.4 gave the numbers below. The patterns that stay low have no symmetry at all (asymmetric L shapes and the like): patternness measures regularity, not whether a pattern has a name. Patterns whose moves did not parse are left out.
+
+| size | patterns | mean | min | p5 | median | at least 95 |
+|------|----------|------|-----|----|--------|-------------|
+| 2x2x2 | 108 | 92.6 | 20 | 40 | 100 | 75 % |
+| 3x3x3 | 1122 | 93.0 | 20 | 33 | 100 | 78 % |
+| 4x4x4 | 1165 | 94.9 | 13 | 71 | 100 | 79 % |
+| 5x5x5 | 1142 | 96.5 | 13 | 84 | 100 | 86 % |
+| 6x6x6 | 1257 | 95.1 | 6 | 77 | 100 | 75 % |
+| 7x7x7 | 1112 | 97.1 | 20 | 84 | 100 | 89 % |
 
 ## Cycles and the order of a sequence
 
