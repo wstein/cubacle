@@ -95,8 +95,13 @@ fn inverse(moves: &MoveSequence) -> MoveSequence {
 
 impl RouteIndex {
     /// The index of `patterns` on `kind`; patterns without a generator or a
-    /// state on that size are left out.
-    pub fn build<'a>(kind: PuzzleKind, patterns: impl Iterator<Item = &'a Pattern>) -> RouteIndex {
+    /// state on that size are left out, and so are generators with a move that
+    /// `allow` refuses (so that a route stays in the alphabet of the solver).
+    pub fn build<'a>(
+        kind: PuzzleKind,
+        patterns: impl Iterator<Item = &'a Pattern>,
+        allow: &dyn Fn(&Move) -> bool,
+    ) -> RouteIndex {
         let mut index = RouteIndex {
             kind,
             entries: Vec::new(),
@@ -109,7 +114,7 @@ impl RouteIndex {
                 .iter()
                 .filter(|g| g.size == kind.size())
                 .filter_map(|g| g.sequence().ok())
-                .filter(|s| !s.is_empty() && s.fits(kind))
+                .filter(|s| !s.is_empty() && s.fits(kind) && s.moves().iter().all(allow))
             {
                 index.add(pattern, generator, &solved);
             }

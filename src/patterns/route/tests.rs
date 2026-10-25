@@ -2,7 +2,11 @@ use super::*;
 use crate::patterns;
 
 fn index(size: usize) -> RouteIndex {
-    RouteIndex::build(PuzzleKind::of_size(size).unwrap(), patterns::all().iter())
+    RouteIndex::build(
+        PuzzleKind::of_size(size).unwrap(),
+        patterns::all().iter(),
+        &|_| true,
+    )
 }
 
 #[test]

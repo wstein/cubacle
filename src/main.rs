@@ -6,6 +6,7 @@ mod metrics_out;
 mod moves_cmd;
 mod optimal_cmd;
 mod partial_cmd;
+mod pattern_aware_cmd;
 mod patterns_cmd;
 mod patterns_config;
 mod patterns_import_cmd;
@@ -150,7 +151,7 @@ struct SolveArgs {
     #[arg(long, value_name = "CUBE", conflicts_with_all = [
         "max_moves", "budget_ms", "probes", "improve", "parallel", "fast", "optimise",
         "slices", "moves", "all", "count", "raw", "optimal", "nodes", "max_memory", "to",
-        "group",
+        "group", "pattern_aware",
     ])]
     now: Option<String>,
     #[command(flatten)]
@@ -239,6 +240,16 @@ struct SolveArgs {
     /// never crosses a phase border); none: a plain list
     #[arg(long, value_enum, value_delimiter = ',', conflicts_with = "icons")]
     group: Vec<phase_dots::SolveGroup>,
+    /// Also look the cube up in the pattern library (built-in and the files of
+    /// the config) and answer with the library route when it is strictly shorter
+    /// than the solver's answer; the solver still runs, so the answer is never
+    /// longer. 2x2x2: no effect. The default answer does not change without it
+    #[arg(long, conflicts_with_all = ["moves", "optimal", "all", "count"])]
+    pattern_aware: bool,
+    /// With --pattern-aware: config file of the pattern sources (default:
+    /// $CUBACLE_CONFIG, ./cubacle.toml, ~/.config/cubacle/config.toml)
+    #[arg(long, value_name = "FILE", requires = "pattern_aware")]
+    config: Option<std::path::PathBuf>,
     #[command(flatten)]
     pictures: steps::PictureArgs,
 }
@@ -599,6 +610,23 @@ fn solve(args: SolveArgs) -> Result<(), String> {
         }
     };
 
+    let (result, adopted) = if args.pattern_aware {
+        pattern_aware_cmd::apply(
+            &pattern_aware_cmd::Request {
+                config: args.config.as_deref(),
+                start: &start,
+                target: target.as_ref(),
+                cube: &facelets,
+                max_moves: args.max_moves,
+                slices: args.slices,
+                verbose: args.verbose,
+            },
+            result,
+        )
+    } else {
+        (result, None)
+    };
+
     if args.verbose {
         eprintln!(
             "elapsed {:?}, probes {}",
@@ -637,6 +665,9 @@ fn solve(args: SolveArgs) -> Result<(), String> {
             }
             eprintln!("moves {}", solution.len());
             eprintln!("{}", metrics_out::line(facelets.kind(), &solution));
+            if let Some(adopted) = &adopted {
+                eprintln!("{}", adopted.line());
+            }
             // The engine's own stages where it reports them, else the state-based cut.
             let found = if args.verbose
                 || args.pictures.icons
