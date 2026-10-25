@@ -29,3 +29,4 @@ Raw-material notes, category notation.
 - [[Orbit64 reads colors so equal-colored pieces need no representative]]
 - [[The canonical token is the Orbit64 token of the standard-colored member of the detector's class]]
 - [[The order of a sequence is the lcm of its sticker cycle lengths]]
+- [[A placeholder is one color so matching a template needs no search]]
