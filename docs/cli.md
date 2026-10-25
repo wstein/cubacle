@@ -327,6 +327,42 @@ error: no solution within the move limit (the search ended without a solution (t
 
 The 6x6x6 and 7x7x7 solve by reduction; see [Engines and limits](engines/_index.md).
 
+### Impossible states
+
+Every command that reads a cube state checks first that turns can reach it, for every size from the 2x2x2 to the 7x7x7, and says why not in the same words on every size: a twisted corner, a flipped edge, two swapped pieces (parity), a sticker combination no piece has, a wrong centre. `solve` (also `--to` and `--now`), `convert` and `patterns find` stop with a non-zero exit status. A hint follows where the repair is certain. A twisted corner on a 3x3x3:
+
+```sh
+cubacle solve UUUUUUUURFRRRRRRRRFFUFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB
+```
+
+```text
+error: the cube state is impossible (the corners are invalid: one corner is twisted on its own)
+hint: turn one corner back
+```
+
+The same state on a 2x2x2 (`UUURFRRRFUFFDDDDLLLLBBBB`) gives exactly this text. Two swapped edges:
+
+```text
+error: the cube state is impossible (the cube is invalid: two pieces are swapped (parity error))
+hint: swap two edges
+```
+
+A cube written as face letters with wrong colour counts says which colour has too many or too few stickers:
+
+```text
+error: not a cube (colour R appears 10 times, expected 9) and not a move expression for a 3x3x3 (character 0: invalid move "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBR")
+hint: colour R has 1 sticker too many, colour B has 1 sticker too few
+```
+
+`patterns identify` and `patterns cycles` do not fail: patterns on illegally assembled cubes are legitimate. They print a warning on standard error, leave standard output as it is, and go on:
+
+```text
+warning: the cube state is impossible (the corners are invalid: one corner is twisted on its own)
+hint: turn one corner back
+```
+
+`moves --from` and `facelets` take move expressions, so their states are always possible. The REST server answers an impossible start with `422 impossible_cube` and the same text.
+
 ## Solve a 4x4x4
 
 Give `solve` a 96-sticker cube, or a scramble with `--size 4`. A 4x4x4 scramble may turn the first two layers of a face (`R`, `2R`) and use wide turns (`Rw`); the 4x4x4 has no fixed centres, so the solver brings the cube to the standard colour scheme and the solution may end with whole-cube rotations.

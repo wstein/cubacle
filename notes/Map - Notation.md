@@ -24,3 +24,4 @@ Raw-material notes, category notation.
 - [[Move input rules are WCA and SiGN]]
 - [[A middle dot marks a hand unit, not a simultaneous turn]]
 - [[Don't-care stickers are written X or named as a subset]]
+- [[One check names an impossible state on every size]]
