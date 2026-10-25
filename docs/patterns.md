@@ -178,16 +178,18 @@ Calibration, measured with `random_state` (1000 cubes per size) and the library:
 
 The solved cube and every library pattern of every size score 100 (a test checks at least 95). A state with no symmetry cannot score above 40, however regular its orbits are.
 
-The formula was checked once against the pattern tables of the CubeTwister project (Walter Randelshofer; the files were read from a temporary directory and are not part of this repository, only the numbers below are kept). The first version (`ln 6` saturation, weights 0.7 and 0.3) gave 46 % of the 3x3x3 patterns at least 95, because many well-known patterns have only two to four symmetries; saturating at one symmetry beyond the identity and weighting 0.6 and 0.4 gave the numbers below. The patterns that stay low have no symmetry at all (asymmetric L shapes and the like): patternness measures regularity, not whether a pattern has a name. Patterns whose moves did not parse are left out.
+The formula was checked against the pattern tables of the CubeTwister project (Walter Randelshofer; the files were read from a temporary directory and are not part of this repository, only the numbers below are kept). The first version (`ln 6` saturation, weights 0.7 and 0.3) gave 46 % of the 3x3x3 patterns at least 95, because many well-known patterns have only two to four symmetries; saturating at one symmetry beyond the identity and weighting 0.6 and 0.4 gave the numbers below. The patterns that stay low have no symmetry at all (asymmetric L shapes and the like): patternness measures regularity, not whether a pattern has a name. The measurement was first made when only a quarter of the lines could be read; the numbers below repeat it on the fully decoded tables, 110 patterns for the 2x2x2 and 1119 to 1262 for the other sizes, split by the share of patterns in each band of patternness (in %). Lines that cannot be read are skipped and counted in the last column; a pattern with no readable line is missing.
 
-| size | patterns | mean | min | p5 | median | at least 95 |
-|------|----------|------|-----|----|--------|-------------|
-| 2x2x2 | 108 | 92.6 | 20 | 40 | 100 | 75 % |
-| 3x3x3 | 1122 | 93.0 | 20 | 33 | 100 | 78 % |
-| 4x4x4 | 1165 | 94.9 | 13 | 71 | 100 | 79 % |
-| 5x5x5 | 1142 | 96.5 | 13 | 84 | 100 | 86 % |
-| 6x6x6 | 1257 | 95.1 | 6 | 77 | 100 | 75 % |
-| 7x7x7 | 1112 | 97.1 | 20 | 84 | 100 | 89 % |
+| size | patterns | 100 | 98-99 | 95-97 | 90-94 | 80-89 | 60-79 | 40-59 | below 40 | unreadable lines |
+|------|----------|-----|-------|-------|-------|-------|-------|-------|----------|------------------|
+| 2x2x2 | 110 | 73.6 | 0.0 | 0.0 | 0.0 | 17.3 | 3.6 | 1.8 | 3.6 | 0 of 274 |
+| 3x3x3 | 1188 | 74.7 | 0.0 | 0.0 | 11.2 | 2.5 | 0.0 | 4.8 | 6.7 | 30 of 4372 |
+| 4x4x4 | 1171 | 78.0 | 0.0 | 0.8 | 8.6 | 6.2 | 1.9 | 2.9 | 1.6 | 11 of 2915 |
+| 5x5x5 | 1153 | 82.5 | 0.0 | 3.4 | 7.9 | 2.2 | 0.2 | 2.8 | 1.1 | 2 of 2410 |
+| 6x6x6 | 1262 | 70.8 | 0.2 | 4.0 | 7.8 | 10.9 | 3.2 | 2.3 | 0.8 | 9 of 2494 |
+| 7x7x7 | 1119 | 80.9 | 2.9 | 5.5 | 4.6 | 2.8 | 0.3 | 2.8 | 0.2 | 11 of 2255 |
+
+Cumulatively, the mean is 92.3 (2x2x2), 91.3, 95.1, 96.4, 95.2 and 97.1 (7x7x7), and the median is 100 for every size. At least 95 reach 74, 75, 79, 86, 75 and 89 % of the patterns, at least 90 reach 74, 86, 87, 94, 83 and 94 %. The built-in patterns of every size score 100.
 
 ### Pattern kinds
 
@@ -258,6 +260,21 @@ Share of the 270 short scrambles per size that end up in each kind, with the sam
 Read the table with care. A short scramble of a few turns of a big cube is genuinely close to a pattern (one turn is `MOSTLY`), so some of these "false positives" are real structure; the point is that `IRREG` is the answer for 87 to 98 % of them. `FACE` decides no library pattern. The 2x2x2 has only 3.7 million states, so its symmetric and face-regular shares are high for every threshold. These kinds describe the structure of one state; they are not claimed to reproduce the categories of any pattern collection.
 
 There used to be a seventh kind, `ORBIT` (every orbit of pieces moved in a regular way, 4x4x4 and bigger). It was removed after measuring it on a fully decoded collection of 1110 to 1260 imported patterns per size: it decided only 0.3 to 1.6 % of them, and in at most 0.4 % of them no other measure reached 90 (patternness at least 90, or any other kind), while it caught 6 to 16 % of the short scrambles of 4 to 12 turns on the big cubes. Its threshold was already the highest possible (a perfect orbit score), so it could not be made stricter; those states are `IRREG` now.
+
+**Kinds on the imported collection.** The same tables (see above) give the share of each kind among the imported patterns (in %), and how many patterns reach 90 in at least one measure, either patternness at least 90 or a kind other than `IRREG`:
+
+| size | SOLVED | FEW | MOSTLY | SYM | FACE | IRREG | patternness at least 90 | kind not IRREG | either |
+|------|--------|-----|--------|-----|------|-------|-------------------------|----------------|--------|
+| 2x2x2 | 0.9 | 29.1 | 12.7 | 11.8 | 20.0 | 25.5 | 73.6 | 74.5 | 92.7 |
+| 3x3x3 | 3.0 | 2.4 | 27.9 | 34.5 | 15.2 | 16.8 | 85.9 | 83.2 | 93.4 |
+| 4x4x4 | 2.9 | 18.0 | 24.1 | 29.8 | 22.1 | 3.1 | 87.4 | 96.9 | 99.0 |
+| 5x5x5 | 2.9 | 29.7 | 34.1 | 19.2 | 13.1 | 1.0 | 93.8 | 99.0 | 99.9 |
+| 6x6x6 | 4.4 | 31.5 | 26.8 | 19.1 | 16.2 | 2.1 | 82.8 | 97.9 | 99.5 |
+| 7x7x7 | 0.0 | 33.5 | 27.7 | 27.4 | 9.7 | 1.6 | 94.0 | 98.4 | 99.6 |
+
+So the goal "most patterns reach 90 in at least one measure" holds for every size, with 93 to 99.9 %; the kinds carry the 4x4x4 and bigger cubes (patternness alone reaches 83 to 94 %), and on the 2x2x2 and 3x3x3 the two measures together add 19 and 7.5 points to patternness alone.
+
+**Recognition.** `identify` against the built-in patterns and 70 % of the imported ones (chosen by a hash of the id), for the other 30 %, given as states: an exact match (up to turning, mirroring and renaming colours) is found for 73 % of the 2x2x2 patterns, 46 % of the 3x3x3, 35, 28, 24 and 16 % of the 4x4x4 to 7x7x7 patterns. Exact matches need a twin of the same state in the library, which the bigger tables have less often; for the rest the closest pattern agrees on at least 90 % of the stickers for 65 % (3x3x3) and 74 to 80 % (4x4x4 to 7x7x7) of all held-out patterns, and the median best similarity is 93 to 96 % (2x2x2: 100). As a baseline, 50 scrambles of 8 and of 12 turns have a median best similarity of 43 to 56 % on the 3x3x3 to 7x7x7 (2x2x2: 67 and 63 %), and none reaches 90 % (the 2x2x2 does for 16 % and 2 %, because a few turns of it are often a pattern). A similarity of 90 % or more is therefore a strong hint on the bigger cubes, and 80 % is where a few unrelated scrambles start to appear (up to 6 % on the 7x7x7).
 
 **Kind in lists.** `patterns --kind NAME` (case does not matter) keeps the library and imported patterns of that kind, judged at the size with the highest patternness (the smallest on a tie), and adds a `kind` column to the flat list; it combines with `--size`, `--sort` and `--min-patternness`, and filters the `--tree` too (which has no kind column).
 
