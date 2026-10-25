@@ -75,7 +75,7 @@ cubacle solve --size 4 "R U" --to Rw
 ```
 
 ```text
-error: the target has centres of different colours where the solvers cannot tell them apart (the centres of one kind on one face must show one colour)
+error: the target has centres of different colours on one face; `solve --to` needs one colour per face (4x4) or per face and orbit (5x5 and up), as rotations and outer-layer patterns have. Reach other patterns by applying their generator (`cubacle patterns show <id>`) to a solved cube
 ```
 
 ### Solve to a target
