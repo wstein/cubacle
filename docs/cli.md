@@ -407,7 +407,7 @@ The 6x6x6 and 7x7x7 solve by reduction; see [Engines and limits](engines/_index.
 
 ### Impossible states
 
-Every command that reads a cube state checks first that turns can reach it, for every size from the 2x2x2 to the 7x7x7, and says why not in the same words on every size: a twisted corner, a flipped edge, two swapped pieces (parity), a sticker combination no piece has, a wrong centre. `solve` (also `--to` and `--now`), `convert` and `patterns find` stop with a non-zero exit status. A hint follows where the repair is certain. A twisted corner on a 3x3x3:
+Every command that reads a cube state checks first that turns can reach it, for every size from the 2x2x2 to the 7x7x7, and says why not in the same words on every size: a twisted corner, a flipped edge, two swapped pieces (parity), a sticker combination no piece has (this includes corners that are the mirror image of real corners), a wrong centre. `solve` (also `--to` and `--now`), `convert` and `patterns find` stop with a non-zero exit status. A hint follows where the repair is certain. A twisted corner on a 3x3x3:
 
 ```sh
 cubacle solve UUUUUUUURFRRRRRRRRFFUFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB

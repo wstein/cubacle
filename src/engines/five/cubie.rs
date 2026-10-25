@@ -257,10 +257,16 @@ impl Cubie {
             if ori == 3 {
                 return Err(Invalid::Corners);
             }
+            let c0 = at(CORNER[i][ori]);
             let c1 = at(CORNER[i][(ori + 1) % 3]);
             let c2 = at(CORNER[i][(ori + 2) % 3]);
             for j in 0..8 {
-                if c1 == solved_colour(CORNER[j][1]) && c2 == solved_colour(CORNER[j][2]) {
+                // All three colours, in turning order: the side pair alone also
+                // fits the mirror image of the piece (U/D colour exchanged).
+                if c0 == solved_colour(CORNER[j][0])
+                    && c1 == solved_colour(CORNER[j][1])
+                    && c2 == solved_colour(CORNER[j][2])
+                {
                     cp[i] = j as i32;
                     twist += ori;
                     corner_seen |= 1 << j;
@@ -440,6 +446,20 @@ mod tests {
             *c = (i / 25) as u8;
         }
         assert_eq!(Cubie::from_colours(&face), Ok(Cubie::solved()));
+    }
+
+    #[test]
+    fn mirrored_corners_are_not_a_cube() {
+        // Every corner shows its two side colours exchanged: the corner set is
+        // the mirror image of the solved one, which no sequence of turns makes.
+        let mut face = [0u8; 150];
+        for (i, c) in face.iter_mut().enumerate() {
+            *c = (i / 25) as u8;
+        }
+        for corner in CORNER {
+            face.swap(corner[1], corner[2]);
+        }
+        assert_eq!(Cubie::from_colours(&face), Err(Invalid::Corners));
     }
 
     #[test]

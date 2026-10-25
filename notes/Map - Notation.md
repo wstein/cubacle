@@ -25,3 +25,4 @@ Raw-material notes, category notation.
 - [[A middle dot marks a hand unit, not a simultaneous turn]]
 - [[Don't-care stickers are written X or named as a subset]]
 - [[One check names an impossible state on every size]]
+- [[A corner is read with all three colours in turning order]]
