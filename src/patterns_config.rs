@@ -3,14 +3,14 @@
 //! The file is looked up as `--config FILE`, `$CUBACLE_CONFIG`,
 //! `./cubacle.toml`, then the global `~/.config/cubacle/config.toml` (or
 //! `$XDG_CONFIG_HOME/cubacle/config.toml`). When none exists, the global file
-//! is created from `cubacle.example.toml` on the first run; nothing is ever
-//! fetched.
+//! is created from `cubacle.example.toml` on the first run. URL sources are
+//! downloaded only by `cubacle patterns update` (or by `auto_fetch = true`).
 //!
 //! ```toml
 //! [patterns]
 //! files = ["builtin", "tables/3x3.txt", { path = "mine.txt", size = 3, name_prefix = "my-" }]
 //! cache_dir = "~/.cache/cubacle/patterns"   # optional
-//! auto_fetch = false                         # downloading is not built in
+//! auto_fetch = false                         # true: download missing URL sources by itself
 //! ```
 
 use std::path::{Path, PathBuf};
@@ -54,6 +54,11 @@ impl Default for Config {
     }
 }
 
+/// A source that is fetched rather than read from disk.
+pub fn is_url(location: &str) -> bool {
+    location.contains("://")
+}
+
 /// The patterns the commands work on.
 #[derive(Default)]
 pub struct Library {
@@ -63,6 +68,8 @@ pub struct Library {
     pub notes: Vec<String>,
     /// The entries that could not be read.
     pub warnings: Vec<String>,
+    /// URL sources that are not in the cache yet.
+    pub missing: Vec<String>,
 }
 
 impl Library {
@@ -255,7 +262,19 @@ impl Config {
         }
     }
 
-    /// Where the file for a URL has to be put by hand.
+    /// The `http(s)` sources of the config: location, size, name prefix.
+    pub fn url_sources(&self) -> impl Iterator<Item = (&str, Option<usize>, &str)> {
+        self.files.iter().filter_map(|entry| match entry {
+            Entry::Source {
+                location,
+                size,
+                name_prefix,
+            } if is_url(location) => Some((location.as_str(), *size, name_prefix.as_str())),
+            _ => None,
+        })
+    }
+
+    /// Where the download of a URL sits in the cache directory.
     pub fn download_path(&self, url: &str) -> Result<PathBuf, String> {
         let name: String = url
             .split("://")
@@ -270,6 +289,12 @@ impl Config {
                 }
             })
             .collect();
+        // A name of dots only would leave the directory.
+        let name = if name.chars().all(|c| c == '.') {
+            format!("_{name}")
+        } else {
+            name
+        };
         Ok(self.data_dir()?.join("downloads").join(name))
     }
 
@@ -289,6 +314,16 @@ impl Config {
                     library
                         .notes
                         .push("builtin: the built-in library".to_owned());
+                }
+                Entry::Source {
+                    location,
+                    size,
+                    name_prefix,
+                } if is_url(location)
+                    && self.download_path(location).is_ok_and(|p| !p.is_file()) =>
+                {
+                    library.missing.push(location.clone());
+                    library.notes.push(format!("{location}: not downloaded"));
                 }
                 Entry::Source {
                     location,
@@ -316,19 +351,30 @@ impl Config {
         size: Option<usize>,
         name_prefix: &str,
     ) -> Result<(Vec<Pattern>, String), String> {
-        let path = if location.contains("://") {
+        if is_url(location) {
             let path = self.download_path(location)?;
-            if !path.is_file() {
-                return Err(format!(
-                    "not downloaded; cubacle does not fetch: curl -o '{}' --create-dirs '{location}'",
-                    path.display()
-                ));
-            }
-            path
-        } else {
-            base.join(expand_home(location))
-        };
-        let bytes = std::fs::read(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+            let (list, note) = self.read_file(&path, location, size, name_prefix)?;
+            let bytes = std::fs::metadata(&path).map_or(0, |m| m.len());
+            let when = crate::patterns_update::downloaded_on(&path);
+            return Ok((list, format!("downloaded {when}, {bytes} bytes, {note}")));
+        }
+        self.read_file(
+            &base.join(expand_home(location)),
+            location,
+            size,
+            name_prefix,
+        )
+    }
+
+    /// Reads one table file (also a `.part` that is being checked).
+    pub fn read_file(
+        &self,
+        path: &Path,
+        location: &str,
+        size: Option<usize>,
+        name_prefix: &str,
+    ) -> Result<(Vec<Pattern>, String), String> {
+        let bytes = std::fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
         let text = decode_text(&bytes);
         let label = location.rsplit('/').next().unwrap_or(location).to_owned();
         if looks_imported(&text) {
@@ -337,7 +383,7 @@ impl Config {
             if imported_is_stale(&text) {
                 // Another patternness formula: write the file again with
                 // fresh values (a read-only cache is left as it is).
-                let _ = std::fs::write(&path, patterns::write_imported(&list, &label));
+                let _ = std::fs::write(path, patterns::write_imported(&list, &label));
             }
             let note = format!("{} patterns", list.len());
             return Ok((list, note));

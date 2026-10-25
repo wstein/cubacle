@@ -199,7 +199,11 @@ fn config_errors_name_file_and_line_and_a_bad_entry_is_a_warning() {
     assert!(ok, "{err}");
     assert!(out.contains("checkerboard"));
     assert!(err.contains("warning: missing/3xA/x.txt"), "{err}");
-    assert!(err.contains("curl -o"), "{err}");
+    assert!(
+        err.contains("1 source is not downloaded; run `cubacle patterns update`"),
+        "{err}"
+    );
+    assert!(!err.contains("curl"), "{err}");
 }
 
 #[test]

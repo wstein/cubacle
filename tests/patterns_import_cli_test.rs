@@ -125,5 +125,5 @@ fn import_writes_into_the_cache_dir_and_urls_are_refused() {
         &cache,
     );
     assert!(!ok);
-    assert!(err.contains("curl"), "{err}");
+    assert!(err.contains("patterns update"), "{err}");
 }

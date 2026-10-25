@@ -1,4 +1,5 @@
 mod enumerate_cmd;
+mod fetch;
 mod icons;
 mod improve;
 mod metrics_out;
@@ -8,6 +9,7 @@ mod partial_cmd;
 mod patterns_cmd;
 mod patterns_config;
 mod patterns_import_cmd;
+mod patterns_update;
 mod phase_dots;
 mod ram;
 mod recover_cmd;

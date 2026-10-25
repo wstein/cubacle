@@ -34,6 +34,12 @@ pub struct PatternsArgs {
     /// column. Library and imported patterns alike
     #[arg(long, value_name = "NAME")]
     kind: Option<PatternKind>,
+    /// Never use the network, not even for `update` or `auto_fetch` (also CUBACLE_OFFLINE=1)
+    #[arg(long, global = true, env = "CUBACLE_OFFLINE", value_parser = clap::builder::BoolishValueParser::new())]
+    offline: bool,
+    /// More detail (`identify`: every symmetry; which sources are not downloaded)
+    #[arg(short, long, global = true)]
+    verbose: bool,
     #[command(subcommand)]
     action: Option<Action>,
 }
@@ -61,6 +67,13 @@ enum Action {
     Cycles(IdentifyArgs),
     /// Import a tab-separated pattern table (CubeTwister `PatternExportTab.txt` layout)
     Import(crate::patterns_import_cmd::ImportArgs),
+    /// Download the http(s) sources of the config into the cache (only what the config lists)
+    #[command(visible_alias = "download")]
+    Update {
+        /// Download even if the server says the file is unchanged
+        #[arg(long)]
+        force: bool,
+    },
     /// Print the config file in use and what each pattern source gave
     Sources,
 }
@@ -69,9 +82,6 @@ enum Action {
 pub struct IdentifyCmd {
     #[command(flatten)]
     state: IdentifyArgs,
-    /// List every symmetry operation with the colour renaming it needs
-    #[arg(short, long)]
-    verbose: bool,
 }
 
 #[derive(Args)]
@@ -119,10 +129,36 @@ pub struct FindArgs {
 
 pub fn run(args: PatternsArgs) -> Result<(), String> {
     let config = crate::patterns_config::load(args.config.as_deref())?;
+    let mode = crate::patterns_update::Mode {
+        force: false,
+        offline: args.offline,
+    };
+    if !matches!(
+        args.action,
+        Some(Action::Update { .. } | Action::Sources | Action::Find(_) | Action::Cycles(_))
+            | Some(Action::Import(_))
+    ) {
+        crate::patterns_update::auto_fetch(&config, mode);
+    }
+    let verbose = args.verbose;
     let library = || {
         let library = config.library();
         for warning in &library.warnings {
             eprintln!("warning: {warning}");
+        }
+        if !library.missing.is_empty() {
+            let n = library.missing.len();
+            let (noun, verb) = if n == 1 {
+                ("source", "is")
+            } else {
+                ("sources", "are")
+            };
+            eprintln!("{n} {noun} {verb} not downloaded; run `cubacle patterns update`");
+            if verbose {
+                for url in &library.missing {
+                    eprintln!("  not downloaded: {url}");
+                }
+            }
         }
         library
     };
@@ -137,16 +173,16 @@ pub fn run(args: PatternsArgs) -> Result<(), String> {
         ),
         Some(Action::Show { name }) => show(&library(), &name.join(" "), args.size),
         Some(Action::Find(find)) => find_state(&find, args.size.unwrap_or(3)),
-        Some(Action::Identify(identify)) => identify_state(
-            &identify.state,
-            identify.verbose,
-            args.size.unwrap_or(3),
-            &library(),
-        ),
+        Some(Action::Identify(identify)) => {
+            identify_state(&identify.state, verbose, args.size.unwrap_or(3), &library())
+        }
         Some(Action::Cycles(cycles)) => cycles_state(&cycles, args.size.unwrap_or(3)),
         Some(Action::Import(import)) => {
             let dir = config.data_dir()?;
             crate::patterns_import_cmd::run(import, &dir, args.size)
+        }
+        Some(Action::Update { force }) => {
+            crate::patterns_update::update(&config, crate::patterns_update::Mode { force, ..mode })
         }
         Some(Action::Sources) => sources(&config),
     }

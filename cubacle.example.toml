@@ -9,9 +9,10 @@ files = [
     "builtin", # the pattern library that ships with cubacle
     # Pattern tables by Werner Randelshofer (CubeTwister). This data belongs to
     # its author and is NOT part of cubacle; it is used under his terms, which
-    # you must check yourself before you use it. cubacle never downloads it for
-    # you: fetch the files with curl (see docs/patterns.md), then uncomment the
-    # entries you want. Folders: 2xPocket 3xRubik 4xRevenge 5xProfessor
+    # you must check yourself before you use it. cubacle downloads nothing until
+    # you uncomment an entry: that is your consent. Then `cubacle patterns
+    # update` fetches the enabled URLs into the cache (see docs/patterns.md).
+    # Folders: 2xPocket 3xRubik 4xRevenge 5xProfessor
     # 6xVCube6 7xVCube7.
     # "https://raw.githubusercontent.com/wrandelshofer/CubeTwister/master/resources/database/2xPocket/PatternExportTab.txt",
     # "https://raw.githubusercontent.com/wrandelshofer/CubeTwister/master/resources/database/3xRubik/PatternExportTab.txt",
@@ -27,5 +28,9 @@ files = [
 # or CUBACLE_CACHE_DIR / XDG_CACHE_HOME).
 # cache_dir = "~/.cache/cubacle/patterns"
 
-# Downloading is not built in; this switch is read but has no effect.
+# false: only `cubacle patterns update` downloads. true: a patterns command
+# also downloads, at its start, the URL sources above that are not in the
+# cache yet (one line "downloading ..." on stderr; a failure is a warning).
+# Only URLs you enabled above are ever fetched. --offline or CUBACLE_OFFLINE=1
+# switches all downloading off.
 auto_fetch = false

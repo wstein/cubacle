@@ -15,7 +15,7 @@ use cubacle::puzzle::{MoveSequence, PuzzleKind};
 #[derive(Args)]
 pub struct ImportArgs {
     /// A local pattern table (the `PatternExportTab.txt` layout). A URL is
-    /// not fetched: download it yourself with `curl -o FILE URL` first
+    /// not imported directly: list it under [patterns] files and run `patterns update`
     file: String,
     /// Put in front of every imported id and name
     #[arg(long, default_value = "")]
@@ -147,7 +147,7 @@ fn print_patternness(patterns: &[cubacle::patterns::Pattern], size: usize) {
 pub fn run(args: ImportArgs, cache_dir: &Path, size: Option<usize>) -> Result<(), String> {
     if args.file.contains("://") {
         return Err(format!(
-            "cubacle does not download; fetch it yourself with: curl -o FILE {}",
+            "{} is a URL; list it under [patterns] files in the config and run `cubacle patterns update`",
             args.file
         ));
     }
