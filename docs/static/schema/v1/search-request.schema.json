@@ -2,26 +2,26 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://wstein.github.io/cubacle/schema/v1/search-request.schema.json",
   "title": "cubacle search request",
-  "description": "Body of POST /v1/patterns/search. Exactly one of definition (the object form) or definitionText (the .gen text), plus run options. The server is stateless and stores nothing.",
+  "description": "Body of POST /v1/patterns/search. Exactly one of patternDefinition (the object form) or patternDefinitionText (the .gen text), plus run options. The server is stateless and stores nothing.",
   "type": "object",
   "properties": {
     "$schema": { "type": "string", "format": "uri" },
-    "version": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/version" },
-    "definition": { "$ref": "https://wstein.github.io/cubacle/schema/v1/gen-definition.schema.json" },
-    "definitionText": { "description": "The text of a .gen file.", "type": "string", "minLength": 1, "maxLength": 100000 },
-    "options": { "$ref": "https://wstein.github.io/cubacle/schema/v1/run-options.schema.json" }
+    "formatVersion": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/formatVersion" },
+    "patternDefinition": { "$ref": "https://wstein.github.io/cubacle/schema/v1/gen-definition.schema.json" },
+    "patternDefinitionText": { "description": "The text of a .gen file.", "type": "string", "minLength": 1, "maxLength": 100000 },
+    "runOptions": { "$ref": "https://wstein.github.io/cubacle/schema/v1/run-options.schema.json" }
   },
-  "required": ["version"],
+  "required": ["formatVersion"],
   "oneOf": [
-    { "required": ["definition"], "not": { "required": ["definitionText"] } },
-    { "required": ["definitionText"], "not": { "required": ["definition"] } }
+    { "required": ["patternDefinition"], "not": { "required": ["patternDefinitionText"] } },
+    { "required": ["patternDefinitionText"], "not": { "required": ["patternDefinition"] } }
   ],
   "additionalProperties": false,
   "examples": [
     {
-      "version": 1,
-      "definitionText": "name: checkerboard\nsize: 3\nschema: a b a / b a b / a b a\n",
-      "options": { "count": true }
+      "formatVersion": 1,
+      "patternDefinitionText": "pattern-name: checkerboard\ncube-size: 3\nsticker-grid: a b a / b a b / a b a\n",
+      "runOptions": { "countOnly": true }
     }
   ]
 }

@@ -4,7 +4,7 @@
   "title": "cubacle common definitions",
   "description": "Shared building blocks of the cubacle JSON schemas, version 1. Only referenced by the other schema files, never used on its own.",
   "$defs": {
-    "version": {
+    "formatVersion": {
       "description": "Format version. Always 1 in this schema family.",
       "const": 1
     },
@@ -113,28 +113,17 @@
       "pattern": "^[a-z][a-z0-9-]*$",
       "examples": ["western", "boy", "japanese"]
     },
-    "colorSchemeObject": {
-      "description": "A color scheme given in place: six letters and optional display colors.",
+    "colorLetters": {
+      "description": "Display color for each color code, as #RGB or #RRGGBB. Every code must occur in the scheme letters; the reader checks this.",
       "type": "object",
-      "properties": {
-        "name": { "$ref": "#/$defs/name" },
-        "faces": { "$ref": "#/$defs/schemeLetters" },
-        "colors": {
-          "description": "Display color for each code that occurs in faces.",
-          "type": "object",
-          "propertyNames": { "$ref": "#/$defs/colorLetter" },
-          "additionalProperties": { "$ref": "#/$defs/hexColor" }
-        }
-      },
-      "required": ["faces"],
-      "additionalProperties": false
+      "propertyNames": { "$ref": "#/$defs/colorLetter" },
+      "additionalProperties": { "$ref": "#/$defs/hexColor" }
     },
     "colorScheme": {
-      "description": "A color scheme: a built-in name, six inline letters, or an object.",
+      "description": "A color scheme: a built-in name, a scheme file name, or six inline letters.",
       "oneOf": [
         { "$ref": "#/$defs/schemeName" },
-        { "$ref": "#/$defs/schemeLetters" },
-        { "$ref": "#/$defs/colorSchemeObject" }
+        { "$ref": "#/$defs/schemeLetters" }
       ]
     },
     "orbit": {
@@ -196,10 +185,10 @@
       ]
     },
     "limits": {
-      "description": "Default limits of the generator. The same names as the run options; the command line or request overrides them.",
+      "description": "Default limits of the generator. Text keys state-limit, max-states, max-time-ms, max-memory-mb and max-depth. The command line or the request overrides them.",
       "type": "object",
       "properties": {
-        "limit": { "type": "integer", "minimum": 1 },
+        "stateLimit": { "type": "integer", "minimum": 1 },
         "maxStates": { "type": "integer", "minimum": 1 },
         "maxTimeMs": { "type": "integer", "minimum": 1 },
         "maxMemoryMb": { "type": "integer", "minimum": 1 },

@@ -6,21 +6,17 @@
   "type": "object",
   "properties": {
     "$schema": { "type": "string", "format": "uri" },
-    "version": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/version" },
+    "formatVersion": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/formatVersion" },
     "name": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/name" },
     "faces": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/schemeLetters" },
-    "colors": {
-      "type": "object",
-      "propertyNames": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/colorLetter" },
-      "additionalProperties": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/hexColor" }
-    }
+    "colors": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/colorLetters" }
   },
-  "required": ["version", "faces"],
+  "required": ["formatVersion", "faces"],
   "additionalProperties": false,
   "examples": [
     {
       "$schema": "https://wstein.github.io/cubacle/schema/v1/color-scheme.schema.json",
-      "version": 1,
+      "formatVersion": 1,
       "name": "japanese",
       "faces": "WRGBOY",
       "colors": { "W": "#fff", "R": "#d00", "G": "#0a0", "B": "#00d", "O": "#f80", "Y": "#ee0" }

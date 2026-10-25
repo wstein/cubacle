@@ -1,8 +1,8 @@
 # concentric squares on a 5x5x5
-name: concentric-squares
-title: Concentric squares
-size: 5
-scheme: western
-schema:
+pattern-name: concentric-squares
+pattern-title: Concentric squares
+cube-size: 5
+color-scheme: western
+sticker-grid:
   a b b b a / b b c b b / b c Z c b / b b c b b / a b b b a
-where: unique(a*, b*, c*)
+color-constraints: unique(a*, b*, c*)

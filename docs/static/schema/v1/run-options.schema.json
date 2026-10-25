@@ -2,19 +2,19 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://wstein.github.io/cubacle/schema/v1/run-options.schema.json",
   "title": "cubacle run options",
-  "description": "How much to compute. Run options never change the pattern. The names are the command line options without dashes, in camel case; budgetMs is the REST name of the time budget.",
+  "description": "How much to compute. Run options never change the pattern. The command line options are short (--limit, --count); the JSON keys are the long names.",
   "type": "object",
   "properties": {
-    "limit": { "description": "Print at most this many states. Default 20.", "type": "integer", "minimum": 1 },
-    "count": { "description": "Count only, exactly; list nothing.", "type": "boolean" },
-    "sample": { "description": "Draw this many states.", "type": "integer", "minimum": 1 },
-    "seed": { "description": "Seed of the draw for sample.", "type": "integer", "minimum": 0 },
-    "maxStates": { "description": "Hard cap on the enumeration. Default 50000000.", "type": "integer", "minimum": 1 },
-    "budgetMs": { "description": "Time budget in milliseconds. Default 120000.", "type": "integer", "minimum": 1 },
-    "maxMemoryMb": { "description": "Memory budget in megabytes. Default 1500.", "type": "integer", "minimum": 1 },
-    "solve": { "description": "Also search a move sequence.", "type": "boolean" },
-    "maxDepth": { "description": "Depth limit of the move search; only with solve.", "type": "integer", "minimum": 1 }
+    "stateLimit": { "description": "Print at most this many states (--limit). Default 20.", "type": "integer", "minimum": 1 },
+    "countOnly": { "description": "Count only, exactly; list nothing (--count).", "type": "boolean" },
+    "sampleSize": { "description": "Draw this many states (--sample).", "type": "integer", "minimum": 1 },
+    "sampleSeed": { "description": "Seed of the draw for sampleSize (--seed).", "type": "integer", "minimum": 0 },
+    "maxStates": { "description": "Hard cap on the enumeration (--max-states). Default 50000000.", "type": "integer", "minimum": 1 },
+    "budgetMs": { "description": "Time budget in milliseconds (--max-time). Default 120000.", "type": "integer", "minimum": 1 },
+    "maxMemoryMb": { "description": "Memory budget in megabytes (--max-memory). Default 1500.", "type": "integer", "minimum": 1 },
+    "solve": { "description": "Also search a move sequence (--solve).", "type": "boolean" },
+    "maxDepth": { "description": "Depth limit of the move search; only with solve (--max-depth).", "type": "integer", "minimum": 1 }
   },
   "additionalProperties": false,
-  "examples": [{ "limit": 20, "seed": 1, "budgetMs": 30000 }]
+  "examples": [{ "stateLimit": 20, "sampleSeed": 1, "budgetMs": 30000 }]
 }

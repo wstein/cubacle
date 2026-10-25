@@ -1,6 +1,6 @@
-name: ring-symmetric
-title: Ring with D4h symmetry
-size: 3
-schema: a a a / a b a / a a a
-where: unique(a*, b*) && symmetric(D4h)
-orbits: corners, edges
+pattern-name: ring-symmetric
+pattern-title: Ring with D4h symmetry
+cube-size: 3
+sticker-grid: a a a / a b a / a a a
+color-constraints: unique(a*, b*) && symmetric(D4h)
+movable-orbits: corners, edges

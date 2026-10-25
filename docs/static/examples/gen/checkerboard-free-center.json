@@ -1,15 +1,15 @@
 {
   "$schema": "https://wstein.github.io/cubacle/schema/v1/gen-definition.schema.json",
-  "version": 1,
-  "name": "checkerboard-free-center",
-  "title": "Checkerboard with free centers",
-  "size": 3,
-  "schema": [
+  "formatVersion": 1,
+  "patternName": "checkerboard-free-center",
+  "patternTitle": "Checkerboard with free centers",
+  "cubeSize": 3,
+  "stickerGrid": [
     [
       ["a", "b", "a"],
       ["b", ".", "b"],
       ["a", "b", "a"]
     ]
   ],
-  "where": "unique(a*, b*)"
+  "colorConstraints": "unique(a*, b*)"
 }

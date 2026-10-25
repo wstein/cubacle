@@ -1,16 +1,16 @@
 {
   "$schema": "https://wstein.github.io/cubacle/schema/v1/gen-definition.schema.json",
-  "version": 1,
-  "name": "ring-symmetric",
-  "title": "Ring with D4h symmetry",
-  "size": 3,
-  "schema": [
+  "formatVersion": 1,
+  "patternName": "ring-symmetric",
+  "patternTitle": "Ring with D4h symmetry",
+  "cubeSize": 3,
+  "stickerGrid": [
     [
       ["a", "a", "a"],
       ["a", "b", "a"],
       ["a", "a", "a"]
     ]
   ],
-  "where": "unique(a*, b*) && symmetric(D4h)",
-  "orbits": ["corners", "edges"]
+  "colorConstraints": "unique(a*, b*) && symmetric(D4h)",
+  "movableOrbits": ["corners", "edges"]
 }
