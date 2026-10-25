@@ -6,7 +6,7 @@ use std::time::Duration;
 use clap::{Args, Subcommand};
 use cubacle::engines::pattern::{find_generator_with, Cap, DEFAULT_MAX_MEMORY_MB};
 use cubacle::notation::{parse_cube, parse_expression, ColourScheme, Notation};
-use cubacle::patterns::{self, Generator, Pattern, Span};
+use cubacle::patterns::{self, Generator, Pattern, PatternKind, Span};
 use cubacle::puzzle::Move;
 
 #[derive(Args)]
@@ -29,6 +29,11 @@ pub struct PatternsArgs {
     /// List only patterns whose patternness (the highest over the sizes shown) is at least N
     #[arg(long, value_name = "N", value_parser = clap::value_parser!(u8).range(0..=100))]
     min_patternness: Option<u8>,
+    /// List only patterns of this kind (SOLVED, FEW, MOSTLY, SYM, FACE, ORBIT,
+    /// IRREG), judged at the size with the highest patternness; adds a kind
+    /// column. Library and imported patterns alike
+    #[arg(long, value_name = "NAME")]
+    kind: Option<PatternKind>,
     #[command(subcommand)]
     action: Option<Action>,
 }
@@ -128,6 +133,7 @@ pub fn run(args: PatternsArgs) -> Result<(), String> {
             args.tree,
             args.sort,
             args.min_patternness,
+            args.kind,
         ),
         Some(Action::Show { name }) => show(&library(), &name.join(" "), args.size),
         Some(Action::Find(find)) => find_state(&find, args.size.unwrap_or(3)),
@@ -205,6 +211,7 @@ fn identify_state(
     } else {
         print!("{report}");
     }
+    print_kind(&patterns::measures(&state));
     for pattern in patterns::identify_imported(&library.extra, &state) {
         println!(
             "imported: {} {} (imported from {})",
@@ -214,6 +221,24 @@ fn identify_state(
         );
     }
     Ok(())
+}
+
+/// The kind of a state and the measures it was judged by.
+fn print_kind(m: &patterns::Measures) {
+    let kind = m.kind();
+    println!("kind: {kind} ({})", kind.describe());
+    println!(
+        "measures: fixed {:.2}, defect symmetry {:.2}, moved {} of {} pieces, symmetry {:.2} (order {}), faces {:.2}, simple faces {:.2}, orbits {:.2}",
+        m.fixed,
+        m.mask_symmetry,
+        m.moved,
+        m.pieces,
+        m.symmetry,
+        m.symmetry_order,
+        m.faces,
+        m.simple_faces,
+        m.orbit
+    );
 }
 
 /// `patterns find`: the moves that build a state from the solved cube.
@@ -281,6 +306,7 @@ fn list(
     tree: bool,
     sort: Option<SortKey>,
     min: Option<u8>,
+    kind: Option<PatternKind>,
 ) -> Result<(), String> {
     let scored = sort.is_some() || min.is_some();
     let mut items: Vec<(&Pattern, u8)> = library
@@ -289,6 +315,9 @@ fn list(
         .map(|p| (p, shown_patternness(p, size)))
         .filter(|(_, score)| min.is_none_or(|m| *score >= m))
         .collect();
+    if let Some(wanted) = kind {
+        items.retain(|(p, _)| shown_kind(p, size) == Some(wanted));
+    }
     if sort.is_some() {
         items.sort_by_key(|(_, score)| std::cmp::Reverse(*score));
     }
@@ -301,8 +330,9 @@ fn list(
         return Ok(());
     }
     println!(
-        "id\tname\tsizes (outer/range moves){}",
-        if scored { "\tpatternness" } else { "" }
+        "id\tname\tsizes (outer/range moves){}{}",
+        if scored { "\tpatternness" } else { "" },
+        if kind.is_some() { "\tkind" } else { "" }
     );
     for (pattern, score) in items {
         let sizes = sizes_of(pattern, size);
@@ -313,6 +343,9 @@ fn list(
         print!("{}\t{}\t{}", pattern.id, pattern.name, text.join(" "));
         if scored {
             print!("\t{score} %");
+        }
+        if let Some(kind) = kind {
+            print!("\t{kind}");
         }
         match &pattern.origin {
             Some(origin) => println!("\timported from {origin}"),
@@ -329,6 +362,17 @@ fn shown_patternness(pattern: &Pattern, size: Option<usize>) -> u8 {
         .filter_map(|s| pattern.patternness(s))
         .max()
         .unwrap_or(0)
+}
+
+/// The kind of a pattern at the size shown with the highest patternness
+/// (the smallest on a tie).
+fn shown_kind(pattern: &Pattern, size: Option<usize>) -> Option<PatternKind> {
+    let best = sizes_of(pattern, size)
+        .into_iter()
+        .filter_map(|s| Some((pattern.patternness(s)?, std::cmp::Reverse(s))))
+        .max()?;
+    let state = pattern.state(cubacle::puzzle::PuzzleKind::of_size(best.1 .0)?)?;
+    Some(patterns::kind(&state))
 }
 
 /// The group path shown in the tree: an imported table's last level is the
