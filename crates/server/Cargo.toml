@@ -16,7 +16,7 @@ name = "cubacle-server"
 path = "src/main.rs"
 
 [dependencies]
-cubacle = { path = "../.." }
+cubacle = { path = "../..", default-features = false }
 axum = { version = "0.8.9", default-features = false, features = ["http1", "json", "query", "tokio"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal", "sync", "time"] }
 serde = { version = "1", features = ["derive"] }

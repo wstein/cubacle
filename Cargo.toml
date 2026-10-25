@@ -16,9 +16,14 @@ rand = "0.10.3"
 clap = { version = "4.6.7", features = ["derive", "env"] }
 # Physical and available memory, to size the tables of --optimal.
 sysinfo = { version = "0.39.6", default-features = false, features = ["system"] }
+# The only network code: `cubacle patterns update`. Optional so that the server never gets it.
+ureq = { version = "3.5.0", default-features = false, features = ["rustls"], optional = true }
 toml = { version = "1.1.8", default-features = false, features = ["std", "parse", "serde"] }
 
 [features]
+default = ["fetch"]
+# Downloads of pattern sources (the CLI only; the server depends on cubacle without it).
+fetch = ["dep:ureq"]
 # Draws an amber frame around a lone quarter turn in the Kitty rows of `--icons`.
 quarter-frame = []
 
