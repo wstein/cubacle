@@ -35,7 +35,9 @@ pub use import::{
     decode_text, import_tab, read_plain, ImportOptions, ImportProblem, ImportReport, ImportRow,
     Imported,
 };
-pub use imported_file::{identify_imported, looks_imported, read_imported, write_imported};
+pub use imported_file::{
+    identify_imported, imported_is_stale, looks_imported, read_imported, write_imported,
+};
 
 use std::sync::OnceLock;
 
@@ -166,6 +168,8 @@ pub struct Pattern {
     pub provenance: String,
     /// Where an imported pattern came from; `None` for the built-in library.
     pub origin: Option<String>,
+    /// Patternness per size as stored with an imported pattern.
+    scores: Vec<(usize, u8)>,
     defs: Vec<(usize, Def)>,
     generators: Vec<Generator>,
 }
@@ -181,9 +185,20 @@ impl Pattern {
             group: Vec::new(),
             provenance: String::new(),
             origin: None,
+            scores: Vec::new(),
             defs: Vec::new(),
             generators: Vec::new(),
         }
+    }
+
+    /// The patternness of the pattern on a cube of `size`: the value stored
+    /// with an imported pattern, else computed from its state.
+    pub fn patternness(&self, size: usize) -> Option<u8> {
+        if let Some((_, score)) = self.scores.iter().find(|(s, _)| *s == size) {
+            return Some(*score);
+        }
+        let state = self.state(PuzzleKind::of_size(size)?)?;
+        Some(patternness(&state))
     }
 
     /// The sizes the pattern is defined for.

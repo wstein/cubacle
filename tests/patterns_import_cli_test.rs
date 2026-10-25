@@ -74,7 +74,12 @@ fn dry_run_reports_lines_and_count_mismatches() {
         "{out}"
     );
     assert!(out.contains("claims 7 order, counted 105"), "{out}");
-    assert!(!out.contains("T1.01"), "{out}");
+    assert!(!out.contains("line 1 T1.01"), "{out}");
+    assert!(out.contains("ct:T1.01\tpatternness "), "{out}");
+    assert!(
+        out.contains("patternness: mean ") && out.contains(" of 2 at least 95 %"),
+        "{out}"
+    );
     assert!(!cache.exists(), "a dry run writes nothing");
 }
 
@@ -100,6 +105,15 @@ fn import_writes_into_the_cache_dir_and_urls_are_refused() {
     )
     .unwrap_or_default();
     assert!(written.contains("ct:T2.01"), "{written}");
+    assert!(
+        written.starts_with("#cubacle-patterns 1 patternness-v1\n"),
+        "{written}"
+    );
+    let line = written.lines().find(|l| l.contains("ct:T2.01")).unwrap();
+    let fields: Vec<&str> = line.split('\t').collect();
+    assert_eq!(fields.len(), 11, "{line}");
+    assert_eq!(fields[9], "100", "{line}");
+    assert_eq!(fields[10], "R2", "{line}");
     let (ok, _, err) = run(
         &["patterns", "import", "https://example.org/3xA/F.txt"],
         &cache,

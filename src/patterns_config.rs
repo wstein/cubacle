@@ -14,7 +14,8 @@
 use std::path::{Path, PathBuf};
 
 use cubacle::patterns::{
-    self, decode_text, import_tab, looks_imported, read_imported, ImportOptions, Pattern,
+    self, decode_text, import_tab, imported_is_stale, looks_imported, read_imported, ImportOptions,
+    Pattern,
 };
 
 use crate::patterns_import_cmd::{default_data_dir, size_from_name};
@@ -290,6 +291,11 @@ impl Config {
         if looks_imported(&text) {
             let list =
                 read_imported(&text, &label).map_err(|e| format!("{}: {e}", path.display()))?;
+            if imported_is_stale(&text) {
+                // Another patternness formula: write the file again with
+                // fresh values (a read-only cache is left as it is).
+                let _ = std::fs::write(&path, patterns::write_imported(&list, &label));
+            }
             let note = format!("{} patterns", list.len());
             return Ok((list, note));
         }

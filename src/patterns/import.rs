@@ -227,6 +227,9 @@ pub fn import_tab(text: &str, options: &ImportOptions, read: Reader) -> Imported
                 if generator.number == 0 {
                     generator.number = 1;
                 }
+                pattern
+                    .scores
+                    .push((options.size, super::patternness(&state)));
                 pattern.generators.push(generator);
                 patterns.push((pattern, state));
             }

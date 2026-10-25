@@ -122,6 +122,27 @@ fn check_counts(rows: &[ImportRow], kind: PuzzleKind) -> Vec<String> {
     out
 }
 
+/// Patternness per pattern, then a summary.
+fn print_patternness(patterns: &[cubacle::patterns::Pattern], size: usize) {
+    let mut scores: Vec<u8> = Vec::new();
+    for p in patterns {
+        if let Some(score) = p.patternness(size) {
+            println!("{}\tpatternness {score} %", p.catalogue);
+            scores.push(score);
+        }
+    }
+    if scores.is_empty() {
+        return;
+    }
+    let mean = scores.iter().map(|&s| f64::from(s)).sum::<f64>() / scores.len() as f64;
+    println!(
+        "patternness: mean {mean:.1} %, lowest {} %, {} of {} at least 95 %",
+        scores.iter().min().unwrap_or(&0),
+        scores.iter().filter(|&&s| s >= 95).count(),
+        scores.len()
+    );
+}
+
 /// `size` is the global `--size`, else the size is read from a folder name.
 pub fn run(args: ImportArgs, cache_dir: &Path, size: Option<usize>) -> Result<(), String> {
     if args.file.contains("://") {
@@ -165,6 +186,7 @@ pub fn run(args: ImportArgs, cache_dir: &Path, size: Option<usize>) -> Result<()
             mismatches.len(),
             got.rows.len() * 4
         );
+        print_patternness(&got.patterns, size);
         return Ok(());
     }
     let target = args.out.unwrap_or_else(|| {
@@ -172,7 +194,9 @@ pub fn run(args: ImportArgs, cache_dir: &Path, size: Option<usize>) -> Result<()
             .parent()
             .and_then(Path::file_name)
             .map_or(String::new(), |n| format!("{}-", n.to_string_lossy()));
-        cache_dir.join("imported").join(format!("{folder}{label}"))
+        cache_dir
+            .join("imported")
+            .join(format!("{folder}{label}.tsv"))
     });
     if let Some(parent) = target.parent() {
         std::fs::create_dir_all(parent).map_err(|e| format!("{}: {e}", parent.display()))?;

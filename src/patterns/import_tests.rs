@@ -74,7 +74,29 @@ fn file_round_trip_and_identify() {
         .apply(&"U2 D2".parse().unwrap())
         .unwrap();
     assert_eq!(identify_imported(&back, &state).len(), 1);
-    assert!(read_imported("a | b", "o").unwrap_err().contains("line 1"));
+    assert!(read_imported("a\tb", "o").unwrap_err().contains("line 1"));
+    assert_eq!(back[0].patternness(3), got.patterns[0].patternness(3));
+}
+
+#[test]
+fn a_changed_formula_version_recomputes_the_stored_values() {
+    let got = import_tab(&row("Z3.01", 1, "Slice", "R2 L2"), &options(3), &read_plain);
+    let file = write_imported(&got.patterns, "synthetic");
+    let live = got.patterns[0].patternness(3).unwrap();
+    assert!(!imported_is_stale(&file));
+    // A value stored under the current version is used as it is.
+    let forged = file.replace(&format!("\t{live}\t"), "\t7\t");
+    assert_eq!(
+        read_imported(&forged, "o").unwrap()[0].patternness(3),
+        Some(7)
+    );
+    // Under another version it is ignored and computed again.
+    let old = forged.replace("patternness-v1", "patternness-v0");
+    assert!(imported_is_stale(&old));
+    assert_eq!(
+        read_imported(&old, "o").unwrap()[0].patternness(3),
+        Some(live)
+    );
 }
 
 #[test]
