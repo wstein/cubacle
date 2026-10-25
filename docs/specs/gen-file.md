@@ -22,6 +22,10 @@ By default the command only checks the definition and counts what fits it. Searc
 cubacle patterns find concentric-squares.gen --solve
 ```
 
+## Principle
+
+The definition file says what a pattern is: its name, grid, guard, symmetry, order and orbits. The name must mean the same pattern everywhere, in `identify` and in the library. Run options say how much to compute (`--limit`, `--count`, `--sample`, `--seed`, `--max-states`, `--max-time`, `--max-memory`, `--solve`, `--icons`). They never change the pattern.
+
 ## Layout
 
 The file is line-based: `key: value`. `#` starts a comment that runs to the end of the line. A line that starts with white space continues the value of the previous key.
@@ -45,7 +49,8 @@ comment      = { " " | tab } "#" { any } ;
 entry        = key ":" { " " } value ;
 continuation = ( " " | tab ) { " " | tab } text ;
 key          = "name" | "title" | "aliases" | "size" | "scheme" | "schema"
-             | "where" | "alphabet" | "limits" | "tags" ;
+             | "where" | "alphabet" | "limits" | "tags"
+             | "symmetry" | "antisymmetry" | "order" | "orbits" | "fixed" ;
 value        = text { newline continuation } ;
 ```
 
@@ -63,6 +68,35 @@ value        = text { newline continuation } ;
 | `alphabet` | no | Moves used by `--solve`: `outer`, `slices`, `blocks` or a list of moves. |
 | `limits` | no | Search limits for `--solve`. |
 | `tags` | no | Tags, separated by commas. |
+| `symmetry` | no | The pattern has at least this symmetry type. |
+| `antisymmetry` | no | The same for the extension in which the symmetry gives the inverse cube. |
+| `order` | no | Order of the generating move sequence. |
+| `orbits` | no | Only these orbits may change; the rest stays solved. |
+| `fixed` | no | Orbits that must stay solved. |
+
+### Symmetry, order and orbits
+
+`symmetry` names a Schoenflies type, for example `D4h`. The cube symmetry group has 48 elements; its subgroups fall into 33 conjugacy classes, which the implementation derives by computation. This page does not list them, and the count is not verified here. `antisymmetry` uses the same names for the 96-element extension of that group, in which applying the symmetry gives the inverse cube.
+
+`order` is the order of the move sequence that generates the pattern: a number, a range such as `3..6`, or a set such as `{2, 3, 6}`.
+
+`orbits` and `fixed` list orbit names as the implementation names them, for example corners, edges, wings, midges, centres, x-centres and t-centres. `fixed: X` is shorthand for `orbits:` naming every other orbit.
+
+```ebnf
+symmetry-value = schoenflies ;
+schoenflies    = upper { letter | digit } ;
+order-value    = number | number ".." number | "{" number { "," number } "}" ;
+orbits-value   = orbit-name { "," orbit-name } ;
+orbit-name     = lower { lower | "-" } ;
+```
+
+Error messages, each with line and column:
+
+- `unknown symmetry type "X"`
+- `unknown orbit "X"`
+- `order range "a..b": a is greater than b`
+- `order must be a positive number, a range or a set`
+- `"orbits" and "fixed" name the same orbit "X"`
 
 ```ebnf
 id       = lower-or-digit { lower-or-digit | "-" } ;
