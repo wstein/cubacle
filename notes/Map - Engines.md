@@ -89,3 +89,4 @@ Raw-material notes, category engines.
 - [[Repair searches pattern plus a few wide-block moves from both sides]]
 - [[Big cubes stop at a default time limit]]
 - [[A cube is oriented by its centers before it is solved]]
+- [[solve --within searches both ends and compares colours, so every state is a valid target]]

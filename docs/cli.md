@@ -48,6 +48,9 @@ The first two lines go to standard error. `moves N` is always printed there, `el
 | `--improve` | 3x3x3 only. Keep improving until the time budget (`-b`, default 1000 ms) is spent, then print the best solution found. |
 | `--parallel` | 3x3x3 only, with `--improve` and `-b`: search the six orientations at once. Measured no better than plain `--improve`. |
 | `--now <CUBE>` | The cube as it is now, after following the solution of the cube given above and going wrong: `solve` then explains the mistake and the way back instead of solving. See [Recover a mistake](#recover-a-mistake) for this mode and its options (`--solution`, `--at-move`, `--sure-until`, `--fresh`, `--strays`, `--one-mistake`, `--thorough`, `--max-time`, and `--depth` with another meaning). It cannot be combined with the options that change how a plain solve searches. |
+| `--within[=K]` | An optimal route of at most K moves (1 to 7, default 6) for a nearly solved cube of any size, searched from both ends; works for every `--to` state. Exit code 2 when there is none, 3 at a limit. See [A nearly solved cube](#a-nearly-solved-cube---within). |
+| `--blocks` | With `--within`: also the blocks of two and three layers from either side and the layers 2-3. |
+| `--then-solve` | With `--within`: when no route of at most K moves exists, solve with the normal solver. |
 | `--slices` | 4x4x4 and 5x5x5: allow single inner layers (`2R`) in the answer where they make it shorter. Default: outer layers and two-layer turns only. See [the move metric](performance.md#move-metric). |
 | `--notation <wca\|sign\|sse>` | How the solution is written. Default `wca` (`Rw`, `3Rw`); `sign` writes `r`, `3r`; `sse` writes `TR`, `T3R`, `MR` (see [Move notations](#move-notations)). With `--icons` it also sets the move lines and the last line; the icon labels stay WCA. |
 | `--optimise ranges` | After the solve, with no search: adjacent turns of one axis are written as layer ranges where that is shorter (`2-3r` in sign, `2-3Rw` in wca, `V2R`, `M2R` or `N2-4R` in sse; only contiguous layers). Off by default. The solution is the same state; stderr reports `moves N` (as solved), `compressed moves M` and, after the metrics line of the plain answer, `compressed metrics: ...`; stdout holds the compressed text. Not combined with `--icons`. On 20 random 4x4x4 to 7x7x7 solutions it saved 0 to 2 moves (2 of 20 saved any, both 7x7x7), on 14 human 4x4x4+ states 0 to 5, because the solvers already merge most axis runs. |
@@ -253,6 +256,93 @@ L' U2 F' L F U' D F B2 L B' D' L2 B2 D R2 B2 U
 The second run proves only that no solution has fewer than 14 moves, and prints the default engine's 18. The answer is never longer than the default one, and every answer is replayed on the cube before it is printed. The first run in a cache directory builds the tables, which takes a few minutes (Small: about 50 s of CPU; Large: about 6 minutes of CPU) and prints its progress on stderr.
 
 The tables depend on the memory this machine really has, read at run time (macOS, Linux and Windows alike, never assumed from the platform): without `--max-memory` the budget is half of the available memory (the total where the system does not report it), at most 16000 MB. The large set (555 MB) is used when it fits the budget, else the small one (86 MB), else an error. An explicit `--max-memory MB` wins. If the memory cannot be read, the small set is used and stderr says so. The first stderr line names the choice and the reason, for example `optimal search with the large pruning tables (555 MB): this machine has 17179 MB of memory, available: 9533 MB; budget 4766 MB (half of the available memory, at most 16000)`. `--optimal` needs the 3x3x3 and cannot be combined with `--fast`, `--probes`, `--improve`, `--parallel`, `--moves`, `--to`, `--all` or `--count`. **Random cubes are mostly out of reach on one core of a laptop:** a cube that needs 17 or 18 moves takes billions of nodes, minutes to hours. Measured numbers, by length, are on [3x3x3 performance](engines/3x3.md#optimal-solutions).
+
+### A nearly solved cube: --within
+
+`--within K` is for a cube that is only slightly scrambled: it finds an optimal route of at most K moves (K from 1 to 7; write `--within=5`, plain `--within` means 6). The search starts at the cube and at the target and meets in the middle on the colours of the stickers, so it needs no relative state and works for every size from the 2x2x2 to the 7x7x7 and for every target: the solved cube, `--to` as a move expression or as a state text, also a state with mixed center colors (made with slice moves). Every route is replayed colour by colour before it is printed.
+
+```sh
+cubacle solve -s "R U2 F' D L2 B" --within=6
+cubacle solve -s "R U F2" --to "R U2 F' D" --within=4
+cubacle solve -s "2R 2U' F R" --size 4 --to "2R 2U'" --within=3 --slices
+```
+
+```text
+moves 6
+metrics: htm 6, qtm 8, stm 6
+B' L2 D' F U2 R'
+```
+
+```text
+moves 4
+metrics: htm 4, qtm 5, stm 4
+F2 U F' D
+```
+
+```text
+moves 2
+metrics: obtm 2, qtm 2, stm 2, btm 2
+R' F'
+```
+
+The answer is the shortest in an alphabet, and the message names it. The default is the alphabet the normal solver writes: the six face turns, from the 4x4x4 the outer blocks (`Rw`, `3Rw`, up to half the cube and three layers, from either side), counted in HTM (OBTM from the 4x4x4, the same rule). `--slices` adds the single inner layers (`2R`, `M`), counted in BTM, one per block. `--blocks` adds every block of two and three outer layers from either side and the layers 2-3 (written `3Rw R'`), and counts the blocks, a block of layers 2-3 once; the `moves N` line counts plain moves, so such a route can show a larger `moves N` than K. A larger alphabet finds shorter routes and searches more:
+
+```sh
+cubacle solve -s "2R 2U 2F" --size 4 --within=3
+cubacle solve -s "2R 2U 2F" --size 4 --within=3 --slices
+```
+
+```text
+error: no route of at most 3 moves in the outer-block alphabet (obtm)
+```
+
+```text
+moves 3
+metrics: obtm 6, qtm 6, stm 3, btm 3
+3B 3D 3L
+```
+
+If nothing is found, stdout stays empty and the status is 2. Before it searches, `--within` counts the stickers that differ between the cube and the target in each orbit (corners, each kind of edge or centre piece) and divides by the most stickers one move of the alphabet displaces in that orbit; a bound above K ends the run at once. The same bound proves a target unreachable when a move never touches an orbit (the centres of the 3x3x3 with face turns). The proof is in `src/meet/alphabet.rs` and a test checks the bound against the search.
+
+`--then-solve` (it needs `--within`) goes on with the normal solver, with the same options as without `--within`, when no route of at most K moves exists:
+
+```sh
+cubacle solve -s "R U2 F' D L2 B R' U F2" --within=4 --then-solve
+```
+
+```text
+no route within 4 moves; solved with the normal solver
+moves 9
+metrics: htm 9, qtm 12, stm 9
+F2 U' R B' L2 D' F U2 R'
+```
+
+(the first line is on stderr). `--max-time MS` (default 60000, 0 for none) and `--max-memory MB` (default 1000) bound the search; when one ends it, stderr says `error: time limit` or `error: memory limit` and the status is 3. `--within` works with `--notation`, `--icons`, `--group`, `--optimise` and `-v`. It does not combine with `--now`, `--optimal`, `--moves`, `--count`, `--all` (one route is listed) and, without `--then-solve`, with the options of the normal solver (`-m`, `-b`, `--probes`, `--improve`, `--parallel`, `--fast`); each is refused by name. The 2x2x2 route ends on the exact solved cube, not on a whole-cube rotation of it.
+
+Exit codes of `solve`: 0 success; 1 input error or refused option; 2 no route (or an impossible state); 3 a time or memory limit ended the search.
+
+On the 3x3x3 the search is faster than `--optimal` for up to seven moves (6 moves: 7 ms against 0.47 s, because the large tables of `--optimal` have to be loaded) and gives the same length, so it is used there too. Measured with the release build on a busy Apple-silicon machine (load average 40 to 80, so read the times as upper bounds), a cube K moves from solved (a hit; the optimum was K) and one K+1 moves away (none: the search runs to the end). Seconds, then peak memory (RSS) in MB:
+
+| size | K=4 | K=5 | K=6 | K=7 |
+| --- | --- | --- | --- | --- |
+| 2x2x2 | 0.01 s, 7 MB | 0.00 s, 7 MB | 0.01 s, 7 MB | 0.01 s, 8 MB |
+| 3x3x3 | 0.01 s, 7 MB | 0.02 s, 7 MB | 0.04 s, 7 MB | 0.02 s, 8 MB |
+| 4x4x4 | 0.01 s, 7 MB | 0.01 s, 8 MB | 0.01 s, 8 MB | 0.15 s, 21 MB |
+| 5x5x5 | 0.01 s, 7 MB | 0.01 s, 8 MB | 0.01 s, 8 MB | 0.26 s, 21 MB |
+| 6x6x6 | 0.01 s, 7 MB | 0.03 s, 9 MB | 0.06 s, 9 MB | 3.1 s, 78 MB |
+| 7x7x7 | 0.01 s, 7 MB | 0.03 s, 9 MB | 0.07 s, 9 MB | 4.0 s, 78 MB |
+
+With `--blocks` (the largest alphabet, 45 moves on the 3x3x3 and 117 on the 7x7x7):
+
+| size | K=4 | K=5 | K=6 | K=7 |
+| --- | --- | --- | --- | --- |
+| 3x3x3 | 0.01 s, 7 MB | 0.01 s, 8 MB | 0.02 s, 8 MB | 0.19 s, 41 MB |
+| 4x4x4 | 0.01 s, 7 MB | 0.04 s, 13 MB | 0.2 s, 13 MB | 4.2 s, 375 MB |
+| 5x5x5 | 0.01 s, 8 MB | 0.07 s, 17 MB | 0.32 s, 17 MB | 16.8 s, 836 MB |
+| 6x6x6 | 0.01 s, 8 MB | 0.12 s, 21 MB | 1.2 s, 21 MB | 57 s, 21 MB |
+| 7x7x7 | 0.04 s, 8 MB | 0.45 s, 24 MB | 1.1 s, 24 MB | 26 s, 24 MB |
+
+A "none" run takes about as long as a hit of the same K. The stored side is capped by `--max-memory`; on the 6x6x6 and 7x7x7 with `--blocks` the cap keeps it three moves deep, so K=7 walks four moves and takes up to a minute (the default limit is 60 s: raise `--max-time` there).
 
 ### Move counts
 
@@ -694,7 +784,7 @@ These options belong to `solve --now`. All but `--now` itself need it, and `--no
 | `--strays <N>` | Stray moves after a mistake the last stage allows, 0 to 3 (default 2; one for solutions under 16 moves). 0 leaves the stage out. |
 | `--one-mistake` | Look for one mistake only. The default also looks for two. |
 | `--thorough` | For two mistakes, try every move instead of it and every extra move. Slow on big cubes (it does not finish within the default time limit on a 7x7x7). |
-| `--max-time <MS>` | Time limit of the search in milliseconds, 0 for none (default 8000). The result then says that the search stopped at its time limit. (The flag is the same one a plain `solve` has, with another default.) |
+| `--max-time <MS>` | Time limit of the search in milliseconds, 0 for none (default 8000; with `--within` 60000). The result then says that the search stopped at its time limit. (The flag is the same one a plain `solve` has, with another default.) |
 | `-v`, `--verbose` | Print the time of the solve, the fresh solve and the search to standard error. |
 
 The original cube is the one `solve` reads: `--scramble`, `--size` and `--scheme` apply as always. The search treats a move as a permutation of the stickers, so it is the same for every size. Measured on a 7x7x7 (12 cores, with the fresh solve running beside the search): a mistake is found in 30 to 250 ms; a cube that nothing explains takes 1 to 4 s because all 24 orientations are tried; the fresh solve takes 3 to 12 s and the solution of the original cube 4 to 8 s. The mistakes are tried in two levels: one mistake, with every move as a replacement or an extra move, and two mistakes of the likely kinds only (skipped, wrong amount, direction, layers or face, swapped, done twice).
