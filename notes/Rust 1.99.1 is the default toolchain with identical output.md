@@ -7,6 +7,6 @@ On 2026-10-24 the default toolchain moved from 1.96.1 to 1.99.1 after a light me
 
 ## Links
 
-- [[The Rust toolchain is raised after the queue, the minimum version stays 1.85]]
+- [[The Rust toolchain is raised after the queue, the minimum version is 1.95]]
 
 Source: Cargo.toml, lines 1-10
