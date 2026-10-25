@@ -68,14 +68,15 @@ cubacle random | cubacle solve -
 
 ### What solved means
 
-`solve` works on colours: a cube is solved when every face shows one colour. Inner pieces of one colour that cannot be told apart by looking, such as the centres of the 4x4x4 to 7x7x7, are interchangeable, so two cubes that differ only by a swap of same-coloured centres are the same cube and get the same answer. There is no strict mode that tells them apart. For the same reason a `--to` target on the 4x4x4 and larger cannot ask for a scrambled arrangement of same-coloured centres, that is for centres of one kind on one face in different colours (`Rw` moves half of the centres of the front face away). Targets whose faces show one colour per kind of centre are fine, also when the centres sit on other faces:
+`solve` works on colours: a cube is solved when every face shows one colour. Inner pieces of one colour that cannot be told apart by looking, such as the centres of the 4x4x4 to 7x7x7, are interchangeable, so two cubes that differ only by a swap of same-coloured centres are the same cube and get the same answer. There is no strict mode that tells them apart. A `--to` target on the 4x4x4 and larger may still ask for a scrambled arrangement of same-coloured centres, that is for centres of one kind on one face in different colours (`Rw` moves half of the centres of the front face away): the route then ends in a centre fix-up, see [Targets with mixed centres](#targets-with-mixed-centres).
 
 ```sh
 cubacle solve --size 4 "R U" --to Rw
 ```
 
 ```text
-error: the target has centres of different colours on one face; `solve --to` needs one colour per face (4x4) or per face and orbit (5x5 and up), as rotations and outer-layer patterns have. Reach other patterns by applying their generator (`cubacle patterns show <id>`) to a solved cube
+moves 3
+U' R' Rw
 ```
 
 ### Solve to a target
@@ -100,10 +101,45 @@ Rules and limits:
 
 - Start and target must have the same size: `the start is a 3x3x3 but the target is a 2x2x2`.
 - An impossible start or target is rejected: `the start or the target state is impossible`.
-- 4x4x4 and larger: the target holds exactly, with orientation, but its centres of one kind (one orbit) on one face must show one colour, because the solvers cannot tell centres of one colour apart and so cannot aim for a scrambled arrangement. Equal pieces are paired fixed points first, so the centres may sit on other faces: `solve --size 4 "R U" --to "Rw2 Lw2"` prints `U' R' Rw2 Lw2`. A single wide turn leaves half of a face's centres in another colour: `--to Rw` fails with `the target has centres of different colours`.
+- 4x4x4 and larger: the target holds exactly, with orientation, and the colours of its centres count. Equal pieces are paired fixed points first, so the centres may sit on other faces: `solve --size 4 "R U" --to "Rw2 Lw2"` prints `U' R' Rw2 Lw2`. A target whose centres of one kind show different colours on one face is reached by a centre fix-up (next section). A target with centre colours no cube has (a colour on more or fewer than four places of an orbit) is `impossible`.
 - 2x2x2: it has no centres to fix its frame, and its solver ends in any of the 24 orientations, so the target counts as reached when the cube shows it after a rotation of the whole cube.
 - With `--icons` the output has `Target state: TOKEN` below `Start state: TOKEN`, and the move pictures end in the target.
 - A target is one argument, so `--to` does not read standard input.
+
+### Targets with mixed centres
+
+On the 4x4x4 to 7x7x7 the solvers work on colours: they bring every centre to its face but leave the centres of a face in any order. A target built with inner slices (`2R`, SSE `VB`), wide turns with slices or an imported pattern can show different colours on one face, and the solver cannot aim for that directly. `solve --to` then plans the route in three steps: find moves `w` that make the target's centres uniform, solve the start to that nearby target as for any uniform target, and append `w` undone, the centre fix-up. `w` is the shortest sequence of layer moves when a search finds it within a fixed work limit (so the answer is the same on every machine), else a short one from a beam search, else the shortest prefix of the engine's own solution of the target that leaves the centres uniform. When the target is given as moves, undoing those moves bounds the fix-up, so the route is never longer than solving to the solved cube and then making the target's moves. The fix-up is its own phase, `centre fix-up`, the last one in `-v`, `--group phases` and `--icons`.
+
+The owner's SSE slice target on a 7x7x7, from a 40-move scramble (`B L2 3R' 3U' ... B' 3D2`; 220 moves, 188 for the start and 32 for the fix-up, 35 s on a busy machine):
+
+```sh
+cubacle solve --size 7 -s "B L2 3R' 3U' 3L 3R2 2F2 U 3R' 3D' 2R U 3F 2R2 3B2 2L 3U2 3R' 2B' 2R2 3D2 3F' 2D' 3F' 2D' 2R' 3D' U' 3R' 2B 2U2 2B' F2 3L 3R F2 L 3U' B' 3D2" \
+  --to "VB VD VL VD2 VL' VD VB2 VD' · VL' VR' · VU' VB VU2 VB' VU2 VF'" --notation sse -v
+```
+
+```text
+centre fix-up: 32 moves (the moves that built the target, undone)
+moves 220
+phase 6: 3x3 stage, moves 168-188
+phase 7: centre fix-up, moves 189-220
+```
+
+Measured routes (random 40-move starts, targets of 3, 5 and 8 random inner-slice turns; moves and seconds on a busy machine). Naive is the plain solve of the start plus the target's own moves:
+
+| Cube | Naive | Route from moves | Route from facelets (search) |
+| --- | --- | --- | --- |
+| 4x4x4, 3 / 5 / 8 slices | 47 / 49 / 52 | 45 / 47 / 51 | 46 / 47 / 51 |
+| 5x5x5, 3 / 5 / 8 slices | 72 / 74 / 77 | 72 / 74 / 76 | 72 / 74 / 76 |
+| 6x6x6, 3 / 5 / 8 slices | 135 / 137 / 140 | 135 / 137 / 140 | 135 / 137 / 140 |
+| 7x7x7, 3 / 5 / 8 slices | 191 / 193 / 196 | 191 / 193 / 195 | 191 / 193 / 195 |
+| 7x7x7, the owner's target | 220 | 220 | 225 |
+
+So the route is as short as the naive one and sometimes one or two moves shorter; a target of many slice turns given only as facelets costs a few moves more, because no short sequence is found for it. Rules:
+
+- The odd cubes keep their face centres: a target built with the middle slice (`3F` on a 5x5x5) is first put into the start's frame by middle-layer turns, which count in the fix-up.
+- `-m` counts the whole route: `the centre fix-up alone takes 5 moves, over the limit of 5`; `-b` covers the planning too (`the budget went into planning the centre fix-up`).
+- `--probes` and `--improve` act on the solve to the nearby target; `--parallel` stays 3x3x3 only. `--moves` (a move set) is refused with such a target. `--optimise ranges`, `--notation`, `--group` and `--icons` work as for any target.
+- Every route is replayed against the target before it is printed.
 
 ### Targets with open stickers
 

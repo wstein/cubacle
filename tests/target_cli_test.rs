@@ -139,10 +139,11 @@ fn an_impossible_target_is_rejected() {
 }
 
 #[test]
-fn a_target_with_the_centres_moved_is_refused_on_a_4x4() {
-    let (ok, _, error) = cubacle(&["solve", "--size", "4", "R U", "--to", "Rw"]);
-    assert!(!ok);
-    assert!(error.contains("centres"), "{error}");
+fn a_target_with_the_centres_moved_is_reached_on_a_4x4() {
+    // refused before the centre fix-up; see centre_fixup_cli_test.rs
+    let target = cube(PuzzleKind::Cube4, "Rw");
+    let size = "4";
+    solves_to(size, "R U", "Rw", &target);
 }
 
 #[test]

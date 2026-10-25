@@ -28,6 +28,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
+use cubacle::centres;
 use cubacle::engines::dwalton::DwaltonSolver;
 use cubacle::engines::five::FiveSolver;
 use cubacle::engines::four::FourSolver;
@@ -508,9 +509,14 @@ fn solve(args: SolveArgs) -> Result<(), String> {
     let target = target.and_then(|t| t.as_state());
     // The cube to solve: the start itself, or what is left of it after the
     // target is taken out.
+    // A target whose centres differ in colour on one face is reached through
+    // a centre fix-up; its cube to solve is made once the engine is at hand.
+    let mixed = target.as_ref().is_some_and(|t| !centres::uniform(t));
     let facelets = match &target {
-        Some(target) => relative_state(&start, target).map_err(|error| error.to_string())?,
-        None => start.clone(),
+        Some(target) if !mixed => {
+            relative_state(&start, target).map_err(|error| error.to_string())?
+        }
+        _ => start.clone(),
     };
     improve::check(&args, facelets.kind())?;
     optimal_cmd::check(&args, facelets.kind())?;
@@ -519,6 +525,12 @@ fn solve(args: SolveArgs) -> Result<(), String> {
         None => None,
     };
     enumerate_cmd::check(&args, facelets.kind())?;
+    if mixed && restricted.is_some() {
+        return Err(
+            "--moves cannot be combined with a target whose centres differ in colour on a face: the centre fix-up uses inner slices"
+                .into(),
+        );
+    }
     if enumerate_cmd::wanted(&args) {
         return enumerate_cmd::run(&args, &start, &facelets, target.as_ref(), restricted);
     }
@@ -546,16 +558,45 @@ fn solve(args: SolveArgs) -> Result<(), String> {
         options = options.with_time_budget(Duration::from_millis(millis));
     }
     options = options.with_slices(args.slices);
+    let plan = match (&target, mixed) {
+        (Some(target), true) => {
+            // the moves of the target, when it is given as moves, bound the fix-up
+            let moves = args
+                .to
+                .as_deref()
+                .and_then(|text| parse_expression(text, start.kind()).ok());
+            centres::plan(solver.as_ref(), &start, target, &options, moves.as_ref())
+                .map_err(|error| error.to_string())?
+        }
+        _ => None,
+    };
+    let facelets = match &plan {
+        Some(plan) => relative_state(&start, plan.goal()).map_err(|error| error.to_string())?,
+        None => facelets,
+    };
     let mode = improve::mode(&args).or_else(|| {
         improve::default_mode(&args, facelets.kind(), target.is_some(), restricted_set)
             .filter(|_| !args.optimal)
     });
-    let result = match mode {
-        Some(mode) if facelets.kind() == PuzzleKind::Cube3 => {
-            improve::solve(&facelets, options, mode, args.verbose)
+    let limited = match &plan {
+        Some(plan) => plan.limit(&options),
+        None => Ok(options),
+    };
+    let result = match limited {
+        Err(failed) => failed,
+        Ok(options) => {
+            let result = match mode {
+                Some(mode) if facelets.kind() == PuzzleKind::Cube3 => {
+                    improve::solve(&facelets, options, mode, args.verbose)
+                }
+                Some(mode) => improve::solve_reduction(solver.as_ref(), &facelets, options, mode),
+                None => solver.solve(&facelets, &options),
+            };
+            match &plan {
+                Some(plan) => plan.complete(result),
+                None => result,
+            }
         }
-        Some(mode) => improve::solve_reduction(solver.as_ref(), &facelets, options, mode),
-        None => solver.solve(&facelets, &options),
     };
 
     if args.verbose {
@@ -566,6 +607,13 @@ fn solve(args: SolveArgs) -> Result<(), String> {
                 .metrics
                 .probes
                 .map_or_else(|| "-".into(), |p| p.to_string())
+        );
+    }
+    if let (true, Some(plan)) = (args.verbose, &plan) {
+        eprintln!(
+            "centre fix-up: {} moves ({})",
+            plan.tail().len(),
+            plan.method()
         );
     }
     if args.verbose {

@@ -58,9 +58,8 @@ fn outer_targets_are_reached_on_the_6x6_and_7x7() {
 }
 
 #[test]
-fn centres_of_one_kind_in_two_colours_on_a_face_are_refused() {
-    let (ok, _, error) = cubacle(&["solve", "--size", "5", "R U", "--to", "Rw2 Lw2"]);
-    assert!(!ok);
-    assert!(error.contains("centres of different colours"), "{error}");
-    assert!(error.contains("patterns show <id>"), "{error}");
+fn centres_of_one_kind_in_two_colours_on_a_face_are_reached_by_a_fix_up() {
+    // refused before the centre fix-up existed; see centre_fixup_cli_test.rs
+    reaches_target(5, "R U", "Rw2 Lw2");
+    reaches_target(4, "R U", "Rw");
 }

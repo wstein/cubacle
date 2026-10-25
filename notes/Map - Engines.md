@@ -35,6 +35,7 @@ Raw-material notes, category engines.
 - [[A target is solved as a relative state]]
 - [[Same-coloured inner pieces are equal and there is no strict mode]]
 - [[Equal pieces are matched fixed points first]]
+- [[A centre fix-up pass lets --to reach mixed centres]]
 - [[Pattern shortcut finds hand-built cubes]]
 - [[Pattern search speed comes from measuring first, then symmetry, compact states and cores]]
 - [[A partial target is a map from slots to allowed colours]]

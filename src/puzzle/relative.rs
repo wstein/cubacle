@@ -24,8 +24,10 @@ pub enum RelativeError {
     /// A piece of the named state shows colours no piece of the cube has.
     ImpossiblePiece { which: &'static str },
     /// The target shows centres of one kind (the centres of one orbit on one
-    /// face) in different colours, which the colour-based search cannot aim
-    /// for: it only tells where a centre goes by the face.
+    /// face) in different colours. The relative state only tells a centre the
+    /// face it goes to, not the place, so it cannot express the target; the
+    /// route to such a target is planned by `centres::plan`, which aims at a
+    /// nearby target with uniform centres and finishes with a centre fix-up.
     CentresMoved,
 }
 
@@ -40,10 +42,8 @@ impl fmt::Display for RelativeError {
             ),
             RelativeError::CentresMoved => write!(
                 f,
-                "the target has centres of different colours on one face; `solve --to` needs one \
-                 colour per face (4x4) or per face and orbit (5x5 and up), as rotations and \
-                 outer-layer patterns have. Reach other patterns by applying their generator \
-                 (`cubacle patterns show <id>`) to a solved cube"
+                "the target has centres of different colours on one face, which a relative state \
+                 cannot express; plan the route with `centres::plan`, which ends in a centre fix-up"
             ),
             RelativeError::ImpossiblePiece { which } => {
                 write!(
@@ -171,7 +171,8 @@ fn assignment(
 
 /// Whether the target shows one colour for the centres of one orbit on one
 /// face. The colour-based search only knows the face a centre has to reach,
-/// so it can aim for a target only if that face fixes the colour.
+/// so the relative state can express a target only if that face fixes the
+/// colour.
 fn centres_uniform(target: &Facelets, cells: &[Cubie]) -> bool {
     let kind = target.kind();
     let mut seen: HashMap<(usize, Vec3), Face> = HashMap::new();
@@ -199,7 +200,9 @@ fn centres_uniform(target: &Facelets, cells: &[Cubie]) -> bool {
 /// reduction solvers read centres by colour and ignore it, so either parity
 /// is a state they solve. A target whose centres of one kind differ in colour
 /// on one face is refused with [`RelativeError::CentresMoved`], because the
-/// relative state only tells a centre which face to reach, not which place.
+/// relative state only tells a centre which face to reach, not which place;
+/// `centres::plan` turns such a target into one with uniform centres and a
+/// fix-up.
 pub fn relative_state(start: &Facelets, target: &Facelets) -> Result<Facelets, RelativeError> {
     relative_by(start, target, false)
 }

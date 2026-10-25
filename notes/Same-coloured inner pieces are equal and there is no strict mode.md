@@ -3,7 +3,7 @@ id: 20261025095527
 aliases: []
 tags: ["type/decision", "status/decided", "category/engines"]
 ---
-The owner decided on 2026-10-25 that solving and patterns are colour based. Inner pieces of one colour that look identical, such as the centres of the 4x4x4 to 7x7x7, are equal: two cubes that differ only by a swap of same-coloured centres have the same Facelets, the same answer from `solve` and the same fingerprint, patternness and library match from `patterns identify`. There is no strict mode. A target on the 4x4x4 and larger still cannot ask for a scrambled arrangement of same-coloured centres and is refused with `the target has centres of different colours`. The test `tests/same_colour_centres_test.rs` builds such pairs with centre-only sequences on the 4x4x4, 5x5x5 and 6x6x6.
+The owner decided on 2026-10-25 that solving and patterns are colour based. Inner pieces of one colour that look identical, such as the centres of the 4x4x4 to 7x7x7, are equal: two cubes that differ only by a swap of same-coloured centres have the same Facelets, the same answer from `solve` and the same fingerprint, patternness and library match from `patterns identify`. There is no strict mode. A target on the 4x4x4 and larger may ask for a scrambled arrangement of same-coloured centres (centres of one kind in two colours on a face): the route ends in a centre fix-up and the replay compares colours, as everywhere ([[A centre fix-up pass lets --to reach mixed centres]]). The test `tests/same_colour_centres_test.rs` builds such pairs with centre-only sequences on the 4x4x4, 5x5x5 and 6x6x6.
 
 ## Links
 
