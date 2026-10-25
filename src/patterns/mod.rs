@@ -18,6 +18,7 @@
 //! ```
 
 mod bases;
+mod claims;
 mod decode;
 mod detector;
 mod groups;
@@ -28,6 +29,7 @@ mod parse;
 mod route;
 
 pub use bases::{bases, Base};
+pub use claims::sheet_counts;
 pub use decode::{decode_bytes, decode_text, Encoding};
 pub use detector::{
     cycles_of_moves, cycles_of_state, detect, detect_with, kind, measures, patternness, Cycle,

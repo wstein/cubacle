@@ -8,7 +8,8 @@ use clap::Args;
 use cubacle::metrics::{count, Metric};
 use cubacle::notation::parse_expression;
 use cubacle::patterns::{
-    cycles_of_moves, decode_bytes, import_tab, read_plain, write_imported, ImportOptions, ImportRow,
+    cycles_of_moves, decode_bytes, import_tab, read_plain, sheet_counts, write_imported,
+    ImportOptions, ImportRow,
 };
 use cubacle::puzzle::{MoveSequence, PuzzleKind};
 
@@ -23,7 +24,9 @@ pub struct ImportArgs {
     /// Two-letter catalogue tag of the ids written as `tag:code`
     #[arg(long, default_value = "ct")]
     source: String,
-    /// Check and report only, including the counts each line claims; write nothing
+    /// Check and report only, including the counts each line claims (read in
+    /// the table's own convention: a slice or wide turn is one block turn, a
+    /// cube rotation none); write nothing
     #[arg(long)]
     dry_run: bool,
     /// Write here instead of the data directory
@@ -85,8 +88,10 @@ fn dash_to_prime(text: &str) -> String {
     out
 }
 
-/// The counts a row claims against our own: block, face and quarter turns
-/// and the order. One line per disagreement.
+/// The counts a row claims: block, face and quarter turns against the
+/// table's own convention (`cubacle::patterns::sheet_counts`; ours where the
+/// text is not readable that way) and the order against ours. One line per
+/// disagreement.
 fn check_counts(rows: &[ImportRow], kind: PuzzleKind) -> Vec<String> {
     let mut out = Vec::new();
     for row in rows {
@@ -95,15 +100,16 @@ fn check_counts(rows: &[ImportRow], kind: PuzzleKind) -> Vec<String> {
             .and_then(|c| c.order)
             .map(|o| o.whole);
         let ours = [
-            ("block turns", count(&row.moves, kind, Metric::Btm) as u128),
-            ("face turns", count(&row.moves, kind, Metric::Htm) as u128),
-            (
-                "quarter turns",
-                count(&row.moves, kind, Metric::Qtm) as u128,
-            ),
+            ("block turns", count(&row.moves, kind, Metric::Btm)),
+            ("face turns", count(&row.moves, kind, Metric::Htm)),
+            ("quarter turns", count(&row.moves, kind, Metric::Qtm)),
         ];
-        let mut mine: Vec<(&str, Option<u128>)> =
-            ours.iter().map(|(n, v)| (*n, Some(*v))).collect();
+        let sheet = sheet_counts(&row.text);
+        let mut mine: Vec<(&str, Option<u128>)> = ours
+            .iter()
+            .enumerate()
+            .map(|(i, (n, v))| (*n, Some(sheet.map_or(*v, |s| s[i]) as u128)))
+            .collect();
         mine.push(("order", order));
         for (index, (name, value)) in mine.iter().enumerate() {
             let text = row.claimed[index].trim().trim_end_matches('*');
@@ -239,6 +245,36 @@ mod tests {
             read("U \u{b7} VB").unwrap().to_string(),
             read("U VB").unwrap().to_string()
         );
+    }
+
+    /// An invented line: claims are read in the table's convention, in which
+    /// a slice turn is one block turn and a cube rotation is none.
+    #[test]
+    fn claims_are_checked_in_the_convention_of_the_table() {
+        let kind = PuzzleKind::Cube3;
+        let line = |moves: &str, counts: [&str; 3]| {
+            let f = [
+                "Z9.01", "1", "G", "G", "U", "U", "P", "P", moves, counts[0], counts[1], counts[2],
+                "",
+            ];
+            f.join("\t")
+        };
+        let options = ImportOptions {
+            size: 3,
+            name_prefix: String::new(),
+            origin: "synthetic".to_owned(),
+            source: "ct".to_owned(),
+        };
+        let check = |text: String| {
+            let got = import_tab(&text, &options, &reader(kind));
+            assert!(got.report.problems.is_empty(), "{:?}", got.report.problems);
+            check_counts(&got.rows, kind)
+        };
+        // Z9.01 as one sequence of slice turns with a rotation in front.
+        assert!(check(line("CD2 \u{b7} MR2 MD MR2 MD-", ["4", "8", "12"])).is_empty());
+        let wrong = check(line("MR2 MD", ["3", "4", "6"]));
+        assert_eq!(wrong.len(), 1, "{wrong:?}");
+        assert!(wrong[0].contains("claims 3 block turns, counted 2"));
     }
 
     #[test]

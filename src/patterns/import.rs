@@ -10,7 +10,7 @@
 //! | 2 | variant number: lines with the same code are alternative sequences |
 //! | 3-8 | three levels of grouping (category, subgroup, sub-subgroup), each German then English; the last is the pattern's name |
 //! | 9 | the move sequence |
-//! | 10-13 | four counts (block turns, face turns, quarter turns, order; unverified, an `*` marks a minimum) |
+//! | 10-13 | four counts (block turns, face turns, quarter turns, order; unverified, an `*` marks a minimum; the first three in the convention of `claims`) |
 //! | 14 | cycle notation of the parts (not imported) |
 //! | 15-17 | author and year, notes |
 //!
@@ -60,6 +60,8 @@ pub struct ImportRow {
     pub line: usize,
     pub code: String,
     pub moves: MoveSequence,
+    /// The move field as written, without the trailing note of pieces.
+    pub text: String,
     /// Fields 10 to 13 as written: block turns, face turns, quarter turns, order.
     pub claimed: [String; 4],
 }
@@ -249,6 +251,7 @@ pub fn import_tab(text: &str, options: &ImportOptions, read: Reader) -> Imported
             line,
             code: code.to_owned(),
             moves: sequence,
+            text: strip_note(fields[8]).trim().to_owned(),
             claimed: [field(9), field(10), field(11), field(12)].map(str::to_owned),
         });
         report.accepted += 1;

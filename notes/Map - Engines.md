@@ -69,6 +69,7 @@ Raw-material notes, category engines.
 - [[The 3x3 reaches open stickers by an edge search or by completions]]
 - [[The goal predicate of moves and all is Target matches]]
 - [[A pattern table is read by structure and every line is replayed]]
+- [[Claimed move counts of a table are compared in the table's own convention]]
 - [[Pattern files are listed in cubacle.toml and the default is the built-in library]]
 - [[Pattern sources are downloaded by cubacle itself from the user's config]]
 - [[Pattern ids have a two-letter source and at most 12 characters]]
