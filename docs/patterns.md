@@ -323,7 +323,7 @@ Reading this spelling back as input is not implemented.
 
 `cubacle patterns import` reads a tab-separated pattern table, in the layout of the `PatternExportTab.txt` files of Werner Randelshofer's CubeTwister, and keeps the verified patterns next to the built-in library. cubacle ships none of that data. His pattern database is all rights reserved; it is not part of this repository, is never bundled and is never downloaded by cubacle. If you use it, you use it under the terms of its author, which you have to check yourself. The importer was written from the shape of one file, in our own words below, and its tests use invented lines.
 
-**The layout.** One line is one generator of one pattern; fields are separated by tabs, and the text may be UTF-8 or a legacy 8-bit encoding (read as Latin-1 when it is not UTF-8). The fields are:
+**The layout.** One line is one generator of one pattern; fields are separated by tabs, and the text is UTF-8 or, as in the files exported on a Mac, Mac Roman. Bytes that are valid UTF-8 are read as UTF-8; any other file is read as Mac Roman, where the group separator `·` is the single byte 0xE1. A byte order mark is dropped, `\r\n` line ends are accepted, and `--dry-run` prints which decoding was used (`decoded as Mac Roman`). The fields are:
 
 1. the pattern code: a letter, three digits, a dot and two digits (for example `A200.01`; any code of 1 to 9 letters, digits, dots and hyphens is accepted, anything else is reported and skipped, never shortened);
 2. the number of the generator: the same code on several lines means alternative generators of the same pattern;

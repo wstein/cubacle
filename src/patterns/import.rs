@@ -16,7 +16,7 @@
 //!
 //! Moves are face letters with `2` for a half turn and `-` (or `'`) for the
 //! inverse. The text may be UTF-8 or a legacy 8-bit encoding; the importer
-//! reads any byte as Latin-1 when UTF-8 fails. Every sequence is replayed on a
+//! reads the bytes as Mac Roman when UTF-8 fails (see `decode`). Every sequence is replayed on a
 //! solved cube of the requested size; lines that do not parse, do not apply or
 //! disagree with their sibling variants are reported and skipped.
 
@@ -70,14 +70,6 @@ pub struct Imported {
     pub patterns: Vec<Pattern>,
     pub report: ImportReport,
     pub rows: Vec<ImportRow>,
-}
-
-/// Bytes as text: UTF-8, else every byte as one Latin-1 character.
-pub fn decode_text(bytes: &[u8]) -> String {
-    match std::str::from_utf8(bytes) {
-        Ok(text) => text.to_owned(),
-        Err(_) => bytes.iter().map(|&b| char::from(b)).collect(),
-    }
 }
 
 /// Lower-case ASCII words joined by `-`.

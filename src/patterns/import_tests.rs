@@ -135,8 +135,59 @@ fn builtin_catalogue_ids_are_short_unique_and_grouped() {
     assert!(find("cu:checker").is_some());
 }
 
+/// The invented table as a Mac export would write it: the group separator is
+/// the single byte 0xE1.
+fn mac_roman(text: &str) -> Vec<u8> {
+    let mut out = Vec::new();
+    for c in text.chars() {
+        match c {
+            '\u{b7}' => out.push(0xE1),
+            'ä' => out.push(0x8A),
+            c => out.extend(c.to_string().as_bytes()),
+        }
+    }
+    out
+}
+
+/// A reader that takes the group separator as white space, as the notation
+/// reader of the command-line importer does.
+fn read_expression(field: &str) -> Result<MoveSequence, String> {
+    read_plain(&field.replace('·', " "))
+}
+
 #[test]
-fn latin1_text_decodes() {
-    assert_eq!(decode_text(&[b'a', 0xE4]), "a\u{e4}");
-    assert_eq!(decode_text("ä".as_bytes()), "ä");
+fn a_mac_roman_table_is_read_with_its_separators() {
+    let text = [
+        row("Z4.01", 1, "Kä", "R2 · U2 · R2"),
+        row("Z4.02", 1, "Plain", "R2 U2 R2"),
+    ]
+    .join("\r\n");
+    let bytes = mac_roman(&text);
+    assert!(std::str::from_utf8(&bytes).is_err());
+    let (decoded, how) = decode_bytes(&bytes);
+    assert_eq!(how, Encoding::MacRoman);
+    let got = import_tab(&decoded, &options(3), &read_expression);
+    assert_eq!(got.report.problems, vec![]);
+    assert_eq!(got.report.accepted, 2);
+    assert_eq!(got.patterns[0].name, "x-Kä");
+    assert_eq!(got.rows[0].moves.to_string(), got.rows[1].moves.to_string());
+}
+
+#[test]
+fn utf8_and_a_byte_order_mark_are_read_as_utf8() {
+    let mut bytes = vec![0xEF, 0xBB, 0xBF];
+    bytes.extend(row("Z5.01", 1, "Kä", "R2 · U2").as_bytes());
+    let (decoded, how) = decode_bytes(&bytes);
+    assert_eq!(how, Encoding::Utf8);
+    let got = import_tab(&decoded, &options(3), &read_expression);
+    assert_eq!(got.report.accepted, 1, "{:?}", got.report.problems);
+    assert_eq!(got.patterns[0].catalogue, "ct:Z5.01");
+}
+
+#[test]
+fn a_vertical_tab_between_moves_is_white_space() {
+    let text = row("Z6.01", 1, "Tab", "R2\u{b}U2 R2");
+    let got = import_tab(&text, &options(3), &read_plain);
+    assert_eq!(got.report.accepted, 1, "{:?}", got.report.problems);
+    assert_eq!(got.rows[0].moves.to_string(), "R2 U2 R2");
 }

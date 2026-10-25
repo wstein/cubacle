@@ -8,7 +8,7 @@ use clap::Args;
 use cubacle::metrics::{count, Metric};
 use cubacle::notation::parse_expression;
 use cubacle::patterns::{
-    cycles_of_moves, decode_text, import_tab, read_plain, write_imported, ImportOptions, ImportRow,
+    cycles_of_moves, decode_bytes, import_tab, read_plain, write_imported, ImportOptions, ImportRow,
 };
 use cubacle::puzzle::{MoveSequence, PuzzleKind};
 
@@ -164,7 +164,8 @@ pub fn run(args: ImportArgs, cache_dir: &Path, size: Option<usize>) -> Result<()
         origin: label.clone(),
         source: args.source,
     };
-    let got = import_tab(&decode_text(&bytes), &options, &reader(kind));
+    let (text, encoding) = decode_bytes(&bytes);
+    let got = import_tab(&text, &options, &reader(kind));
     let report = &got.report;
     for problem in &report.problems {
         eprintln!("{}:{}: {}", args.file, problem.line, problem.message);
@@ -177,6 +178,7 @@ pub fn run(args: ImportArgs, cache_dir: &Path, size: Option<usize>) -> Result<()
         report.problems.len()
     );
     if args.dry_run {
+        println!("decoded as {}", encoding.name());
         let mismatches = check_counts(&got.rows, kind);
         for line in &mismatches {
             println!("{line}");

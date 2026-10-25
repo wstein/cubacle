@@ -18,6 +18,7 @@
 //! ```
 
 mod bases;
+mod decode;
 mod detector;
 mod groups;
 mod import;
@@ -26,14 +27,14 @@ mod model;
 mod parse;
 
 pub use bases::{bases, Base};
+pub use decode::{decode_bytes, decode_text, Encoding};
 pub use detector::{
     cycles_of_moves, cycles_of_state, detect, kind, measures, patternness, Cycle, Cycles, Detailed,
     Fingerprint, Match, Measures, Membership, Operation, OrbitCycles, OrbitStat, Order, Partial,
     PatternKind, Report, Similar, Symmetry, Verdict, PATTERNNESS_VERSION,
 };
 pub use import::{
-    decode_text, import_tab, read_plain, ImportOptions, ImportProblem, ImportReport, ImportRow,
-    Imported,
+    import_tab, read_plain, ImportOptions, ImportProblem, ImportReport, ImportRow, Imported,
 };
 pub use imported_file::{
     identify_imported, imported_is_stale, looks_imported, read_imported, write_imported,
