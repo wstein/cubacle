@@ -136,6 +136,8 @@ A 4x4x4 solution has about 48 moves. Its last wide turns (`Rw Lw'` and the like,
 
 The 6x6x6 and 7x7x7 are solved by reduction through the 4x4x4, 5x5x5 and 3x3x3 engines (see [the dwalton port](design/dwalton-port.md)). They ignore `maxMoves` limits below the reduction's length: the engine does not search for shorter answers. `budgetMs` ends a solve in progress: the center searches look at the clock every few thousand nodes and the wing stages get what is left, so a spent budget is a 504 `budget_exhausted`.
 
+A 3x3x3, 5x5x5 or 7x7x7 whose face centers a slice turn moved is solved by the color of its centers, as on the command line: the answer leaves every face one color, the color of its center, which is not the color a solved cube shows on that face. A `target` still needs the centers in place (`centers_off_face`).
+
 A 5x5x5 is sent as its 150 facelets or its 43-character token. This request solves the cube of a scramble:
 
 ```sh
@@ -167,7 +169,7 @@ Errors have this shape:
 | 413 | `payload_too_large` | Body larger than `--max-body-bytes`. |
 | 415 | `unsupported_media_type` | `POST` without `Content-Type: application/json`. |
 | 422 | `impossible_cube` | The cube state cannot be reached by legal moves. |
-| 422 | `centers_off_face` | The face centers are not on their own faces (a middle-slice turn moved them); the 3x3x3, 5x5x5 and 7x7x7 solvers need them in place. |
+| 422 | `centers_off_face` | A `target` was sent with a cube whose face centers a slice turn moved (3x3x3, 5x5x5, 7x7x7); without a `target` such a cube is solved. |
 | 422 | `no_solution_within_limit` | No solution within `maxMoves`. |
 | 429 | `busy` | All solver slots are in use. The response has `Retry-After: 1`. |
 | 500 | `internal` | A handler or solver thread panicked, or an engine reached a state it cannot explain. |

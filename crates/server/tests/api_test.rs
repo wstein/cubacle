@@ -703,6 +703,40 @@ async fn a_5x5_move_limit_and_bad_cubes_are_reported() {
 }
 
 #[tokio::test]
+async fn a_cube_with_moved_centers_is_solved_by_color() {
+    // Slice turns moved the face centers: the answer leaves every face one
+    // color, the color of its center.
+    let cube = "UDUUDULLDFBBUFBURBFFRDRRFRRUBBRUFRDDFFDLBBDDRLFLLLULLB";
+    let (status, _, body) = call(app(), post_json("/v1/solve", json!({"cube": cube}))).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    let start: Facelets = cube.parse().unwrap();
+    let moves = body["solution"].as_str().unwrap().parse().unwrap();
+    assert!(cubacle::puzzle::solves_by_color(&start, &moves));
+    assert!(!start.apply(&moves).unwrap().is_solved());
+
+    let (status, _, body) = call(
+        app(),
+        post_json("/v1/solve", json!({"scramble": "3R U", "size": 5})),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    let start = Facelets::solved(PuzzleKind::Cube5)
+        .apply(&"3R U".parse().unwrap())
+        .unwrap();
+    let moves = body["solution"].as_str().unwrap().parse().unwrap();
+    assert!(cubacle::puzzle::solves_by_color(&start, &moves));
+
+    // A target still needs the centers on their own faces.
+    let (status, _, body) = call(
+        app(),
+        post_json("/v1/solve", json!({"cube": cube, "target": "R"})),
+    )
+    .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{body}");
+    assert_eq!(code(&body), "centers_off_face");
+}
+
+#[tokio::test]
 async fn a_5x5_orbit64_token_converts() {
     let cube = "A".repeat(43);
     let (status, _, body) = call(app(), post_json("/v1/convert", json!({"cube": cube}))).await;

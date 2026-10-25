@@ -172,8 +172,13 @@ fn colours_default_to_the_scheme_they_were_read_in() {
 }
 
 #[test]
-fn a_3x3_with_moved_centres_cannot_be_solved_but_a_2x2_can() {
-    let (ok, _, error) = cubacle(&["solve", "-s", "x"]);
+fn a_3x3_with_moved_centers_is_solved_by_color_and_a_2x2_too() {
+    // A rotation already leaves every face one color: nothing to turn.
+    let (ok, solution, error) = cubacle(&["solve", "-s", "x"]);
+    assert!(ok, "{error}");
+    assert!(solution.is_empty(), "{solution}");
+    assert!(error.contains("moves 0"), "{error}");
+    let (ok, _, error) = cubacle(&["solve", "-s", "x", "--to", "R"]);
     assert!(!ok);
     assert!(error.contains("not on their own faces"), "{error}");
     let (ok, _, error) = cubacle(&["solve", "--size", "2", "-s", "x"]);

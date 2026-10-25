@@ -468,10 +468,36 @@ hint: turn one corner back
 
 ### Face centers off their faces
 
-A middle-slice turn (`2R` on a 3x3x3, `3R` on a 5x5x5, `2-6Rw` on a 7x7x7) moves the centers of the faces. That cube is reachable, not impossible, but the 3x3x3, 5x5x5 and 7x7x7 solvers need the center of each face on its own face. They say so, with exit status 1 and nothing on standard output:
+A middle-slice turn (`2R` on a 3x3x3, `3R` on a 5x5x5, `2-6Rw` on a 7x7x7) moves the centers of the faces. The cube is reachable, and `solve` takes the color of each face from its center: it names the colors after the centers, solves that cube, and prints moves that make every face of your cube one color, the color of its center. A note on standard error says so; standard output holds the moves only:
 
 ```sh
-cubacle solve --size 7 --scramble "2-6Rw"
+cubacle solve --scramble "R U 2R2 F 2U D'"
+```
+
+```text
+note: the face centers are not on their own faces; the solution makes every face the color of its center
+moves 6
+metrics: htm 6, qtm 8, stm 6
+U L' F2 B2 D' F'
+```
+
+The cube after these moves is not the facelet string of a solved cube (`U` on the up face, and so on) but every face is one color, which is what a solved cube is. A cube with moved centers whose faces already are one color is `moves 0`: `cubacle solve -s x` on a 3x3x3 is a rotation, nothing to turn. The 5x5x5 pattern `centres-cycled` is solved the same way:
+
+```sh
+cubacle solve --size 5 --scramble "2-4Uw 2-4Rw' 2-4Uw' 2-4Rw"
+```
+
+```text
+note: the face centers are not on their own faces; the solution makes every face the color of its center
+moves 8
+metrics: obtm 8, qtm 8, stm 8, btm 8
+U D' R L' F B' U D'
+```
+
+The even sizes (2x2x2, 4x4x4, 6x6x6) have no fixed center piece and need none of this. Two things stay errors. Centers that no turn can reach (two swapped) are an impossible cube. A solve to a target with `--to` still needs the centers on their own faces, with exit status 1 and nothing on standard output:
+
+```sh
+cubacle solve --size 7 --scramble "2-6Rw" --to R
 ```
 
 ```text
@@ -479,7 +505,7 @@ error: the face centers are not on their own faces (a middle-slice turn moved th
 hint: turn the cube so the centers match, or undo the slice turn
 ```
 
-The REST server answers `422 centers_off_face` with the same first sentence. Two centers that are swapped, which no turn can do, are still an impossible cube.
+The REST server solves such a cube the same way (the answer leaves every face one color); with a `target` it answers `422 centers_off_face` with the same first sentence.
 
 ## Solve a 4x4x4
 
@@ -507,7 +533,7 @@ The first 4x4x4 solve prints `preparing the 4x4x4 tables (built now, about 12 MB
 
 ## Solve a 5x5x5
 
-Give `solve` a 150-sticker cube, or a scramble with `--size 5`. A 5x5x5 scramble may turn the first two layers of a face (`R`, `2R`); the middle layer (`3R`, `3Rw`) is not allowed, because it moves the face centers, which the solver keeps fixed (see [Face centers off their faces](#face-centers-off-their-faces)). Two-layer turns (`Rw`) are fine.
+Give `solve` a 150-sticker cube, or a scramble with `--size 5`. A 5x5x5 scramble may turn the first two layers of a face (`R`, `2R`); the middle layer (`3R`, `3Rw`) moves the face centers, and the cube is then solved by the color of its centers (see [Face centers off their faces](#face-centers-off-their-faces)). Two-layer turns (`Rw`) never move them.
 
 ```sh
 cubacle solve --size 5 --scramble "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F" | wc -w
@@ -889,7 +915,7 @@ A scramble is move notation in WCA, SiGN or SSE spelling (see [Move notations](#
 | `R3` | `R'` |
 | `R2'`, `R'2` | `R2` |
 
-Moves must be separated: a run such as `RUR'` and a lone `-` are rejected. A 3x3x3 whose centers a wide or inner-layer move has displaced cannot be solved; `solve` reports that instead of a wrong solution (see [Face centers off their faces](#face-centers-off-their-faces)). The same holds for a rotation (`x`, `y`, `z`): `cubacle solve -s x` on a 3x3x3 fails, while the 2x2x2 and 4x4x4, which have no fixed centers, solve such a cube (`cubacle solve --size 2 -s x` works).
+Moves must be separated: a run such as `RUR'` and a lone `-` are rejected. A 3x3x3 whose centers a wide or inner-layer move has displaced is solved by the color of its centers (see [Face centers off their faces](#face-centers-off-their-faces)); for a rotation (`x`, `y`, `z`) that is `moves 0`, since every face is already one color.
 
 ### Repeated groups
 

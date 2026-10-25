@@ -3,7 +3,7 @@ id: 20261022130000
 aliases: []
 tags: ["type/decision", "status/decided", "category/engines"]
 ---
-The 5x5x5 engine is named five, not reduction: its stages rely on fixed face centres, which a 4x4 or 6x6 does not have, so a shared engine would be invented before it is needed. It is a port of cs0x7f/cube555 (MIT option, recorded in NOTICE.md) replacing the earlier greedy 3-cycle engine, which is deleted without a fallback. The generic parts (pruning-table builder, cache, parallel IDA*) live in `src/reduction/`, and the 3x3x3 stage goes to an injected Solver, never a global.
+The 5x5x5 engine is named five, not reduction: its stages rely on fixed face centers (a cube whose centers a slice turn moved is first renamed after its centers, see [[A cube is oriented by its centers before it is solved]]), which a 4x4 or 6x6 does not have, so a shared engine would be invented before it is needed. It is a port of cs0x7f/cube555 (MIT option, recorded in NOTICE.md) replacing the earlier greedy 3-cycle engine, which is deleted without a fallback. The generic parts (pruning-table builder, cache, parallel IDA*) live in `src/reduction/`, and the 3x3x3 stage goes to an injected Solver, never a global.
 
 ## Links
 

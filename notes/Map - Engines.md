@@ -88,3 +88,4 @@ Raw-material notes, category engines.
 - [[Recovering towards a target maps both cubes to the solved problem]]
 - [[Repair searches pattern plus a few wide-block moves from both sides]]
 - [[Big cubes stop at a default time limit]]
+- [[A cube is oriented by its centers before it is solved]]

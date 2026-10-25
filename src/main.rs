@@ -47,7 +47,8 @@ use cubacle::notation::{
     ColourScheme, Notation,
 };
 use cubacle::puzzle::{
-    reaches, relative_state, Facelets, Failure, PuzzleKind, SolveOptions, Solver, Target,
+    oriented_by_centers, reaches, relative_state, solves_by_color, Facelets, Failure, PuzzleKind,
+    SolveOptions, Solver, Target,
 };
 use cubacle::ranges::Optimise;
 
@@ -581,6 +582,20 @@ fn solve(args: SolveArgs) -> Result<(), String> {
         }
         _ => start.clone(),
     };
+    // A 3x3x3, 5x5x5 or 7x7x7 whose centers a slice turn moved is solved as
+    // the cube with its colors named after its centers; the moves are the
+    // same, and they leave every face one color.
+    let renamed = match target {
+        None => oriented_by_centers(&facelets),
+        Some(_) => None,
+    };
+    let oriented = renamed.is_some();
+    let facelets = renamed.unwrap_or(facelets);
+    if oriented {
+        eprintln!(
+            "note: the face centers are not on their own faces; the solution makes every face the color of its center"
+        );
+    }
     improve::check(&args, facelets.kind())?;
     optimal_cmd::check(&args, facelets.kind())?;
     let restricted = match args.moves.as_deref() {
@@ -721,9 +736,12 @@ fn solve(args: SolveArgs) -> Result<(), String> {
             let wanted = target
                 .clone()
                 .unwrap_or_else(|| Facelets::solved(start.kind()));
-            if (start.kind() != PuzzleKind::Cube2 || target.is_some())
-                && !reaches(&start, &solution, &wanted)
-            {
+            let replays = if oriented {
+                solves_by_color(&start, &solution)
+            } else {
+                reaches(&start, &solution, &wanted)
+            };
+            if (start.kind() != PuzzleKind::Cube2 || target.is_some()) && !replays {
                 return Err(match target {
                     Some(_) => "internal error: solution does not reach the target".into(),
                     None => "internal error: solution does not solve the cube".into(),

@@ -1,11 +1,12 @@
-//! A scramble that moves the fixed face centres of an odd cube is refused with
-//! an error and a non-zero exit code, on every size, and never silently.
+//! A solve to a target of a cube whose fixed face centers a slice turn moved
+//! is refused with an error and exit code 1, on every odd size, and never
+//! silently. (Without a target such a cube is solved: see oriented_cli_test.)
 
 use std::process::Command;
 
 fn solve(size: &str, scramble: &str) -> (Option<i32>, String, String) {
     let output = Command::new(env!("CARGO_BIN_EXE_cubacle"))
-        .args(["solve", "--size", size, "--scramble", scramble])
+        .args(["solve", "--size", size, "--scramble", scramble, "--to", "R"])
         .env("HOME", std::env::temp_dir().join("cubacle-test-home"))
         .env(
             "CUBACLE_CACHE_DIR",

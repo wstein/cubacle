@@ -265,11 +265,19 @@ fn a_tight_move_limit_fails_quickly() {
 }
 
 #[test]
-fn a_scramble_that_moves_the_centres_is_reported_not_mis_solved() {
-    let (ok, _, error) = cubacle(&["solve", "--scramble", "Rw U"]);
+fn a_scramble_that_moves_the_centers_is_solved_by_color() {
+    let (ok, solution, error) = cubacle(&["solve", "--scramble", "Rw U"]);
+    assert!(ok, "{error}");
+    assert!(error.contains("note: the face centers"), "{error}");
+    let start = Facelets::solved(PuzzleKind::Cube3)
+        .apply(&"Rw U".parse().unwrap())
+        .unwrap();
+    let moves = solution.parse().expect("the solution is move notation");
+    assert!(cubacle::puzzle::solves_by_color(&start, &moves));
+    // With a target the engine still needs the centers in place.
+    let (ok, _, error) = cubacle(&["solve", "--scramble", "Rw U", "--to", "R"]);
     assert!(!ok);
     assert!(error.contains("centers"), "{error}");
-    assert!(!error.contains("internal error"), "{error}");
 }
 
 fn solved_by(facelets: &Facelets, solution: &str) -> bool {
@@ -314,8 +322,8 @@ fn a_5x5_scramble_is_printed_for_the_requested_size() {
 
 #[test]
 fn a_5x5_failure_is_reported_and_never_replayed_wrongly() {
-    // The middle layer moves the face centres, which no engine solves.
-    let (ok, _, error) = cubacle(&["solve", "--size", "5", "--scramble", "3R U"]);
+    // The middle layer moves the face centers; with a target no engine solves that.
+    let (ok, _, error) = cubacle(&["solve", "--size", "5", "--scramble", "3R U", "--to", "R"]);
     assert!(!ok);
     assert!(error.contains("centers"), "{error}");
     let (ok, _, error) = cubacle(&["solve", "--size", "5", "-m", "5", "-s", "2R U 2F' R"]);

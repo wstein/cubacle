@@ -25,6 +25,7 @@ pub use apply::ApplyError;
 pub(crate) use apply::{destinations, locate};
 pub(crate) use axis::normalise;
 pub(crate) use centers::centers_off_face;
+pub use centers::{oriented_by_centers, solves_by_color};
 pub(crate) use cubies::five_orbits;
 pub use facelets::{Face, Facelets, FaceletsError};
 pub use kind::PuzzleKind;

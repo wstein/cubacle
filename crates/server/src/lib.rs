@@ -42,7 +42,8 @@ use cubacle::generate;
 use cubacle::notation::orbit64;
 use cubacle::notation::{parse_cube, parse_expression, ColourScheme, Notation};
 use cubacle::puzzle::{
-    reaches, relative_state, Facelets, Failure, PuzzleKind, RelativeError, SolveOptions, Solver,
+    oriented_by_centers, reaches, relative_state, solves_by_color, Facelets, Failure, PuzzleKind,
+    RelativeError, SolveOptions, Solver,
 };
 use cubacle::ranges::{compress, write as write_ranges, Optimise};
 use serde::{Deserialize, Serialize};
@@ -574,6 +575,15 @@ async fn solve(
         None => start.clone(),
     };
     let wanted = target.unwrap_or_else(|| Facelets::solved(kind));
+    // A cube whose centers a slice turn moved is solved as the cube with its
+    // colors named after its centers; every face ends one color.
+    let renamed = if has_target {
+        None
+    } else {
+        oriented_by_centers(&facelets)
+    };
+    let oriented = renamed.is_some();
+    let facelets = renamed.unwrap_or(facelets);
     let mut options = SolveOptions::default();
     if let Some(moves) = request.max_moves {
         let most = match kind {
@@ -669,9 +679,13 @@ async fn solve(
             _ => three.solve(&facelets, &options),
         };
         // Defence in depth, in release builds too: never serve a wrong answer.
-        let solves = result
-            .solution()
-            .is_none_or(|s| reaches(&start, s, &wanted));
+        let solves = result.solution().is_none_or(|s| {
+            if oriented {
+                solves_by_color(&start, s)
+            } else {
+                reaches(&start, s, &wanted)
+            }
+        });
         solves.then_some(result)
     })
     .await
