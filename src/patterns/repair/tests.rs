@@ -23,7 +23,7 @@ fn planted(name: &str, kind: PuzzleKind, extra: &str, before: bool) -> Facelets 
 
 #[test]
 fn alphabet_moves_are_inverse_and_distinct() {
-    let al = Alphabet::new(PuzzleKind::Cube4);
+    let al = Alphabet::new(PuzzleKind::Cube4, Kit::Blocks);
     assert_eq!(al.len(), 81);
     let identity: Vec<u16> = (0..96).collect();
     for k in 0..al.len() {

@@ -1,8 +1,9 @@
-//! The blocks a repair may turn: single layers and a few wide blocks.
+//! The blocks a search may turn: single layers and a few wide blocks.
 //!
 //! A block is a run of adjacent layers on one axis, turned a quarter, a half
-//! or a quarter back. The set is single layers, the outer two and three layers
-//! from either side, and the layers 2-3 (the form `3Bw B'` writes). Whole-cube
+//! or a quarter back. A [`Kit`] picks the set: the outer blocks the normal
+//! solver writes, with the single inner layers, or with every block up to
+//! three layers and the layers 2-3 (the form `3Bw B'` writes). Whole-cube
 //! rotations are never blocks.
 
 use std::collections::BTreeSet;
@@ -11,6 +12,19 @@ use crate::puzzle::{destinations, Face, LayerMove, Move, MoveSequence, PuzzleKin
 
 /// Layers `lo..=hi` counted from the negative face (L, D, B) of an axis.
 type Range = (usize, usize);
+
+/// Which blocks an alphabet holds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Kit {
+    /// The outer blocks of either side up to half the cube (at most three
+    /// layers): face turns on the 2x2x2 and 3x3x3, `Rw` and `3Rw` above.
+    Outer,
+    /// `Outer` and the single inner layers (`2R`, `M`).
+    Slices,
+    /// Every block of up to three outer layers from either side, single
+    /// layers and the layers 2-3.
+    Blocks,
+}
 
 pub(crate) struct Alphabet {
     pub(crate) kind: PuzzleKind,
@@ -25,20 +39,38 @@ pub(crate) struct Alphabet {
     pub(crate) inverse: Vec<u8>,
     /// The most stickers one move displaces.
     pub(crate) max_moved: usize,
+    /// The orbit of each sticker under the moves.
+    orbit: Vec<u16>,
+    /// The most stickers of each orbit one move displaces.
+    orbit_moved: Vec<usize>,
 }
 
 const NEGATIVE: [Face; 3] = [Face::L, Face::D, Face::B];
 const POSITIVE: [Face; 3] = [Face::R, Face::U, Face::F];
 
-fn ranges_of(n: usize) -> Vec<Range> {
-    let mut set: BTreeSet<Range> = (0..n).map(|i| (i, i)).collect();
-    for w in 2..=3.min(n) {
-        set.insert((0, w - 1));
-        set.insert((n - w, n - 1));
-    }
-    if n >= 4 {
-        set.insert((1, 2));
-        set.insert((n - 3, n - 2));
+fn ranges_of(n: usize, kit: Kit) -> Vec<Range> {
+    let mut set: BTreeSet<Range> = BTreeSet::new();
+    match kit {
+        Kit::Outer | Kit::Slices => {
+            for w in 1..=(n / 2).min(3) {
+                set.insert((0, w - 1));
+                set.insert((n - w, n - 1));
+            }
+            if kit == Kit::Slices {
+                set.extend((0..n).map(|i| (i, i)));
+            }
+        }
+        Kit::Blocks => {
+            set.extend((0..n).map(|i| (i, i)));
+            for w in 2..=3.min(n) {
+                set.insert((0, w - 1));
+                set.insert((n - w, n - 1));
+            }
+            if n >= 4 {
+                set.insert((1, 2));
+                set.insert((n - 3, n - 2));
+            }
+        }
     }
     set.remove(&(0, n - 1));
     set.into_iter().collect()
@@ -68,9 +100,9 @@ pub(crate) fn perm_of(kind: PuzzleKind, moves: &[Move]) -> Vec<u16> {
 }
 
 impl Alphabet {
-    pub(crate) fn new(kind: PuzzleKind) -> Alphabet {
+    pub(crate) fn new(kind: PuzzleKind, kit: Kit) -> Alphabet {
         let n = kind.size();
-        let ranges = ranges_of(n);
+        let ranges = ranges_of(n, kit);
         let (mut perms, mut axis, mut range) = (Vec::new(), Vec::new(), Vec::new());
         for a in 0..3 {
             for (r, &span) in ranges.iter().enumerate() {
@@ -94,6 +126,18 @@ impl Alphabet {
             })
             .collect();
         let max_moved = moved.iter().map(Vec::len).max().unwrap_or(0);
+        let orbit = orbits_of(&perms);
+        let mut orbit_moved =
+            vec![0usize; orbit.iter().map(|&o| o as usize + 1).max().unwrap_or(0)];
+        for stickers in &moved {
+            let mut count = vec![0usize; orbit_moved.len()];
+            for &(from, _) in stickers {
+                count[orbit[from as usize] as usize] += 1;
+            }
+            for (most, c) in orbit_moved.iter_mut().zip(count) {
+                *most = (*most).max(c);
+            }
+        }
         Alphabet {
             kind,
             ranges,
@@ -103,7 +147,38 @@ impl Alphabet {
             range,
             inverse,
             max_moved,
+            orbit,
+            orbit_moved,
         }
+    }
+
+    /// A lower bound on the moves between two states (colour per sticker), or
+    /// `None` when no sequence of the alphabet connects them.
+    ///
+    /// Proof. A move changes the colour only of stickers it displaces, so after
+    /// `k` moves at most `k * m` stickers of an orbit differ from the start,
+    /// where `m` is the most stickers of that orbit one move displaces. The
+    /// states differ at `d` stickers of the orbit, so `d <= k * m` and
+    /// `k >= ceil(d / m)`; the bound is the largest over the orbits. If `m`
+    /// is 0 (the moves never touch the orbit, such as the centres of a 3x3x3)
+    /// and `d > 0` no number of moves helps.
+    pub(crate) fn lower_bound(&self, a: &[u8], b: &[u8]) -> Option<usize> {
+        let mut differing = vec![0usize; self.orbit_moved.len()];
+        for (i, (x, y)) in a.iter().zip(b).enumerate() {
+            if x != y {
+                differing[self.orbit[i] as usize] += 1;
+            }
+        }
+        let mut bound = 0;
+        for (d, &m) in differing.into_iter().zip(&self.orbit_moved) {
+            if d > 0 {
+                if m == 0 {
+                    return None;
+                }
+                bound = bound.max(d.div_ceil(m));
+            }
+        }
+        Some(bound)
     }
 
     pub(crate) fn len(&self) -> usize {
@@ -168,4 +243,36 @@ impl Alphabet {
             .map(|&k| self.inverse[k as usize])
             .collect()
     }
+}
+
+/// The orbit of every sticker under the permutations (union of `i` and `perm[i]`).
+fn orbits_of(perms: &[Vec<u16>]) -> Vec<u16> {
+    let count = perms.first().map_or(0, Vec::len);
+    let mut parent: Vec<usize> = (0..count).collect();
+    fn root(parent: &mut [usize], mut i: usize) -> usize {
+        while parent[i] != i {
+            parent[i] = parent[parent[i]];
+            i = parent[i];
+        }
+        i
+    }
+    for perm in perms {
+        for (i, &j) in perm.iter().enumerate() {
+            let (a, b) = (root(&mut parent, i), root(&mut parent, j as usize));
+            parent[a.max(b)] = a.min(b);
+        }
+    }
+    let mut ids: Vec<usize> = Vec::new();
+    (0..count)
+        .map(|i| {
+            let r = root(&mut parent, i);
+            match ids.iter().position(|&x| x == r) {
+                Some(id) => id as u16,
+                None => {
+                    ids.push(r);
+                    (ids.len() - 1) as u16
+                }
+            }
+        })
+        .collect()
 }

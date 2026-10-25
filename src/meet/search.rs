@@ -31,9 +31,17 @@ pub(crate) fn sums_of(state: &[u8], keys: &[u64]) -> Sums {
     sums
 }
 
-pub(crate) fn hash_of(sums: &Sums) -> u64 {
-    sums.iter()
-        .fold(0u64, |h, &s| h.wrapping_add(mix(s ^ 0xA5A5_5A5A)))
+/// The hash of per-colour sums. Colour-blind, it ignores which colour has
+/// which sum; exact, a state and the same state with colours renamed differ.
+pub(crate) fn hash_of(sums: &Sums, exact: bool) -> u64 {
+    sums.iter().enumerate().fold(0u64, |h, (c, &s)| {
+        let salt = if exact {
+            0xA5A5_5A5A ^ (c as u64 + 1) << 40
+        } else {
+            0xA5A5_5A5A
+        };
+        h.wrapping_add(mix(s ^ salt))
+    })
 }
 
 /// The state after the sticker permutation `perm`.
@@ -50,6 +58,7 @@ pub(crate) struct Walker<'a> {
     al: &'a Alphabet,
     keys: &'a [u64],
     deadline: Instant,
+    exact: bool,
     ticks: u32,
     pub(crate) aborted: bool,
 }
@@ -57,6 +66,12 @@ pub(crate) struct Walker<'a> {
 type Visit<'v> = &'v mut dyn FnMut(u64, &[u8]);
 
 impl<'a> Walker<'a> {
+    /// Hashes by exact colours instead of ignoring their names.
+    pub(crate) fn exact(mut self) -> Walker<'a> {
+        self.exact = true;
+        self
+    }
+
     /// The alphabet the walk runs over.
     pub(crate) fn alphabet(&self) -> &'a Alphabet {
         self.al
@@ -67,6 +82,7 @@ impl<'a> Walker<'a> {
             al,
             keys,
             deadline,
+            exact: false,
             ticks: 0,
             aborted: false,
         }
@@ -78,7 +94,7 @@ impl<'a> Walker<'a> {
         let mut levels: Vec<Vec<u8>> = vec![start.to_vec(); depth.max(1)];
         let sums = sums_of(start, self.keys);
         if all || depth == 0 {
-            visit(hash_of(&sums), &[]);
+            visit(hash_of(&sums, self.exact), &[]);
         }
         if depth > 0 {
             self.step(0, sums, &mut Vec::new(), depth, all, &mut levels, visit);
@@ -118,10 +134,10 @@ impl<'a> Walker<'a> {
             }
             seq.push(k as u8);
             if level + 1 == depth {
-                visit(hash_of(&next), seq);
+                visit(hash_of(&next, self.exact), seq);
             } else {
                 if all {
-                    visit(hash_of(&next), seq);
+                    visit(hash_of(&next, self.exact), seq);
                 }
                 {
                     let (head, tail) = levels.split_at_mut(level + 1);

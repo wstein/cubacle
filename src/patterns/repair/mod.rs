@@ -29,7 +29,8 @@ use std::time::{Duration, Instant};
 
 use super::Pattern;
 use crate::meet::{
-    self, hash_of, perm_of, permuted, position_keys, sums_of, Alphabet, Table, Walker, ENTRY_BYTES,
+    self, hash_of, perm_of, permuted, position_keys, sums_of, Alphabet, Kit, Table, Walker,
+    ENTRY_BYTES,
 };
 use crate::puzzle::{Facelets, MoveSequence};
 use rotation::{compose, inverse, mismatches, renamings, rotations, same_up_to_colors};
@@ -190,7 +191,7 @@ impl<'p> Search<'p> {
         deadline: Instant,
     ) -> Search<'p> {
         let kind = cube.kind();
-        let al = Alphabet::new(kind);
+        let al = Alphabet::new(kind, Kit::Blocks);
         let rotations = rotations(kind);
         let renames = renamings();
         let state = colors(cube);
@@ -306,7 +307,7 @@ impl<'p> Search<'p> {
             let start = match order {
                 RepairOrder::After => {
                     let start = permuted(&candidate.state, perm);
-                    let h = hash_of(&sums_of(&start, &self.keys));
+                    let h = hash_of(&sums_of(&start, &self.keys), false);
                     if seen.contains(&h) {
                         continue;
                     }

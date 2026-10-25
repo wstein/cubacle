@@ -19,6 +19,7 @@
 //! | [`patterns`] | well-known patterns defined by structure, with searched generators | `puzzle` |
 //! | [`canonical`] | the canonical Orbit64 token of a cube state, one identifier per pattern | `puzzle`, `notation`, `patterns` |
 //! | [`render`] | move icons as SVG, pixels, Kitty escapes and text | `puzzle` |
+//! | [`within`] | the shortest route of at most K moves between two states, for a cube that is nearly solved | `puzzle` |
 //!
 //! ```
 //! use cubacle::engines::three::Min2PhaseSolver;
@@ -47,3 +48,4 @@ pub mod ranges;
 pub mod recover;
 mod reduction;
 pub mod render;
+pub mod within;
