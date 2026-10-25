@@ -139,8 +139,10 @@ not-expr   = ( "!" | "NOT" ) not-expr | comparison ;
 comparison = term [ cmp-op term ] ;
 cmp-op     = "==" | "!=" | "<" | "<=" | ">" | ">=" ;
 term       = call | number | "(" guard ")" ;
-call       = func "(" var { "," var } ")" ;
 func       = "unique" | "equal" | "count" ;
+call       = func "(" var { "," var } ")"
+           | ( "symmetric" | "antisymmetric" ) "(" schoenflies ")"
+           | "order" "(" [ order-value ] ")" ;
 var        = lower [ digits | "*" ] ;
 number     = digit { digit } ;
 ```
@@ -150,6 +152,14 @@ Precedence, highest first: `!` or `NOT`; comparison; `&&`, `AND` or `and`; `||`,
 - `unique(...)` holds when all named variables have different colours.
 - `equal(...)` holds when they all have the same colour.
 - `count(...)` is the number of distinct colours among the matching variables. It is a number, to be compared.
+
+Pattern functions, which take no variables:
+
+- `symmetric(TYPE)` holds when the pattern has at least the symmetry type TYPE.
+- `antisymmetric(TYPE)` holds the same for the antisymmetry extension.
+- `order(...)` holds when the order of the generating sequence is in the given number, range or set.
+
+`symmetry: X` is shorthand for `where: symmetric(X)`. Both may be combined with `&&`, for example `where: unique(a*, b*, c*) && symmetric(D4h)`.
 
 A `*` in a variable name stands for the same index in all arguments of the term, for every index that occurs. It is not automatically a face: the index is only a label, so a guard may also compare variables of different faces.
 
@@ -174,6 +184,12 @@ Rules:
 - When neither `--limit` nor `--count` is given, the generator counts before it lists.
 - REST uses the names `limit`, `count`, `sample` and `budgetMs`, and the answer has the field `complete: true|false`.
 - The search for moves runs only behind `--solve`, with its own `--max-depth` and the `alphabet` key.
+
+Order and symmetry are first filters for counting, listing and checking. Searching move sequences for them is `--solve` only, and comes later.
+
+## REST
+
+Planned: `POST /v1/patterns/search`. The body carries the file text in the field `definition` and the run options as the fields `limit`, `count`, `sample`, `seed` and `budgetMs`. The server is stateless and stores nothing. The answer has the field `complete`. The parser is the same as for the command line, and errors carry the same text with line and column.
 
 ## Errors
 
