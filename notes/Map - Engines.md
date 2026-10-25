@@ -37,6 +37,7 @@ Raw-material notes, category engines.
 - [[Equal pieces are matched fixed points first]]
 - [[A centre fix-up pass lets --to reach mixed centres]]
 - [[Pattern shortcut finds hand-built cubes]]
+- [[Pattern-aware solving adopts a library route only when it is strictly shorter]]
 - [[Pattern search speed comes from measuring first, then symmetry, compact states and cores]]
 - [[A partial target is a map from slots to allowed colours]]
 - [[A study of stickersolve shows what to adopt and what not]]

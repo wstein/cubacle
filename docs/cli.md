@@ -282,6 +282,28 @@ From the 4x4x4 up, `solve` also tries to write the cube as a product of at most 
 | 7x7x7 built from a checkerboard and three six spots | 172 | 38 |
 | random 4x4x4 to 7x7x7 (40-move scrambles) | 42, 71, 136, 191 | same |
 
+### Pattern-aware solving
+
+`solve --pattern-aware` also looks the cube up in the pattern library (the built-in patterns and the files that `cubacle.toml` imports, see [Patterns](patterns.md); `--config FILE` names another config) in every turned and mirrored position. When the cube is a pattern of the library and the library's route has strictly fewer moves than the solver's answer, that route is the answer. The solver still runs, so the answer is never longer, and without the flag nothing changes. Standard error says when the route won; standard output stays the plain solution. The 2x2x2 solver is optimal, so the flag does nothing there; it does not combine with `--moves`, `--optimal`, `--all`, `--count` or `--now`.
+
+```sh
+cubacle solve --size 3 -s "U' R2 U' F2 D' R2 U' B F U2 L' B2 R2 F2 D' U F' U2 L' R'"
+cubacle solve --pattern-aware --size 3 -s "U' R2 U' F2 D' R2 U' B F U2 L' B2 R2 F2 D' U F' U2 L' R'"
+```
+
+```text
+moves 21
+metrics: htm 21, qtm 30, stm 21
+R L F U2 R2 U' D' F2 R' F B U L2 B2 D2 R2 D' L2 D B2 D
+
+moves 20
+metrics: htm 20, qtm 28, stm 20
+pattern: cu:superflip Superflip (library route, 1 move shorter)
+R L U2 F U' D F2 R2 B2 L U2 F' B' U R2 D F2 U R2 U
+```
+
+A 4x4x4 whose centres were cycled (`U' 3Fw F' 3Uw' U 3Fw' F 3Uw`) goes from 12 moves to 8, by the six-spot route (`pattern: cu:sixspot Six spots (library route, 4 moves shorter)`). The lookup is one hash lookup in a map built once per run from the generators of the library under the 48 symmetries; the built-in library takes about 0.3 ms to index on a 3x3x3 (`-v` prints the time). A route keeps to the alphabet of the solver: face turns on the 3x3x3, outer blocks (`Rw`) from the 4x4x4 up, single inner layers only with `--slices`. With `--to`, the relative state and its inverse are looked up; when the relative state cannot be made for a size, the normal route is used.
+
 ### Restricted move sets
 
 `--moves SET` makes the solution use only the moves of a set. A set is a list in any notation the program reads (taken literally: `"R U U2"` has no `R'`), generators in angle brackets (`"<R,U>"` is every turn of R and U), or a name: `htm` (no restriction, the default; the output is the same as without the option), `qtm` (quarter turns of the faces), `half-turns` and `quarter-slices`.

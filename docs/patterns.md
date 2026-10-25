@@ -431,6 +431,10 @@ Demo patterns
 
 The built-ins have one level: Simple patterns (checkerboard, six spots, four spots and their centre variants), Cube in a cube (cube in a cube, cube in a cube in a cube), Flips (superflip) and Centres (the two centre patterns). The length counts moves as written in the generator (for a built-in the shorter of the outer and range metrics, for an import the number of turns).
 
+## Using the library in `solve`
+
+`cubacle solve --pattern-aware` ([CLI guide](cli.md)) indexes the generators of the active library (the built-in patterns and the imported files) under the 48 symmetries of the cube, looks the cube up exactly, and answers with the pattern's route only when it is strictly shorter than the solver's answer. A large imported collection therefore shortens the answer for every cube that is in it, in any turned or mirrored position, and costs nothing for any other cube.
+
 ## How the generators were found
 
 `examples/pattern_search` runs a bidirectional search over cost levels from the solved cube and from the pattern (in every orientation on even cubes) and replays its answer with the library before printing it:
