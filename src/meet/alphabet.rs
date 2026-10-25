@@ -12,19 +12,19 @@ use crate::puzzle::{destinations, Face, LayerMove, Move, MoveSequence, PuzzleKin
 /// Layers `lo..=hi` counted from the negative face (L, D, B) of an axis.
 type Range = (usize, usize);
 
-pub(super) struct Alphabet {
-    pub(super) kind: PuzzleKind,
+pub(crate) struct Alphabet {
+    pub(crate) kind: PuzzleKind,
     ranges: Vec<Range>,
     /// Sticker `i` goes to `perms[k][i]`.
-    pub(super) perms: Vec<Vec<u16>>,
+    pub(crate) perms: Vec<Vec<u16>>,
     /// The stickers a move displaces, as (from, to).
-    pub(super) moved: Vec<Vec<(u16, u16)>>,
+    pub(crate) moved: Vec<Vec<(u16, u16)>>,
     axis: Vec<u8>,
     range: Vec<u8>,
     /// The move that undoes each move.
-    pub(super) inverse: Vec<u8>,
+    pub(crate) inverse: Vec<u8>,
     /// The most stickers one move displaces.
-    pub(super) max_moved: usize,
+    pub(crate) max_moved: usize,
 }
 
 const NEGATIVE: [Face; 3] = [Face::L, Face::D, Face::B];
@@ -56,7 +56,7 @@ fn moves_of(n: usize, axis: usize, (lo, hi): Range, q: usize) -> Vec<Move> {
 }
 
 /// The sticker permutation of plain moves, performed in order.
-pub(super) fn perm_of(kind: PuzzleKind, moves: &[Move]) -> Vec<u16> {
+pub(crate) fn perm_of(kind: PuzzleKind, moves: &[Move]) -> Vec<u16> {
     let mut perm: Vec<u16> = (0..kind.facelet_count() as u16).collect();
     for mv in moves {
         let step = destinations(kind, mv);
@@ -68,7 +68,7 @@ pub(super) fn perm_of(kind: PuzzleKind, moves: &[Move]) -> Vec<u16> {
 }
 
 impl Alphabet {
-    pub(super) fn new(kind: PuzzleKind) -> Alphabet {
+    pub(crate) fn new(kind: PuzzleKind) -> Alphabet {
         let n = kind.size();
         let ranges = ranges_of(n);
         let (mut perms, mut axis, mut range) = (Vec::new(), Vec::new(), Vec::new());
@@ -106,13 +106,13 @@ impl Alphabet {
         }
     }
 
-    pub(super) fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.perms.len()
     }
 
     /// Whether `next` may follow `last`: blocks of one axis commute, so a run
     /// of them is only allowed in increasing order.
-    pub(super) fn may_follow(&self, last: Option<u8>, next: usize) -> bool {
+    pub(crate) fn may_follow(&self, last: Option<u8>, next: usize) -> bool {
         match last {
             Some(l) => {
                 let l = l as usize;
@@ -123,7 +123,7 @@ impl Alphabet {
     }
 
     /// How many sequences of 0 to `depth` blocks exist.
-    pub(super) fn count_up_to(&self, depth: usize) -> u64 {
+    pub(crate) fn count_up_to(&self, depth: usize) -> u64 {
         let m = self.len();
         let mut at_level: Vec<u64> = Vec::new();
         let mut total: u64 = 1;
@@ -147,7 +147,7 @@ impl Alphabet {
     }
 
     /// The plain moves of a block sequence.
-    pub(super) fn sequence(&self, blocks: &[u8]) -> MoveSequence {
+    pub(crate) fn sequence(&self, blocks: &[u8]) -> MoveSequence {
         let n = self.kind.size();
         let per_axis = self.ranges.len() * 3;
         blocks
@@ -161,7 +161,7 @@ impl Alphabet {
     }
 
     /// The inverse of a block sequence.
-    pub(super) fn invert(&self, blocks: &[u8]) -> Vec<u8> {
+    pub(crate) fn invert(&self, blocks: &[u8]) -> Vec<u8> {
         blocks
             .iter()
             .rev()

@@ -21,19 +21,18 @@
 //! fixes; the order and the time limit do the rest, and a result that ran out
 //! of time says so.
 
-mod alphabet;
 mod rotation;
-mod search;
 #[cfg(test)]
 mod tests;
 
 use std::time::{Duration, Instant};
 
 use super::Pattern;
+use crate::meet::{
+    hash_of, perm_of, permuted, position_keys, sums_of, Alphabet, Table, Walker, ENTRY_BYTES,
+};
 use crate::puzzle::{Facelets, MoveSequence};
-use alphabet::{perm_of, Alphabet};
 use rotation::{compose, inverse, mismatches, renamings, rotations, same_up_to_colors};
-use search::{hash_of, permuted, position_keys, sums_of, Table, Walker, ENTRY_BYTES};
 
 /// Memory for the stored side unless the caller says otherwise, in megabytes.
 pub const DEFAULT_TABLE_MEMORY_MB: usize = 1000;

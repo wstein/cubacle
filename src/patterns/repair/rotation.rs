@@ -3,7 +3,7 @@
 
 use crate::puzzle::{Face, Move, PuzzleKind, Turn};
 
-use super::alphabet::perm_of;
+use crate::meet::perm_of;
 
 pub(super) struct Rotation {
     pub(super) perm: Vec<u16>,

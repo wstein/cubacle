@@ -37,6 +37,7 @@ pub mod canonical;
 pub mod centres;
 pub mod engines;
 pub mod generate;
+mod meet;
 pub mod metrics;
 pub mod notation;
 pub mod patterns;

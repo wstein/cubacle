@@ -16,14 +16,14 @@ fn mix(mut x: u64) -> u64 {
     x ^ (x >> 31)
 }
 
-pub(super) type Sums = [u64; 6];
+pub(crate) type Sums = [u64; 6];
 
 /// Per-position random values.
-pub(super) fn position_keys(count: usize) -> Vec<u64> {
+pub(crate) fn position_keys(count: usize) -> Vec<u64> {
     (0..count as u64).map(|i| mix(i ^ 0xC0BA_C1E0)).collect()
 }
 
-pub(super) fn sums_of(state: &[u8], keys: &[u64]) -> Sums {
+pub(crate) fn sums_of(state: &[u8], keys: &[u64]) -> Sums {
     let mut sums = [0u64; 6];
     for (i, &c) in state.iter().enumerate() {
         sums[c as usize] = sums[c as usize].wrapping_add(keys[i]);
@@ -31,13 +31,13 @@ pub(super) fn sums_of(state: &[u8], keys: &[u64]) -> Sums {
     sums
 }
 
-pub(super) fn hash_of(sums: &Sums) -> u64 {
+pub(crate) fn hash_of(sums: &Sums) -> u64 {
     sums.iter()
         .fold(0u64, |h, &s| h.wrapping_add(mix(s ^ 0xA5A5_5A5A)))
 }
 
 /// The state after the sticker permutation `perm`.
-pub(super) fn permuted(state: &[u8], perm: &[u16]) -> Vec<u8> {
+pub(crate) fn permuted(state: &[u8], perm: &[u16]) -> Vec<u8> {
     let mut out = vec![0u8; state.len()];
     for (i, &c) in state.iter().enumerate() {
         out[perm[i] as usize] = c;
@@ -46,18 +46,18 @@ pub(super) fn permuted(state: &[u8], perm: &[u16]) -> Vec<u8> {
 }
 
 /// Walks block sequences, with a deadline.
-pub(super) struct Walker<'a> {
+pub(crate) struct Walker<'a> {
     al: &'a Alphabet,
     keys: &'a [u64],
     deadline: Instant,
     ticks: u32,
-    pub(super) aborted: bool,
+    pub(crate) aborted: bool,
 }
 
 type Visit<'v> = &'v mut dyn FnMut(u64, &[u8]);
 
 impl<'a> Walker<'a> {
-    pub(super) fn new(al: &'a Alphabet, keys: &'a [u64], deadline: Instant) -> Walker<'a> {
+    pub(crate) fn new(al: &'a Alphabet, keys: &'a [u64], deadline: Instant) -> Walker<'a> {
         Walker {
             al,
             keys,
@@ -69,7 +69,7 @@ impl<'a> Walker<'a> {
 
     /// Visits the hash and blocks of every sequence of exactly `depth` blocks
     /// (of 0 to `depth` blocks when `all`) started from `start`.
-    pub(super) fn walk(&mut self, start: &[u8], depth: usize, all: bool, visit: Visit<'_>) {
+    pub(crate) fn walk(&mut self, start: &[u8], depth: usize, all: bool, visit: Visit<'_>) {
         let mut levels: Vec<Vec<u8>> = vec![start.to_vec(); depth.max(1)];
         let sums = sums_of(start, self.keys);
         if all || depth == 0 {
@@ -134,11 +134,11 @@ impl<'a> Walker<'a> {
 
 /// Hash and block sequence of every state within a depth, sorted by hash;
 /// one entry per hash, the shortest sequence.
-pub(super) struct Table {
+pub(crate) struct Table {
     entries: Vec<(u64, u64)>,
 }
 
-pub(super) const ENTRY_BYTES: usize = std::mem::size_of::<(u64, u64)>();
+pub(crate) const ENTRY_BYTES: usize = std::mem::size_of::<(u64, u64)>();
 
 fn pack(seq: &[u8]) -> u64 {
     seq.iter().enumerate().fold(seq.len() as u64, |c, (i, &k)| {
@@ -153,7 +153,7 @@ fn unpack(code: u64) -> Vec<u8> {
 }
 
 impl Table {
-    pub(super) fn build(
+    pub(crate) fn build(
         walker: &mut Walker<'_>,
         start: &[u8],
         depth: usize,
@@ -172,7 +172,7 @@ impl Table {
         Some(Table { entries })
     }
 
-    pub(super) fn get(&self, hash: u64) -> Option<Vec<u8>> {
+    pub(crate) fn get(&self, hash: u64) -> Option<Vec<u8>> {
         let at = self.entries.partition_point(|e| e.0 < hash);
         self.entries
             .get(at)
@@ -180,7 +180,7 @@ impl Table {
             .map(|e| unpack(e.1))
     }
 
-    pub(super) fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.entries.len()
     }
 }
