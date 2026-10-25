@@ -12,6 +12,7 @@ mod kind;
 mod layer_move;
 mod moves;
 mod orbits;
+mod order;
 mod relative;
 mod solver;
 mod stages;
@@ -28,6 +29,7 @@ pub use kind::PuzzleKind;
 pub use layer_move::LayerMove;
 pub use moves::{Move, MoveSequence, NotationError, Turn};
 pub(crate) use orbits::{centre_orbits, wing_orbits};
+pub use order::{sticker_cycles, OrbitCycles, StickerCycles, StickerOrbit};
 #[cfg(test)]
 pub(crate) use relative::relative_by;
 pub use relative::{reaches, relative_state, RelativeError};
