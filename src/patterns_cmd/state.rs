@@ -9,6 +9,7 @@ use cubacle::patterns;
 use cubacle::puzzle::{Facelets, Move, PuzzleKind};
 
 use super::icons::Gallery;
+use super::repair::{self, RepairArgs};
 use super::{FindArgs, IdentifyArgs};
 use crate::steps::SolutionIcons;
 
@@ -47,6 +48,7 @@ pub(super) fn cycles_state(args: &IdentifyArgs, size: usize) -> Result<(), Strin
 /// `patterns identify`: what the structure of a state says about it.
 pub(super) fn identify_state(
     args: &IdentifyArgs,
+    repair_args: &RepairArgs,
     verbose: bool,
     size: usize,
     library: &crate::patterns_config::Library,
@@ -57,7 +59,9 @@ pub(super) fn identify_state(
         None => crate::parse_text(&args.cube.join(" "), args.scheme, size)?.0,
     };
     crate::state_check::warn(&state);
-    let report = patterns::detect_with(&state, &library.extra, args.closest);
+    let mut report = patterns::detect_with(&state, &library.extra, args.closest);
+    let found = repair::search(repair_args, &state, library);
+    repair::mark_closest(&found, &mut report);
     let text = if verbose {
         report.detailed().to_string()
     } else {
@@ -72,6 +76,9 @@ pub(super) fn identify_state(
             pattern.name,
             pattern.origin.as_deref().unwrap_or("?")
         );
+    }
+    if let Some(found) = &found {
+        repair::print(repair_args, verbose, &state, found);
     }
     if let Some(icons) = icons {
         let mut gallery = Gallery::new(icons);

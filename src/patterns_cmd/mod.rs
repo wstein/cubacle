@@ -113,6 +113,8 @@ enum Action {
 pub struct IdentifyCmd {
     #[command(flatten)]
     state: IdentifyArgs,
+    #[command(flatten)]
+    repair: repair::RepairArgs,
 }
 
 #[derive(Args)]
@@ -128,7 +130,9 @@ pub struct IdentifyArgs {
     /// Colour scheme of colour input: boy, jp or six letters in URFDLB order
     #[arg(long)]
     scheme: Option<ColourScheme>,
-    /// How many of the closest patterns (built-in and imported) to list
+    /// How many of the closest patterns (built-in and imported) to list. The
+    /// percentage counts equal stickers and is not a distance: a state a few
+    /// block moves from a pattern can agree with it on far fewer stickers
     #[arg(long, default_value_t = 3, value_name = "N")]
     closest: usize,
 }
@@ -228,7 +232,14 @@ pub fn run(args: PatternsArgs) -> Result<(), String> {
             let state = &identify.state;
             let icons = icons::options(&args.pictures, state.scheme, Notation::default());
             let size = args.size.unwrap_or(3);
-            state::identify_state(state, verbose, size, &library(), icons.as_ref())
+            state::identify_state(
+                state,
+                &identify.repair,
+                verbose,
+                size,
+                &library(),
+                icons.as_ref(),
+            )
         }
         Some(Action::Cycles(cycles)) => state::cycles_state(&cycles, args.size.unwrap_or(3)),
         Some(Action::Import(import)) => {
@@ -256,5 +267,6 @@ fn sources(config: &crate::patterns_config::Config) -> Result<(), String> {
 }
 
 mod list;
+mod repair;
 mod show;
 mod state;

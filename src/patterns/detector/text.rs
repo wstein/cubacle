@@ -157,7 +157,14 @@ fn write_closest(f: &mut fmt::Formatter<'_>, report: &Report) -> fmt::Result {
         let list: Vec<String> = report
             .closest
             .iter()
-            .map(|s| format!("{} {} %", labelled(&s.id, &s.name), s.percent))
+            .map(|s| {
+                let base = format!("{} {} %", labelled(&s.id, &s.name), s.percent);
+                match s.blocks_away {
+                    Some(1) => format!("{base}, 1 block away"),
+                    Some(n) => format!("{base}, {n} blocks away"),
+                    None => base,
+                }
+            })
             .collect();
         writeln!(f, "closest: {}", list.join(", "))?;
     }

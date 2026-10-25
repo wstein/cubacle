@@ -21,6 +21,10 @@ pub struct Similar {
     pub name: String,
     /// Percent of the stickers that agree, 0 to 100.
     pub percent: u8,
+    /// How many blocks of extra moves a repair search found between the
+    /// state and this pattern; `None` unless a search found one. The
+    /// percentage counts equal stickers and is not a distance.
+    pub blocks_away: Option<usize>,
 }
 
 /// The orbits in which the state equals the closest patterns, and those in
@@ -127,6 +131,7 @@ pub(crate) fn closest(
             id: e.id.clone(),
             name: e.name.clone(),
             percent: (100.0 * *score as f64 / total as f64).round() as u8,
+            blocks_away: None,
         })
         .collect();
     let sets = orbit_sets(kind);
