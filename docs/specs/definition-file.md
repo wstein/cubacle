@@ -1,25 +1,25 @@
 ---
-title: "The .gen definition file"
-description: "Specification: the .gen file that defines a pattern by a schema grid and a guard, and the grammar of both."
+title: "The definition file"
+description: "Specification: the definition file that defines a pattern by a schema grid and a guard, and the grammar of both."
 weight: 10
 ---
 
-# The .gen definition file
+# The definition file
 
 Status: specification, not implemented yet. Nothing on this page can be run.
 
 ## Purpose
 
-A `.gen` file defines a family of patterns by a schema grid (which stickers are equal) and a guard (a condition on the colors). It is given as a command argument; there is no fixed directory.
+A definition file defines a family of patterns by a schema grid (which stickers are equal) and a guard (a condition on the colors). It is given as a command argument; there is no fixed directory.
 
 ```text
-cubacle patterns find concentric-squares.gen
+cubacle patterns find concentric-squares.cubacle
 ```
 
 By default the command only checks the definition and counts what fits it. Searching for a move sequence happens only with the explicit flag `--solve`.
 
 ```text
-cubacle patterns find concentric-squares.gen --solve
+cubacle patterns find concentric-squares.cubacle --solve
 ```
 
 ## Principle
@@ -184,7 +184,7 @@ Rules:
 
 - No limit ever stops silently. Stderr says which limit was hit and how far the run got.
 - Stdout keeps what was found so far and ends with a marker that the output is incomplete.
-- The `search-limits:` key of the `.gen` file sets the defaults; the command line overrides it.
+- The `search-limits:` key of the definition file sets the defaults; the command line overrides it.
 - When neither `--limit` nor `--count` is given, the generator counts before it lists.
 - REST uses the names `stateLimit`, `countOnly`, `sampleSize`, `sampleSeed` and `budgetMs`, and the answer has the field `searchComplete: true|false`.
 - The search for moves runs only behind `--solve`, with its own `--max-depth` and the `move-alphabet` key.
@@ -208,7 +208,7 @@ The parser reports the line, the column and what was expected, for example `line
 
 ## JSON form
 
-The `.gen` text and a JSON document are two serializations of one canonical model: the typed definition (pattern name, title, aliases, tags, cube size, color scheme, color letters, sticker grid, color constraints, required symmetry and antisymmetry, sequence order, movable and fixed orbits, move alphabet, search limits). The run options are a separate object, not part of the definition. The text parser and the JSON reader both produce exactly this model, so converting from one form to the other loses nothing except comments and layout.
+The text form and a JSON document are two serializations of one canonical model: the typed definition (pattern name, title, aliases, tags, cube size, color scheme, color letters, sticker grid, color constraints, required symmetry and antisymmetry, sequence order, movable and fixed orbits, move alphabet, search limits). The run options are a separate object, not part of the definition. The text parser and the JSON reader both produce exactly this model, so converting from one form to the other loses nothing except comments and layout.
 
 - The JSON text is read with a JSON parser library (`serde_json`). There is no hand-written JSON parser.
 - The result is checked against the JSON Schema with a validation library (the `jsonschema` crate). Errors carry a JSON pointer path, for example `/schema/2/3`, in the place where the text form gives line and column.
@@ -220,7 +220,7 @@ The schema files are published under `https://wstein.github.io/cubacle/schema/v1
 | File | Describes |
 | --- | --- |
 | `common.schema.json` | Shared definitions: names, tokens, face grid, guard string, color scheme, orbits, limits, error object. |
-| `gen-definition.schema.json` | The definition (this page). |
+| `pattern-definition.schema.json` | The definition (this page). |
 | `color-scheme.schema.json` | A color scheme, see [Color schemes](color-schemes.md). |
 | `run-options.schema.json` | The run options. |
 | `search-request.schema.json`, `search-result.schema.json` | The REST contract, see [REST and JSON](rest-json.md). |
@@ -233,11 +233,11 @@ Key mapping, stated once: every JSON key is the camelCase form of the kebab-case
 - `colorScheme` is a name or six letters (see [Color schemes](color-schemes.md)). The display colors of six letters are `colorLetters`, an object from letter to color in JSON and a `color-letters:` line in the text form, with the same value grammar as in a scheme file.
 - `movableOrbits`, `fixedOrbits`, `patternAliases` and `patternTags` are lists of strings.
 
-The example of the worked example above in both forms (files `concentric-squares.gen` and `concentric-squares.json` in `docs/static/examples/gen/`, published at `https://wstein.github.io/cubacle/examples/gen/`):
+The example of the worked example above in both forms (files `concentric-squares.cubacle` and `concentric-squares.json` in `docs/static/examples/definitions/`, published at `https://wstein.github.io/cubacle/examples/definitions/`):
 
 ```json
 {
-  "$schema": "https://wstein.github.io/cubacle/schema/v1/gen-definition.schema.json",
+  "$schema": "https://wstein.github.io/cubacle/schema/v1/pattern-definition.schema.json",
   "formatVersion": 1,
   "patternName": "concentric-squares",
   "patternTitle": "Concentric squares",
@@ -260,7 +260,7 @@ Further examples in the same directory: `checkerboard-free-center` (a 3x3 grid w
 
 ## Result lines
 
-Found sequences are stored as result lines of the form `name | size | metric | status | length | moves`, as in `src/patterns/generators.txt`. The `pattern-name` key of the `.gen` file is the key of those lines.
+Found sequences are stored as result lines of the form `name | size | metric | status | length | moves`, as in `src/patterns/generators.txt`. The `pattern-name` key of the definition file is the key of those lines.
 
 ## Worked example
 

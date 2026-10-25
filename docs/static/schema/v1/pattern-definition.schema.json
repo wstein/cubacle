@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://wstein.github.io/cubacle/schema/v1/gen-definition.schema.json",
+  "$id": "https://wstein.github.io/cubacle/schema/v1/pattern-definition.schema.json",
   "title": "cubacle pattern definition",
-  "description": "What a pattern is: name, cube size, color scheme, sticker grid, color constraints, symmetry, sequence order and orbits. The JSON form of a .gen file; both forms are serializations of one model. Run options are not part of it, see run-options.schema.json. Each JSON key is the camelCase form of the kebab-case key of the text form.",
+  "description": "What a pattern is: name, cube size, color scheme, sticker grid, color constraints, symmetry, sequence order and orbits. The JSON form of a definition file; both forms are serializations of one model. Run options are not part of it, see run-options.schema.json. Each JSON key is the camelCase form of the kebab-case key of the text form.",
   "type": "object",
   "properties": {
     "$schema": { "type": "string", "format": "uri" },
@@ -28,7 +28,7 @@
   "additionalProperties": false,
   "examples": [
     {
-      "$schema": "https://wstein.github.io/cubacle/schema/v1/gen-definition.schema.json",
+      "$schema": "https://wstein.github.io/cubacle/schema/v1/pattern-definition.schema.json",
       "formatVersion": 1,
       "patternName": "concentric-squares",
       "cubeSize": 5,

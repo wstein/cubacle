@@ -1,6 +1,6 @@
 ---
 title: "Specifications"
-description: "Specifications of planned features: the .gen definition file and color schemes. Not implemented yet."
+description: "Specifications of planned features: the definition file and color schemes. Not implemented yet."
 weight: 95
 ---
 
@@ -12,6 +12,6 @@ This section holds specifications that the owner ordered before any code exists.
 
 | Page | Subject |
 | --- | --- |
-| [The .gen definition file](gen-file.md) | A file that defines a pattern by a schema grid and a guard. |
+| [The definition file](definition-file.md) | A file that defines a pattern by a schema grid and a guard. |
 | [Color schemes](color-schemes.md) | Names, letters and display colors for the six faces. |
-| [REST and JSON](rest-json.md) | The search endpoint and the choice between the .gen and JSON forms. |
+| [REST and JSON](rest-json.md) | The search endpoint and the choice between the text and JSON forms. |

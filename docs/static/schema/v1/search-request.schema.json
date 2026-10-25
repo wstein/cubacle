@@ -2,13 +2,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://wstein.github.io/cubacle/schema/v1/search-request.schema.json",
   "title": "cubacle search request",
-  "description": "Body of POST /v1/patterns/search. Exactly one of patternDefinition (the object form) or patternDefinitionText (the .gen text), plus run options. The server is stateless and stores nothing.",
+  "description": "Body of POST /v1/patterns/search. Exactly one of patternDefinition (the object form) or patternDefinitionText (the definition text), plus run options. The server is stateless and stores nothing.",
   "type": "object",
   "properties": {
     "$schema": { "type": "string", "format": "uri" },
     "formatVersion": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/formatVersion" },
-    "patternDefinition": { "$ref": "https://wstein.github.io/cubacle/schema/v1/gen-definition.schema.json" },
-    "patternDefinitionText": { "description": "The text of a .gen file.", "type": "string", "minLength": 1, "maxLength": 100000 },
+    "patternDefinition": { "$ref": "https://wstein.github.io/cubacle/schema/v1/pattern-definition.schema.json" },
+    "patternDefinitionText": { "description": "The text of a definition file.", "type": "string", "minLength": 1, "maxLength": 100000 },
     "runOptions": { "$ref": "https://wstein.github.io/cubacle/schema/v1/run-options.schema.json" }
   },
   "required": ["formatVersion"],

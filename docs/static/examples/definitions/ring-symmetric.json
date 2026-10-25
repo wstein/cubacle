@@ -1,5 +1,5 @@
 {
-  "$schema": "https://wstein.github.io/cubacle/schema/v1/gen-definition.schema.json",
+  "$schema": "https://wstein.github.io/cubacle/schema/v1/pattern-definition.schema.json",
   "formatVersion": 1,
   "patternName": "ring-symmetric",
   "patternTitle": "Ring with D4h symmetry",

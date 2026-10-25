@@ -8,7 +8,7 @@ weight: 20
 
 Status: specification, not implemented yet. Nothing on this page can be run.
 
-A color scheme maps the six face roles (U, R, F, D, L, B) to six one-letter codes and gives each code a display color. It is independent of any generator; the [.gen file](gen-file.md) only uses it to read fixed colors.
+A color scheme maps the six face roles (U, R, F, D, L, B) to six one-letter codes and gives each code a display color. It is independent of any generator; the [definition file](definition-file.md) only uses it to read fixed colors.
 
 ## Built-in schemes
 
@@ -65,7 +65,7 @@ key         = "name" | "faces" | "colors" ;
 
 ## Object form (JSON)
 
-The same scheme as a JSON object, described by `https://wstein.github.io/cubacle/schema/v1/color-scheme.schema.json`. As a standalone file it carries `formatVersion` (always 1) and may start with `$schema`. Inside a [.gen definition](gen-file.md) there is no object: `color-scheme` (`colorScheme` in JSON) is a name or six letters, and the display colors are in `color-letters` (`colorLetters` in JSON).
+The same scheme as a JSON object, described by `https://wstein.github.io/cubacle/schema/v1/color-scheme.schema.json`. As a standalone file it carries `formatVersion` (always 1) and may start with `$schema`. Inside a [definition file](definition-file.md) there is no object: `color-scheme` (`colorScheme` in JSON) is a name or six letters, and the display colors are in `color-letters` (`colorLetters` in JSON).
 
 ```json
 {
@@ -77,7 +77,7 @@ The same scheme as a JSON object, described by `https://wstein.github.io/cubacle
 }
 ```
 
-The rules of validation are the same as for the text form. The schema checks the shape (six uppercase letters, `#RGB` or `#RRGGBB`); the reader checks that the letters are distinct and that every color letter occurs in `faces`. A custom scheme with `#RGB` and `#RRGGBB` colors is in `custom-scheme.json` at `https://wstein.github.io/cubacle/examples/gen/`.
+The rules of validation are the same as for the text form. The schema checks the shape (six uppercase letters, `#RGB` or `#RRGGBB`); the reader checks that the letters are distinct and that every color letter occurs in `faces`. A custom scheme with `#RGB` and `#RRGGBB` colors is in `custom-scheme.json` at `https://wstein.github.io/cubacle/examples/definitions/`.
 
 ## Using a scheme
 
@@ -102,7 +102,7 @@ Errors name the line and column and what was expected.
 ## Where a scheme applies
 
 1. Input parsing of color codes.
-2. The `color-scheme:` key in a [.gen definition](gen-file.md): it may name a scheme, give a file, or give six inline letters.
+2. The `color-scheme:` key in a [definition file](definition-file.md): it may name a scheme, give a file, or give six inline letters.
 3. Display and move icons, later.
 
 ## Defaults
