@@ -124,7 +124,7 @@ fn the_move_limit_covers_the_fix_up() {
 fn a_time_limit_that_planning_uses_up_is_reported() {
     let (ok, _, error) = solve4(&["-b", "1"]);
     assert!(!ok);
-    assert!(error.contains("time budget"), "{error}");
+    assert!(error.contains("time limit"), "{error}");
     let (ok, answer, error) = solve4(&["-b", "30000"]);
     assert!(ok, "{error}");
     replays(4, &answer);

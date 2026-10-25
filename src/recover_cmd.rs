@@ -46,9 +46,11 @@ pub(crate) struct RecoverOptions {
     /// the big cubes
     #[arg(long, conflicts_with = "one_mistake", requires = "now")]
     thorough: bool,
-    /// Time limit of the search in milliseconds, 0 for none (default 8000)
-    #[arg(long, default_value_t = 8000, requires = "now", value_name = "MS")]
-    max_time: u64,
+    /// Time limit in milliseconds, 0 for none. A plain solve: default 120000 for
+    /// the 4x4x4 to 7x7x7 (none for the 2x2x2 and 3x3x3); the search for a way
+    /// back (--now): default 8000
+    #[arg(long, value_name = "MS", conflicts_with_all = ["budget_ms", "improve", "parallel"])]
+    pub(crate) max_time: Option<u64>,
 }
 
 /// What the way back shares with the command that asks for it.
@@ -146,7 +148,9 @@ pub(crate) fn run_now(
         strays: usize::from(way.strays),
         two_mistakes: !way.one_mistake,
         thorough: way.thorough,
-        max_time: (way.max_time > 0).then(|| Duration::from_millis(way.max_time)),
+        max_time: Some(way.max_time.unwrap_or(8000))
+            .filter(|&ms| ms > 0)
+            .map(Duration::from_millis),
     };
     let hint = way.at_move.map(|n| Scope {
         at_move: n as usize,

@@ -4,6 +4,7 @@
 //! `group_edges` (see `fake`).
 
 use std::sync::Arc;
+use std::time::Duration;
 
 use super::fake::{five_of, four_of, lift, three_of};
 use crate::puzzle::{Facelets, Failure, Move, MoveSequence, PuzzleKind, SolveOptions, Solver};
@@ -16,12 +17,22 @@ pub(super) struct Refused {
     pub message: Option<String>,
 }
 
+/// The options of a stage that may take `budget` at most.
+fn limited(options: SolveOptions, budget: Option<Duration>) -> SolveOptions {
+    match budget {
+        Some(budget) => options.with_time_budget(budget),
+        None => options,
+    }
+}
+
 fn reduce_with(
     engine: &Arc<dyn Solver + Send + Sync>,
     fake: &Facelets,
     stage: &'static str,
+    budget: Option<Duration>,
 ) -> Result<Vec<Move>, Refused> {
-    let result = engine.solve(fake, &SolveOptions::default().with_reduce_only(true));
+    let options = limited(SolveOptions::default().with_reduce_only(true), budget);
+    let result = engine.solve(fake, &options);
     match result.outcome {
         Ok(seq) => Ok(seq.moves().to_vec()),
         Err(failure) => Err(Refused {
@@ -41,9 +52,10 @@ fn apply(cube: &Facelets, moves: &[Move]) -> Facelets {
 pub(super) fn inner_wings(
     four: &Arc<dyn Solver + Send + Sync>,
     cube: &Facelets,
+    budget: Option<Duration>,
 ) -> Result<Vec<Move>, Refused> {
     let n = cube.kind().size();
-    let moves = reduce_with(four, &four_of(cube), "inner wings (4x4x4)")?;
+    let moves = reduce_with(four, &four_of(cube), "inner wings (4x4x4)", budget)?;
     let depth = (n / 2) as u8;
     let lifted: Vec<Move> = moves.iter().flat_map(|m| lift(m, depth)).collect();
     // The 4x4x4 turns whole-cube-wide layers as 4Xw; none are expected.
@@ -56,8 +68,9 @@ pub(super) fn orbit_wings(
     five: &Arc<dyn Solver + Send + Sync>,
     cube: &Facelets,
     orbit: usize,
+    budget: Option<Duration>,
 ) -> Result<Vec<Move>, Refused> {
-    let moves = reduce_with(five, &five_of(cube, orbit), "outer wings (5x5x5)")?;
+    let moves = reduce_with(five, &five_of(cube, orbit), "outer wings (5x5x5)", budget)?;
     Ok(moves
         .iter()
         .flat_map(|m| lift(m, (orbit + 2) as u8))
@@ -68,9 +81,10 @@ pub(super) fn orbit_wings(
 pub(super) fn finish(
     three: &Arc<dyn Solver + Send + Sync>,
     cube: &Facelets,
+    budget: Option<Duration>,
 ) -> Result<Vec<Move>, Refused> {
     debug_assert!(matches!(cube.kind(), PuzzleKind::Cube6 | PuzzleKind::Cube7));
-    let result = three.solve(&three_of(cube), &SolveOptions::default());
+    let result = three.solve(&three_of(cube), &limited(SolveOptions::default(), budget));
     match result.outcome {
         Ok(seq) => Ok(seq.moves().to_vec()),
         Err(failure) => Err(Refused {

@@ -2,6 +2,8 @@
 //!
 //! New code; the stages are in `six_stage1` and `six_stage2`.
 
+use std::time::Instant;
+
 use super::geometry::{catalogue, MoveDef};
 use super::six_stage1::{self, Unpaired};
 use super::six_stage2::{self as s2, UdPaired};
@@ -37,10 +39,11 @@ impl Six {
     }
 
     /// Stages 1 to 4. Returns the cube after them and the moves of each.
-    pub(super) fn centres(
+    pub(super) fn centers(
         &self,
         cube: &Facelets,
         max6: i32,
+        deadline: Option<Instant>,
     ) -> Option<(Facelets, Vec<Done>, bool)> {
         let mut cube = cube.clone();
         let mut done = Vec::new();
@@ -49,35 +52,60 @@ impl Six {
         let used = select(&self.defs, |_| true);
         let table = six_stage1::table(&used, &self.cache, t);
         let stage = PatStage::new(six_stage1::groups(), &used, vec![&table], Some(&Unpaired));
-        let m = solve(&stage, stage.node_of(|s| cube.stickers()[s] as u8), t)?;
+        let m = solve(
+            &stage,
+            stage.node_of(|s| cube.stickers()[s] as u8),
+            t,
+            deadline,
+        )?;
         cube = Self::apply(&cube, &m);
         done.push(("LR inner-x staged, obliques paired", m));
 
         let used = select(&self.defs, s2::five_moves);
         let tables = s2::lr_tables(&used, &self.cache, t);
         let stage = PatStage::new(s2::lr_groups(), &used, tables.iter().collect(), None);
-        let m = solve(&stage, stage.node_of(|s| cube.stickers()[s] as u8), t)?;
+        let m = solve(
+            &stage,
+            stage.node_of(|s| cube.stickers()[s] as u8),
+            t,
+            deadline,
+        )?;
         cube = Self::apply(&cube, &m);
         done.push(("LR centres staged", m));
 
         let used = select(&self.defs, s2::ud_pair_moves);
         let table = s2::ud_inner_table(&used, &self.cache, t);
         let stage = PatStage::new(s2::ud_groups(), &used, vec![&table], Some(&UdPaired));
-        let m = solve(&stage, stage.node_of(|s| cube.stickers()[s] as u8), t)?;
+        let m = solve(
+            &stage,
+            stage.node_of(|s| cube.stickers()[s] as u8),
+            t,
+            deadline,
+        )?;
         cube = Self::apply(&cube, &m);
         done.push(("UD inner-x staged, obliques paired", m));
 
         let used = select(&self.defs, s2::ud_stage_moves);
         let tables = s2::ud_stage_tables(&used, &self.cache, t);
         let stage = PatStage::new(s2::ud_stage_groups(), &used, tables.iter().collect(), None);
-        let m = solve(&stage, stage.node_of(|s| cube.stickers()[s] as u8), t)?;
+        let m = solve(
+            &stage,
+            stage.node_of(|s| cube.stickers()[s] as u8),
+            t,
+            deadline,
+        )?;
         cube = Self::apply(&cube, &m);
         done.push(("UD centres staged", m));
 
         let used = select(&self.defs, s5::step50_moves);
         let table = s5::step50_table(&used, &self.cache, t);
         let stage = PatStage::new(s5::step50_groups(), &used, vec![&table], None);
-        let m = solve(&stage, stage.node_of(|s| cube.stickers()[s] as u8), t)?;
+        let m = solve(
+            &stage,
+            stage.node_of(|s| cube.stickers()[s] as u8),
+            t,
+            deadline,
+        )?;
         cube = Self::apply(&cube, &m);
         done.push(("LR centres reducible", m));
 
@@ -85,7 +113,12 @@ impl Six {
         let tables = s5::step60_tables(&used);
         let mut stage = PatStage::new(s5::step60_groups(), &used, tables.iter().collect(), None);
         stage.max_length = max6;
-        let m = solve(&stage, stage.node_of(|s| cube.stickers()[s] as u8), t);
+        let m = solve(
+            &stage,
+            stage.node_of(|s| cube.stickers()[s] as u8),
+            t,
+            deadline,
+        );
         let ok = m.is_some();
         let m = m.unwrap_or_default();
         cube = Self::apply(&cube, &m);
@@ -118,7 +151,7 @@ mod tests {
             }
             let cube = Six::apply(&Facelets::solved(PuzzleKind::Cube6), &seq);
             let n = stage.node_of(|s| cube.stickers()[s] as u8);
-            let m = solve(&stage, n, 12).expect("solvable");
+            let m = solve(&stage, n, 12, None).expect("solvable");
             let after = Six::apply(&cube, &m);
             assert!(s5::centres_reduced(&after));
         }
@@ -131,7 +164,7 @@ mod tests {
             let cube = Facelets::solved(PuzzleKind::Cube6)
                 .apply(&scramble(PuzzleKind::Cube6, 80))
                 .unwrap();
-            let (after, done, ok) = six.centres(&cube, 20).expect("stages");
+            let (after, done, ok) = six.centers(&cube, 20, None).expect("stages");
             assert!(ok);
             assert!(s5::centres_reduced(&after));
             let lens: Vec<usize> = done.iter().map(|d| d.1.len()).collect();

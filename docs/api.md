@@ -134,7 +134,7 @@ curl -s -XPOST localhost:8080/v1/solve \
 
 A 4x4x4 solution has about 48 moves. Its last wide turns (`Rw Lw'` and the like, at most four) turn the whole cube back to the standard orientation, because a 4x4x4 has no fixed centres; the cube is solved exactly after them. The tables (12 MB) are built at startup, and each solve uses one thread, so concurrent requests do not compete for cores.
 
-The 6x6x6 and 7x7x7 are solved by reduction through the 4x4x4, 5x5x5 and 3x3x3 engines (see [the dwalton port](design/dwalton-port.md)). They ignore `maxMoves` limits below the reduction's length: the engine does not search for shorter answers, and `budgetMs` does not interrupt a solve in progress.
+The 6x6x6 and 7x7x7 are solved by reduction through the 4x4x4, 5x5x5 and 3x3x3 engines (see [the dwalton port](design/dwalton-port.md)). They ignore `maxMoves` limits below the reduction's length: the engine does not search for shorter answers. `budgetMs` ends a solve in progress: the center searches look at the clock every few thousand nodes and the wing stages get what is left, so a spent budget is a 504 `budget_exhausted`.
 
 A 5x5x5 is sent as its 150 facelets or its 43-character token. This request solves the cube of a scramble:
 
@@ -171,7 +171,7 @@ Errors have this shape:
 | 422 | `no_solution_within_limit` | No solution within `maxMoves`. |
 | 429 | `busy` | All solver slots are in use. The response has `Retry-After: 1`. |
 | 500 | `internal` | A handler or solver thread panicked, or an engine reached a state it cannot explain. |
-| 504 | `budget_exhausted` | The time budget ran out. |
+| 504 | `budget_exhausted` | The time budget ran out (every size; the budget is `budgetMs` or the request timeout, so the server has a limit on all sizes). |
 
 Some details:
 

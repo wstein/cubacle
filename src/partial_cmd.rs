@@ -48,7 +48,7 @@ pub fn run(args: &SolveArgs, start: &Facelets, target: &Target) -> Result<(), St
     if let Some(moves) = args.max_moves {
         options = options.with_max_moves(moves);
     }
-    if let Some(millis) = args.budget_ms {
+    if let Some(millis) = args.budget_ms.or(args.way.max_time.filter(|&ms| ms > 0)) {
         options = options.with_time_budget(Duration::from_millis(millis));
     }
     options = options.with_slices(args.slices);

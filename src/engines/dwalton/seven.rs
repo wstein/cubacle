@@ -8,6 +8,8 @@
 //! of the fake 5x5x5 are the 7x7x7 turns of its first, third (inner) or
 //! second (outer) layer.
 
+use std::time::Instant;
+
 use super::geometry::{bit, catalogue, from_ref_all, MoveDef, D, L, R, U};
 use super::pattern::{Group, Table};
 use super::seven_final_tables as fin;
@@ -91,6 +93,7 @@ impl Seven {
         marks: u8,
         goal: u32,
         allow: fn(&str) -> bool,
+        deadline: Option<Instant>,
     ) -> Option<Vec<String>> {
         let used = select(&self.defs, allow);
         let dest: Vec<&[usize]> = used.iter().map(|d| &d.dest[..]).collect();
@@ -118,7 +121,7 @@ impl Seven {
             })
             .collect();
         let stage = PatStage::new(specs, &used, tables.iter().collect(), None);
-        solve(&stage, node_of(&stage, cube), self.threads)
+        solve(&stage, node_of(&stage, cube), self.threads, deadline)
     }
 
     /// Pairs the oblique centres of `sides` for the colours `marks`.
@@ -129,6 +132,7 @@ impl Seven {
         marks: u8,
         cost: fn(i32) -> i32,
         allow: fn(&str) -> bool,
+        deadline: Option<Instant>,
     ) -> Option<Vec<String>> {
         let used = select(&self.defs, allow);
         let specs: Vec<GroupSpec> = [&LEFT, &MIDDLE, &RIGHT]
@@ -140,7 +144,7 @@ impl Seven {
             .collect();
         let extra = Obliques { cost };
         let stage = PatStage::new(specs, &used, Vec::new(), Some(&extra));
-        solve(&stage, node_of(&stage, cube), self.threads)
+        solve(&stage, node_of(&stage, cube), self.threads, deadline)
     }
 
     /// A stage over the tables of the reference.
@@ -149,16 +153,21 @@ impl Seven {
         cube: &Facelets,
         refs: &[RefTable],
         allow: fn(&str) -> bool,
+        deadline: Option<Instant>,
     ) -> Option<Vec<String>> {
         let used = select(&self.defs, allow);
         let dest: Vec<&[usize]> = used.iter().map(|d| &d.dest[..]).collect();
         let built = build(refs, &dest);
         let stage = PatStage::new(built.specs, &used, built.tables.iter().collect(), None);
-        solve(&stage, node_of(&stage, cube), self.threads)
+        solve(&stage, node_of(&stage, cube), self.threads, deadline)
     }
 
     /// All centre stages. Returns the cube after them and the moves of each.
-    pub(super) fn centres(&self, cube: &Facelets) -> Option<(Facelets, Vec<Done>)> {
+    pub(super) fn centers(
+        &self,
+        cube: &Facelets,
+        deadline: Option<Instant>,
+    ) -> Option<(Facelets, Vec<Done>)> {
         let mut cube = cube.clone();
         let mut done: Vec<Done> = Vec::new();
         let mut run = |cube: &mut Facelets, name: &'static str, m: Option<Vec<String>>| {
@@ -176,9 +185,10 @@ impl Seven {
             LR,
             lr_goal(),
             ss::inner_moves,
+            deadline,
         );
         run(&mut cube, "LR inner centres staged", m)?;
-        let m = self.pair_stage(&cube, &ALL, LR, ss::lr_cost, ss::lr_pair_moves);
+        let m = self.pair_stage(&cube, &ALL, LR, ss::lr_cost, ss::lr_pair_moves, deadline);
         run(&mut cube, "LR obliques paired", m)?;
         let m = self.five_stage(
             &cube,
@@ -188,6 +198,7 @@ impl Seven {
             LR,
             lr_goal(),
             |n| !n.starts_with('3'),
+            deadline,
         );
         run(&mut cube, "LR centres staged", m)?;
 
@@ -199,9 +210,10 @@ impl Seven {
             UD,
             ud_goal(),
             ss::inner_ud_moves,
+            deadline,
         );
         run(&mut cube, "UD inner centres staged", m)?;
-        let m = self.pair_stage(&cube, &UFBD, UD, ss::ud_cost, ss::ud_pair_moves);
+        let m = self.pair_stage(&cube, &UFBD, UD, ss::ud_cost, ss::ud_pair_moves, deadline);
         run(&mut cube, "UD obliques paired", m)?;
         let m = self.five_stage(
             &cube,
@@ -211,6 +223,7 @@ impl Seven {
             UD,
             ud_goal(),
             ud_stage_moves,
+            deadline,
         );
         run(&mut cube, "UD centres staged", m)?;
 
@@ -228,6 +241,7 @@ impl Seven {
                 refs(&lr::CELLS_44, &lr::TARGETS_44, 'L'),
             ],
             ss::step40_moves,
+            deadline,
         );
         run(&mut cube, "LR centres vertical bars", m)?;
         let m = self.table_stage(
@@ -240,6 +254,7 @@ impl Seven {
                 refs(&ud::CELLS_55, &ud::TARGETS_55, 'L'),
             ],
             ss::step50_moves,
+            deadline,
         );
         run(&mut cube, "LR solved, UD vertical bars", m)?;
         let m = self.table_stage(
@@ -251,6 +266,7 @@ impl Seven {
                 refs(&fin::CELLS_66, &fin::TARGETS_66, 'F'),
             ],
             ss::step60_moves,
+            deadline,
         );
         run(&mut cube, "centres daisy solved", m)?;
         Some((cube, done))
@@ -270,7 +286,7 @@ mod tests {
                 .apply(&scramble(PuzzleKind::Cube7, 100))
                 .unwrap();
             let started = std::time::Instant::now();
-            let (_, done) = seven.centres(&cube).expect("stages");
+            let (_, done) = seven.centers(&cube, None).expect("stages");
             let lens: Vec<(&str, usize)> = done.iter().map(|d| (d.0, d.1.len())).collect();
             println!("{lens:?} in {:?}", started.elapsed());
         }

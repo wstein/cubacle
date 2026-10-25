@@ -2,7 +2,7 @@
 //! [`Solver`].
 
 use std::sync::{Arc, OnceLock};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use super::groups;
 use super::seven::Seven;
@@ -34,7 +34,8 @@ pub struct DwaltonSolver {
     seven: OnceLock<Seven>,
 }
 
-type WingStage<'a> = Box<dyn Fn(&Facelets) -> Result<Vec<Move>, wings::Refused> + 'a>;
+type WingStage<'a> =
+    Box<dyn Fn(&Facelets, Option<Duration>) -> Result<Vec<Move>, wings::Refused> + 'a>;
 
 impl std::fmt::Debug for DwaltonSolver {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -75,7 +76,17 @@ impl DwaltonSolver {
 
     /// Solves and reports the moves of each stage.
     pub fn solve_tallied(&self, cube: &Facelets) -> (SolveResult, StageTally) {
+        self.tallied(cube, None)
+    }
+
+    /// Solves within `budget`, if there is one, and reports the moves of each
+    /// stage. The clock is looked at inside the center searches (every few
+    /// thousand nodes) and between the stages; the engines of the wing
+    /// stages get what is left.
+    fn tallied(&self, cube: &Facelets, budget: Option<Duration>) -> (SolveResult, StageTally) {
         let started = Instant::now();
+        let deadline = budget.and_then(|budget| started.checked_add(budget));
+        let expired = || deadline.is_some_and(|d| Instant::now() >= d);
         let mut tally = StageTally::default();
         let fail = |failure: Failure, message: String, tally: &StageTally| {
             (
@@ -120,10 +131,16 @@ impl DwaltonSolver {
             tally.stages.push((name.to_owned(), moves.len()));
         };
         let centres = if self.kind == PuzzleKind::Cube6 {
-            self.six().centres(&cur, 40)
+            self.six().centers(&cur, 40, deadline)
         } else {
-            self.seven().centres(&cur).map(|(c, d)| (c, d, true))
+            self.seven()
+                .centers(&cur, deadline)
+                .map(|(c, d)| (c, d, true))
         };
+        let timed_out = "the time limit was reached in the center stages";
+        if expired() {
+            return fail(Failure::BudgetExhausted, timed_out.into(), &tally);
+        }
         let Some((after, done, ok)) = centres else {
             return fail(
                 Failure::Internal,
@@ -146,29 +163,40 @@ impl DwaltonSolver {
             vec![
                 (
                     "inner wings (4x4x4)",
-                    Box::new(|c| wings::inner_wings(&self.four, c)),
+                    Box::new(|c, b| wings::inner_wings(&self.four, c, b)),
                 ),
                 (
                     "outer wings (5x5x5)",
-                    Box::new(|c| wings::orbit_wings(&self.five, c, 0)),
+                    Box::new(|c, b| wings::orbit_wings(&self.five, c, 0, b)),
                 ),
-                ("3x3x3", Box::new(|c| wings::finish(&self.three, c))),
+                ("3x3x3", Box::new(|c, b| wings::finish(&self.three, c, b))),
             ]
         } else {
             vec![
                 (
                     "inner wings (5x5x5)",
-                    Box::new(|c| wings::orbit_wings(&self.five, c, 1)),
+                    Box::new(|c, b| wings::orbit_wings(&self.five, c, 1, b)),
                 ),
                 (
                     "outer wings (5x5x5)",
-                    Box::new(|c| wings::orbit_wings(&self.five, c, 0)),
+                    Box::new(|c, b| wings::orbit_wings(&self.five, c, 0, b)),
                 ),
-                ("3x3x3", Box::new(|c| wings::finish(&self.three, c))),
+                ("3x3x3", Box::new(|c, b| wings::finish(&self.three, c, b))),
             ]
         };
         for (name, run) in stages {
-            match run(&cur) {
+            if expired() {
+                return fail(
+                    Failure::BudgetExhausted,
+                    format!("the time limit was reached before the stage {name}"),
+                    &tally,
+                );
+            }
+            let left = deadline.map(|d| {
+                d.saturating_duration_since(Instant::now())
+                    .max(Duration::from_millis(1))
+            });
+            match run(&cur, left) {
                 Ok(moves) => {
                     cur = cur.apply(&MoveSequence::new(moves.clone())).expect("fits");
                     note(&mut tally, name, &moves);
@@ -238,8 +266,8 @@ impl Solver for DwaltonSolver {
         self.kind
     }
 
-    fn solve(&self, facelets: &Facelets, _options: &SolveOptions) -> SolveResult {
-        self.solve_tallied(facelets).0
+    fn solve(&self, facelets: &Facelets, options: &SolveOptions) -> SolveResult {
+        self.tallied(facelets, options.time_budget).0
     }
 }
 
@@ -259,9 +287,9 @@ mod tests {
             let cube = Facelets::solved(PuzzleKind::Cube6)
                 .apply(&scramble(PuzzleKind::Cube6, 80))
                 .unwrap();
-            let (cube, done, _) = six.centres(&cube, 40).unwrap();
+            let (cube, done, _) = six.centers(&cube, 40, None).unwrap();
             assert!(super::super::six_stage5::centres_reduced(&cube));
-            let moves = wings::inner_wings(&four, &cube).unwrap();
+            let moves = wings::inner_wings(&four, &cube, None).unwrap();
             let after = cube.apply(&MoveSequence::new(moves.clone())).unwrap();
             assert!(
                 super::super::six_stage5::centres_reduced(&after),

@@ -41,7 +41,8 @@ The first two lines go to standard error. `moves N` is always printed there, `el
 | `--scheme <SCHEME>` | Colour scheme for colour input. See [Colour schemes](#colour-schemes). |
 | `--to <TARGET>` | Solve to a state other than the solved cube, or to any state that matches a target with open stickers (`X`). See [Solve to a target](#solve-to-a-target) and [Targets with open stickers](#targets-with-open-stickers). |
 | `-m`, `--max-moves <N>` | Longest solution to accept. Default: 21 for the 2x2x2 and 3x3x3, none for the 4x4x4 and 5x5x5. Also caps the default 3000 probes. |
-| `-b`, `--budget-ms <MS>` | Hard time limit in milliseconds. Given on a 3x3x3 it also restores the first-answer search (no default 3000 probes). |
+| `-b`, `--budget-ms <MS>` | Hard time limit in milliseconds. Given on a 3x3x3 it also restores the first-answer search (no default 3000 probes). Reaching it is the same error as `--max-time` (exit status 3). |
+| `--max-time <MS>` | Time limit of the whole solve in milliseconds, 0 for none. Default 120000 for the 4x4x4 to 7x7x7, none for the 2x2x2 and 3x3x3; with `--moves` none. The 4x4x4 and 5x5x5 look at the clock inside every search stage, the 6x6x6 and 7x7x7 inside the center searches and between the wing stages. Reaching it is an error, see [Failure](#failure). Not with `-b`, `--improve` or `--parallel`. With `--now` it limits the search for the mistake (default 8000). |
 | `--fast` | 3x3x3 only. Print the first solution found, about 20.6 moves on average, in a few milliseconds. Without it a plain `solve` of a 3x3x3 makes 3000 probes (see [Shorter solutions](#shorter-solutions)). Not with `--probes`, `--improve` or `--parallel`. |
 | `--probes <N>` | 3x3x3 only. Keep improving the solution until N probes were made. Counts work, not time, so the answer is the same on every machine. |
 | `--improve` | 3x3x3 only. Keep improving until the time budget (`-b`, default 1000 ms) is spent, then print the best solution found. |
@@ -403,6 +404,30 @@ cubacle solve -s "R U F B L D R U" --max-moves 2
 error: no solution within the move limit (the search ended without a solution (time budget or move limit reached))
 ```
 
+Exit status of `cubacle` on a command that fails:
+
+| Status | Meaning |
+| --- | --- |
+| 0 | Done. |
+| 1 | An error: input that is wrong or an impossible cube, a move limit that cannot be met, a face center off its face. |
+| 2 | The command line is wrong (the usage error of `clap`, for example `--max-time` with `-b`). |
+| 3 | A time limit was reached. Nothing is printed on standard output. |
+
+The 4x4x4 to 7x7x7 have a time limit of 120 s without `--max-time`. Measured on a loaded 12-core machine (cached tables), three random scrambles each took: 3x3x3 25 to 50 ms, 4x4x4 25 to 30 ms, 5x5x5 60 to 140 ms (wall 1 to 4 s with the tables loaded), 6x6x6 1.1 to 5.6 s, 7x7x7 3.8 to 13 s (wall up to 18 s), so the limit is about seven times the slowest. When it is reached:
+
+```sh
+cubacle solve --size 7 --max-time 800 --scramble "R U2 Fw' L2 Uw B' D Rw2 F U' 3Bw L' D2 R2 3Uw F2 3Rw B"
+echo $?
+```
+
+```text
+preparing the 4x4x4 and 5x5x5 tables for the wings (the center tables are built on first use)
+error: time limit of 0.8 s reached on the 7x7x7 (raise it with --max-time MS)
+3
+```
+
+The time to read or build the tables is not counted (`prepare`); `--max-time 0` removes the limit.
+
 The 6x6x6 and 7x7x7 solve by reduction; see [Engines and limits](engines/_index.md).
 
 ### Impossible states
@@ -643,7 +668,7 @@ These options belong to `solve --now`. All but `--now` itself need it, and `--no
 | `--strays <N>` | Stray moves after a mistake the last stage allows, 0 to 3 (default 2; one for solutions under 16 moves). 0 leaves the stage out. |
 | `--one-mistake` | Look for one mistake only. The default also looks for two. |
 | `--thorough` | For two mistakes, try every move instead of it and every extra move. Slow on big cubes (it does not finish within the default time limit on a 7x7x7). |
-| `--max-time <MS>` | Time limit of the search in milliseconds, 0 for none (default 8000). The result then says that the search stopped at its time limit. |
+| `--max-time <MS>` | Time limit of the search in milliseconds, 0 for none (default 8000). The result then says that the search stopped at its time limit. (The flag is the same one a plain `solve` has, with another default.) |
 | `-v`, `--verbose` | Print the time of the solve, the fresh solve and the search to standard error. |
 
 The original cube is the one `solve` reads: `--scramble`, `--size` and `--scheme` apply as always. The search treats a move as a permutation of the stickers, so it is the same for every size. Measured on a 7x7x7 (12 cores, with the fresh solve running beside the search): a mistake is found in 30 to 250 ms; a cube that nothing explains takes 1 to 4 s because all 24 orientations are tried; the fresh solve takes 3 to 12 s and the solution of the original cube 4 to 8 s. The mistakes are tried in two levels: one mistake, with every move as a replacement or an extra move, and two mistakes of the likely kinds only (skipped, wrong amount, direction, layers or face, swapped, done twice).

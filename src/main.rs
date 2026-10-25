@@ -28,6 +28,7 @@ mod views;
 
 use std::io::Read;
 use std::process::ExitCode;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -61,7 +62,7 @@ struct Cli {
 #[derive(Subcommand)]
 enum Command {
     /// Solve a cube given as facelets or as a scramble, or with --now explain a mistake and the way back
-    Solve(SolveArgs),
+    Solve(Box<SolveArgs>),
     /// Print the plain move sequence an expression stands for
     Moves(moves_cmd::MovesArgs),
     /// Print how many repetitions of a move sequence return the cube (its order)
@@ -262,6 +263,20 @@ struct SolveArgs {
     pictures: steps::PictureArgs,
 }
 
+/// Exit status of a failed command (success is 0).
+const EXIT_ERROR: u8 = 1;
+/// Exit status of a solve that reached its time limit.
+const EXIT_LIMIT: u8 = 3;
+
+/// Set by a command whose error is a limit, not a fault of the input.
+static LIMIT_REACHED: AtomicBool = AtomicBool::new(false);
+
+/// The longest a solve of the 4x4x4 to 7x7x7 may run without `--max-time`.
+/// Measured on a loaded machine the slowest of three random 7x7x7 solves took
+/// 18 s (the 4x4x4 and 5x5x5 under 5 s, the 6x6x6 under 7 s), so this is
+/// about seven times the worst.
+const DEFAULT_MAX_TIME_MS: u64 = 120_000;
+
 /// The text of a face center error, as `solve` prints it after `error: `.
 pub(crate) const CENTERS_OFF_FACE: &str = "the face centers are not on their own faces (a middle-slice turn moved them); this solver needs the centers of each face in place";
 
@@ -274,14 +289,18 @@ fn main() -> ExitCode {
         Ok(()) => ExitCode::SUCCESS,
         Err(message) => {
             eprintln!("error: {message}");
-            ExitCode::FAILURE
+            ExitCode::from(if LIMIT_REACHED.load(Ordering::Relaxed) {
+                EXIT_LIMIT
+            } else {
+                EXIT_ERROR
+            })
         }
     }
 }
 
 fn run(cli: Cli) -> Result<(), String> {
     match cli.command {
-        Command::Solve(args) => solve(args),
+        Command::Solve(args) => solve(*args),
         Command::Moves(args) => moves_cmd::run(args),
         Command::Order(args) => order_cmd::run(args),
         Command::Patterns(args) => patterns_cmd::run(args),
@@ -622,6 +641,20 @@ fn solve(args: SolveArgs) -> Result<(), String> {
         improve::default_mode(&args, facelets.kind(), target.is_some(), restricted_set)
             .filter(|_| !args.optimal)
     });
+    // --max-time, else the default of the big cubes; --improve spends its
+    // own budget (-b) and the optimal search has its own (-b, 60 s).
+    let spends_budget = matches!(
+        mode,
+        Some(improve::Mode::Time | improve::Mode::TimeParallel)
+    );
+    if args.budget_ms.is_none() && !spends_budget && !args.optimal {
+        let limit = args.way.max_time.or_else(|| {
+            (facelets.kind().size() >= 4 && !restricted_set).then_some(DEFAULT_MAX_TIME_MS)
+        });
+        if let Some(ms) = limit.filter(|&ms| ms > 0) {
+            options = options.with_time_budget(Duration::from_millis(ms));
+        }
+    }
     let limited = match &plan {
         Some(plan) => plan.limit(&options),
         None => Ok(options),
@@ -752,11 +785,42 @@ fn solve(args: SolveArgs) -> Result<(), String> {
                 .message
                 .map_or_else(String::new, |m| format!(" ({m})"))
         )),
-        Err(failure) if restricted.is_some() => {
-            Err(restricted_cmd::failure_text(failure, result.message))
+        Err(failure) => {
+            if failure == Failure::BudgetExhausted {
+                LIMIT_REACHED.store(true, Ordering::Relaxed);
+            }
+            if restricted.is_some() {
+                return Err(restricted_cmd::failure_text(failure, result.message));
+            }
+            match (failure, options.time_budget) {
+                (Failure::BudgetExhausted, Some(limit)) => {
+                    // The engines' own words say more only when they name a stage.
+                    let detail = result
+                        .message
+                        .filter(|message| !message.contains("time limit"))
+                        .map_or_else(String::new, |message| format!(" ({message})"));
+                    Err(format!("{}{detail}", limit_message(limit, facelets.kind())))
+                }
+                _ => Err(failure_message(failure, result.message)),
+            }
         }
-        Err(failure) => Err(failure_message(failure, result.message)),
     }
+}
+
+/// The error of a solve that reached its time limit.
+fn limit_message(limit: Duration, kind: PuzzleKind) -> String {
+    let millis = limit.as_millis();
+    let seconds = if millis.is_multiple_of(1000) {
+        (millis / 1000).to_string()
+    } else {
+        format!("{:.3}", millis as f64 / 1000.0)
+            .trim_end_matches('0')
+            .to_owned()
+    };
+    let size = kind.size();
+    format!(
+        "time limit of {seconds} s reached on the {size}x{size}x{size} (raise it with --max-time MS)"
+    )
 }
 
 /// The text of a failed solve, as `solve` and `solve --now` print it.

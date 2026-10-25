@@ -4,6 +4,8 @@
 //! is a mask per sticker group (bit set: the sticker shows a marked colour);
 //! a move permutes the bits through byte lookup tables.
 
+use std::time::Instant;
+
 use super::geometry::MoveDef;
 use super::pattern::Table;
 use crate::puzzle::Face;
@@ -186,14 +188,20 @@ impl Collector for Record {
 }
 
 /// The first shortest solution found from `node`, as move names. The same
-/// for every thread count.
-pub(super) fn solve(stage: &PatStage, node: Node, threads: usize) -> Option<Vec<String>> {
+/// for every thread count. `None` when there is none, or when `deadline`
+/// passed (the caller looks at the clock to tell the two apart).
+pub(super) fn solve(
+    stage: &PatStage,
+    node: Node,
+    threads: usize,
+    deadline: Option<Instant>,
+) -> Option<Vec<String>> {
     let start = Start {
         node,
         cost: 0,
         owner: 0,
     };
-    let found = ida::search(stage, &[start], &Record, 1, threads, None).ok()?;
+    let found = ida::search(stage, &[start], &Record, 1, threads, deadline).ok()?;
     let first = found.into_iter().next()?;
     Some(
         first
