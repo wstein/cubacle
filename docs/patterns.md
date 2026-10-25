@@ -190,7 +190,7 @@ The report has these parts.
 
 - **pattern**: the state is put into canonical form, the smallest sticker string under the 48 cube symmetries (24 rotations and their mirror images) and every renaming of the six colours, and looked up among the library patterns and the solved cube of that size. The text after the name says how the state differs from the library's colouring: `exactly`, `turned`, `mirrored`, `with colours renamed`, or a combination. A state that is no library pattern prints `no library match`; a random cube does not match.
 - **canonical**: the [canonical Orbit64 token](design/canonical-form.md) of the state, one identifier for every turned, mirrored or recolored copy of it (`canonical: AAAABeBQZgAA` is the checkerboard on a 3x3x3). It sits below the `pattern:` lines, on every size from 2x2x2 to 7x7x7. A state that no turn can reach (it has a warning on standard error) has no such line.
-- **patternness** and **closest**: see below; `closest` names the three library patterns (the solved cube included) with the share of stickers that agree after the best of the 48 symmetries and colour renamings, and a `partial:` line says in which orbits the state equals the closest pattern that matches in some (`partial: corners, edges match Solved cube exactly; wings (depth 1) differ`).
+- **patternness** and **closest**: see below; `closest` names the three library patterns (the solved cube included) with the share of stickers that agree after the best of the 48 symmetries and colour renamings (a count of equal stickers, not a distance: see [Repair](#repair)), and a `partial:` line says in which orbits the state equals the closest pattern that matches in some (`partial: corners, edges match Solved cube exactly; wings (depth 1) differ`).
 - **fingerprint**: for every piece orbit (corners, edges, wings by depth, centres) the number of displaced pieces, of twisted corners or flipped edges, and, where pieces can be told apart (corners, and the edges of the 3x3x3 and the middle wings of odd cubes), the cycle type of their permutation. The compact code is `C` corners with `t` twisted, `E` edges and `W<depth>:` wings with `f` flipped, `X` (x-centres, on the diagonals of a face), `+` (+-centres, on its mid-lines) and `O` (oblique) centre orbits (the number of misplaced stickers; a ring number follows where a shape has more than one ring, `X2:`), each preceded by the number displaced and followed by the cycle lengths in brackets: `C0t0 E0f12` is the superflip. The code is read in every colour frame and axis order that fits and the least is kept, so a cube, its turned or mirrored image and any renaming of its colours give the same code. On an even cube, which has no fixed centres, the frame is the best matching of colours to faces.
 - **subgroups**: exact tests on the pieces. `corners only`, `edges only` and (4x4x4 up) `centres only` say that nothing else moved. On the 3x3x3, `G1 domino group` (corners untwisted, edges unflipped, the middle-layer edges in the middle layer; one line per axis) and the half-turn group are exact too: the half-turn test checks the classes of four corners and four edges and a table of 648 projected arrangements, and a test walks all 663 552 states of the group to confirm it. `<R,U>` and `<R,U,F>` have no description by pieces, so the test only refutes (a piece those faces never touch is moved) or answers `possible`; `cubacle solve --moves "<R,U>"` is the proof. The tests assume a legal cube.
 - **symmetry**: how many of the 48 symmetries fix the state when the colours may be renamed, how many of those keep every colour literally, and how many operations each class has; `-v` lists the operations with the renaming each needs (a superflip is fixed by all 48 but only after renaming colours; the identity keeps them).
@@ -350,6 +350,45 @@ cube-in-cube	Cube in a cube	2:10/10 3:15/15 4:15/15 5:15/15 6:15/15 7:15/15	FEW
 ```
 
 An unknown name is refused with the list of kinds. `patterns find` is unchanged.
+
+## Repair
+
+`closest:` counts equal stickers; it is **not a distance**. A cube that is a pattern plus three block moves agrees with the pattern on only 43 % of its stickers (below), and wide-block moves lower it further. `identify --repair[=K]` answers the question that percentage cannot: is the state a library pattern followed (or preceded) by at most K extra moves? Without the flag `identify` runs no search and its output is unchanged.
+
+```sh
+cubacle patterns identify "U2 D2 R2 L2 F2 B2 R U' F2" --repair
+```
+
+```text
+closest: Checkerboard 43 %, 3 blocks away, Four spots 39 %, Cube in a cube 37 %
+repair: Checkerboard (cu:checker) then B Uw' Bw2 (3 blocks, 3 turns)
+```
+
+The state was built as the checkerboard followed by `R U' F2`; the search finds a fix of the same length, not necessarily the planted moves (here an equivalent one). A found repair also puts `, N blocks away` on the `closest:` entry of that pattern; an entry the search found nothing for gets no distance. A random state gives
+
+```text
+repair: none within 4 moves
+```
+
+Details:
+
+- **Alphabet.** A block is a run of adjacent layers on one axis turned by a quarter, a half or a quarter back: every single layer, the outer two and three layers from either side and the layers 2-3 (`3Bw B'` is one block). Whole-cube rotations are not blocks. "Blocks" count these; "turns" count the moves as written in the chosen `--notation`.
+- **Both orders, any frame.** The state may be the pattern then the extra moves (`pattern then moves`) or the extra moves then the pattern (`moves then pattern`), with the pattern turned into any of the 24 orientations (`turned by x y` names the turn) and the colors renamed freely, so color schemes need not match. Every result is replayed with the move applier before it is printed.
+- **Method.** A meet in the middle: the sequences of up to *a* blocks from one side are stored in a table keyed by a color-blind hash, and each candidate pattern walks the remaining *b* blocks from the other side. Candidates are ordered by how few stickers differ from the pattern in its best orientation and renaming, and dropped when more stickers differ than K blocks can displace (safe, but it removes candidates only for short fixes); `closest:` percentages play no part in the choice. The shortest fix is returned.
+- **Limits.** K is 6 unless given, at most 7. The table is capped by `--max-memory MB` (default 1000) and the search by `--max-time SECONDS` (default 60); a search that runs out says `repair: none found within K moves before the time limit (n of m candidates tried)`. `-v` adds the candidate counts, the table size and the time.
+
+Measured on the built-in library (6 candidates per size; a large imported library multiplies the time per level):
+
+| size | planted blocks | time | memory |
+| --- | --- | --- | --- |
+| 3x3x3 | 5 to 7, found | 0.4 to 0.8 s | 19 MB |
+| 3x3x3 | random state, K=7, none | 2.1 s | 19 MB |
+| 4x4x4 | 4 to 6, found | 11 to 19 s | 229 MB |
+| 4x4x4 | random state, K=6, none | 9 s | 229 MB |
+| 7x7x7 | 3 to 6, found | 0.1 to 2 s | 14 MB |
+| 7x7x7 | 7, found | 60 s | 14 MB |
+
+Ten random 3x3x3 states gave no fix within 6 blocks. A time limit makes the answer "not found", never a wrong fix.
 
 ## Cycles and the order of a sequence
 

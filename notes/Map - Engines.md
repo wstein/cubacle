@@ -86,3 +86,4 @@ Raw-material notes, category engines.
 - [[Generator pictures show only the moved stickers]]
 - [[The stabilizer of a state is classified by conjugacy class of subgroup]]
 - [[Recovering towards a target maps both cubes to the solved problem]]
+- [[Repair searches pattern plus a few wide-block moves from both sides]]
