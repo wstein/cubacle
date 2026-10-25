@@ -32,13 +32,13 @@ The file is line-based: `key: value`. `#` starts a comment that runs to the end 
 
 ```text
 # concentric squares on a 5x5x5
-name: concentric-squares
-title: Concentric squares
-size: 5
-scheme: western
-schema:
+pattern-name: concentric-squares
+pattern-title: Concentric squares
+cube-size: 5
+color-scheme: western
+sticker-grid:
   a b b b a / b b c b b / b c Z c b / b b c b b / a b b b a
-where: unique(a*, b*, c*)
+color-constraints: unique(a*, b*, c*)
 ```
 
 ```ebnf
@@ -48,9 +48,11 @@ blank        = { " " | tab } ;
 comment      = { " " | tab } "#" { any } ;
 entry        = key ":" { " " } value ;
 continuation = ( " " | tab ) { " " | tab } text ;
-key          = "name" | "title" | "aliases" | "size" | "scheme" | "colors" | "schema"
-             | "where" | "alphabet" | "limits" | "tags"
-             | "symmetry" | "antisymmetry" | "order" | "orbits" | "fixed" ;
+key          = "pattern-name" | "pattern-title" | "pattern-aliases" | "cube-size"
+             | "color-scheme" | "color-letters" | "sticker-grid"
+             | "color-constraints" | "move-alphabet" | "search-limits" | "pattern-tags"
+             | "required-symmetry" | "required-antisymmetry" | "sequence-order"
+             | "movable-orbits" | "fixed-orbits" | "format-version" ;
 value        = text { newline continuation } ;
 ```
 
@@ -58,30 +60,31 @@ value        = text { newline continuation } ;
 
 | Key | Required | Meaning |
 | --- | --- | --- |
-| `name` | yes | Pattern id: lowercase `a-z`, `0-9` and `-`. Defines the pattern name. |
-| `title` | no | Display title. |
-| `aliases` | no | Other ids, separated by commas. |
-| `size` | yes | Cube size, or a list of sizes. |
-| `scheme` | no | Color scheme for fixed colors; see [Color schemes](color-schemes.md). Default `URFDLB`. |
-| `colors` | no | Display colors of an in-place six-letter `scheme`; same value grammar as in a scheme file. |
-| `schema` | yes | The schema grid. |
-| `where` | no | The guard. Without it every assignment of the variables is allowed. |
-| `alphabet` | no | Moves used by `--solve`: `outer`, `slices`, `blocks` or a list of moves. |
-| `limits` | no | Search limits for `--solve`. |
-| `tags` | no | Tags, separated by commas. |
-| `symmetry` | no | The pattern has at least this symmetry type. |
-| `antisymmetry` | no | The same for the extension in which the symmetry gives the inverse cube. |
-| `order` | no | Order of the generating move sequence. |
-| `orbits` | no | Only these orbits may change; the rest stays solved. |
-| `fixed` | no | Orbits that must stay solved. |
+| `pattern-name` | yes | Pattern id: lowercase `a-z`, `0-9` and `-`. Defines the pattern name. |
+| `pattern-title` | no | Display title. |
+| `pattern-aliases` | no | Other ids, separated by commas. |
+| `cube-size` | yes | Cube size, or a list of sizes. |
+| `color-scheme` | no | Color scheme for fixed colors; see [Color schemes](color-schemes.md). Default `URFDLB`. |
+| `color-letters` | no | Display colors of an in-place six-letter `color-scheme`; same value grammar as in a scheme file. |
+| `sticker-grid` | yes | The schema grid. |
+| `color-constraints` | no | The guard. Without it every assignment of the variables is allowed. |
+| `move-alphabet` | no | Moves used by `--solve`: `outer`, `slices`, `blocks` or a list of moves. |
+| `search-limits` | no | Default limits: `state-limit`, `max-states`, `max-time-ms`, `max-memory-mb`, `max-depth`. |
+| `pattern-tags` | no | Tags, separated by commas. |
+| `format-version` | no | Format version, `1`. Default `1`. |
+| `required-symmetry` | no | The pattern has at least this symmetry type. |
+| `required-antisymmetry` | no | The same for the extension in which the symmetry gives the inverse cube. |
+| `sequence-order` | no | Order of the generating move sequence. |
+| `movable-orbits` | no | Only these orbits may change; the rest stays solved. |
+| `fixed-orbits` | no | Orbits that must stay solved. |
 
 ### Symmetry, order and orbits
 
-`symmetry` names a Schoenflies type, for example `D4h`. The cube symmetry group has 48 elements; its subgroups fall into 33 conjugacy classes, which the implementation derives by computation. This page does not list them, and the count is not verified here. `antisymmetry` uses the same names for the 96-element extension of that group, in which applying the symmetry gives the inverse cube.
+`required-symmetry` names a Schoenflies type, for example `D4h`. The cube symmetry group has 48 elements; its subgroups fall into 33 conjugacy classes, which the implementation derives by computation. This page does not list them, and the count is not verified here. `required-antisymmetry` uses the same names for the 96-element extension of that group, in which applying the symmetry gives the inverse cube.
 
-`order` is the order of the move sequence that generates the pattern: a number, a range such as `3..6`, or a set such as `{2, 3, 6}`.
+`sequence-order` is the order of the move sequence that generates the pattern: a number, a range such as `3..6`, or a set such as `{2, 3, 6}`.
 
-`orbits` and `fixed` list orbit names as the implementation names them, for example corners, edges, wings, midges, centers, x-centers and t-centers. `fixed: X` is shorthand for `orbits:` naming every other orbit.
+`movable-orbits` and `fixed-orbits` list orbit names as the implementation names them, for example corners, edges, wings, midges, centers, x-centers and t-centers. `fixed-orbits: X` is shorthand for `movable-orbits:` naming every other orbit.
 
 ```ebnf
 symmetry-value = schoenflies ;
@@ -97,11 +100,11 @@ Error messages, each with line and column:
 - `unknown orbit "X"`
 - `order range "a..b": a is greater than b`
 - `order must be a positive number, a range or a set`
-- `"orbits" and "fixed" name the same orbit "X"`
+- `"movable-orbits" and "fixed-orbits" name the same orbit "X"`
 
 ```ebnf
 id       = lower-or-digit { lower-or-digit | "-" } ;
-alphabet = "outer" | "slices" | "blocks" | move { ws move } ;
+move-alphabet = "outer" | "slices" | "blocks" | move { ws move } ;
 ```
 
 ## Schema grid
@@ -160,7 +163,7 @@ Pattern functions, which take no variables:
 - `antisymmetric(TYPE)` holds the same for the antisymmetry extension.
 - `order(...)` holds when the order of the generating sequence is in the given number, range or set.
 
-`symmetry: X` is shorthand for `where: symmetric(X)`. Both may be combined with `&&`, for example `where: unique(a*, b*, c*) && symmetric(D4h)`.
+`required-symmetry: X` is shorthand for `color-constraints: symmetric(X)`. Both may be combined with `&&`, for example `color-constraints: unique(a*, b*, c*) && symmetric(D4h)`. The functions `symmetric(TYPE)`, `antisymmetric(TYPE)` and `order(...)` keep their names: they are functions, not keys.
 
 A `*` in a variable name stands for the same index in all arguments of the term, for every index that occurs. It is not automatically a face: the index is only a label, so a guard may also compare variables of different faces.
 
@@ -181,16 +184,16 @@ Rules:
 
 - No limit ever stops silently. Stderr says which limit was hit and how far the run got.
 - Stdout keeps what was found so far and ends with a marker that the output is incomplete.
-- The `limits:` key of the `.gen` file sets the defaults; the command line overrides it.
+- The `search-limits:` key of the `.gen` file sets the defaults; the command line overrides it.
 - When neither `--limit` nor `--count` is given, the generator counts before it lists.
-- REST uses the names `limit`, `count`, `sample` and `budgetMs`, and the answer has the field `complete: true|false`.
-- The search for moves runs only behind `--solve`, with its own `--max-depth` and the `alphabet` key.
+- REST uses the names `stateLimit`, `countOnly`, `sampleSize`, `sampleSeed` and `budgetMs`, and the answer has the field `searchComplete: true|false`.
+- The search for moves runs only behind `--solve`, with its own `--max-depth` and the `move-alphabet` key.
 
 Order and symmetry are first filters for counting, listing and checking. Searching move sequences for them is `--solve` only, and comes later.
 
 ## REST
 
-Planned: `POST /v1/patterns/search`. The body carries the file text in the field `definition` and the run options as the fields `limit`, `count`, `sample`, `seed` and `budgetMs`. The server is stateless and stores nothing. The answer has the field `complete`. The parser is the same as for the command line, and errors carry the same text with line and column.
+Planned: `POST /v1/patterns/search`. The body carries the file text in the field `patternDefinitionText` and the run options in the object `runOptions` (`stateLimit`, `countOnly`, `sampleSize`, `sampleSeed`, `budgetMs`). The server is stateless and stores nothing. The answer has the field `searchComplete`. The parser is the same as for the command line, and errors carry the same text with line and column.
 
 ## Errors
 
@@ -205,7 +208,7 @@ The parser reports the line, the column and what was expected, for example `line
 
 ## JSON form
 
-The `.gen` text and a JSON document are two serializations of one canonical model: the typed definition (name, size, scheme, grid, guard, symmetry, antisymmetry, order, orbits, fixed, limits, tags). The run options are a separate object, not part of the definition. The text parser and the JSON reader both produce exactly this model, so converting from one form to the other loses nothing except comments and layout.
+The `.gen` text and a JSON document are two serializations of one canonical model: the typed definition (pattern name, title, aliases, tags, cube size, color scheme, color letters, sticker grid, color constraints, required symmetry and antisymmetry, sequence order, movable and fixed orbits, move alphabet, search limits). The run options are a separate object, not part of the definition. The text parser and the JSON reader both produce exactly this model, so converting from one form to the other loses nothing except comments and layout.
 
 - The JSON text is read with a JSON parser library (`serde_json`). There is no hand-written JSON parser.
 - The result is checked against the JSON Schema with a validation library (the `jsonschema` crate). Errors carry a JSON pointer path, for example `/schema/2/3`, in the place where the text form gives line and column.
@@ -222,25 +225,25 @@ The schema files are published under `https://wstein.github.io/cubacle/schema/v1
 | `run-options.schema.json` | The run options. |
 | `search-request.schema.json`, `search-result.schema.json` | The REST contract, see [REST and JSON](rest-json.md). |
 
-Mapping of keys: the JSON object uses the same names as the text keys (`name`, `title`, `aliases`, `size`, `scheme`, `schema`, `where`, `alphabet`, `limits`, `tags`, `symmetry`, `antisymmetry`, `order`, `orbits`, `fixed`) and adds `version` (always 1) and `$schema`. Differences of form:
+Key mapping, stated once: every JSON key is the camelCase form of the kebab-case text key (`pattern-name` is `patternName`, `sticker-grid` is `stickerGrid`, `max-time-ms` is `maxTimeMs`). There are no aliases and no other names. The JSON object adds `formatVersion` (always 1, text key `format-version`) and `$schema`. Differences of form:
 
-- `schema` is a list of faces in the order U R F D L B; a face is a list of rows; a row is a list of tokens. One face means the same face pattern on all six. The path `/schema/2/3` is face 2, row 3.
-- `where` is the guard as the same string as in the text form.
-- `order` is a number, a set `[3, 6]` or a range `{"min": 3, "max": 6}`.
-- `scheme` is a name, six letters, or an object (see [Color schemes](color-schemes.md)). In the text form an in-place scheme is `scheme: ABCDEF` plus a `colors:` line with the same value grammar as in a scheme file.
-- `orbits`, `fixed`, `aliases` and `tags` are lists of strings.
+- `stickerGrid` is a list of faces in the order U R F D L B; a face is a list of rows; a row is a list of tokens. One face means the same face pattern on all six. The path `/stickerGrid/2/3` is face 2, row 3.
+- `colorConstraints` is the guard as the same string as in the text form.
+- `sequenceOrder` is a number, a set `[3, 6]` or a range `{"min": 3, "max": 6}`.
+- `colorScheme` is a name or six letters (see [Color schemes](color-schemes.md)). The display colors of six letters are `colorLetters`, an object from letter to color in JSON and a `color-letters:` line in the text form, with the same value grammar as in a scheme file.
+- `movableOrbits`, `fixedOrbits`, `patternAliases` and `patternTags` are lists of strings.
 
 The example of the worked example above in both forms (files `concentric-squares.gen` and `concentric-squares.json` in `docs/static/examples/gen/`, published at `https://wstein.github.io/cubacle/examples/gen/`):
 
 ```json
 {
   "$schema": "https://wstein.github.io/cubacle/schema/v1/gen-definition.schema.json",
-  "version": 1,
-  "name": "concentric-squares",
-  "title": "Concentric squares",
-  "size": 5,
-  "scheme": "western",
-  "schema": [
+  "formatVersion": 1,
+  "patternName": "concentric-squares",
+  "patternTitle": "Concentric squares",
+  "cubeSize": 5,
+  "colorScheme": "western",
+  "stickerGrid": [
     [
       ["a", "b", "b", "b", "a"],
       ["b", "b", "c", "b", "b"],
@@ -249,7 +252,7 @@ The example of the worked example above in both forms (files `concentric-squares
       ["a", "b", "b", "b", "a"]
     ]
   ],
-  "where": "unique(a*, b*, c*)"
+  "colorConstraints": "unique(a*, b*, c*)"
 }
 ```
 
@@ -257,7 +260,7 @@ Further examples in the same directory: `checkerboard-free-center` (a 3x3 grid w
 
 ## Result lines
 
-Found sequences are stored as result lines of the form `name | size | metric | status | length | moves`, as in `src/patterns/generators.txt`. The `name` key of the `.gen` file is the key of those lines.
+Found sequences are stored as result lines of the form `name | size | metric | status | length | moves`, as in `src/patterns/generators.txt`. The `pattern-name` key of the `.gen` file is the key of those lines.
 
 ## Worked example
 

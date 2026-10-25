@@ -65,12 +65,12 @@ key         = "name" | "faces" | "colors" ;
 
 ## Object form (JSON)
 
-The same scheme as a JSON object, described by `https://wstein.github.io/cubacle/schema/v1/color-scheme.schema.json`. As a standalone file it carries `version` (always 1) and may start with `$schema`. Inside a [.gen definition in JSON](gen-file.md) the `scheme` value is a name, six letters, or this object without `version`.
+The same scheme as a JSON object, described by `https://wstein.github.io/cubacle/schema/v1/color-scheme.schema.json`. As a standalone file it carries `formatVersion` (always 1) and may start with `$schema`. Inside a [.gen definition](gen-file.md) there is no object: `color-scheme` (`colorScheme` in JSON) is a name or six letters, and the display colors are in `color-letters` (`colorLetters` in JSON).
 
 ```json
 {
   "$schema": "https://wstein.github.io/cubacle/schema/v1/color-scheme.schema.json",
-  "version": 1,
+  "formatVersion": 1,
   "name": "japanese",
   "faces": "WRGBOY",
   "colors": { "W": "#fff", "R": "#d00", "G": "#0a0", "B": "#00d", "O": "#f80", "Y": "#ee0" }
@@ -102,9 +102,9 @@ Errors name the line and column and what was expected.
 ## Where a scheme applies
 
 1. Input parsing of color codes.
-2. The `scheme:` key in a [.gen schema header](gen-file.md): it may name a scheme, give a file, or give six inline letters.
+2. The `color-scheme:` key in a [.gen definition](gen-file.md): it may name a scheme, give a file, or give six inline letters.
 3. Display and move icons, later.
 
 ## Defaults
 
-Without the option every command behaves exactly as before, byte for byte. With no scheme header, the scheme is `URFDLB`.
+Without the option every command behaves exactly as before, byte for byte. With no `color-scheme` key, the scheme is `URFDLB`.

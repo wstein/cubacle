@@ -14,31 +14,31 @@ The JSON form is described with the [.gen definition file](gen-file.md); color s
 
 The server is stateless and stores nothing. The compute work does not run on async threads.
 
-Request body, described by `https://wstein.github.io/cubacle/schema/v1/search-request.schema.json`: `version` (1), exactly one of `definition` (the definition object) or `definitionText` (the text of a `.gen` file), and optional `options` (`limit`, `count`, `sample`, `seed`, `budgetMs`, `maxStates`, `maxMemoryMb`, `solve`, `maxDepth`; see `run-options.schema.json`).
+Request body, described by `https://wstein.github.io/cubacle/schema/v1/search-request.schema.json`: `formatVersion` (1), exactly one of `patternDefinition` (the definition object) or `patternDefinitionText` (the text of a `.gen` file), and optional `runOptions` (`stateLimit`, `countOnly`, `sampleSize`, `sampleSeed`, `budgetMs`, `maxStates`, `maxMemoryMb`, `solve`, `maxDepth`; see `run-options.schema.json`). JSON keys are the camelCase form of the kebab-case text keys, see [the .gen file](gen-file.md).
 
 ```json
 {
-  "version": 1,
-  "definitionText": "name: checkerboard\nsize: 3\nschema: a b a / b a b / a b a\n",
-  "options": { "count": true }
+  "formatVersion": 1,
+  "patternDefinitionText": "pattern-name: checkerboard\ncube-size: 3\nsticker-grid: a b a / b a b / a b a\n",
+  "runOptions": { "countOnly": true }
 }
 ```
 
-Answer, described by `https://wstein.github.io/cubacle/schema/v1/search-result.schema.json`: `version`, `complete` (`true` or `false`), `count`, `states` (each with `facelets` and, if asked, `tokens` or `moves`), `limits` (which limit stopped the run, how many states were returned and how many exist) and `error`.
+Answer, described by `https://wstein.github.io/cubacle/schema/v1/search-result.schema.json`: `formatVersion`, `searchComplete` (`true` or `false`), `matchCount`, `matchingStates` (each with `facelets` and, if asked, `tokens` or `moves`), `limits` (which limit stopped the run, how many states were returned and how many exist) and `error`.
 
 ```json
 {
-  "version": 1,
-  "complete": false,
-  "count": 2640,
-  "states": [{ "facelets": "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB" }],
-  "limits": { "reached": "limit", "returned": 1, "total": 2640 }
+  "formatVersion": 1,
+  "searchComplete": false,
+  "matchCount": 2640,
+  "matchingStates": [{ "facelets": "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB" }],
+  "limits": { "reached": "stateLimit", "returned": 1, "total": 2640 }
 }
 ```
 
-`complete` is `false` whenever a limit stopped the run; no limit stops silently. What was found so far stays in `states`.
+`searchComplete` is `false` whenever a limit stopped the run; no limit stops silently. What was found so far stays in `matchingStates`.
 
-Errors use the field `error` with `message`, optionally `expected`, and the position: `line` and `column` for `definitionText`, `path` (a JSON pointer such as `/schema/2/3`) for `definition`. The text of the message is the same as on the command line.
+Errors use the field `error` with `message`, optionally `expected`, and the position: `line` and `column` for `patternDefinitionText`, `path` (a JSON pointer such as `/stickerGrid/2/3`) for `patternDefinition`. The text of the message is the same as on the command line.
 
 ## Command line
 
