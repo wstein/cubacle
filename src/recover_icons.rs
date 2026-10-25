@@ -1,10 +1,11 @@
 //! `recover --icons`: the mistake as two pictures, the way forward as moves.
 
-use cubacle::phases::{from_stages, phases, Phase};
+use cubacle::phases::Phase;
 use cubacle::puzzle::{Facelets, MoveSequence, SolveStage};
 use cubacle::recover::{Advice, Finding, Plan};
 use cubacle::render::differing_stickers;
 
+use crate::stage_phases;
 use crate::steps::{clipped, end_line, Block, Pictures, SolutionIcons};
 use crate::views::Views;
 
@@ -133,9 +134,7 @@ pub(crate) fn render(
             out.push_str(&moves_line(options, original, &[moves, &rest]));
         }
         _ => {
-            let found = from_stages(fresh_stages, moves.len())
-                .or_else(|| phases(current, moves).ok())
-                .unwrap_or_default();
+            let found = stage_phases::of(fresh_stages, current, moves);
             out.push_str(&pictures.steps(current, moves, &found, false)?);
             out.push_str(&moves_line(options, original, &[moves]));
         }
@@ -151,9 +150,7 @@ pub(crate) fn render_fresh(
     stages: &[SolveStage],
 ) -> Result<String, String> {
     let pictures = Pictures::new(current.kind().size(), options).collapsing_empty_phases();
-    let found = from_stages(stages, moves.len())
-        .or_else(|| phases(current, moves).ok())
-        .unwrap_or_default();
+    let found = stage_phases::of(stages, current, moves);
     pictures.steps(current, moves, &found, false)
 }
 

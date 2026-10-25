@@ -14,6 +14,7 @@ mod recover_cmd;
 mod recover_icons;
 mod restricted_cmd;
 mod rows;
+mod stage_phases;
 mod steps;
 mod terminal;
 mod views;
@@ -36,7 +37,6 @@ use cubacle::notation::{
     colour_scheme_of, named_subset, named_target, parse_cube, parse_expression, parse_partial,
     ColourScheme, Notation,
 };
-use cubacle::phases::{from_stages, phases};
 use cubacle::puzzle::{
     reaches, relative_state, Facelets, Failure, PuzzleKind, SolveOptions, Solver, Target,
 };
@@ -564,9 +564,7 @@ fn solve(args: SolveArgs) -> Result<(), String> {
                 || args.pictures.icons
                 || phase_dots::Grouping::of(&args.group).phases
             {
-                from_stages(&result.stages, solution.len())
-                    .or_else(|| phases(&facelets, &solution).ok())
-                    .unwrap_or_default()
+                stage_phases::of(&result.stages, &facelets, &solution)
             } else {
                 Vec::new()
             };
