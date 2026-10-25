@@ -119,6 +119,28 @@ Precedence, highest first: `!` or `NOT`; comparison; `&&`, `AND` or `and`; `||`,
 
 A `*` in a variable name stands for the same index in all arguments of the term, for every index that occurs. It is not automatically a face: the index is only a label, so a guard may also compare variables of different faces.
 
+## Limits and options of the generator
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `--limit N` | 20 | Print at most N states. When more exist, stderr says `limit reached: N of M`. |
+| `--count` | off | Count only, exactly; nothing is listed. |
+| `--sample N` | off | Draw N states evenly or randomly; `--seed` fixes the draw. |
+| `--max-states N` | 50 000 000 | Hard cap on the enumeration. Over it: error, exit code 3, with the counted number if it is known. |
+| `--max-time MS` | 120 000 | Time budget in milliseconds. |
+| `--max-memory MB` | 1500 | Memory budget in megabytes. |
+
+Exit codes: 0 ok; 1 input error; 2 impossible or nothing found; 3 limit reached.
+
+Rules:
+
+- No limit ever stops silently. Stderr says which limit was hit and how far the run got.
+- Stdout keeps what was found so far and ends with a marker that the output is incomplete.
+- The `limits:` key of the `.gen` file sets the defaults; the command line overrides it.
+- When neither `--limit` nor `--count` is given, the generator counts before it lists.
+- REST uses the names `limit`, `count`, `sample` and `budgetMs`, and the answer has the field `complete: true|false`.
+- The search for moves runs only behind `--solve`, with its own `--max-depth` and the `alphabet` key.
+
 ## Errors
 
 The parser reports the line, the column and what was expected, for example `line 7, column 12: expected ")" or ","`. It reports at least these cases:
