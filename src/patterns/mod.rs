@@ -27,9 +27,9 @@ mod parse;
 
 pub use bases::{bases, Base};
 pub use detector::{
-    cycles_of_moves, cycles_of_state, detect, patternness, Cycle, Cycles, Detailed, Fingerprint,
-    Match, Membership, Operation, OrbitCycles, OrbitStat, Order, Partial, Report, Similar,
-    Symmetry, Verdict, PATTERNNESS_VERSION,
+    cycles_of_moves, cycles_of_state, detect, kind, measures, patternness, Cycle, Cycles, Detailed,
+    Fingerprint, Match, Measures, Membership, Operation, OrbitCycles, OrbitStat, Order, Partial,
+    PatternKind, Report, Similar, Symmetry, Verdict, PATTERNNESS_VERSION,
 };
 pub use import::{
     decode_text, import_tab, read_plain, ImportOptions, ImportProblem, ImportReport, ImportRow,
