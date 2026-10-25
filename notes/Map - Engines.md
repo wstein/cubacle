@@ -40,6 +40,7 @@ Raw-material notes, category engines.
 - [[Pattern-aware solving adopts a library route only when it is strictly shorter]]
 - [[Pattern search speed comes from measuring first, then symmetry, compact states and cores]]
 - [[A partial target is a map from slots to allowed colours]]
+- [[A target without a cube starts from the solved cube]]
 - [[A study of stickersolve shows what to adopt and what not]]
 - [[Fingertrick ranking only orders solutions of the shortest length]]
 - [[One pattern search serves solve, the library and patterns find]]

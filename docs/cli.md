@@ -141,6 +141,26 @@ So the route is as short as the naive one and sometimes one or two moves shorter
 - `--probes` and `--improve` act on the solve to the nearby target; `--parallel` stays 3x3x3 only. `--moves` (a move set) is refused with such a target. `--optimise ranges`, `--notation`, `--group` and `--icons` work as for any target.
 - Every route is replayed against the target before it is printed.
 
+#### A target without a cube
+
+With `--to` and no cube (and no `--scramble`) the start is the solved cube, so the answer is the route from the solved cube to the target: how to build the pattern. A target that is a cube state gives its own size (2x2x2 to 7x7x7); a move expression or a pattern name uses `--size` (default 3). An explicit `--size` that disagrees with a state target is an error. Standard error says `start: the solved cube (no cube given; routing to the target)`; standard output stays the plain solution, and every other option (`--icons`, `--notation`, `-m`, `-b`, `--group`, ...) works as with a given start. `--now` needs a real cube and cannot be combined with `--to`.
+
+```sh
+cubacle solve --to "R U F2 D'"
+cubacle solve --to ADHIm3Ila4c0-D5-oM1NpD4OGcpMmAORicPxlSSZMsw
+cubacle solve --to ADHIm3Ila4c0-D5-oM1NpD4OGcpMmAORicPxlSSZMsw --size 3
+cubacle solve
+```
+
+```text
+moves 13
+R U R2 U F2 U2 D2 B2 U' L2 B2 U2 D
+moves 46
+Dw Uw B F Lw Rw Dw Uw' B' F Lw Rw U2 Fw2 2D2 F2 Uw2 Lw2 Dw2 L2 Fw2 R2 U2 L2 Bw2 Uw2 Fw2 D2 R2 B2 L2 U L2 R2 U2 B2 F2 U' B F D B2 F2 L2 R2 U'
+error: --to: the target is a 5x5x5 but --size is 3
+error: no cube given; give a cube state or --scramble (or use --to TARGET to start from the solved cube)
+```
+
 ### Targets with open stickers
 
 A `--to` target may leave stickers open: the printed moves then reach any state that shows the right colour on every sticker that is fixed. An open sticker is written `X` (a `?` is read as `X`). Lowercase `x` stays the cube rotation and is never a sticker. A text is a target with open stickers when it has the length of a cube string (24, 54, 96, ...) and an `X` or `?` among face letters (`URFDLB`) or colour letters (`WRGYOB`, read with `--scheme`); every other text is read as above, and a target without an open sticker keeps the old code path and the old output, byte for byte. Orbit64 tokens cannot express open stickers.
