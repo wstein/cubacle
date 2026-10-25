@@ -18,7 +18,7 @@ fn cubacle(args: &[&str]) -> (bool, String, String) {
 
 #[test]
 fn a_skipped_move_is_named_and_the_route_is_printed() {
-    let (ok, out, _) = cubacle(&["recover", "-s", ORIGINAL, "--now", NOW]);
+    let (ok, out, _) = cubacle(&["solve", "-s", ORIGINAL, "--now", NOW]);
     assert!(ok);
     assert!(out.contains("move 5 (D') was skipped"), "{out}");
     assert!(out.contains("You had done 8 of 21 moves"), "{out}");
@@ -33,7 +33,7 @@ fn a_skipped_move_is_named_and_the_route_is_printed() {
 fn a_given_solution_is_followed_and_the_shorter_route_wins() {
     let solution = "B L' U2 B2 D' U2 B2 D2 U' F2 D U' R2 U' R' B' L2 D' F U2 R'";
     let (ok, out, _) = cubacle(&[
-        "recover",
+        "solve",
         "-s",
         ORIGINAL,
         "--now",
@@ -53,7 +53,7 @@ fn a_given_solution_is_followed_and_the_shorter_route_wins() {
 
 #[test]
 fn fresh_skips_the_search() {
-    let (ok, out, _) = cubacle(&["recover", "-s", ORIGINAL, "--now", NOW, "--fresh"]);
+    let (ok, out, _) = cubacle(&["solve", "-s", ORIGINAL, "--now", NOW, "--fresh"]);
     assert!(ok);
     assert_eq!(out.split(' ').count(), 18, "{out}");
 }
@@ -62,7 +62,7 @@ fn fresh_skips_the_search() {
 fn a_cube_on_the_path_says_where() {
     // The original cube after its first four solution moves, `B L' U2 B2`.
     let (_, now, _) = cubacle(&["facelets", &format!("{ORIGINAL} B L' U2 B2")]);
-    let (ok, out, _) = cubacle(&["recover", "-s", ORIGINAL, "--now", &now]);
+    let (ok, out, _) = cubacle(&["solve", "-s", ORIGINAL, "--now", &now]);
     assert!(ok);
     assert!(out.contains("you are after move 4 of 21"), "{out}");
     assert!(out.contains("Continue with move 5 (D')."), "{out}");
@@ -70,10 +70,10 @@ fn a_cube_on_the_path_says_where() {
 
 #[test]
 fn bad_input_is_an_error() {
-    let (ok, _, err) = cubacle(&["recover", "-s", ORIGINAL, "--now", "UUUU"]);
+    let (ok, _, err) = cubacle(&["solve", "-s", ORIGINAL, "--now", "UUUU"]);
     assert!(!ok);
     assert!(err.starts_with("error:"), "{err}");
-    let (ok, _, err) = cubacle(&["recover", "-s", ORIGINAL, "--now", NOW, "--solution", "R U"]);
+    let (ok, _, err) = cubacle(&["solve", "-s", ORIGINAL, "--now", NOW, "--solution", "R U"]);
     assert!(!ok);
     assert!(err.contains("does not solve"), "{err}");
 }
@@ -82,7 +82,7 @@ fn bad_input_is_an_error() {
 fn the_move_stopped_at_finds_the_mistake_in_the_first_stage() {
     // The person did 7 moves (one was skipped) and noticed the cube was wrong.
     let (ok, out, err) = cubacle(&[
-        "recover",
+        "solve",
         "-s",
         ORIGINAL,
         "--now",
@@ -98,7 +98,7 @@ fn the_move_stopped_at_finds_the_mistake_in_the_first_stage() {
 
 #[test]
 fn a_move_stopped_at_outside_the_solution_is_an_error() {
-    let (ok, _, err) = cubacle(&["recover", "-s", ORIGINAL, "--now", NOW, "--at-move", "99"]);
+    let (ok, _, err) = cubacle(&["solve", "-s", ORIGINAL, "--now", NOW, "--at-move", "99"]);
     assert!(!ok);
     assert!(err.contains("move 99 is not in the solution"), "{err}");
 }
@@ -107,7 +107,7 @@ fn a_move_stopped_at_outside_the_solution_is_an_error() {
 fn the_move_you_are_sure_of_is_a_hint_and_the_mistake_names_its_phase() {
     let run = |sure: &str| {
         cubacle(&[
-            "recover",
+            "solve",
             "-s",
             ORIGINAL,
             "--now",
@@ -133,11 +133,11 @@ fn the_move_you_are_sure_of_is_a_hint_and_the_mistake_names_its_phase() {
 
 #[test]
 fn a_sure_move_needs_a_stop_and_lies_before_it() {
-    let (ok, _, err) = cubacle(&["recover", "-s", ORIGINAL, "--now", NOW, "--sure-until", "3"]);
+    let (ok, _, err) = cubacle(&["solve", "-s", ORIGINAL, "--now", NOW, "--sure-until", "3"]);
     assert!(!ok);
     assert!(err.contains("--at-move"), "{err}");
     let (ok, _, err) = cubacle(&[
-        "recover",
+        "solve",
         "-s",
         ORIGINAL,
         "--now",

@@ -17,26 +17,6 @@ fn cubacle(args: &[&str]) -> (bool, String, String) {
 }
 
 #[test]
-fn now_prints_what_recover_prints() {
-    for extra in [
-        &[][..],
-        &["--fresh"][..],
-        &["--at-move", "7", "--sure-until", "3"][..],
-        &["--icons", "--graphics", "plain"][..],
-    ] {
-        let mut recover = vec!["recover", "-s", ORIGINAL, "--now", NOW];
-        let mut solve = vec!["solve", "-s", ORIGINAL, "--now", NOW];
-        recover.extend_from_slice(extra);
-        solve.extend_from_slice(extra);
-        let (ok_r, out_r, err_r) = cubacle(&recover);
-        let (ok_s, out_s, err_s) = cubacle(&solve);
-        assert!(ok_r && ok_s, "{extra:?}");
-        assert_eq!(out_r, out_s, "{extra:?}");
-        assert_eq!(err_r, err_s, "{extra:?}");
-    }
-}
-
-#[test]
 fn the_recover_options_need_now() {
     for option in [
         &["--fresh"][..],
@@ -66,4 +46,11 @@ fn depth_is_zero_to_five_with_now() {
         err.contains("--depth must be 0 to 5 with --now, not 9"),
         "{err}"
     );
+}
+
+#[test]
+fn recover_is_no_command_any_more() {
+    let (ok, _, err) = cubacle(&["recover", "-s", ORIGINAL, "--now", NOW]);
+    assert!(!ok);
+    assert!(err.contains("unrecognized subcommand 'recover'"), "{err}");
 }

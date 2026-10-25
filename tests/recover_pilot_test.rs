@@ -1,6 +1,6 @@
 //! A small permanent subset of the recover pilot (examples/recover_pilot):
 //! fixed cubes from tests/fixtures/recover_pilot.txt, mistakes injected the way
-//! the pilot does, `recover` run with the stop. The expected values (mistake
+//! the pilot does, `solve --now` run with the stop. The expected values (mistake
 //! step and kind, stage, advice, route length) are those the pilot printed;
 //! see the comment of each case.
 

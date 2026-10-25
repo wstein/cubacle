@@ -6,7 +6,7 @@ weight: 3
 
 # Command-line guide
 
-The `cubacle` tool has eight subcommands: `solve`, `recover`, `convert`, `scramble`, `random`, `facelets`, `moves` and `patterns` (see [Patterns](patterns.md); its actions are `show`, `find`, `identify` for the structure of a state and `cycles` for its part cycles and order, `import` for pattern tables, `sources` for the pattern files in use and `--tree` for the overview by category; see "Importing pattern files"). Run `cubacle <command> --help` for the full option list.
+The `cubacle` tool has seven subcommands: `solve` (also the way back after a mistake, with `--now`), `convert`, `scramble`, `random`, `facelets`, `moves` and `patterns` (see [Patterns](patterns.md); its actions are `show`, `find`, `identify` for the structure of a state and `cycles` for its part cycles and order, `import` for pattern tables, `sources` for the pattern files in use and `--tree` for the overview by category; see "Importing pattern files"). Run `cubacle <command> --help` for the full option list.
 
 ## Solve a cube
 
@@ -46,7 +46,7 @@ The first two lines go to standard error. `moves N` is always printed there, `el
 | `--probes <N>` | 3x3x3 only. Keep improving the solution until N probes were made. Counts work, not time, so the answer is the same on every machine. |
 | `--improve` | 3x3x3 only. Keep improving until the time budget (`-b`, default 1000 ms) is spent, then print the best solution found. |
 | `--parallel` | 3x3x3 only, with `--improve` and `-b`: search the six orientations at once. Measured no better than plain `--improve`. |
-| `--now <CUBE>` | The cube as it is now, after following the solution of the cube given above and going wrong: explains the mistake and the way back instead of solving. Takes `--solution`, `--at-move`, `--sure-until`, `--fresh`, `--depth`, `--strays`, `--one-mistake`, `--thorough` and `--max-time`; it cannot be combined with the options that change how a plain solve searches. Same as `recover` (see [Recover a mistake](#recover-a-mistake)). |
+| `--now <CUBE>` | The cube as it is now, after following the solution of the cube given above and going wrong: `solve` then explains the mistake and the way back instead of solving. See [Recover a mistake](#recover-a-mistake) for this mode and its options (`--solution`, `--at-move`, `--sure-until`, `--fresh`, `--strays`, `--one-mistake`, `--thorough`, `--max-time`, and `--depth` with another meaning). It cannot be combined with the options that change how a plain solve searches. |
 | `--slices` | 4x4x4 and 5x5x5: allow single inner layers (`2R`) in the answer where they make it shorter. Default: outer layers and two-layer turns only. See [the move metric](performance.md#move-metric). |
 | `--notation <wca\|sign\|sse>` | How the solution is written. Default `wca` (`Rw`, `3Rw`); `sign` writes `r`, `3r`; `sse` writes `TR`, `T3R`, `MR` (see [Move notations](#move-notations)). With `--icons` it also sets the move lines and the last line; the icon labels stay WCA. |
 | `--optimise ranges` | After the solve, with no search: adjacent turns of one axis are written as layer ranges where that is shorter (`2-3r` in sign, `2-3Rw` in wca, `V2R`, `M2R` or `N2-4R` in sse; only contiguous layers). Off by default. The solution is the same state; stderr reports `moves N` (as solved), `compressed moves M` and, after the metrics line of the plain answer, `compressed metrics: ...`; stdout holds the compressed text. Not combined with `--icons`. On 20 random 4x4x4 to 7x7x7 solutions it saved 0 to 2 moves (2 of 20 saved any, both 7x7x7), on 14 human 4x4x4+ states 0 to 5, because the solvers already merge most axis runs. |
@@ -54,10 +54,10 @@ The first two lines go to standard error. `moves N` is always printed there, `el
 | `--icons` | Show each move as an icon. The output begins with `Start state: TOKEN`, then the start state as a picture (on rows of its own, one and a half times as large as a move icon, with a frame), has a line `State after phase N as token: TOKEN` after each phase but the last, and ends with `End state: TOKEN`, the end picture and `Moves: …`, so that a checkpoint can be compared with your cube. See [Move icons](icons.md#checkpoints). |
 | `--icon-size <PIXELS>` | With `--icons`: icon height in pixels. Default: 32 per cube layer, at least 96. |
 | `--background <dark\|light>` | With `--icons`: what the icons are seen on. It sets the notation colour and the dimming. Default: the terminal is asked (`OSC 11`), dark when it does not answer. |
-| `--graphics <auto\|kitty\|ansi\|plain>` | With `--icons`: how the pictures are drawn. Default `auto` (variables, then a question to the terminal). An explicit value is used as given, also when output is not a terminal. The variable `CUBACLE_GRAPHICS` has the same values; the flag wins. Also accepted by `moves` and `recover`. See [Forcing the graphics](icons.md#forcing-the-graphics-and-terminals). |
+| `--graphics <auto\|kitty\|ansi\|plain>` | With `--icons`: how the pictures are drawn. Default `auto` (variables, then a question to the terminal). An explicit value is used as given, also when output is not a terminal. The variable `CUBACLE_GRAPHICS` has the same values; the flag wins. Also accepted by `moves` and by `solve --now`. See [Forcing the graphics](icons.md#forcing-the-graphics-and-terminals). |
 | `--columns <N>` | With `--icons` on a graphics terminal: icons per row. Default: as many as fit the terminal width. See [Move icons](icons.md#how-the-terminal-is-asked). |
 | `--views <folded\|both\|urf\|net\|all>` | With `--icons`: how the whole-cube state pictures are drawn. `folded` (default) draws the Up-Right-Front corner in perspective with L, D and B unfolded flat around it, every sticker once; `both` draws each state from the Up-Right-Front and from the opposite Down-Left-Back corner, side by side, so all six faces show; `urf` only the first; `net` the flat cross net (U above F, L F R B in a row, D below), every sticker once; `all` the net and both corners. See [The folded view](icons.md#the-folded-view), [Two views of a state](icons.md#two-views-of-a-state) and [The flat net](icons.md#the-flat-net). |
-| `--numbers <auto\|on\|off>` | With `--icons`: the move number in the top-left corner of every icon (`on`) or none (`off`); `auto` (default) is `on`, except that SVG files written by `moves` have no numbers. The number is the position in the move list, the N of `recover --at-move N`. See [Move numbers](icons.md#move-numbers). |
+| `--numbers <auto\|on\|off>` | With `--icons`: the move number in the top-left corner of every icon (`on`) or none (`off`); `auto` (default) is `on`, except that SVG files written by `moves` have no numbers. The number is the position in the move list, the N of `solve --now --at-move N`. See [Move numbers](icons.md#move-numbers). |
 | `-v`, `--verbose` | Print timing and search statistics to standard error. With `--probes` or `--improve` also `improved from L1 to L2 moves`. Also one line per phase of the solution, such as `phase 1: to the G1 subgroup, moves 1-14` or `phase 2: wings staged, moves 20-25`; the 4x4x4 to 7x7x7 name the stages of their engine (see [Move icons](icons.md#phases)). |
 
 A cube argument of `-` reads the cube from standard input:
@@ -145,7 +145,7 @@ Errors name the case: `unreachable: no state of the 2x2x2 meets the target (all 
 
 ### Shorter solutions
 
-A plain `solve` of a 3x3x3 makes at least 3000 probes, a counted improvement: the same answer on every machine, never longer than the first solution, 19.0 moves on average for random cubes (20.7 for the first solution), 90 ms on average and under 0.2 s at most on 30 fixed random cubes (about 0.6 s at worst on a loaded machine). `--fast` returns the first solution instead, in about 1 ms of search. The default is replaced by an explicit `--probes`, `--improve`, `--moves`, `--to` or `-b`, which keep their own meaning; the 2x2x2 is unchanged, and so are the 4x4x4 and larger (their 3x3x3 stage asks for 500 probes). `recover` and `patterns` do not use it. Two modes look for a still shorter one:
+A plain `solve` of a 3x3x3 makes at least 3000 probes, a counted improvement: the same answer on every machine, never longer than the first solution, 19.0 moves on average for random cubes (20.7 for the first solution), 90 ms on average and under 0.2 s at most on 30 fixed random cubes (about 0.6 s at worst on a loaded machine). `--fast` returns the first solution instead, in about 1 ms of search. The default is replaced by an explicit `--probes`, `--improve`, `--moves`, `--to` or `-b`, which keep their own meaning; the 2x2x2 is unchanged, and so are the 4x4x4 and larger (their 3x3x3 stage asks for 500 probes). `solve --now` and `patterns` do not use it. Two modes look for a still shorter one:
 
 ```sh
 cubacle solve -s "R U2 F' D L2 B R' U' F2 D2 L B' R2 U F D' L' B2 R U2 F L D B'" --probes 1000 -v
@@ -371,14 +371,14 @@ The first 5x5x5 solve prints `preparing the 5x5x5 tables (cache directory ...)` 
 
 ## Recover a mistake
 
-**Made a mistake? Do not try to fix it by hand.** Moves made to repair the cube (building centres again, undoing a few turns from memory) only move it further from the printed path, and the search can no longer name the mistake. Stop, rescan the cube and run `cubacle recover`, with `--at-move N` for the move you did last before you noticed.
+**Made a mistake? Do not try to fix it by hand.** Moves made to repair the cube (building centres again, undoing a few turns from memory) only move it further from the printed path, and the search can no longer name the mistake. Stop, rescan the cube and run `cubacle solve --now`, with `--at-move N` for the move you did last before you noticed.
 
-`recover` helps a person who followed a printed solution and made a mistake. Give it the original cube (the one the solution was made for, written as `solve` takes it), the cube as it is now with `--now`, and optionally the solution that was handed out with `--solution`. Without `--solution` it derives the solution with the same defaults as `solve`; the solver is deterministic for the same cube, so this gives the printed one. It works for every size from the 2x2x2 to the 7x7x7.
+`solve --now` helps a person who followed a printed solution and made a mistake. Give `solve` the original cube (the one the solution was made for, written as always), the cube as it is now with `--now`, and optionally the solution that was handed out with `--solution`. Without `--solution` it derives the solution with the same defaults as `solve`; the solver is deterministic for the same cube, so this gives the printed one. It works for every size from the 2x2x2 to the 7x7x7.
 
 The cube below is the one of the first example after `B L' U2 B2 U2 B2 D2`: the person skipped move 5 (`D'`) and went on to move 8.
 
 ```sh
-cubacle recover -s "R U2 F' D L2 B R' U' F2 D2 L B'" --now FDDRURLDBRDBLRFFDUUBUUFBLBLBRDFDFBUFRUFULLDRURLDLBFRBL
+cubacle solve -s "R U2 F' D L2 B R' U' F2 D2 L B'" --now FDDRURLDBRDBLRFFDUUBUUFBLBLBRDFDFBUFRUFULLDRURLDLBFRBL
 ```
 
 ```text
@@ -400,7 +400,7 @@ The output says one of these things.
 - **The cube is a few moves away from the path**, but no mistake is named.
 - **Nothing was found** (three or more mistakes, or moves done by hand after the mistake): the fresh solution is printed.
 
-Tell `recover` where you stopped and it searches there first. `--at-move N` says you did move N (counting from 1) and then noticed that the cube no longer matches, so the mistake is at move N or before it and the moves after N are ignored. `--sure-until M` (M below N) adds that you were sure the cube was still right after move M. It is a hint, not a fact, because checking a big cube by eye is unreliable. The search is staged and goes on only when a stage explains nothing:
+Tell `solve --now` where you stopped and it searches there first. `--at-move N` says you did move N (counting from 1) and then noticed that the cube no longer matches, so the mistake is at move N or before it and the moves after N are ignored. `--sure-until M` (M below N) adds that you were sure the cube was still right after move M. It is a hint, not a fact, because checking a big cube by eye is unreliable. The search is staged and goes on only when a stage explains nothing:
 
 1. the moves after M (only with `--sure-until`);
 2. the moves from the start of the phase that contains move N;
@@ -411,7 +411,7 @@ Tell `recover` where you stopped and it searches there first. `--at-move N` says
 The phases are the ones `solve -v` reports (for a `--solution` that was not made by `solve`, they are read from the cube). A stop that is a move or two off is tolerated: a skipped move or an extra move shifts the count. `-v` prints which stage answered. On the 7x7x7 attempts of `tests/fixtures/recover_7x7_runs.txt`, the stop alone found the answer in the phase of the stop for four of six explainable cases and one phase earlier for the other two; with a correct `--sure-until` the first stage answered all six.
 
 ```sh
-cubacle recover -s "R U2 F' D L2 B R' U' F2 D2 L B'" --now FDDRURLDBRDBLRFFDUUBUUFBLBLBRDFDFBUFRUFULLDRURLDLBFRBL --at-move 7 --sure-until 3 -v
+cubacle solve -s "R U2 F' D L2 B R' U' F2 D2 L B'" --now FDDRURLDBRDBLRFFDUUBUUFBLBLBRDFDFBUFRUFULLDRURLDLBFRBL --at-move 7 --sure-until 3 -v
 ```
 
 ```text
@@ -434,7 +434,7 @@ Then continue with move 7 (B2) of the printed solution.
 Then two ways forward are compared: the *recover* (the moves that bring the cube back onto the printed path, followed by the rest of the printed solution) and a *fresh* solution of the cube as it is, which runs beside the search. The recover is either `undo N moves` (the inverse of what was done since the mistake) or a shorter correction found by a search of up to `--depth` moves (default 3) from the cube to any cube of the printed path. The shorter total wins, a tie goes to the recover, and a recover is never recommended when it is longer than the fresh solution. The chosen moves follow `Moves now:` (the way back) or `Fresh solution:` (when solving fresh is recommended), in the notation of `solve`. With `--solution` of the same 3x3x3 and the search limited to undoing, the fresh solution wins:
 
 ```sh
-cubacle recover -s "R U2 F' D L2 B R' U' F2 D2 L B'" --now FDDRURLDBRDBLRFFDUUBUUFBLBLBRDFDFBUFRUFULLDRURLDLBFRBL --solution "B L' U2 B2 D' U2 B2 D2 U' F2 D U' R2 U' R' B' L2 D' F U2 R'" --one-mistake --depth 0
+cubacle solve -s "R U2 F' D L2 B R' U' F2 D2 L B'" --now FDDRURLDBRDBLRFFDUUBUUFBLBLBRDFDFBUFRUFULLDRURLDLBFRBL --solution "B L' U2 B2 D' U2 B2 D2 U' F2 D U' R2 U' R' B' L2 D' F U2 R'" --one-mistake --depth 0
 ```
 
 ```text
@@ -447,12 +447,12 @@ Recommended: solve fresh, shorter than the recover (20 moves).
 Fresh solution: D2 B2 D' B2 D2 U' F2 D U' R2 U' R' B' L2 D' F U2 R'
 ```
 
-With `--icons` (and `--icon-size`, `--background`, `--columns`, `--views`, `--numbers`, as for `solve`) the mistake is also drawn: the cube as it should be after the last correct move and the cube as it is, side by side, then the rollback and the rest of the printed solution as move pictures, the end state and the moves as one line. See [Recover with icons](icons.md#recover-with-icons).
+With `--icons` (and `--icon-size`, `--background`, `--columns`, `--views`, `--numbers`, as for a plain `solve`) the mistake is also drawn: the cube as it should be after the last correct move and the cube as it is, side by side, then the rollback and the rest of the printed solution as move pictures, the end state and the moves as one line. See [Recover with icons](icons.md#recover-with-icons).
 
 On a 4x4x4, move 4 of the solution (`F'`) turned the wrong way:
 
 ```sh
-cubacle recover --size 4 -s "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F Uw Rw' F2 Lw" --now UDRRDDUUUUUBBLRFDDRUBDUURBRUDFDFDBDLDBFLDLLFRRRLUBBBFBDURLDFDUFULLBRDRFBFBRRRULBFFLBLLRFLFFULLBF
+cubacle solve --size 4 -s "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F Uw Rw' F2 Lw" --now UDRRDDUUUUUBBLRFDDRUBDUURBRUDFDFDBDLDBFLDLLFRRRLUBBBFBDURLDFDUFULLBRDRFBFBRRRULBFFLBLLRFLFFULLBF
 ```
 
 ```text
@@ -467,22 +467,24 @@ Fresh solution: R2 D' R U' Fw D2 Fw B2 U2 F2 Dw' D2 F' Dw2 L B' R L' Bw2 Rw2 F' 
 
 (plus `preparing the 4x4x4 tables ...` on standard error.) Only if the normal search finds nothing, the 23 other orientations of the whole cube are tried, and a cube that fits one is reported with the turns (`x`, `y`, `z`) that rotate it back: `Your cube is held differently from the original: turn the whole cube (x') to match it.` The moves printed then assume that orientation.
 
+These options belong to `solve --now`. All but `--now` itself need it, and `--notation`, `-v`, the cube options and the picture options are the ones of a plain `solve`.
+
 | Option | Meaning |
 | --- | --- |
-| `--now <CUBE>` | The cube as it is now, an Orbit64 token, facelets or colours (quote it when it has spaces). Required. |
+| `--now <CUBE>` | The cube as it is now, an Orbit64 token, facelets or colours (quote it when it has spaces). Switches `solve` to this mode. It cannot be combined with `-m`, `-b`, `--probes`, `--improve`, `--parallel`, `--fast`, `--optimise`, `--slices`, `--moves`, `--all`, `--count`, `--raw`, `--optimal`, `--nodes`, `--max-memory`, `--to` or `--group`. |
 | `--solution <MOVES>` | The solution the person followed, in WCA, SiGN or SSE, groups and ranges allowed (see [Move notations](#move-notations)). Default: the one `solve` prints for the original cube. |
 | `--notation <wca\|sign\|sse>` | How the moves in the explanation and in `Moves now:` are written. Default `wca`. |
 | `--at-move <N>` | The move you did last before you noticed the mismatch, counting from 1. The mistake is at move N or before; later moves are ignored. |
 | `--sure-until <M>` | Needs `--at-move`. The move after which you are sure the cube was right (M before N). A hint: the search widens past it. |
 | `--fresh` | Skip the search and print the solution of the current cube. |
-| `--depth <N>` | Moves the search for a way back onto the path may use, 0 to 5 (default 3). Measured on a 7x7x7: 3 adds about 20 ms per orientation, 4 makes the whole search take 3 to 5 s, 5 reaches the default time limit and holds about 70 MB. Turned cubes are searched at depth 3 at most. |
+| `--depth <N>` | The same flag as the one of `--all` and `--count`, which cannot be used with `--now`. Moves the search for a way back onto the path may use, 0 to 5 (default 3). Measured on a 7x7x7: 3 adds about 20 ms per orientation, 4 makes the whole search take 3 to 5 s, 5 reaches the default time limit and holds about 70 MB. Turned cubes are searched at depth 3 at most. |
 | `--strays <N>` | Stray moves after a mistake the last stage allows, 0 to 3 (default 2; one for solutions under 16 moves). 0 leaves the stage out. |
 | `--one-mistake` | Look for one mistake only. The default also looks for two. |
 | `--thorough` | For two mistakes, try every move instead of it and every extra move. Slow on big cubes (it does not finish within the default time limit on a 7x7x7). |
 | `--max-time <MS>` | Time limit of the search in milliseconds, 0 for none (default 8000). The result then says that the search stopped at its time limit. |
 | `-v`, `--verbose` | Print the time of the solve, the fresh solve and the search to standard error. |
 
-The original cube also takes `--scramble`, `--size` and `--scheme`, as in `solve`. The search treats a move as a permutation of the stickers, so it is the same for every size. Measured on a 7x7x7 (12 cores, with the fresh solve running beside the search): a mistake is found in 30 to 250 ms; a cube that nothing explains takes 1 to 4 s because all 24 orientations are tried; the fresh solve takes 3 to 12 s and the solution of the original cube 4 to 8 s. The mistakes are tried in two levels: one mistake, with every move as a replacement or an extra move, and two mistakes of the likely kinds only (skipped, wrong amount, direction, layers or face, swapped, done twice).
+The original cube is the one `solve` reads: `--scramble`, `--size` and `--scheme` apply as always. The search treats a move as a permutation of the stickers, so it is the same for every size. Measured on a 7x7x7 (12 cores, with the fresh solve running beside the search): a mistake is found in 30 to 250 ms; a cube that nothing explains takes 1 to 4 s because all 24 orientations are tried; the fresh solve takes 3 to 12 s and the solution of the original cube 4 to 8 s. The mistakes are tried in two levels: one mistake, with every move as a replacement or an extra move, and two mistakes of the likely kinds only (skipped, wrong amount, direction, layers or face, swapped, done twice).
 
 ## Input notations
 
@@ -812,7 +814,7 @@ cubacle moves R "U'" --icons --format text
 
 ## Move notations
 
-Every command that reads moves (`solve --scramble`, `facelets`, `convert --scramble`, `moves`) reads WCA, SiGN and SSE spellings, token by token and without an option. `solve`, `scramble`, `moves` and `recover` write any one with `--notation wca|sign|sse` (default `wca`). The move count and the engines are the same in both: every move counts one. `convert` and `random` print a cube, not moves, so they have no such option.
+Every command that reads moves (`solve --scramble`, `facelets`, `convert --scramble`, `moves`) reads WCA, SiGN and SSE spellings, token by token and without an option. `solve` (also with `--now`), `scramble` and `moves` write any one with `--notation wca|sign|sse` (default `wca`). The move count and the engines are the same in both: every move counts one. `convert` and `random` print a cube, not moves, so they have no such option.
 
 | What is turned | WCA | SiGN |
 | --- | --- | --- |
@@ -831,7 +833,7 @@ Rejected, with the token in the message: `rw` and `3rw` (a lowercase letter alre
 
 #### Where moves are read and written
 
-Moves are read as WCA, SiGN or SSE, with groups, commutators and ranges, by `solve --scramble`, `convert --scramble` and `facelets`, by `recover --solution`, by `moves` (its moves and `--from`), and by the `scramble` field of the REST API. Moves are written in any of the three by `--notation wca|sign|sse` on `solve` (the solution, the `--icons` move lines and the last line; the icon pictures keep WCA letters), `scramble` and `recover` (every move in the explanation and in `Moves now:` and `Fresh solution:`).
+Moves are read as WCA, SiGN or SSE, with groups, commutators and ranges, by `solve --scramble`, `convert --scramble` and `facelets`, by `solve --now --solution`, by `moves` (its moves and `--from`), and by the `scramble` field of the REST API. Moves are written in any of the three by `--notation wca|sign|sse` on `solve` (the solution, the `--icons` move lines and the last line; the icon pictures keep WCA letters), `scramble` and `recover` (every move in the explanation and in `Moves now:` and `Fresh solution:`).
 
 ```sh
 cubacle facelets "r U f'"

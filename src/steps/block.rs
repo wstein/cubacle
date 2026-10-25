@@ -3,7 +3,7 @@
 
 use cubacle::phases::Phase;
 
-/// A block of move pictures inside a longer story: `recover --icons` draws the
+/// A block of move pictures inside a longer story: `solve --now --icons` draws the
 /// rollback (`R1`, `R2`, ...) and the rest of the printed solution (its own
 /// move numbers) as two blocks.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

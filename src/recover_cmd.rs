@@ -1,4 +1,4 @@
-//! The `recover` command: a person followed a printed solution and went wrong.
+//! `solve --now`: a person followed a printed solution and went wrong.
 
 use std::thread;
 use std::time::{Duration, Instant};
@@ -14,8 +14,8 @@ use crate::stage_phases;
 use crate::steps::PictureArgs;
 use crate::{default_options, failure_message, read_cube, solver_for, InputArgs};
 
-/// The options only the way back needs: shared by every command that takes
-/// a cube as it is now.
+/// The options only `solve --now` takes (the way back after a mistake);
+/// each needs `--now`.
 #[derive(Args)]
 pub(crate) struct RecoverOptions {
     /// The solution the person followed (default: the one `solve` prints for
@@ -49,46 +49,12 @@ pub(crate) struct RecoverOptions {
     max_time: u64,
 }
 
-#[derive(Args)]
-pub(crate) struct RecoverArgs {
-    /// The cube the solution was made for, as `solve` takes it
-    #[command(flatten)]
-    input: InputArgs,
-    /// The cube as it is now: an Orbit64 token, URFDLB facelets or colours
-    /// (quote it when it has spaces)
-    #[arg(long, value_name = "CUBE")]
-    now: String,
-    #[command(flatten)]
-    options: RecoverOptions,
-    /// Moves the search for a way back onto the path may use, 0 to 5 (default 3)
-    #[arg(long, default_value_t = 3, value_parser = clap::value_parser!(u8).range(0..=5))]
-    depth: u8,
-    /// Print timings to standard error
-    #[arg(short, long)]
-    verbose: bool,
-    /// How to write the moves: wca (Rw, 3Rw), sign (r, 3r) or sse (TR, T3R)
-    #[arg(long, default_value = "wca")]
-    notation: Notation,
-    #[command(flatten)]
-    pictures: PictureArgs,
-}
-
 /// What the way back shares with the command that asks for it.
 pub(crate) struct Shared<'a> {
     pub(crate) input: &'a InputArgs,
     pub(crate) verbose: bool,
     pub(crate) notation: Notation,
     pub(crate) pictures: &'a PictureArgs,
-}
-
-pub(crate) fn run(args: RecoverArgs) -> Result<(), String> {
-    let shared = Shared {
-        input: &args.input,
-        verbose: args.verbose,
-        notation: args.notation,
-        pictures: &args.pictures,
-    };
-    run_now(&shared, &args.now, &args.options, args.depth)
 }
 
 /// Explains where the cube `now` went wrong against the solution of the

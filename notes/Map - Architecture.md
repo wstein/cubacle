@@ -16,6 +16,7 @@ Raw-material notes, category architecture.
 - [[Recover searches sticker permutations along the solution]]
 - [[Recover advises the shorter way]]
 - [[Recover searches the stop first and widens]]
+- [[The recover command is folded into solve --now]]
 - [[Recover pilot - the stop finds old mistakes but recover wins only near it]]
 - [[Whole-cube pictures show two opposite corners]]
 - [[A flat net shows every sticker undistorted]]

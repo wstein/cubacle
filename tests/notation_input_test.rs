@@ -79,10 +79,10 @@ fn solve_reads_a_scramble_expression_and_writes_either_notation() {
 }
 
 #[test]
-fn recover_reads_an_expression_solution_and_takes_a_notation() {
+fn now_reads_an_expression_solution_and_takes_a_notation() {
     let args = |solution: &str, notation: &str| {
         cubacle(&[
-            "recover",
+            "solve",
             "-s",
             ORIGINAL,
             "--now",
@@ -107,7 +107,7 @@ fn recover_reads_an_expression_solution_and_takes_a_notation() {
     let (ok, sign, err) = args(SOLUTION, "sign");
     assert!(ok, "{err}");
     assert_eq!(plain, sign, "3x3x3 moves read the same in both");
-    let (ok, _, err) = cubacle(&["recover", "-s", ORIGINAL, "--now", NOW, "--notation", "x"]);
+    let (ok, _, err) = cubacle(&["solve", "-s", ORIGINAL, "--now", NOW, "--notation", "x"]);
     assert!(!ok && err.contains("wca, sign or sse"), "{err}");
     let (ok, _, err) = args("B L' (U2", "wca");
     assert!(
@@ -117,13 +117,13 @@ fn recover_reads_an_expression_solution_and_takes_a_notation() {
 }
 
 #[test]
-fn recover_writes_wide_moves_in_sign_on_request() {
+fn now_writes_wide_moves_in_sign_on_request() {
     // The solution of "Uw2 R" is "R' Uw2"; the cube is after its first step.
     let (ok, now, err) = cubacle(&["facelets", "--size", "4", "u2"]);
     assert!(ok, "{err}");
     let run = |notation: &str| {
         cubacle(&[
-            "recover",
+            "solve",
             "--size",
             "4",
             "-s",

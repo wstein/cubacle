@@ -52,7 +52,7 @@ pub struct SolutionIcons {
 /// 27)`, `Phase 3: last layer (1 move, move 27 of 27)`. A phase that is the
 /// whole solution says only `Phase 1: solve (3 moves)`; an empty one
 /// `Phase 1: solve (nothing to do)`. The numbers are those of the icons and of
-/// `recover --at-move`.
+/// `solve --now --at-move`.
 pub(crate) fn phase_heading(phase: &Phase, total: usize) -> String {
     let count = phase.moves.len();
     if count == 0 {
@@ -142,7 +142,7 @@ pub(crate) fn end_line(state: &Facelets) -> Result<String, String> {
 }
 
 /// The line that gives the cube after a phase as an Orbit64 token, for
-/// `cubacle recover --state <start> --current <token>`.
+/// `cubacle solve <start> --now <token>`.
 pub(crate) fn token_line(phase: &Phase, state: &Facelets) -> Result<String, String> {
     let token = orbit64::encode(state).map_err(|error| error.to_string())?;
     Ok(format!(
@@ -193,7 +193,7 @@ pub(crate) fn shows_phase_headings(mode: GraphicsMode) -> bool {
     detect_stdout(mode) == Graphics::Kitty
 }
 
-/// The picture options `solve` and `recover` share.
+/// The picture options `solve` and `solve --now` share.
 #[derive(clap::Args)]
 pub struct PictureArgs {
     /// Show each move with a picture of the cube (graphics on a capable terminal)
@@ -224,7 +224,7 @@ pub struct PictureArgs {
     pub views: Views,
     /// Move numbers in the top-left corner of the --icons pictures: on
     /// (default) or off. The number is the position in the move list, the
-    /// N of `recover --at-move N`
+    /// N of `solve --now --at-move N`
     #[arg(long, requires = "icons", value_enum, default_value_t)]
     pub numbers: Numbers,
 }
@@ -286,7 +286,7 @@ impl<'a> Pictures<'a> {
         self
     }
 
-    /// Runs of phases with nothing to do get one heading line (`recover`).
+    /// Runs of phases with nothing to do get one heading line (`solve --now`).
     pub fn collapsing_empty_phases(mut self) -> Pictures<'a> {
         self.collapse_empty = true;
         self

@@ -1,4 +1,4 @@
-//! `recover --icons`: the mistake as two pictures, the way forward as moves.
+//! `solve --now --icons`: the mistake as two pictures, the way forward as moves.
 
 use cubacle::phases::Phase;
 use cubacle::puzzle::{Facelets, MoveSequence, SolveStage};
@@ -65,7 +65,7 @@ fn moves_line(options: &SolutionIcons, original: &Facelets, parts: &[&MoveSequen
     )
 }
 
-/// What the pictures of `recover --icons` show, as text for standard output:
+/// What the pictures of `solve --now --icons` show, as text for standard output:
 /// the cube as it should be after the last correct move against the cube as it
 /// is; for a way back the rollback and the rest of the printed solution, one
 /// picture per move as `solve --icons` draws them; the end state; the moves as
@@ -142,7 +142,7 @@ pub(crate) fn render(
     Ok(out)
 }
 
-/// The steps of a fresh solution of the cube as it is (`recover --fresh`).
+/// The steps of a fresh solution of the cube as it is (`solve --now --fresh`).
 pub(crate) fn render_fresh(
     options: &SolutionIcons,
     current: &Facelets,

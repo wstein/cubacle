@@ -107,7 +107,7 @@ The `elapsedMicros` value varies between runs.
 
 Every solve answer carries `metrics`: the length of `solution` in all seven metrics of [Move metrics](metrics.md), as integers, always in the key order `htm`, `qtm`, `stm`, `etm`, `obtm`, `btm`, `atm`. The command line shows three or four of them on its `metrics:` line; the server always sends all seven, so a client picks what it needs and ignores the rest. The counts are those of `cubacle::metrics::count` on the returned moves (`length` is the solver's own count, `moves N` on the command line). The same object under `compressedMetrics` counts `compressed` when `optimise` asked for it. The counts are part of every answer and cannot be turned off.
 
-The server has no `recover` endpoint, so there is no route variant to count; `/v1/solve` is the only answer with moves.
+The server has no endpoint for `solve --now`, so there is no route variant to count; `/v1/solve` is the only answer with moves.
 
 Before and after, the same request (`{"cube":"A4ib8aejxj4Y","maxMoves":21,"budgetMs":2000,"optimise":"ranges"}`), run against the server:
 

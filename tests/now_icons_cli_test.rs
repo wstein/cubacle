@@ -17,10 +17,10 @@ fn cubacle(args: &[&str]) -> (bool, String, String) {
 }
 
 #[test]
-fn recover_icons_shows_should_be_and_is_now_then_the_way_back() {
-    let (ok, plain, _) = cubacle(&["recover", "-s", ORIGINAL, "--now", NOW]);
+fn now_icons_shows_should_be_and_is_now_then_the_way_back() {
+    let (ok, plain, _) = cubacle(&["solve", "-s", ORIGINAL, "--now", NOW]);
     assert!(ok);
-    let (ok, out, _) = cubacle(&["recover", "-s", ORIGINAL, "--now", NOW, "--icons"]);
+    let (ok, out, _) = cubacle(&["solve", "-s", ORIGINAL, "--now", NOW, "--icons"]);
     assert!(ok);
     assert!(!out.contains('\x1b'), "{out}");
     assert!(out.starts_with(&plain), "the plan text comes first");
@@ -34,8 +34,8 @@ fn recover_icons_shows_should_be_and_is_now_then_the_way_back() {
 }
 
 #[test]
-fn recover_icons_draws_the_rollback_then_the_rest_of_the_printed_solution() {
-    let (ok, out, _) = cubacle(&["recover", "-s", ORIGINAL, "--now", NOW, "--icons"]);
+fn now_icons_draws_the_rollback_then_the_rest_of_the_printed_solution() {
+    let (ok, out, _) = cubacle(&["solve", "-s", ORIGINAL, "--now", NOW, "--icons"]);
     assert!(ok);
     let rollback = out.find("Rollback (undo 3 moves)").expect("rollback");
     let r1 = out.find("move R1 of 3: D2").expect("R1");
@@ -62,7 +62,7 @@ fn state_images(out: &str) -> usize {
 #[test]
 fn should_be_and_is_now_share_one_image_when_they_fit() {
     let run = |extra: &[&str]| {
-        let mut args = vec!["recover", "-s", ORIGINAL, "--now", NOW, "--icons"];
+        let mut args = vec!["solve", "-s", ORIGINAL, "--now", NOW, "--icons"];
         args.extend_from_slice(&["--graphics", "kitty"]);
         args.extend_from_slice(extra);
         let (ok, out, _) = cubacle(&args);
@@ -82,10 +82,10 @@ fn should_be_and_is_now_share_one_image_when_they_fit() {
 }
 
 #[test]
-fn recover_icons_of_a_fresh_choice_draws_the_fresh_solution() {
+fn now_icons_of_a_fresh_choice_draws_the_fresh_solution() {
     let solution = "B L' U2 B2 D' U2 B2 D2 U' F2 D U' R2 U' R' B' L2 D' F U2 R'";
     let (ok, out, _) = cubacle(&[
-        "recover",
+        "solve",
         "-s",
         ORIGINAL,
         "--now",
@@ -104,9 +104,9 @@ fn recover_icons_of_a_fresh_choice_draws_the_fresh_solution() {
 }
 
 #[test]
-fn recover_fresh_icons_draws_the_solution_and_the_other_options_apply() {
+fn now_fresh_icons_draws_the_solution_and_the_other_options_apply() {
     let (ok, out, _) = cubacle(&[
-        "recover",
+        "solve",
         "-s",
         ORIGINAL,
         "--now",
@@ -126,8 +126,8 @@ fn recover_fresh_icons_draws_the_solution_and_the_other_options_apply() {
 }
 
 #[test]
-fn recover_picture_options_need_icons() {
-    let (ok, _, err) = cubacle(&["recover", "-s", ORIGINAL, "--now", NOW, "--columns", "2"]);
+fn now_picture_options_need_icons() {
+    let (ok, _, err) = cubacle(&["solve", "-s", ORIGINAL, "--now", NOW, "--columns", "2"]);
     assert!(!ok);
     assert!(err.contains("--icons"), "{err}");
 }

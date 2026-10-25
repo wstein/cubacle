@@ -1,4 +1,4 @@
-//! The phases of a solution, as `solve` and `recover` both report them.
+//! The phases of a solution, as `solve` and `solve --now` both report them.
 
 use cubacle::phases::{from_stages, phases, Phase};
 use cubacle::puzzle::{Facelets, MoveSequence, SolveStage};

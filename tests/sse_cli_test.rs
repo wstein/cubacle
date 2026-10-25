@@ -126,11 +126,11 @@ const NOW: &str = "FDDRURLDBRDBLRFFDUUBUUFBLBLBRDFDFBUFRUFULLDRURLDLBFRBL";
 const SOLUTION: &str = "B L' U2 B2 D' U2 B2 D2 U' F2 D U' R2 U' R' B' L2 D' F U2 R'";
 
 #[test]
-fn recover_reads_an_sse_solution_and_writes_sse() {
+fn now_reads_an_sse_solution_and_writes_sse() {
     let dashed = SOLUTION.replace('\'', "-");
     let run = |solution: &str, notation: &str| {
         cubacle(&[
-            "recover",
+            "solve",
             "-s",
             ORIGINAL,
             "--now",

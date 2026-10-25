@@ -1,4 +1,4 @@
-//! `recover --icons`: the cube as it should be and as it is, side by side.
+//! `solve --now --icons`: the cube as it should be and as it is, side by side.
 
 use cubacle::notation::orbit64;
 use cubacle::puzzle::Facelets;

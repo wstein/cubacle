@@ -1,4 +1,4 @@
-//! The Kitty rows of `solve --icons` and `recover --icons`: phase blocks of
+//! The Kitty rows of `solve --icons` and `solve --now --icons`: phase blocks of
 //! icon rows with the picture of the cube after each phase in the row flow.
 
 use cubacle::phases::Phase;

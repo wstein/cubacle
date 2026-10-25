@@ -63,7 +63,7 @@ pub enum Numbers {
 }
 
 /// The icon of a move, numbered when asked: `number` counts from 1 over the
-/// whole move list, the same index that `recover --at-move` takes.
+/// whole move list, the same index that `solve --now --at-move` takes.
 pub(crate) fn numbered(icon: Icon, number: usize, numbers: Numbers, backdrop: Backdrop) -> Icon {
     match numbers {
         Numbers::Auto | Numbers::On => icon.numbered(number, backdrop),

@@ -1,4 +1,4 @@
-//! One case through `recover`, as the command runs it: the search and the
+//! One case through `recover`, as `solve --now` runs it: the search and the
 //! fresh solve side by side.
 
 use std::thread;

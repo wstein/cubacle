@@ -3,7 +3,7 @@ id: 20261023180000
 aliases: []
 tags: ["type/decision", "status/decided", "category/notation"]
 ---
-Moves are read as WCA and SiGN everywhere (solve --scramble, convert, facelets, recover --solution, icon, REST `scramble`) by one reader, `src/notation/expr/`. It expands everything into plain moves, so the engines, the metric and the move limit (100000) are unchanged.
+Moves are read as WCA and SiGN everywhere (solve --scramble, convert, facelets, solve --now --solution, icon, REST `scramble`) by one reader, `src/notation/expr/`. It expands everything into plain moves, so the engines, the metric and the move limit (100000) are unchanged.
 
 Rules and where they come from (read 2026-10-23):
 

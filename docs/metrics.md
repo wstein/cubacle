@@ -25,7 +25,7 @@ The line shows the four counts most useful for the cube: `htm qtm stm` for the 2
 | --- | --- |
 | `solve` | after `moves N`; with `--optimise ranges` a second line `compressed metrics: ...` follows `compressed moves M` (not with `--group phases`) |
 | `solve --all`, `--count` | once, before `solutions N`: `metrics over the listed solutions: htm 20, qtm 24-26, stm 20`, the smallest and the largest count of the solutions listed (several solutions of one length differ in QTM) |
-| `recover` | `fresh metrics: ...` for the fresh solution, `recover route metrics: ...` for the recommended way back (with `--fresh` a plain `metrics:` line for the solution) |
+| `solve --now` | `fresh metrics: ...` for the fresh solution, `recover route metrics: ...` for the recommended way back (with `--fresh` a plain `metrics:` line for the solution) |
 | `patterns find` | after `moves N` |
 | `patterns show` | one line after each generator it prints |
 | `moves` | after the sequence, counted on the words as typed (see [Words, not expansions](#words-not-expansions)) |

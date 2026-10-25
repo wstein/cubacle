@@ -15,7 +15,7 @@ fn cubacle(args: &[&str]) -> String {
 
 #[test]
 fn the_way_back_is_labelled_moves_now() {
-    let out = cubacle(&["recover", "-s", ORIGINAL, "--now", NOW]);
+    let out = cubacle(&["solve", "-s", ORIGINAL, "--now", NOW]);
     assert!(out.contains("Recommended: recover"), "{out}");
     assert!(out.contains("Moves now: D2 B2 D'"), "{out}");
     assert!(!out.contains("Fresh solution:"), "{out}");
@@ -25,7 +25,7 @@ fn the_way_back_is_labelled_moves_now() {
 fn a_fresh_route_is_labelled_fresh_solution() {
     let solution = "B L' U2 B2 D' U2 B2 D2 U' F2 D U' R2 U' R' B' L2 D' F U2 R'";
     let out = cubacle(&[
-        "recover",
+        "solve",
         "-s",
         ORIGINAL,
         "--now",
@@ -43,7 +43,7 @@ fn a_fresh_route_is_labelled_fresh_solution() {
 
 #[test]
 fn icons_count_the_differing_stickers() {
-    let out = cubacle(&["recover", "-s", ORIGINAL, "--now", NOW, "--icons"]);
+    let out = cubacle(&["solve", "-s", ORIGINAL, "--now", NOW, "--icons"]);
     let line = out
         .lines()
         .find(|l| l.starts_with("Stickers that differ: "))
@@ -60,7 +60,7 @@ fn icons_count_the_differing_stickers() {
 #[test]
 fn views_both_draws_two_corners_and_the_count_line_says_every_difference_is_marked() {
     let out = cubacle(&[
-        "recover", "-s", ORIGINAL, "--now", NOW, "--icons", "--views", "both",
+        "solve", "-s", ORIGINAL, "--now", NOW, "--icons", "--views", "both",
     ]);
     // three cubes (should be, is now, end state), each as a text picture from the URF and the DBL corner
     assert_eq!(out.matches("state, seen from URF").count(), 3, "{out}");
@@ -74,7 +74,7 @@ fn views_both_draws_two_corners_and_the_count_line_says_every_difference_is_mark
 
 #[test]
 fn the_folded_view_is_the_default_and_marks_every_difference() {
-    let out = cubacle(&["recover", "-s", ORIGINAL, "--now", NOW, "--icons"]);
+    let out = cubacle(&["solve", "-s", ORIGINAL, "--now", NOW, "--icons"]);
     assert_eq!(out.matches("state, folded view").count(), 3, "{out}");
     assert!(!out.contains("seen from"), "{out}");
     let line = out
@@ -86,7 +86,7 @@ fn the_folded_view_is_the_default_and_marks_every_difference() {
 
 #[test]
 fn views_urf_draws_one_picture_and_admits_the_hidden_faces() {
-    let args = ["recover", "-s", ORIGINAL, "--now", NOW, "--icons"];
+    let args = ["solve", "-s", ORIGINAL, "--now", NOW, "--icons"];
     let out = cubacle(&[&args[..], &["--views", "urf"]].concat());
     assert_eq!(out.matches("state, seen from URF").count(), 3, "{out}");
     assert!(!out.contains("seen from DBL"), "{out}");
@@ -99,7 +99,7 @@ fn views_urf_draws_one_picture_and_admits_the_hidden_faces() {
 
 #[test]
 fn views_net_and_all_draw_the_flat_net_and_count_every_difference_as_marked() {
-    let args = ["recover", "-s", ORIGINAL, "--now", NOW, "--icons"];
+    let args = ["solve", "-s", ORIGINAL, "--now", NOW, "--icons"];
     let net = cubacle(&[&args[..], &["--views", "net"]].concat());
     assert_eq!(net.matches("state, flat view").count(), 3, "{net}");
     assert!(!net.contains("seen from"), "{net}");

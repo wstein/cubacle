@@ -52,10 +52,8 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Solve a cube given as facelets or as a scramble
+    /// Solve a cube given as facelets or as a scramble, or with --now explain a mistake and the way back
     Solve(SolveArgs),
-    /// Explain a mistake made while following a solution and the way back
-    Recover(recover_cmd::RecoverArgs),
     /// Print the plain move sequence an expression stands for
     Moves(moves_cmd::MovesArgs),
     /// List the pretty patterns (checkerboard, cube in a cube, ...) or show one with its generator
@@ -254,7 +252,6 @@ fn main() -> ExitCode {
 fn run(cli: Cli) -> Result<(), String> {
     match cli.command {
         Command::Solve(args) => solve(args),
-        Command::Recover(args) => recover_cmd::run(args),
         Command::Moves(args) => moves_cmd::run(args),
         Command::Patterns(args) => patterns_cmd::run(args),
         Command::Convert(args) => {
@@ -643,7 +640,7 @@ fn solve(args: SolveArgs) -> Result<(), String> {
     }
 }
 
-/// The text of a failed solve, as `solve` and `recover` print it.
+/// The text of a failed solve, as `solve` and `solve --now` print it.
 fn failure_message(failure: Failure, message: Option<String>) -> String {
     let reason = match failure {
         Failure::InvalidInput => "the cube state is impossible",
