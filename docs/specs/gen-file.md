@@ -37,7 +37,7 @@ pattern-title: Concentric squares
 cube-size: 5
 color-scheme: western
 sticker-grid:
-  a b b b a / b b c b b / b c Z c b / b b c b b / a b b b a
+  a b b b a / b b c b b / b c U c b / b b c b b / a b b b a
 color-constraints: unique(a*, b*, c*)
 ```
 
@@ -112,7 +112,7 @@ move-alphabet = "outer" | "slices" | "blocks" | move { ws move } ;
 The grid lists the stickers of the faces, face by face, each row by row.
 
 - A token made of a lowercase letter and an optional number, such as `a` or `b1`, is a placeholder that may take any color. The same token means the same color.
-- A single uppercase letter is a fixed color, read through the scheme.
+- A single uppercase letter is a fixed color, read through the scheme. A center is written as the letter of its face (U R F D L B): the fixed color of that face. A center token may also be a lowercase variable, like any other sticker. In a one-face grid, the center letter stands for the letter of the face the grid is applied to.
 - `.` and `?` are don't care.
 - Separators are `,` and space; `/` separates faces, and so do a newline and a blank line.
 - The number of stickers per face is checked against the size: N times N for size N.
@@ -127,7 +127,7 @@ dontcare    = "." | "?" ;
 sep         = "," | " " ;
 face-sep    = "/" | newline | blank-line ;
 lower       = "a".."z" ;
-upper       = "A".."Z" ;
+upper       = "A".."U" ;
 digits      = digit { digit } ;
 ```
 
@@ -247,7 +247,7 @@ The example of the worked example above in both forms (files `concentric-squares
     [
       ["a", "b", "b", "b", "a"],
       ["b", "b", "c", "b", "b"],
-      ["b", "c", "Z", "c", "b"],
+      ["b", "c", "U", "c", "b"],
       ["b", "b", "c", "b", "b"],
       ["a", "b", "b", "b", "a"]
     ]
@@ -264,17 +264,17 @@ Found sequences are stored as result lines of the form `name | size | metric | s
 
 ## Worked example
 
-A 5x5x5 where every face has the same ring structure and a fixed color `Z` in the middle. Per face, in the order of the face index:
+A 5x5x5 where every face has the same ring structure and a center that carries the letter of its face (U, R, F, D, L or B). Per face, in the order of the face index:
 
 ```text
 a b b b a
 b b c b b
-b c Z c b
+b c U c b
 b b c b b
 a b b b a
 ```
 
-With the face index, the variables of the first face are `a1`, `b1` and `c1`. The guard
+The grid above is the U face; the other faces carry their own letter in the center. With the face index, the variables of the first face are `a1`, `b1` and `c1`. The guard
 
 ```text
 unique(a*, b*, c*)
@@ -286,12 +286,12 @@ requires, for every face, that the three ring colors differ.
 
 Two throw-away spike branches (`spike/template` and `spike/template-count`) explored this schema. Counts only.
 
-For the 5x5x5 example above there are 393 120 target assignments with the center `Z` included in `unique`, and 15 321 600 without it. Of these, the second spike (commit `d6a9751`) found these reachable color states:
+For the 5x5x5 example above there are 393 120 target assignments with the center included in `unique`, and 15 321 600 without it. Of these, the second spike (commit `d6a9751`) found these reachable color states:
 
 | Reading | Assignments | Reachable color states | Share |
 | --- | --- | --- | --- |
-| With `Z` in `unique` | 393 120 | 2 640 | 0.67 % |
-| Without `Z` | 15 321 600 | 28 032 | 0.18 % |
+| Center included in `unique` | 393 120 | 2 640 | 0.67 % |
+| Center not included | 15 321 600 | 28 032 | 0.18 % |
 
 These state counts are to be re-confirmed after the mirrored-corner fix of the 5x5x5 engine.
 

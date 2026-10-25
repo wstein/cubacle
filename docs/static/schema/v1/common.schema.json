@@ -59,7 +59,7 @@
       "description": "One sticker of the schema grid. A lowercase letter with an optional number is a placeholder that may take any color (a, b1). A single uppercase letter is a fixed color read through the color scheme. '.' and '?' are don't care.",
       "type": "string",
       "pattern": "^([a-z][0-9]*|[A-Z]|\\.|\\?)$",
-      "examples": ["a", "b1", "Z", ".", "?"]
+      "examples": ["a", "b1", "U", ".", "?"]
     },
     "row": {
       "description": "One row of stickers of a face.",
