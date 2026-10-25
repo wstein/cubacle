@@ -6,7 +6,7 @@ weight: 3
 
 # Command-line guide
 
-The `cubacle` tool has seven subcommands: `solve` (also the way back after a mistake, with `--now`), `convert`, `scramble`, `random`, `facelets`, `moves` and `patterns` (see [Patterns](patterns.md); its actions are `show`, `find`, `identify` for the structure of a state and `cycles` for its part cycles and order, `import` for pattern tables, `update` (alias `download`) to download the URL sources of the config, `sources` for the pattern files in use and `--tree` for the overview by category; see "Importing pattern files"). Run `cubacle <command> --help` for the full option list.
+The `cubacle` tool has eight subcommands: `solve` (also the way back after a mistake, with `--now`), `convert`, `scramble`, `random`, `facelets`, `moves`, `order` and `patterns` (see [Patterns](patterns.md); its actions are `show`, `find`, `identify` for the structure of a state and `cycles` for its part cycles and order, `import` for pattern tables, `update` (alias `download`) to download the URL sources of the config, `sources` for the pattern files in use and `--tree` for the overview by category; see "Importing pattern files"). Run `cubacle <command> --help` for the full option list.
 
 ## Solve a cube
 
@@ -919,6 +919,39 @@ cubacle facelets "R U R' U'"
 ```text
 UULUUFUUFRRUBRRURRFFDFFUFFFDDRDDDDDDBLLLLLLLLBRRBBBBBB
 ```
+
+## Order of a move sequence
+
+`cubacle order EXPRESSION` prints how many times a move sequence must be repeated to return the cube to the solved state. The expression is read as for `moves` (same notations, groups and repeats), `--size` is 2 to 7:
+
+```sh
+cubacle order "R U"
+```
+
+```text
+order 105
+```
+
+The order is defined on the stickers: the sequence moves every sticker to another place, and the order is the least common multiple of the lengths of the cycles of that permutation. `-v` also lists, for each orbit of stickers (corners, edges, wings, centers), the lengths of its cycles with their counts (`7x2` is two cycles of length 7) and the order of the orbit; the order of the whole is their least common multiple:
+
+```sh
+cubacle order -v "R U"
+cubacle order -v --size 5 "2R U"
+```
+
+```text
+order 105
+corners: 3 15 (order 15)
+edges: 7x2 (order 7)
+centers: in place (order 1)
+order 140
+corners: 4x3 (order 4)
+edges: 4x2 (order 4)
+wings: 10x2 (order 10)
+centers: 7 10 (order 70)
+```
+
+Because stickers are told apart, a center turned in place counts: on the 4x4x4 and up the order can be a multiple of the number of repetitions after which the colors look solved. `cubacle patterns cycles` follows pieces and gives an order without the centers as well. An input error (a bad move, a layer the cube does not have, a size outside 2 to 7) prints `error: ...` on standard error and exits with 1.
 
 ## Draw moves
 

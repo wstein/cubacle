@@ -28,3 +28,4 @@ Raw-material notes, category notation.
 - [[A corner is read with all three colours in turning order]]
 - [[Orbit64 reads colors so equal-colored pieces need no representative]]
 - [[The canonical token is the Orbit64 token of the standard-colored member of the detector's class]]
+- [[The order of a sequence is the lcm of its sticker cycle lengths]]
