@@ -48,10 +48,15 @@ change pass; a change that alters solver output needs an explicit decision.
 
 ## Documentation and notes
 
-- Describe verified behaviour only; run the commands you document.
+- Describe verified behavior only; run the commands you document.
+- Write American English everywhere: texts, docs, notes, comments, identifiers, JSON
+  and file keys, CLI options and output strings (color, center, neighbor, optimize,
+  license, labeled). British spellings are mistakes. Rename without alias or fallback;
+  the project is alpha, breaking is fine. `tests/fixtures` stay untouched except where
+  the owner orders a change.
 - Notes stay short, one idea each. Check whether docs pages need updating when notes change.
 
-## Licence
+## License
 
 AGPL-3.0-or-later. The original MIT grant of Chen Shuang stays in `LICENSE-MIT`;
 provenance of third-party code is recorded in `NOTICE.md` before it lands.
