@@ -57,6 +57,11 @@ pub(crate) struct Walker<'a> {
 type Visit<'v> = &'v mut dyn FnMut(u64, &[u8]);
 
 impl<'a> Walker<'a> {
+    /// The alphabet the walk runs over.
+    pub(crate) fn alphabet(&self) -> &'a Alphabet {
+        self.al
+    }
+
     pub(crate) fn new(al: &'a Alphabet, keys: &'a [u64], deadline: Instant) -> Walker<'a> {
         Walker {
             al,

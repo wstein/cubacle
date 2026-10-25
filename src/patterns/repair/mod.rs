@@ -29,7 +29,7 @@ use std::time::{Duration, Instant};
 
 use super::Pattern;
 use crate::meet::{
-    hash_of, perm_of, permuted, position_keys, sums_of, Alphabet, Table, Walker, ENTRY_BYTES,
+    self, hash_of, perm_of, permuted, position_keys, sums_of, Alphabet, Table, Walker, ENTRY_BYTES,
 };
 use crate::puzzle::{Facelets, MoveSequence};
 use rotation::{compose, inverse, mismatches, renamings, rotations, same_up_to_colors};
@@ -235,11 +235,7 @@ impl<'p> Search<'p> {
 
     /// The deepest stored side that fits the memory cap.
     fn stored_depth(&self, blocks: usize) -> usize {
-        let cap = self.limits.max_memory_mb.saturating_mul(1 << 20) / ENTRY_BYTES;
-        (0..=blocks)
-            .take_while(|&d| self.al.count_up_to(d) <= cap as u64)
-            .last()
-            .unwrap_or(0)
+        meet::stored_depth(&self.al, self.limits.max_memory_mb, blocks)
     }
 
     /// Whether a candidate can still fit a fix of `blocks` blocks.
@@ -325,19 +321,18 @@ impl<'p> Search<'p> {
                     permuted(&self.cube, &inverse(&g_r))
                 }
             };
-            let mut found: Vec<Vec<u8>> = Vec::new();
             let mut walker = Walker::new(&self.al, &self.keys, self.deadline);
-            walker.walk(&start, walked, false, &mut |h, seq| {
-                if let Some(stored) = table.get(h) {
-                    if stored.len() + seq.len() < bound {
-                        found.push(joined(&self.al, order, seq, &stored));
-                    }
-                }
-            });
-            if walker.aborted {
+            let Some(found) = meet::hits(
+                &mut walker,
+                table,
+                &start,
+                walked,
+                bound,
+                order == RepairOrder::After,
+            ) else {
                 self.timed_out = true;
                 return best;
-            }
+            };
             for blocks in found {
                 if blocks.len() < bound && !blocks.is_empty() {
                     let hit = Hit {
@@ -391,15 +386,4 @@ impl<'p> Search<'p> {
             blocks: hit.blocks.len(),
         }
     }
-}
-
-/// `X = A B^-1` from the walked and the stored blocks.
-fn joined(al: &Alphabet, order: RepairOrder, walked: &[u8], stored: &[u8]) -> Vec<u8> {
-    let (a, b) = match order {
-        RepairOrder::After => (walked, stored),
-        RepairOrder::Before => (stored, walked),
-    };
-    let mut x = a.to_vec();
-    x.extend(al.invert(b));
-    x
 }
