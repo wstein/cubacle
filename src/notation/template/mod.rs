@@ -13,5 +13,7 @@ mod guard;
 mod lexer;
 #[allow(dead_code)]
 mod resolve;
+#[allow(dead_code)]
+mod schema;
 
 pub use error::TemplateError;
