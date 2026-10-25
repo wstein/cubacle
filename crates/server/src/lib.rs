@@ -535,6 +535,16 @@ async fn solve(
     let start = read_input(request.cube, request.scramble, request.size, request.scheme).await?;
     let kind = start.kind();
     engine_kind(kind.size())?;
+    cubacle::notation::check(&start).map_err(|reason| {
+        ApiError::new(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "impossible_cube",
+            match reason.hint() {
+                Some(hint) => format!("the cube state is impossible ({reason}); hint: {hint}"),
+                None => format!("the cube state is impossible ({reason})"),
+            },
+        )
+    })?;
     let target = match request.target {
         Some(text) => Some(read_target(text, scheme, kind).await?),
         None => None,
