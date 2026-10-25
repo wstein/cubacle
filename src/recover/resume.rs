@@ -42,7 +42,7 @@ impl<'a> Walker<'a> {
     /// returns true to stop. Also stops when the time is up.
     fn run(&mut self, visit: &mut dyn FnMut(&[u8], &[MoveId]) -> bool) -> bool {
         self.ticks += 1;
-        if self.ticks % 8192 == 0 && self.frame.expired() {
+        if self.ticks.is_multiple_of(8192) && self.frame.expired() {
             return true;
         }
         let level = self.path.len();

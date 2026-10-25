@@ -145,7 +145,7 @@ struct Walk<'a> {
 impl Walk<'_> {
     fn visit(&mut self, stickers: &[u8], path: &mut Vec<usize>) {
         self.nodes += 1;
-        if self.nodes % 1024 == 0 && self.deadline.is_some_and(|d| Instant::now() >= d) {
+        if self.nodes.is_multiple_of(1024) && self.deadline.is_some_and(|d| Instant::now() >= d) {
             self.expired = true;
         }
         if self.expired {

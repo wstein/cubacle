@@ -326,7 +326,7 @@ mod tests {
         match next(4) {
             0 => Move::new(face, 1, false, turn),
             1 => Move::new(face, 2, true, turn),
-            3 if n >= 6 => Move::new(face, 3, n % 2 == 0, turn),
+            3 if n >= 6 => Move::new(face, 3, n.is_multiple_of(2), turn),
             3 => Move::new(face, 1, false, turn),
             _ if n >= 5 || all => Move::new(face, 2, false, turn),
             _ => Move::new(face, 1, false, turn),

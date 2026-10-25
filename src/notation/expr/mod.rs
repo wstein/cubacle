@@ -308,7 +308,7 @@ impl Reader {
         let layers = u8::try_from(n).expect("sizes are small");
         let moves = match letter {
             'M' | 'E' | 'S' => {
-                if n % 2 == 0 {
+                if n.is_multiple_of(2) {
                     return Err(ExprError::NoMiddleLayer {
                         position,
                         word: word.to_owned(),

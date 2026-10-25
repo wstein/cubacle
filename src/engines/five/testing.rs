@@ -14,7 +14,9 @@ pub(super) fn java_table(name: &str) -> Option<Vec<u32>> {
     let body = bytes.get(27..)?;
     assert_eq!(body.len() % 4, 0, "{name}");
     Some(
-        body.chunks_exact(4)
+        body.as_chunks::<4>()
+            .0
+            .iter()
             .map(|c| u32::from_be_bytes([c[0], c[1], c[2], c[3]]))
             .collect(),
     )

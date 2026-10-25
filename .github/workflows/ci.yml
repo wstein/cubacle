@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Checks for develop and pull requests against develop.
-# The msrv job builds with the rust-version of Cargo.toml (1.85, forced by the edition 2024 of rand 0.10).
+# The msrv job builds with the rust-version of Cargo.toml (1.95, forced by sysinfo 0.39).
 # The notes job validates notes/ with the pinned ChartScribe release (checksum and build attestation verified when pinning).
 name: ci
 on:
@@ -74,8 +74,8 @@ jobs:
       - name: Check on the declared minimum Rust version
         run: |
           set -euo pipefail
-          rustup toolchain install 1.85 --profile minimal
-          cargo +1.85 check --workspace --all-targets
+          rustup toolchain install 1.95 --profile minimal
+          cargo +1.95 check --workspace --all-targets
   docs:
     name: docs
     runs-on: ubuntu-latest

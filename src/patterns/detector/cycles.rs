@@ -293,7 +293,11 @@ fn order_of(orbits: &[OrbitCycles]) -> Order {
         let mut result = 1u128;
         for cycle in &orbit.cycles {
             let sum: u32 = cycle.marks.iter().map(|&x| u32::from(x)).sum();
-            let turns = if m != 0 && sum % m != 0 { m } else { 1 };
+            let turns = if m != 0 && !sum.is_multiple_of(m) {
+                m
+            } else {
+                1
+            };
             result = lcm(result, cycle.slots.len() as u128 * u128::from(turns));
         }
         whole = lcm(whole, result);

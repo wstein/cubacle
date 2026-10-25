@@ -94,7 +94,7 @@ impl Cache {
         while payload.len() < words {
             let take = ((words - payload.len()) * 4).min(block.len());
             file.read_exact(&mut block[..take]).ok()?;
-            for chunk in block[..take].chunks_exact(4) {
+            for chunk in block[..take].as_chunks::<4>().0 {
                 let word = u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
                 hash = mix(hash, word);
                 payload.push(word);

@@ -23,7 +23,10 @@ const SYMMETRY_WEIGHT: f64 = 0.6;
 const FULL_SYMMETRY: f64 = 2.0;
 
 fn simple_share(count: usize, of: usize) -> bool {
-    of == 0 || [1, 2, 3, 4, 6].iter().any(|d| (count * d) % of == 0)
+    of == 0
+        || [1, 2, 3, 4, 6]
+            .iter()
+            .any(|d| (count * d).is_multiple_of(of))
 }
 
 fn orbit_regularity(orbit: &OrbitStat) -> f64 {

@@ -67,7 +67,7 @@ impl ColourScheme {
     /// Reads the scheme off the six fixed centres of an odd cube, each of which
     /// shows the colour of its own face. `colours` holds `6 * n * n` letters.
     pub fn from_centres(colours: &[char], size: usize) -> Result<ColourScheme, SchemeError> {
-        if size < 3 || size % 2 == 0 {
+        if size < 3 || size.is_multiple_of(2) {
             return Err(SchemeError::NoCentres(size));
         }
         let face_len = size * size;

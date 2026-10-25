@@ -162,7 +162,7 @@ pub(super) fn read(facelets: &Facelets) -> Result<Cube, &'static str> {
         corners.co[i] = ori as u8;
         twist += ori as u32;
     }
-    if twist % 3 != 0 {
+    if !twist.is_multiple_of(3) {
         return Err("one corner is twisted on its own");
     }
     cube.corners = corners;

@@ -31,7 +31,7 @@ pub(crate) fn rasterise_canvas(
     let (w, h) = (width as usize, height as usize);
     let mut buf = vec![0.0_f32; w * h * 4];
     if let Some(Rgb(r, g, b)) = background {
-        for px in buf.chunks_exact_mut(4) {
+        for px in buf.as_chunks_mut::<4>().0 {
             px.copy_from_slice(&[
                 f32::from(r) / 255.0,
                 f32::from(g) / 255.0,
@@ -45,7 +45,7 @@ pub(crate) fn rasterise_canvas(
         fill(&mut buf, w, h, &points, shape.fill, shape.opacity as f32);
     }
     let mut data = Vec::with_capacity(w * h * 4);
-    for px in buf.chunks_exact(4) {
+    for px in buf.as_chunks::<4>().0 {
         let a = px[3];
         let channel = |v: f32| {
             let straight = if a > 0.0 { v / a } else { 0.0 };
@@ -108,7 +108,7 @@ impl Raster {
         // the picture over the panel (source-over, straight alpha)
         let iw = self.width as usize;
         for (y, row) in self.data.chunks_exact(iw.max(1) * 4).enumerate() {
-            for (x, px) in row.chunks_exact(4).enumerate() {
+            for (x, px) in row.as_chunks::<4>().0.iter().enumerate() {
                 let at = ((y + pad as usize) * w as usize + x + pad as usize) * 4;
                 let (sa, da) = (f64::from(px[3]) / 255.0, f64::from(data[at + 3]) / 255.0);
                 let out = sa + da * (1.0 - sa);
@@ -209,7 +209,7 @@ fn fill(buf: &mut [f32], w: usize, h: usize, points: &[[f64; 2]], colour: Rgb, o
                 }
             }
             crossings.sort_by(f64::total_cmp);
-            for pair in crossings.chunks_exact(2) {
+            for pair in crossings.as_chunks::<2>().0 {
                 let (x0, x1) = (pair[0].max(0.0), pair[1].min(w as f64));
                 if x1 <= x0 {
                     continue;

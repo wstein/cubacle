@@ -58,7 +58,7 @@ fn unit_of_word(word: &str, kind: PuzzleKind) -> Option<Unit> {
             'x' => Some(Unit::rotation(kind, 1, half)),
             'y' => Some(Unit::rotation(kind, 0, half)),
             'z' => Some(Unit::rotation(kind, 2, half)),
-            _ if n % 2 == 0 => None,
+            _ if n.is_multiple_of(2) => None,
             _ => {
                 let middle = n / 2 + 1;
                 let axis = match letter {
