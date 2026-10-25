@@ -48,7 +48,7 @@ blank        = { " " | tab } ;
 comment      = { " " | tab } "#" { any } ;
 entry        = key ":" { " " } value ;
 continuation = ( " " | tab ) { " " | tab } text ;
-key          = "name" | "title" | "aliases" | "size" | "scheme" | "schema"
+key          = "name" | "title" | "aliases" | "size" | "scheme" | "colours" | "schema"
              | "where" | "alphabet" | "limits" | "tags"
              | "symmetry" | "antisymmetry" | "order" | "orbits" | "fixed" ;
 value        = text { newline continuation } ;
@@ -63,6 +63,7 @@ value        = text { newline continuation } ;
 | `aliases` | no | Other ids, separated by commas. |
 | `size` | yes | Cube size, or a list of sizes. |
 | `scheme` | no | Colour scheme for fixed colours; see [Colour schemes](colour-schemes.md). Default `URFDLB`. |
+| `colours` | no | Display colours of an in-place six-letter `scheme`; same value grammar as in a scheme file. |
 | `schema` | yes | The schema grid. |
 | `where` | no | The guard. Without it every assignment of the variables is allowed. |
 | `alphabet` | no | Moves used by `--solve`: `outer`, `slices`, `blocks` or a list of moves. |
@@ -201,6 +202,58 @@ The parser reports the line, the column and what was expected, for example `line
 - a variable in the guard that is absent from the schema;
 - an unknown colour letter;
 - an unbalanced parenthesis.
+
+## JSON form
+
+The `.gen` text and a JSON document are two serialisations of one canonical model: the typed definition (name, size, scheme, grid, guard, symmetry, antisymmetry, order, orbits, fixed, limits, tags). The run options are a separate object, not part of the definition. The text parser and the JSON reader both produce exactly this model, so converting from one form to the other loses nothing except comments and layout.
+
+- The JSON text is read with a JSON parser library (`serde_json`). There is no hand-written JSON parser.
+- The result is checked against the JSON Schema with a validation library (the `jsonschema` crate). Errors carry a JSON pointer path, for example `/schema/2/3`, in the place where the text form gives line and column.
+- The schema is the contract. It is written by hand and split into files with shared definitions. The Rust types are checked against it by conformance tests: every example must validate and round-trip. Schemas are not generated from the parser output.
+- Rules the schema cannot express (the sticker count per face, distinct scheme letters, the guard grammar, known symmetry types) are checked by the reader after validation and reported with the same path.
+
+The schema files are published under `https://wstein.github.io/cubacle/schema/v1/`:
+
+| File | Describes |
+| --- | --- |
+| `common.schema.json` | Shared definitions: names, tokens, face grid, guard string, colour scheme, orbits, limits, error object. |
+| `gen-definition.schema.json` | The definition (this page). |
+| `colour-scheme.schema.json` | A colour scheme, see [Colour schemes](colour-schemes.md). |
+| `run-options.schema.json` | The run options. |
+| `search-request.schema.json`, `search-result.schema.json` | The REST contract, see [REST and JSON](rest-json.md). |
+
+Mapping of keys: the JSON object uses the same names as the text keys (`name`, `title`, `aliases`, `size`, `scheme`, `schema`, `where`, `alphabet`, `limits`, `tags`, `symmetry`, `antisymmetry`, `order`, `orbits`, `fixed`) and adds `version` (always 1) and `$schema`. Differences of form:
+
+- `schema` is a list of faces in the order U R F D L B; a face is a list of rows; a row is a list of tokens. One face means the same face pattern on all six. The path `/schema/2/3` is face 2, row 3.
+- `where` is the guard as the same string as in the text form.
+- `order` is a number, a set `[3, 6]` or a range `{"min": 3, "max": 6}`.
+- `scheme` is a name, six letters, or an object (see [Colour schemes](colour-schemes.md)). In the text form an in-place scheme is `scheme: ABCDEF` plus a `colours:` line with the same value grammar as in a scheme file.
+- `orbits`, `fixed`, `aliases` and `tags` are lists of strings.
+
+The example of the worked example above in both forms (files `concentric-squares.gen` and `concentric-squares.json` in `docs/static/examples/gen/`, published at `https://wstein.github.io/cubacle/examples/gen/`):
+
+```json
+{
+  "$schema": "https://wstein.github.io/cubacle/schema/v1/gen-definition.schema.json",
+  "version": 1,
+  "name": "concentric-squares",
+  "title": "Concentric squares",
+  "size": 5,
+  "scheme": "western",
+  "schema": [
+    [
+      ["a", "b", "b", "b", "a"],
+      ["b", "b", "c", "b", "b"],
+      ["b", "c", "Z", "c", "b"],
+      ["b", "b", "c", "b", "b"],
+      ["a", "b", "b", "b", "a"]
+    ]
+  ],
+  "where": "unique(a*, b*, c*)"
+}
+```
+
+Further examples in the same directory: `checkerboard-free-centre` (a 3x3 grid with a don't-care), `ring-symmetric` (with `symmetric(D4h)`) and `custom-scheme` (a colour scheme object with `#RGB` and `#RRGGBB` colours). All JSON examples start with `$schema`, so editors can offer completion and validation. The example files were validated against the schemas with the Python package `jsonschema` (Draft 2020-12).
 
 ## Result lines
 

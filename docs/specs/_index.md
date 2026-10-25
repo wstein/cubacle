@@ -14,3 +14,4 @@ This section holds specifications that the owner ordered before any code exists.
 | --- | --- |
 | [The .gen definition file](gen-file.md) | A file that defines a pattern by a schema grid and a guard. |
 | [Colour schemes](colour-schemes.md) | Names, letters and display colours for the six faces. |
+| [REST and JSON](rest-json.md) | The search endpoint and the choice between the .gen and JSON forms. |

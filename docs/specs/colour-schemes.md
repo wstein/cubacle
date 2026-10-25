@@ -63,6 +63,22 @@ key         = "name" | "faces" | "colours" ;
 
 `name` is optional and has the form of a pattern id (lowercase a-z, 0-9, `-`). `faces` is required and holds six letters. `colours` is optional; without it the codes have no display colour and the display uses its own default.
 
+## Object form (JSON)
+
+The same scheme as a JSON object, described by `https://wstein.github.io/cubacle/schema/v1/colour-scheme.schema.json`. As a standalone file it carries `version` (always 1) and may start with `$schema`. Inside a [.gen definition in JSON](gen-file.md) the `scheme` value is a name, six letters, or this object without `version`.
+
+```json
+{
+  "$schema": "https://wstein.github.io/cubacle/schema/v1/colour-scheme.schema.json",
+  "version": 1,
+  "name": "japanese",
+  "faces": "WRGBOY",
+  "colours": { "W": "#fff", "R": "#d00", "G": "#0a0", "B": "#00d", "O": "#f80", "Y": "#ee0" }
+}
+```
+
+The rules of validation are the same as for the text form. The schema checks the shape (six uppercase letters, `#RGB` or `#RRGGBB`); the reader checks that the letters are distinct and that every colour letter occurs in `faces`. A custom scheme with `#RGB` and `#RRGGBB` colours is in `custom-scheme.json` at `https://wstein.github.io/cubacle/examples/gen/`.
+
 ## Using a scheme
 
 `--scheme FILE` takes a file, `--scheme NAME` takes a built-in name, and six letters given inline are a custom scheme. A name is looked up as a built-in first, then as a file.
