@@ -23,8 +23,9 @@ pub enum RelativeError {
     },
     /// A piece of the named state shows colours no piece of the cube has.
     ImpossiblePiece { which: &'static str },
-    /// The target of a cube with movable centres has centres out of place,
-    /// which the colour-based search cannot aim for.
+    /// The target shows centres of one kind (the centres of one orbit on one
+    /// face) in different colours, which the colour-based search cannot aim
+    /// for: it only tells where a centre goes by the face.
     CentresMoved,
 }
 
@@ -39,8 +40,8 @@ impl fmt::Display for RelativeError {
             ),
             RelativeError::CentresMoved => write!(
                 f,
-                "the target has centres out of place; the solvers can only reach a target whose \
-                 centres are on their own faces (turns of the outer layers keep them there)"
+                "the target has centres of different colours where the solvers cannot tell \
+                 them apart (the centres of one kind on one face must show one colour)"
             ),
             RelativeError::ImpossiblePiece { which } => {
                 write!(
@@ -101,54 +102,113 @@ fn face_of(kind: PuzzleKind, index: usize) -> Face {
     Face::ALL[index / kind.face_len()]
 }
 
-/// For every sticker of `state`, the place on the solved cube it comes from:
-/// pieces are told apart by orbit and colours; identical pieces are paired in
-/// index order, which depends on the state alone.
-fn identities(state: &Facelets, which: &'static str) -> Result<Vec<usize>, RelativeError> {
+/// The key of the piece in every cell of `state`.
+fn piece_keys(
+    state: &Facelets,
+    cells: &[Cubie],
+    which: &'static str,
+) -> Result<Vec<(Vec3, Vec<u8>)>, RelativeError> {
     let kind = state.kind();
-    let cells = cubies(kind);
-    let mut free: HashMap<(Vec3, Vec<u8>), Vec<&Cubie>> = HashMap::new();
-    for cubie in cells.iter().rev() {
-        let colours: Vec<Face> = cubie.stickers.iter().map(|&s| face_of(kind, s)).collect();
-        free.entry(piece_key(cubie, kind, &colours))
-            .or_default()
-            .push(cubie);
-    }
-    let mut identity = vec![0; kind.facelet_count()];
-    for cubie in &cells {
-        let colours: Vec<Face> = cubie
-            .stickers
-            .iter()
-            .map(|&s| state.stickers()[s])
-            .collect();
-        let impossible = RelativeError::ImpossiblePiece { which };
-        let distinct = colours.iter().fold(0u8, |m, c| m | 1 << c.index());
-        if distinct.count_ones() as usize != colours.len() {
-            return Err(impossible);
-        }
-        let home = free
-            .get_mut(&piece_key(cubie, kind, &colours))
-            .and_then(Vec::pop)
-            .ok_or(impossible)?;
-        for (&sticker, colour) in cubie.stickers.iter().zip(&colours) {
-            identity[sticker] = *home
+    cells
+        .iter()
+        .map(|cubie| {
+            let colours: Vec<Face> = cubie
                 .stickers
                 .iter()
-                .find(|&&h| face_of(kind, h) == *colour)
-                .expect("the home cell shows these colours");
+                .map(|&s| state.stickers()[s])
+                .collect();
+            let distinct = colours.iter().fold(0u8, |m, c| m | 1 << c.index());
+            if distinct.count_ones() as usize != colours.len() {
+                return Err(RelativeError::ImpossiblePiece { which });
+            }
+            Ok(piece_key(cubie, kind, &colours))
+        })
+        .collect()
+}
+
+/// For every cell, the cell of `target` that the start's piece in it has to
+/// reach. Pieces of equal colours are interchangeable, so the pairing is a
+/// choice: a piece already in place keeps its place (fixed points first), and
+/// the rest of one kind are paired in cell order, the start's n-th loose piece
+/// with the target's n-th free place. Wings differ in their colour order and
+/// so are never ambiguous; the centres are, and any pairing of equal centres
+/// reaches the target colour-wise, since the solvers cannot tell them apart.
+fn assignment(
+    start: &[(Vec3, Vec<u8>)],
+    target: &[(Vec3, Vec<u8>)],
+    reversed: bool,
+) -> Result<Vec<usize>, RelativeError> {
+    let mut to = vec![usize::MAX; start.len()];
+    let mut taken = vec![false; target.len()];
+    for cell in 0..start.len() {
+        if start[cell] == target[cell] {
+            to[cell] = cell;
+            taken[cell] = true;
         }
     }
-    Ok(identity)
+    let mut free: HashMap<&(Vec3, Vec<u8>), Vec<usize>> = HashMap::new();
+    let mut open: Vec<usize> = (0..target.len()).filter(|&c| !taken[c]).collect();
+    if !reversed {
+        open.reverse();
+    }
+    for cell in open {
+        free.entry(&target[cell]).or_default().push(cell);
+    }
+    for cell in 0..start.len() {
+        if to[cell] != usize::MAX {
+            continue;
+        }
+        // the colour sets of the two states differ: not the same cube
+        to[cell] = free
+            .get_mut(&start[cell])
+            .and_then(Vec::pop)
+            .ok_or(RelativeError::ImpossiblePiece { which: "target" })?;
+    }
+    Ok(to)
+}
+
+/// Whether the target shows one colour for the centres of one orbit on one
+/// face. The colour-based search only knows the face a centre has to reach,
+/// so it can aim for a target only if that face fixes the colour.
+fn centres_uniform(target: &Facelets, cells: &[Cubie]) -> bool {
+    let kind = target.kind();
+    let mut seen: HashMap<(usize, Vec3), Face> = HashMap::new();
+    cells
+        .iter()
+        .filter(|cubie| cubie.stickers.len() == 1)
+        .all(|cubie| {
+            let sticker = cubie.stickers[0];
+            let key = (sticker / kind.face_len(), orbit_key(cubie.position));
+            *seen.entry(key).or_insert(target.stickers()[sticker]) == target.stickers()[sticker]
+        })
 }
 
 /// The state whose solution takes `start` to `target`.
 ///
 /// Solving the result with moves `y` means `start` followed by `y` shows
-/// `target`, as far as the pieces are told apart by their colours. Identical
-/// pieces (the centre stickers of a face, the two wings of an edge) are
-/// interchangeable to the solvers, so callers replay the answer; it matches
-/// when the target does not depend on which identical piece is which.
+/// `target`, as far as the pieces are told apart by their colours. Equal
+/// pieces are paired by [`assignment`]: fixed points first, then in cell
+/// order.
+///
+/// Parity: wings differ in the order of their two colours (and the orbits of
+/// the 5x5 and larger are kept apart), so the wings of a 4x4 or 6x6 are never
+/// ambiguous and their parity is that of the real cube. Only centres are
+/// paired freely, which can change the permutation parity of the centres; the
+/// reduction solvers read centres by colour and ignore it, so either parity
+/// is a state they solve. A target whose centres of one kind differ in colour
+/// on one face is refused with [`RelativeError::CentresMoved`], because the
+/// relative state only tells a centre which face to reach, not which place.
 pub fn relative_state(start: &Facelets, target: &Facelets) -> Result<Facelets, RelativeError> {
+    relative_by(start, target, false)
+}
+
+/// [`relative_state`] with the loose equal pieces paired in cell order or, for
+/// tests that show the choice does not matter, in reverse order.
+fn relative_by(
+    start: &Facelets,
+    target: &Facelets,
+    reversed: bool,
+) -> Result<Facelets, RelativeError> {
     if start.kind() != target.kind() {
         return Err(RelativeError::SizeMismatch {
             start: start.kind(),
@@ -156,25 +216,28 @@ pub fn relative_state(start: &Facelets, target: &Facelets) -> Result<Facelets, R
         });
     }
     let kind = start.kind();
-    // Centres of one colour are interchangeable to the solvers, so a target
-    // is only exact when every centre sticker sits on its own face.
-    let centres_home = cubies(kind)
-        .iter()
-        .filter(|cubie| cubie.stickers.len() == 1)
-        .all(|cubie| target.stickers()[cubie.stickers[0]] == face_of(kind, cubie.stickers[0]));
-    if kind.size() >= 4 && !centres_home {
+    let cells = cubies(kind);
+    if start == target {
+        return Ok(Facelets::solved(kind));
+    }
+    if !centres_uniform(target, &cells) {
         return Err(RelativeError::CentresMoved);
     }
-    let from = identities(start, "start")?;
-    let to = identities(target, "target")?;
-    let mut place = vec![0; kind.facelet_count()];
-    for (position, &identity) in to.iter().enumerate() {
-        place[identity] = position;
+    let from = piece_keys(start, &cells, "start")?;
+    let to = piece_keys(target, &cells, "target")?;
+    let place = assignment(&from, &to, reversed)?;
+    let mut stickers = vec![Face::U; kind.facelet_count()];
+    for (cubie, &goal) in cells.iter().zip(&place) {
+        for &sticker in &cubie.stickers {
+            let colour = start.stickers()[sticker];
+            let spot = cells[goal]
+                .stickers
+                .iter()
+                .find(|&&t| target.stickers()[t] == colour)
+                .expect("the paired cell shows these colours");
+            stickers[sticker] = face_of(kind, *spot);
+        }
     }
-    let stickers = from
-        .iter()
-        .map(|&identity| face_of(kind, place[identity]))
-        .collect();
     Ok(Facelets::from_stickers(stickers).expect("every place is used once"))
 }
 
@@ -290,8 +353,59 @@ mod tests {
         );
     }
 
+    const KINDS: [PuzzleKind; 4] = [
+        PuzzleKind::Cube4,
+        PuzzleKind::Cube5,
+        PuzzleKind::Cube6,
+        PuzzleKind::Cube7,
+    ];
+
+    /// Pairs of a start (moves from solved), the moves `m` to the target and
+    /// the inverse of `m`; the target keeps every face's centres one colour.
+    const ROUTES: [(&str, &str, &str); 3] = [
+        ("", "R U2 F' L2 D B'", "B D' L2 F U2 R'"),
+        ("R U F2 D' L B", "L2 U' B R2 D F'", "F D' R2 B' U L2"),
+        ("U2 R' F D2 L", "R2 L2 U2 D2 F2 B2", "B2 F2 D2 U2 L2 R2"),
+    ];
+
     #[test]
-    fn a_4x4_target_with_moved_centres_is_refused() {
+    fn either_pairing_of_equal_pieces_is_solved_by_the_route() {
+        for kind in KINDS {
+            for (start, route, back) in ROUTES {
+                let a = cube(kind, start);
+                let m: MoveSequence = route.parse().unwrap();
+                let b = a.apply(&m).unwrap();
+                for reversed in [false, true] {
+                    let r = relative_by(&a, &b, reversed).unwrap();
+                    assert!(r.apply(&m).unwrap().is_solved(), "{kind:?} {start} {route}");
+                    let inverse = relative_by(&b, &a, reversed).unwrap();
+                    let back: MoveSequence = back.parse().unwrap();
+                    assert!(inverse.apply(&back).unwrap().is_solved(), "{kind:?} back");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn a_rotated_4x4_target_is_reached() {
+        // the centres moved to other faces, but each face is still one colour
+        let a = cube(PuzzleKind::Cube4, "R U");
+        let m: MoveSequence = "Rw2 Lw2".parse().unwrap();
+        let b = a.apply(&m).unwrap();
+        let r = relative_state(&a, &b).unwrap();
+        assert!(r.apply(&m).unwrap().is_solved());
+    }
+
+    #[test]
+    fn the_relative_state_of_a_cube_with_itself_is_solved_on_scrambled_centres() {
+        for kind in KINDS {
+            let a = cube(kind, "Rw U Fw2 D' Lw B");
+            assert!(relative_state(&a, &a).unwrap().is_solved(), "{kind:?}");
+        }
+    }
+
+    #[test]
+    fn a_4x4_target_with_mixed_centres_on_a_face_is_refused() {
         let start = Facelets::solved(PuzzleKind::Cube4);
         let target = cube(PuzzleKind::Cube4, "Rw");
         assert_eq!(
