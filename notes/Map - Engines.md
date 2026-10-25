@@ -43,6 +43,7 @@ Raw-material notes, category engines.
 - [[Patternness is symmetry and uniformity, calibrated on random cubes and the library]]
 - [[Moves written together are cut only at lexical boundaries]]
 - [[Imported patterns carry their patternness in a versioned TSV cache]]
+- [[Pattern kinds name what is regular and are calibrated on short scrambles]]
 - [[The detector explains patterns and never replaces the search]]
 - [[Partial targets are solved as a goal-set search]]
 - [[An optimal mode is a measured clean-room design]]

@@ -189,6 +189,100 @@ The formula was checked once against the pattern tables of the CubeTwister proje
 | 6x6x6 | 1257 | 95.1 | 6 | 77 | 100 | 75 % |
 | 7x7x7 | 1112 | 97.1 | 20 | 84 | 100 | 89 % |
 
+### Pattern kinds
+
+Patternness stays the one score. The **kind** says which sort of regularity a state has, so a list can be filtered and a reader sees why a state scored as it did. `cubacle::patterns::kind(&Facelets)` returns a `PatternKind`; `identify` prints it with the measures it was judged by:
+
+```sh
+cubacle patterns identify "R"
+```
+
+```text
+kind: MOSTLY (mostly in place, the moved part is symmetric)
+measures: fixed 0.78, defect symmetry 0.54, moved 8 of 26 pieces, symmetry 1.00 (order 4), faces 0.67, simple faces 1.00, orbits 1.00
+```
+
+```sh
+cubacle patterns identify "R U R' U'"
+```
+
+```text
+kind: IRREG (no regularity of the kinds above)
+measures: fixed 0.78, defect symmetry 0.00, moved 7 of 26 pieces, symmetry 0.00 (order 1), faces 0.33, simple faces 0.00, orbits 1.00
+```
+
+The measures: **fixed** is the share of stickers that agree with the solved cube after the whole-cube turn that makes most of them agree; the other stickers are the defect, **defect symmetry** is `ln(symmetries that map the defect onto itself) / ln 48`, and **moved** counts the pieces (corners, edge pieces, centre stickers) the defect touches. **faces** is the share of the six faces that show the most common arrangement (up to turning, mirroring and renaming colours), **simple faces** the share of faces that are one colour, stripes, a chequer, a cross, rings or similar. **symmetry** and **orbits** are the two parts of patternness.
+
+The kinds are tried in order and the first that fits wins:
+
+| Kind | Fits when |
+|------|-----------|
+| `SOLVED` | no piece is moved: the cube is solved up to turning it |
+| `FEW` | at most 3 pieces, or at most 15 %, are moved |
+| `MOSTLY` | fixed is at least 0.6 and defect symmetry at least 0.5 |
+| `SYM` | the symmetry part is at least 0.9 and the number of symmetries reaches the size's minimum |
+| `FACE` | the faces repeat one arrangement, or most are simple |
+| `ORBIT` | orbits is at least the size's threshold (4x4x4 and bigger only) |
+| `IRREG` | none of the above |
+
+The thresholds depend on the size and come from `cargo run --release --example kind_rates`, which counts how many deterministic **short scrambles** (4 to 12 turns of random layers, 30 per length) and 200 long scrambles pass each criterion. Long scrambles are an easy negative (almost nothing passes), short ones are the hard negative, so they decide:
+
+| size | SYM: symmetries at least | FACE: same arrangement at least | FACE: simple faces at least | ORBIT: orbits at least |
+|------|------|------|------|------|
+| 2x2x2 | 8 | 1.00 | never | never |
+| 3x3x3 | 4 | 0.67 | 0.67 | never |
+| 4x4x4 to 7x7x7 | 4 | 0.50 | 0.67 | 1.00 |
+
+Share of the 270 short scrambles per size that end up in each kind, with the same set of long scrambles and the built-in library (in %; the 2x2x2 has one library pattern):
+
+| size | | SOLVED | FEW | MOSTLY | SYM | FACE | ORBIT | IRREG |
+|------|---|------|-----|--------|-----|------|-------|-------|
+| 2x2x2 | short scrambles | 0.4 | 0.0 | 4.4 | 2.2 | 5.9 | 0.0 | 87.0 |
+| | long scrambles | 0 | 0 | 0 | 0 | 0 | 0 | 100 |
+| | library | 0 | 100 | 0 | 0 | 0 | 0 | 0 |
+| 3x3x3 | short scrambles | 0.0 | 0.0 | 3.3 | 2.6 | 0.0 | 0.0 | 94.1 |
+| | long scrambles | 0 | 0 | 0 | 0 | 0 | 0 | 100 |
+| | library | 0 | 0 | 40 | 60 | 0 | 0 | 0 |
+| 4x4x4 | short scrambles | 0.0 | 0.0 | 0.7 | 0.7 | 0.7 | 17.0 | 80.7 |
+| | long scrambles | 0 | 0 | 0 | 0 | 0 | 1.5 | 98.5 |
+| | library | 0 | 0 | 57.1 | 42.9 | 0 | 0 | 0 |
+| 5x5x5 | short scrambles | 0.0 | 0.0 | 1.9 | 0.0 | 0.0 | 7.4 | 90.7 |
+| | long scrambles | 0 | 0 | 0 | 0 | 0 | 0 | 100 |
+| | library | 0 | 22.2 | 44.4 | 33.3 | 0 | 0 | 0 |
+| 6x6x6 | short scrambles | 0.0 | 0.0 | 1.1 | 0.4 | 0.0 | 7.4 | 91.1 |
+| | long scrambles | 0 | 0 | 0 | 0 | 0 | 0 | 100 |
+| | library | 0 | 11.1 | 33.3 | 55.6 | 0 | 0 | 0 |
+| 7x7x7 | short scrambles | 0.0 | 0.0 | 2.2 | 0.4 | 0.4 | 3.7 | 93.3 |
+| | long scrambles | 0 | 0 | 0 | 0 | 0 | 0 | 100 |
+| | library | 0 | 16.7 | 33.3 | 50.0 | 0 | 0 | 0 |
+
+Read the table with care. A short scramble of a few turns of a big cube is genuinely close to a pattern (one turn is `MOSTLY`), so some of these "false positives" are real structure; the point is that `IRREG` is the answer for 80 to 94 % of them. `ORBIT` is the weakest kind: it catches 4 to 17 % of short scrambles on the big cubes and no library pattern (the library is already `FEW`, `MOSTLY` or `SYM`), and on the 4x4x4 even 1.5 % of long scrambles; its threshold cannot go lower without catching more. `FACE` decides no library pattern either. The 2x2x2 has only 3.7 million states, so its symmetric and face-regular shares are high for every threshold. These kinds describe the structure of one state; they are not claimed to reproduce the categories of any pattern collection.
+
+**Kind in lists.** `patterns --kind NAME` (case does not matter) keeps the library and imported patterns of that kind, judged at the size with the highest patternness (the smallest on a tie), and adds a `kind` column to the flat list; it combines with `--size`, `--sort` and `--min-patternness`, and filters the `--tree` too (which has no kind column).
+
+```sh
+cubacle patterns --kind MOSTLY --sort patternness --size 3
+```
+
+```text
+id	name	sizes (outer/range moves)	patternness	kind
+six-spots	Six spots	3:8/6	100 %	MOSTLY
+four-spots	Four spots	3:8/6	100 %	MOSTLY
+```
+
+```sh
+cubacle patterns --kind FEW
+```
+
+```text
+id	name	sizes (outer/range moves)	kind
+six-centre-spots	Six centre spots	5:8/6 6:8/4 7:-/8	FEW
+four-centre-spots	Four centre spots	5:8/6 6:8/4	FEW
+cube-in-cube	Cube in a cube	2:10/10 3:15/15 4:15/15 5:15/15 6:15/15 7:15/15	FEW
+```
+
+An unknown name is refused with the list of kinds. `patterns find` is unchanged.
+
 ## Cycles and the order of a sequence
 
 `cubacle patterns cycles` prints a state as part cycles with orientation marks and the order of the permutation:
