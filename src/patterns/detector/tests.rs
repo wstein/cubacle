@@ -6,7 +6,7 @@ use crate::patterns;
 use crate::puzzle::{Facelets, PuzzleKind};
 
 /// A deterministic scrambled cube: `length` random turns of random layers.
-pub(super) fn random_cube(kind: PuzzleKind, seed: u64, length: usize) -> Facelets {
+pub(crate) fn random_cube(kind: PuzzleKind, seed: u64, length: usize) -> Facelets {
     let mut x = seed.wrapping_mul(0x9E37_79B9_7F4A_7C15) | 1;
     let mut next = |n: usize| {
         x ^= x << 13;

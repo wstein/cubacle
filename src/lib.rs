@@ -17,6 +17,7 @@
 //! | [`metrics`] | move counts in seven metrics (HTM, QTM, STM, ETM, OBTM, BTM, ATM) | `puzzle` |
 //! | [`ranges`] | opt-in compression of a solution into layer ranges | `puzzle`, `notation` |
 //! | [`patterns`] | well-known patterns defined by structure, with searched generators | `puzzle` |
+//! | [`canonical`] | the canonical Orbit64 token of a cube state, one identifier per pattern | `puzzle`, `notation`, `patterns` |
 //! | [`render`] | move icons as SVG, pixels, Kitty escapes and text | `puzzle` |
 //!
 //! ```
@@ -32,6 +33,7 @@
 //! assert!(cube.apply(solution).unwrap().is_solved());
 //! ```
 
+pub mod canonical;
 pub mod centres;
 pub mod engines;
 pub mod generate;

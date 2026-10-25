@@ -11,6 +11,8 @@ src/
                   SolveOptions/SolveResult/Failure, Facelets::apply
   notation/       Orbit64, colour schemes, input detection and parsing
   generate/       random states and scrambles
+  canonical/      the canonical Orbit64 token of a cube state (one identifier per pattern):
+                  the detector's canonical form from `patterns`, written by `notation`
   phases/         the phases of a solution, from the engine's stages or the cube state
   centres/        the route to a target whose centres differ in colour on one face: a goal with
                   uniform centres, solved by an engine through the Solver trait, then a centre fix-up
@@ -58,6 +60,7 @@ puzzle  <-  notation  <-  engines  <-  apps (CLI, server)
 - `notation`, `generate`, `phases`, `centres`, `recover` and `render` depend only on `puzzle`. `render` is pure
   (no I/O, no global state) and never names `notation`: the CLI maps a colour
   scheme to a `render::Palette`. Terminal detection lives in the CLI.
+- `canonical` depends on `puzzle`, `notation` and `patterns`; `patterns` itself never names `notation`.
 - `reduction` depends only on `puzzle`, knows no cube, and is crate-private.
 - The 4x4x4 and 5x5x5 engines depend on `puzzle` and `reduction`; the 3x3x3 solver they
   finish with is injected as an `Arc<dyn Solver + Send + Sync>`.

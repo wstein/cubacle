@@ -32,6 +32,27 @@ pub(crate) fn canonical(kind: PuzzleKind, state: &[u8]) -> Vec<u8> {
         .expect("48 symmetries")
 }
 
+/// The canonical form of a cube, as a cube of the same size (not necessarily
+/// a reachable one: the colors are named by first appearance).
+pub(crate) fn canonical_cube(cube: &Facelets) -> Facelets {
+    facelets(&canonical(cube.kind(), &super::colours(cube)))
+}
+
+/// A cube mirrored across the plane between its R and L faces: the stickers
+/// move, their colors stay.
+pub(crate) fn mirrored(cube: &Facelets) -> Facelets {
+    let kind = cube.kind();
+    let g = symmetries()
+        .iter()
+        .position(|s| {
+            s.apply([1, 0, 0]) == [-1, 0, 0]
+                && s.apply([0, 1, 0]) == [0, 1, 0]
+                && s.apply([0, 0, 1]) == [0, 0, 1]
+        })
+        .expect("the mirror across the R/L plane is a symmetry");
+    facelets(&image(kind, &super::colours(cube), g))
+}
+
 /// A state back as a cube.
 pub(crate) fn facelets(state: &[u8]) -> Facelets {
     let stickers = state.iter().map(|&c| Face::ALL[c as usize]).collect();

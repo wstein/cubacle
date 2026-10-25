@@ -35,9 +35,9 @@ mod text;
 mod typename;
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;
 
-pub(crate) use canon::canonical;
+pub(crate) use canon::{canonical, canonical_cube, mirrored};
 pub use cycles::{Cycle, Cycles, OrbitCycles, Order};
 pub use fingerprint::{Fingerprint, OrbitStat};
 pub use kind::{kind, PatternKind};
@@ -47,6 +47,8 @@ pub use patternness::PATTERNNESS_VERSION;
 pub use similarity::{Partial, Similar};
 pub use stabilizer::{Antisymmetry, SymmetryType};
 pub use subgroup::{Membership, Verdict};
+#[cfg(test)]
+pub(crate) use symmetry::symmetry_of;
 pub use symmetry::{Operation, Symmetry};
 pub use text::Detailed;
 

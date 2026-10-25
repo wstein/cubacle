@@ -12,7 +12,11 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 /// (source directory, modules it may name), keyed as `puzzle` or `engines::three`.
-const RULES: [(&str, &[&str]); 19] = [
+const RULES: [(&str, &[&str]); 20] = [
+    (
+        "src/canonical",
+        &["puzzle", "notation", "patterns", "canonical"],
+    ),
     ("src/centres", &["puzzle", "centres"]),
     ("src/metrics", &["puzzle", "metrics"]),
     ("src/puzzle", &["puzzle"]),
@@ -54,6 +58,7 @@ const RULES: [(&str, &[&str]); 19] = [
 
 /// Modules the applications may name through `cubacle::`.
 const APP_ALLOWED: &[&str] = &[
+    "canonical",
     "puzzle",
     "notation",
     "generate",

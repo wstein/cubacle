@@ -74,6 +74,23 @@ impl fmt::Display for Orbit64Error {
 
 impl std::error::Error for Orbit64Error {}
 
+/// The facelets of the eight corner slots of an `n`x`n`x`n`, in the format's slot
+/// order (URF UFL ULB UBR DFR DLF DBL DRB), each in turning order. `None`
+/// outside the sizes with a token.
+pub(crate) fn corner_slots(n: usize) -> Option<Vec<Vec<usize>>> {
+    SIZES.contains(&n).then(|| Layout::new(n).corners)
+}
+
+/// The facelets of the six fixed centers of an odd `n`x`n`x`n` in `URFDLB`
+/// order; empty on even cubes and outside the sizes with a token.
+pub(crate) fn fixed_centers(n: usize) -> Vec<usize> {
+    if SIZES.contains(&n) {
+        Layout::new(n).fixed
+    } else {
+        Vec::new()
+    }
+}
+
 /// The number of characters of a state token of the `size`x`size`x`size`.
 ///
 /// It is the smallest width for which every state fits while the first
