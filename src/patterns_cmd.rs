@@ -153,14 +153,20 @@ fn cycles_state(args: &IdentifyArgs, size: usize) -> Result<(), String> {
         Some(_) => None,
         None => parse_cube(&text, args.scheme).ok(),
     };
-    let cycles = match cube {
-        Some(cube) => patterns::cycles_of_state(&cube)?,
+    let (cycles, state_of_cycles) = match cube {
+        Some(cube) => (patterns::cycles_of_state(&cube)?, Some(cube)),
         None => match parse_expression(&text, kind) {
-            Ok(moves) => patterns::cycles_of_moves(kind, &moves)?,
+            Ok(moves) => (
+                patterns::cycles_of_moves(kind, &moves)?,
+                cubacle::puzzle::Facelets::solved(kind).apply(&moves).ok(),
+            ),
             Err(_) => return crate::parse_text(&text, args.scheme, size).map(|_| ()),
         },
     };
     print!("{cycles}");
+    if let Some(state) = state_of_cycles {
+        println!("patternness: {} %", patterns::patternness(&state));
+    }
     Ok(())
 }
 
@@ -212,6 +218,7 @@ fn find_state(args: &FindArgs, size: usize) -> Result<(), String> {
         allow.as_ref().map(|f| f as &dyn Fn(&Move) -> bool),
     )
     .map_err(|error| error.to_string())?;
+    eprintln!("patternness: {} %", patterns::patternness(&state));
     eprintln!("moves {}", generator.moves.len());
     eprintln!(
         "{}",
@@ -444,6 +451,10 @@ fn show(
     }
     for s in sizes {
         println!("{s}x{s}x{s}");
+        if let Some(state) = cubacle::puzzle::PuzzleKind::of_size(s).and_then(|k| pattern.state(k))
+        {
+            println!("  patternness: {} %", patterns::patternness(&state));
+        }
         for metric in [Span::Outer, Span::Range] {
             let Some(generator) = pattern.generator(s, Some(metric)) else {
                 continue;
