@@ -8,8 +8,10 @@
 //!
 //! The standard scheme is fixed without a choice: an odd cube's centers name
 //! the colors; an even cube has no centers, so its corner in the URF slot is
-//! made the solved URF corner. A state of the wrong handedness is mirrored across
-//! the R/L plane before that. Orbit64 itself
+//! made the solved URF corner. No mirroring step is needed: the reachable states
+//! are closed under mirroring, so a mirror image renames to a cube as well.
+//! The reference is flix-orbit64 (tag v0.9.0, `FORMAT.md`, "Canonical form"),
+//! and this module follows it. Orbit64 itself
 //! reads colors (a wing by its ordered color pair, a center by its color),
 //! so equal-colored pieces need no further choice.
 //!
@@ -25,7 +27,7 @@ use std::fmt;
 
 use crate::notation::orbit64::{self, Orbit64Error};
 use crate::notation::{parse_cube, Impossible, InputError, PieceKind};
-use crate::patterns::{canonical_cube, mirrored};
+use crate::patterns::canonical_cube;
 use crate::puzzle::{Face, Facelets, MoveSequence, PuzzleKind};
 
 /// The canonical Orbit64 state token of a class of cube states.
@@ -83,20 +85,11 @@ impl std::error::Error for CanonError {}
 /// states. An unreachable state is an error.
 pub fn canonical(cube: &Facelets) -> Result<Token, CanonError> {
     let least = canonical_cube(cube);
-    let mut first = None;
-    for candidate in [least.clone(), mirrored(&least)] {
-        let colors: Vec<u8> = candidate.stickers().iter().map(|&f| f as u8).collect();
-        let result = standard(candidate.kind(), &colors).and_then(|state| {
-            let faces = state.iter().map(|&c| Face::ALL[c as usize]).collect();
-            let cube = Facelets::from_stickers(faces).expect("a renaming keeps every count");
-            orbit64::encode(&cube).map_err(CanonError::State)
-        });
-        match result {
-            Ok(token) => return Ok(Token(token)),
-            Err(error) => first = first.or(Some(error)),
-        }
-    }
-    Err(first.expect("two attempts were made"))
+    let colors: Vec<u8> = least.stickers().iter().map(|&f| f as u8).collect();
+    let state = standard(least.kind(), &colors)?;
+    let faces = state.iter().map(|&c| Face::ALL[c as usize]).collect();
+    let cube = Facelets::from_stickers(faces).expect("a renaming keeps every count");
+    orbit64::encode(&cube).map(Token).map_err(CanonError::State)
 }
 
 /// The canonical token of a cube written as an Orbit64 token, facelets in

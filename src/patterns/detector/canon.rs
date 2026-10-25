@@ -38,6 +38,7 @@ pub(crate) fn canonical_cube(cube: &Facelets) -> Facelets {
     facelets(&canonical(cube.kind(), &super::colours(cube)))
 }
 
+#[cfg(test)]
 /// A cube mirrored across the plane between its R and L faces: the stickers
 /// move, their colors stay.
 pub(crate) fn mirrored(cube: &Facelets) -> Facelets {

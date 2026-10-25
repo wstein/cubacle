@@ -31,14 +31,14 @@ mod route;
 pub use bases::{bases, Base};
 pub use claims::sheet_counts;
 pub use decode::{decode_bytes, decode_text, Encoding};
-pub(crate) use detector::{canonical_cube, mirrored};
+pub(crate) use detector::canonical_cube;
 pub use detector::{
     cycles_of_moves, cycles_of_state, detect, detect_with, kind, measures, patternness, Cycle,
     Cycles, Detailed, Fingerprint, Match, Measures, Membership, Operation, OrbitCycles, OrbitStat,
     Order, Partial, PatternKind, Report, Similar, Symmetry, Verdict, PATTERNNESS_VERSION,
 };
 #[cfg(test)]
-pub(crate) use detector::{geometry::image, symmetry_of, tests::random_cube};
+pub(crate) use detector::{geometry::image, mirrored, symmetry_of, tests::random_cube};
 pub use import::{
     import_tab, read_plain, ImportOptions, ImportProblem, ImportReport, ImportRow, Imported,
 };

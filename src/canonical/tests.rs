@@ -382,3 +382,78 @@ fn every_2x2_state_is_counted_exactly_once_by_burnside() {
     );
     assert_eq!(tokens.len(), stabilizers / 48);
 }
+
+const VECTORS: &str = include_str!("../../tests/canonical_vectors.txt");
+
+fn rows(kind: &str) -> Vec<Vec<&'static str>> {
+    VECTORS
+        .lines()
+        .filter(|line| !line.starts_with('#') && !line.is_empty())
+        .map(|line| line.split(' ').collect::<Vec<_>>())
+        .filter(|row| row[0] == kind)
+        .collect()
+}
+
+/// The shared conformance suite: vectors of flix-orbit64 v0.9.0, the
+/// reference of the canonical form. Every vector must give the same token.
+#[test]
+fn every_reference_vector_gives_the_reference_token() {
+    let (tokens, facelets) = (rows("token"), rows("facelets"));
+    assert_eq!((tokens.len(), facelets.len()), (17, 76));
+    for row in tokens {
+        let got = canonical_text(row[2]).unwrap_or_else(|e| panic!("{}: {e}", row[2]));
+        assert_eq!(got.as_str(), row[3], "token {}", row[2]);
+        assert_eq!(got.kind().size().to_string(), row[1]);
+    }
+    for row in facelets {
+        let cube: Facelets = row[2].parse().unwrap();
+        assert_eq!(cube.kind().size().to_string(), row[1]);
+        assert_eq!(token(&cube).as_str(), row[3], "facelets {}", row[2]);
+        assert_eq!(canonical_text(row[2]).unwrap().as_str(), row[3]);
+    }
+}
+
+#[test]
+fn every_reference_failure_is_an_error() {
+    for row in rows("fail") {
+        let cube: Facelets = row[2].parse().unwrap();
+        assert!(canonical(&cube).is_err(), "{}", row[2]);
+    }
+    for row in rows("failtext") {
+        assert!(canonical_text(row[1]).is_err(), "{}", row[1]);
+    }
+    assert_eq!((rows("fail").len(), rows("failtext").len()), (9, 7));
+}
+
+/// The physically mirrored cube (stickers across the R/L plane, R and L
+/// colors exchanged) is another state of the same class with one token.
+#[test]
+fn a_chiral_pattern_and_its_mirror_image_share_a_token() {
+    let mirror = |cube: &Facelets| {
+        let flipped = crate::patterns::mirrored(cube);
+        let swapped: Vec<u8> = colors(&flipped)
+            .iter()
+            .map(|&c| match c {
+                1 => 4,
+                4 => 1,
+                c => c,
+            })
+            .collect();
+        facelets(&swapped)
+    };
+    for row in rows("facelets") {
+        let cube: Facelets = row[2].parse().unwrap();
+        assert_eq!(token(&mirror(&cube)).as_str(), row[3], "{}", row[2]);
+    }
+    for token_text in [
+        "AP7AYhnwDQbA",
+        "EKYDgqvYC5rw",
+        "BJStkD4cayBhsWj6eHgDZLTP1th",
+        "AQshP-X3WpOUAtv878ZKcZyT5P3So75Lb-WOh2gDJ2w",
+    ] {
+        let cube = orbit64::decode(token_text).unwrap();
+        let other = mirror(&cube);
+        assert_ne!(orbit64::encode(&other).unwrap(), token_text);
+        assert_eq!(token(&other), canonical_text(token_text).unwrap());
+    }
+}

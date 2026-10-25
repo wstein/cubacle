@@ -37,7 +37,9 @@ mod typename;
 #[cfg(test)]
 pub(crate) mod tests;
 
-pub(crate) use canon::{canonical, canonical_cube, mirrored};
+#[cfg(test)]
+pub(crate) use canon::mirrored;
+pub(crate) use canon::{canonical, canonical_cube};
 pub use cycles::{Cycle, Cycles, OrbitCycles, Order};
 pub use fingerprint::{Fingerprint, OrbitStat};
 pub use kind::{kind, PatternKind};
