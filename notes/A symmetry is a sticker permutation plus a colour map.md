@@ -9,5 +9,6 @@ The 48 cube symmetries are the signed permutation matrices; each is a permutatio
 
 - [[A pattern detector reads structure from the cubie state]]
 - [[The detector explains patterns and never replaces the search]]
+- [[The stabiliser of a state is classified by conjugacy class of subgroup]]
 
 Source: src/patterns/detector/symmetry.rs, lines 1-60

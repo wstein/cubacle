@@ -83,3 +83,4 @@ Raw-material notes, category engines.
 - [[A guard combines unique, equal and count with boolean operators]]
 - [[An x star in a guard stands for any index number and not for a face]]
 - [[Generator pictures show only the moved stickers]]
+- [[The stabiliser of a state is classified by conjugacy class of subgroup]]

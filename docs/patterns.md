@@ -137,6 +137,36 @@ symmetry: 48 of 48 operations fix it (24 rotations, 24 mirrored)
 
 `identify -v` adds one line per class with the axes and the colour renaming of every operation.
 
+### Symmetry type and antisymmetry
+
+When some symmetry fixes the state, `identify` appends the **symmetry type** after the symmetry lines: the conjugacy class of the group of fixing symmetries among the subgroups of the cube's 48 symmetries, named by its Schoenflies symbol, with its order. The 48 symmetries have 33 such classes (the list is checked by a unit test); one symbol can cover two or three orientations of the same abstract group in the cube (a half turn about a face axis or about an edge axis), and those are told apart by `#1`, `#2`:
+
+```text
+C1:1 C2#1:2 C2#2:2 Ci:2 Cs#1:2 Cs#2:2 C3:3 C2h#1:4 C2h#2:4 C2v#1:4 C2v#2:4 C2v#3:4 C4:4 D2#1:4 D2#2:4 S4:4 C3v:6 D3:6 S6:6 C4h:8 C4v:8 D2d#1:8 D2d#2:8 D2h#1:8 D2h#2:8 D4:8 D3d:12 T:12 D4h:16 O:24 Td:24 Th:24 Oh:48
+```
+
+A state is **antisymmetric** under a symmetry when turning (or mirroring) the cube with it gives the inverse cube, with the same colour renaming allowed as for symmetry. Symmetries and antisymmetries together form a subgroup of the 96 elements of the symmetries times a flag "inverted"; it has 131 classes. Such a class is written `P(K)`: `P` is the group of all operations as seen on the cube and `K` its symmetric half; `P+1'` means the cube is its own inverse as well (`P` then equals `K`). The line is printed only when an antisymmetry exists, and the symmetry type only when the stabiliser is not trivial; an asymmetric cube prints exactly what it printed before.
+
+```sh
+cubacle patterns identify "R2 L2"
+cubacle patterns identify "R U R' U'"
+```
+
+```text
+symmetry: 16 of 48 operations fix it (8 rotations, 8 mirrored)
+...
+symmetry: D4h (order 16)
+antisymmetry: D4h+1' (order 32, 16 symmetries and 16 antisymmetries)
+```
+
+```text
+symmetry: 1 of 48 operations fix it (1 rotations, 0 mirrored)
+...
+antisymmetry: C2#2(C1) (order 2, 1 symmetries and 1 antisymmetries)
+```
+
+The commutator is no symmetric cube, but a half turn about an edge axis carries it onto its own inverse. The checkerboard and the solved cube are `Oh` and `Oh+1'` (order 96); the four spots are `D4h` and `D4h+1'`; the six spots are `S6` and `D3d(S6)`. The type is told on every size from 2x2x2 to 7x7x7 by the same sticker permutations; antisymmetry needs the inverse cube, which the colours define only on the 3x3x3: its fixed centres give the frame the colours are read in. A 2x2x2 has no fixed piece, so its inverse depends on the frame chosen and antisymmetry has no meaning there, and on bigger cubes equal pieces make the inverse ambiguous. Those sizes get the symmetry type only.
+
 The report has these parts.
 
 - **pattern**: the state is put into canonical form, the smallest sticker string under the 48 cube symmetries (24 rotations and their mirror images) and every renaming of the six colours, and looked up among the library patterns and the solved cube of that size. The text after the name says how the state differs from the library's colouring: `exactly`, `turned`, `mirrored`, `with colours renamed`, or a combination. A state that is no library pattern prints `no library match`; a random cube does not match.
