@@ -26,6 +26,7 @@ mod import;
 mod imported_file;
 mod model;
 mod parse;
+mod repair;
 mod route;
 
 pub use bases::{bases, Base};
@@ -46,6 +47,11 @@ pub use imported_file::{
     identify_imported, imported_is_stale, looks_imported, read_imported, write_imported,
 };
 pub use route::{KnownRoute, RouteIndex};
+
+pub use repair::{
+    repair, Limits as RepairLimits, Outcome as RepairOutcome, Repair, RepairOrder,
+    Stats as RepairStats, DEFAULT_TABLE_MEMORY_MB, MAX_BLOCKS,
+};
 
 use std::sync::OnceLock;
 
