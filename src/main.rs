@@ -1,3 +1,4 @@
+mod answer;
 mod enumerate_cmd;
 mod fetch;
 mod icons;
@@ -47,8 +48,8 @@ use cubacle::notation::{
     ColourScheme, Notation,
 };
 use cubacle::puzzle::{
-    oriented_by_centers, reaches, relative_state, solves_by_color, Facelets, Failure, PuzzleKind,
-    SolveOptions, Solver, Target,
+    oriented_by_centers, relative_state, Facelets, Failure, PuzzleKind, SolveOptions, Solver,
+    Target,
 };
 use cubacle::ranges::Optimise;
 
@@ -731,72 +732,16 @@ fn solve(args: SolveArgs) -> Result<(), String> {
         }
     }
     match result.outcome {
-        Ok(solution) => {
-            // Every engine's answer is replayed here, whatever the size.
-            let wanted = target
-                .clone()
-                .unwrap_or_else(|| Facelets::solved(start.kind()));
-            let replays = if oriented {
-                solves_by_color(&start, &solution)
-            } else {
-                reaches(&start, &solution, &wanted)
-            };
-            if (start.kind() != PuzzleKind::Cube2 || target.is_some()) && !replays {
-                return Err(match target {
-                    Some(_) => "internal error: solution does not reach the target".into(),
-                    None => "internal error: solution does not solve the cube".into(),
-                });
-            }
-            eprintln!("moves {}", solution.len());
-            eprintln!("{}", metrics_out::line(facelets.kind(), &solution));
-            if let Some(adopted) = &adopted {
-                eprintln!("{}", adopted.line());
-            }
-            // The engine's own stages where it reports them, else the state-based cut.
-            let found = if args.verbose
-                || args.pictures.icons
-                || phase_dots::Grouping::of(&args.group).phases
-            {
-                stage_phases::of(&result.stages, &facelets, &solution)
-            } else {
-                Vec::new()
-            };
-            // With `--icons` on a graphics terminal the phase headings say it.
-            let headed = args.pictures.icons && steps::shows_phase_headings(args.pictures.graphics);
-            if args.verbose && !headed {
-                for phase in &found {
-                    eprintln!("{}", steps::phase_line(phase));
-                }
-            }
-            if args.pictures.icons {
-                let mut options = args.pictures.options(args.input.scheme, args.notation);
-                options.target = target;
-                return steps::print_solution(&start, &solution, &found, &options);
-            }
-            let grouping = phase_dots::Grouping::of(&args.group);
-            let dots = grouping.dots();
-            let ranges = args.optimise == Some(Optimise::Ranges);
-            let (text, count) = phase_dots::write(
-                args.notation,
-                facelets.kind(),
-                &solution,
-                &found,
-                ranges,
-                grouping,
-            );
-            if ranges {
-                eprintln!("compressed moves {count}");
-                if !dots {
-                    let packed = cubacle::ranges::compress(facelets.kind(), &solution);
-                    eprintln!(
-                        "compressed {}",
-                        metrics_out::compressed_line(facelets.kind(), &packed)
-                    );
-                }
-            }
-            println!("{text}");
-            Ok(())
-        }
+        Ok(solution) => answer::print(&answer::Solved {
+            args: &args,
+            start: &start,
+            facelets: &facelets,
+            target,
+            solution: &solution,
+            stages: &result.stages,
+            oriented,
+            adopted: adopted.as_ref().map(|a| a.line()),
+        }),
         Err(Failure::InvalidInput) if target.is_some() => Err(format!(
             "the start or the target state is impossible{}",
             result
