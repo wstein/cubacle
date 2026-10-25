@@ -123,12 +123,22 @@ fn write_symmetry(f: &mut fmt::Formatter<'_>, symmetry: &Symmetry, verbose: bool
     Ok(())
 }
 
+/// A pattern name, followed by its catalogue id when it is an imported one
+/// (built-in ids have no colon).
+fn labelled(id: &str, name: &str) -> String {
+    if id.contains(':') {
+        format!("{name} ({id})")
+    } else {
+        name.to_owned()
+    }
+}
+
 fn write_closest(f: &mut fmt::Formatter<'_>, report: &Report) -> fmt::Result {
     if !report.closest.is_empty() {
         let list: Vec<String> = report
             .closest
             .iter()
-            .map(|s| format!("{} {} %", s.name, s.percent))
+            .map(|s| format!("{} {} %", labelled(&s.id, &s.name), s.percent))
             .collect();
         writeln!(f, "closest: {}", list.join(", "))?;
     }
@@ -148,7 +158,7 @@ fn write_closest(f: &mut fmt::Formatter<'_>, report: &Report) -> fmt::Result {
         writeln!(
             f,
             "partial: {same} {verb} {} exactly; {differ} {verb2}",
-            p.name
+            labelled(&p.id, &p.name)
         )?;
     }
     Ok(())

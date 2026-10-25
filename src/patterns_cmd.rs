@@ -97,6 +97,9 @@ pub struct IdentifyArgs {
     /// Colour scheme of colour input: boy, jp or six letters in URFDLB order
     #[arg(long)]
     scheme: Option<ColourScheme>,
+    /// How many of the closest patterns (built-in and imported) to list
+    #[arg(long, default_value_t = 3, value_name = "N")]
+    closest: usize,
 }
 
 #[derive(Args)]
@@ -245,7 +248,7 @@ fn identify_state(
         None => crate::parse_text(&args.cube.join(" "), args.scheme, size)?.0,
     };
     crate::state_check::warn(&state);
-    let report = patterns::detect(&state);
+    let report = patterns::detect_with(&state, &library.extra, args.closest);
     if verbose {
         print!("{}", report.detailed());
     } else {

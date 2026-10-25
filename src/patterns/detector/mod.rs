@@ -46,6 +46,7 @@ pub use subgroup::{Membership, Verdict};
 pub use symmetry::{Operation, Symmetry};
 pub use text::Detailed;
 
+use crate::patterns::Pattern;
 use crate::puzzle::{Facelets, MoveSequence, PuzzleKind};
 
 /// What the detector found.
@@ -67,7 +68,7 @@ pub struct Report {
     pub subgroups: Vec<Membership>,
     /// How much the state looks like a pattern, 0 to 100 (see `patternness`).
     pub patternness: u8,
-    /// The three library patterns the state is closest to (the solved cube
+    /// The library patterns (three unless asked otherwise) the state is closest to (the solved cube
     /// included), closest first.
     pub closest: Vec<Similar>,
     /// The orbits in which the state equals the closest pattern that matches
@@ -80,20 +81,29 @@ pub(crate) fn colours(cube: &Facelets) -> Vec<u8> {
     cube.stickers().iter().map(|f| *f as u8).collect()
 }
 
-/// Reads the structure of a cube state, any size from 2 to 7.
+/// Reads the structure of a cube state, any size from 2 to 7, against the
+/// built-in library.
 pub fn detect(cube: &Facelets) -> Report {
+    detect_with(cube, &[], 3)
+}
+
+/// Like [`detect`], against the built-in library and `extra` (imported
+/// patterns, named by their catalogue id), and with the `closest` nearest
+/// patterns listed.
+pub fn detect_with(cube: &Facelets, extra: &[Pattern], closest: usize) -> Report {
     let kind = cube.kind();
     let state = colours(cube);
     let canon = canon::canonical(kind, &state);
     let symmetry = symmetry::symmetry_of(kind, &state);
     let fingerprint = fingerprint::fingerprint(kind, &state);
-    let (closest, partial) = similarity::closest(kind, &state);
+    let extra = library::extra_entries(kind, extra);
+    let (closest, partial) = similarity::closest(kind, &state, &extra, closest);
     Report {
         closest,
         partial,
         patternness: patternness::patternness(&symmetry, &fingerprint.orbits),
         symmetry,
-        matches: library::matches(kind, &state, &canon),
+        matches: library::matches(kind, &state, &canon, &extra),
         canonical: canon::facelets(&canon),
         fingerprint,
         subgroups: subgroup::memberships(kind, &state),

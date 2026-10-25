@@ -10,15 +10,15 @@
 
 use super::centre_names::{centre_classes, pair_up};
 use super::geometry::tables;
-use super::library::entries;
+use super::library::{entries, Entry};
 use super::pieces::layout;
 use crate::puzzle::PuzzleKind;
 
 /// A library pattern and how much of the state agrees with it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Similar {
-    pub id: &'static str,
-    pub name: &'static str,
+    pub id: String,
+    pub name: String,
     /// Percent of the stickers that agree, 0 to 100.
     pub percent: u8,
 }
@@ -27,7 +27,8 @@ pub struct Similar {
 /// which it differs.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Partial {
-    pub name: &'static str,
+    pub id: String,
+    pub name: String,
     pub same: Vec<String>,
     pub differ: Vec<String>,
 }
@@ -100,25 +101,31 @@ fn orbit_sets(kind: PuzzleKind) -> Vec<(String, Vec<usize>)> {
     sets
 }
 
-/// The three closest library patterns (the solved cube included), and the
+/// The closest `count` library patterns (the solved cube included), and the
 /// orbit-wise comparison with the first of them that has one.
-pub(crate) fn closest(kind: PuzzleKind, state: &[u8]) -> (Vec<Similar>, Option<Partial>) {
+pub(crate) fn closest(
+    kind: PuzzleKind,
+    state: &[u8],
+    extra: &[Entry],
+    count: usize,
+) -> (Vec<Similar>, Option<Partial>) {
     let tables = tables(kind);
     let total = state.len();
-    let mut scored: Vec<(usize, usize, [u8; 6], &super::library::Entry)> = entries(kind)
+    let mut scored: Vec<(usize, usize, [u8; 6], &Entry)> = entries(kind)
         .iter()
+        .chain(extra)
         .map(|e| {
             let (score, g, map) = best_agreement(kind, state, &e.state);
             (score, g, map, e)
         })
         .collect();
     scored.sort_by_key(|s| std::cmp::Reverse(s.0));
-    scored.truncate(3);
+    scored.truncate(count);
     let similar = scored
         .iter()
         .map(|(score, _, _, e)| Similar {
-            id: e.id,
-            name: e.name,
+            id: e.id.clone(),
+            name: e.name.clone(),
             percent: (100.0 * *score as f64 / total as f64).round() as u8,
         })
         .collect();
@@ -133,7 +140,8 @@ pub(crate) fn closest(kind: PuzzleKind, state: &[u8]) -> (Vec<Similar>, Option<P
         };
         let (same, differ): (Vec<_>, Vec<_>) = sets.iter().partition(|(_, set)| equal(set));
         (!same.is_empty() && !differ.is_empty()).then(|| Partial {
-            name: e.name,
+            id: e.id.clone(),
+            name: e.name.clone(),
             same: same.into_iter().map(|(n, _)| n.clone()).collect(),
             differ: differ.into_iter().map(|(n, _)| n.clone()).collect(),
         })
