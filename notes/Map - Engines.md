@@ -68,3 +68,5 @@ Raw-material notes, category engines.
 - [[A pattern table is read by structure and every line is replayed]]
 - [[Pattern files are listed in cubacle.toml and the default is the built-in library]]
 - [[Pattern sources are downloaded by cubacle itself from the user's config]]
+- [[Pattern ids have a two-letter source and at most 12 characters]]
+- [[Pattern output puts icons first and the tree is the overview]]
