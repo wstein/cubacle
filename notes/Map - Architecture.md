@@ -24,3 +24,4 @@ Raw-material notes, category architecture.
 - [[The folded view is the default for whole-cube pictures]]
 - [[A move is called a move everywhere and carries its number]]
 - [[The toml crate reads the config without serde derive]]
+- [[State pictures lie on a faint translucent panel instead of a frame line]]
