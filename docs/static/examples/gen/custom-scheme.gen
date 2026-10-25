@@ -1,6 +1,6 @@
 name: custom-scheme-cross
-title: Cross in a custom colour scheme
+title: Cross in a custom color scheme
 size: 3
 scheme: ABCDEF
-colours: A=#fff B=#D00000 C=#0a0 D=#ffd500 E=#ff8000 F=#0045AD
+colors: A=#fff B=#D00000 C=#0a0 D=#ffd500 E=#ff8000 F=#0045AD
 schema: ? A ? / A A A / ? A ?

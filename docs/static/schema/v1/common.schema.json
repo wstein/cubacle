@@ -56,7 +56,7 @@
       "enum": ["U", "R", "F", "D", "L", "B"]
     },
     "token": {
-      "description": "One sticker of the schema grid. A lowercase letter with an optional number is a placeholder that may take any colour (a, b1). A single uppercase letter is a fixed colour read through the colour scheme. '.' and '?' are don't care.",
+      "description": "One sticker of the schema grid. A lowercase letter with an optional number is a placeholder that may take any color (a, b1). A single uppercase letter is a fixed color read through the color scheme. '.' and '?' are don't care.",
       "type": "string",
       "pattern": "^([a-z][0-9]*|[A-Z]|\\.|\\?)$",
       "examples": ["a", "b1", "Z", ".", "?"]
@@ -90,14 +90,14 @@
       "pattern": "^[A-Za-z0-9_ ,()!&|=<>*.{}]+$",
       "examples": ["unique(a*, b*, c*)", "symmetric(D4h) && count(a1, b1) == 2"]
     },
-    "hexColour": {
-      "description": "Display colour as #RGB or #RRGGBB, hex digits in either case. #RGB expands to #RRGGBB by doubling each digit.",
+    "hexColor": {
+      "description": "Display color as #RGB or #RRGGBB, hex digits in either case. #RGB expands to #RRGGBB by doubling each digit.",
       "type": "string",
       "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$",
       "examples": ["#fff", "#D00000"]
     },
-    "colourLetter": {
-      "description": "A one-letter colour code.",
+    "colorLetter": {
+      "description": "A one-letter color code.",
       "type": "string",
       "pattern": "^[A-Z]$"
     },
@@ -113,33 +113,33 @@
       "pattern": "^[a-z][a-z0-9-]*$",
       "examples": ["western", "boy", "japanese"]
     },
-    "colourSchemeObject": {
-      "description": "A colour scheme given in place: six letters and optional display colours.",
+    "colorSchemeObject": {
+      "description": "A color scheme given in place: six letters and optional display colors.",
       "type": "object",
       "properties": {
         "name": { "$ref": "#/$defs/name" },
         "faces": { "$ref": "#/$defs/schemeLetters" },
-        "colours": {
-          "description": "Display colour for each code that occurs in faces.",
+        "colors": {
+          "description": "Display color for each code that occurs in faces.",
           "type": "object",
-          "propertyNames": { "$ref": "#/$defs/colourLetter" },
-          "additionalProperties": { "$ref": "#/$defs/hexColour" }
+          "propertyNames": { "$ref": "#/$defs/colorLetter" },
+          "additionalProperties": { "$ref": "#/$defs/hexColor" }
         }
       },
       "required": ["faces"],
       "additionalProperties": false
     },
-    "colourScheme": {
-      "description": "A colour scheme: a built-in name, six inline letters, or an object.",
+    "colorScheme": {
+      "description": "A color scheme: a built-in name, six inline letters, or an object.",
       "oneOf": [
         { "$ref": "#/$defs/schemeName" },
         { "$ref": "#/$defs/schemeLetters" },
-        { "$ref": "#/$defs/colourSchemeObject" }
+        { "$ref": "#/$defs/colorSchemeObject" }
       ]
     },
     "orbit": {
       "description": "An orbit of pieces of the cube. The list follows the names the implementation uses.",
-      "enum": ["corners", "edges", "midges", "wings", "centres", "x-centres", "t-centres"]
+      "enum": ["corners", "edges", "midges", "wings", "centers", "x-centers", "t-centers"]
     },
     "orbits": {
       "description": "A non-empty set of orbits.",

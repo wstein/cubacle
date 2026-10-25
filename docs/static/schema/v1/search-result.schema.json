@@ -13,12 +13,12 @@
       "items": {
         "type": "object",
         "properties": {
-          "facelets": { "description": "Colour codes of all stickers in the order U R F D L B, row by row.", "type": "string", "minLength": 1 },
+          "facelets": { "description": "Color codes of all stickers in the order U R F D L B, row by row.", "type": "string", "minLength": 1 },
           "tokens": {
-            "description": "The colour of each placeholder, by placeholder with face index (a1, b1).",
+            "description": "The color of each placeholder, by placeholder with face index (a1, b1).",
             "type": "object",
             "propertyNames": { "type": "string", "pattern": "^[a-z][0-9]*$" },
-            "additionalProperties": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/colourLetter" }
+            "additionalProperties": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/colorLetter" }
           },
           "moves": { "description": "A move sequence; only with solve.", "type": "string" },
           "metric": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/metric" },

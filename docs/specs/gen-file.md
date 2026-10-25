@@ -10,7 +10,7 @@ Status: specification, not implemented yet. Nothing on this page can be run.
 
 ## Purpose
 
-A `.gen` file defines a family of patterns by a schema grid (which stickers are equal) and a guard (a condition on the colours). It is given as a command argument; there is no fixed directory.
+A `.gen` file defines a family of patterns by a schema grid (which stickers are equal) and a guard (a condition on the colors). It is given as a command argument; there is no fixed directory.
 
 ```text
 cubacle patterns find concentric-squares.gen
@@ -48,7 +48,7 @@ blank        = { " " | tab } ;
 comment      = { " " | tab } "#" { any } ;
 entry        = key ":" { " " } value ;
 continuation = ( " " | tab ) { " " | tab } text ;
-key          = "name" | "title" | "aliases" | "size" | "scheme" | "colours" | "schema"
+key          = "name" | "title" | "aliases" | "size" | "scheme" | "colors" | "schema"
              | "where" | "alphabet" | "limits" | "tags"
              | "symmetry" | "antisymmetry" | "order" | "orbits" | "fixed" ;
 value        = text { newline continuation } ;
@@ -62,8 +62,8 @@ value        = text { newline continuation } ;
 | `title` | no | Display title. |
 | `aliases` | no | Other ids, separated by commas. |
 | `size` | yes | Cube size, or a list of sizes. |
-| `scheme` | no | Colour scheme for fixed colours; see [Colour schemes](colour-schemes.md). Default `URFDLB`. |
-| `colours` | no | Display colours of an in-place six-letter `scheme`; same value grammar as in a scheme file. |
+| `scheme` | no | Color scheme for fixed colors; see [Color schemes](color-schemes.md). Default `URFDLB`. |
+| `colors` | no | Display colors of an in-place six-letter `scheme`; same value grammar as in a scheme file. |
 | `schema` | yes | The schema grid. |
 | `where` | no | The guard. Without it every assignment of the variables is allowed. |
 | `alphabet` | no | Moves used by `--solve`: `outer`, `slices`, `blocks` or a list of moves. |
@@ -81,7 +81,7 @@ value        = text { newline continuation } ;
 
 `order` is the order of the move sequence that generates the pattern: a number, a range such as `3..6`, or a set such as `{2, 3, 6}`.
 
-`orbits` and `fixed` list orbit names as the implementation names them, for example corners, edges, wings, midges, centres, x-centres and t-centres. `fixed: X` is shorthand for `orbits:` naming every other orbit.
+`orbits` and `fixed` list orbit names as the implementation names them, for example corners, edges, wings, midges, centers, x-centers and t-centers. `fixed: X` is shorthand for `orbits:` naming every other orbit.
 
 ```ebnf
 symmetry-value = schoenflies ;
@@ -108,8 +108,8 @@ alphabet = "outer" | "slices" | "blocks" | move { ws move } ;
 
 The grid lists the stickers of the faces, face by face, each row by row.
 
-- A token made of a lowercase letter and an optional number, such as `a` or `b1`, is a placeholder that may take any colour. The same token means the same colour.
-- A single uppercase letter is a fixed colour, read through the scheme.
+- A token made of a lowercase letter and an optional number, such as `a` or `b1`, is a placeholder that may take any color. The same token means the same color.
+- A single uppercase letter is a fixed color, read through the scheme.
 - `.` and `?` are don't care.
 - Separators are `,` and space; `/` separates faces, and so do a newline and a blank line.
 - The number of stickers per face is checked against the size: N times N for size N.
@@ -150,9 +150,9 @@ number     = digit { digit } ;
 
 Precedence, highest first: `!` or `NOT`; comparison; `&&`, `AND` or `and`; `||`, `OR` or `or`.
 
-- `unique(...)` holds when all named variables have different colours.
-- `equal(...)` holds when they all have the same colour.
-- `count(...)` is the number of distinct colours among the matching variables. It is a number, to be compared.
+- `unique(...)` holds when all named variables have different colors.
+- `equal(...)` holds when they all have the same color.
+- `count(...)` is the number of distinct colors among the matching variables. It is a number, to be compared.
 
 Pattern functions, which take no variables:
 
@@ -200,12 +200,12 @@ The parser reports the line, the column and what was expected, for example `line
 - a bad id;
 - a sticker count per face that does not match the size;
 - a variable in the guard that is absent from the schema;
-- an unknown colour letter;
+- an unknown color letter;
 - an unbalanced parenthesis.
 
 ## JSON form
 
-The `.gen` text and a JSON document are two serialisations of one canonical model: the typed definition (name, size, scheme, grid, guard, symmetry, antisymmetry, order, orbits, fixed, limits, tags). The run options are a separate object, not part of the definition. The text parser and the JSON reader both produce exactly this model, so converting from one form to the other loses nothing except comments and layout.
+The `.gen` text and a JSON document are two serializations of one canonical model: the typed definition (name, size, scheme, grid, guard, symmetry, antisymmetry, order, orbits, fixed, limits, tags). The run options are a separate object, not part of the definition. The text parser and the JSON reader both produce exactly this model, so converting from one form to the other loses nothing except comments and layout.
 
 - The JSON text is read with a JSON parser library (`serde_json`). There is no hand-written JSON parser.
 - The result is checked against the JSON Schema with a validation library (the `jsonschema` crate). Errors carry a JSON pointer path, for example `/schema/2/3`, in the place where the text form gives line and column.
@@ -216,9 +216,9 @@ The schema files are published under `https://wstein.github.io/cubacle/schema/v1
 
 | File | Describes |
 | --- | --- |
-| `common.schema.json` | Shared definitions: names, tokens, face grid, guard string, colour scheme, orbits, limits, error object. |
+| `common.schema.json` | Shared definitions: names, tokens, face grid, guard string, color scheme, orbits, limits, error object. |
 | `gen-definition.schema.json` | The definition (this page). |
-| `colour-scheme.schema.json` | A colour scheme, see [Colour schemes](colour-schemes.md). |
+| `color-scheme.schema.json` | A color scheme, see [Color schemes](color-schemes.md). |
 | `run-options.schema.json` | The run options. |
 | `search-request.schema.json`, `search-result.schema.json` | The REST contract, see [REST and JSON](rest-json.md). |
 
@@ -227,7 +227,7 @@ Mapping of keys: the JSON object uses the same names as the text keys (`name`, `
 - `schema` is a list of faces in the order U R F D L B; a face is a list of rows; a row is a list of tokens. One face means the same face pattern on all six. The path `/schema/2/3` is face 2, row 3.
 - `where` is the guard as the same string as in the text form.
 - `order` is a number, a set `[3, 6]` or a range `{"min": 3, "max": 6}`.
-- `scheme` is a name, six letters, or an object (see [Colour schemes](colour-schemes.md)). In the text form an in-place scheme is `scheme: ABCDEF` plus a `colours:` line with the same value grammar as in a scheme file.
+- `scheme` is a name, six letters, or an object (see [Color schemes](color-schemes.md)). In the text form an in-place scheme is `scheme: ABCDEF` plus a `colors:` line with the same value grammar as in a scheme file.
 - `orbits`, `fixed`, `aliases` and `tags` are lists of strings.
 
 The example of the worked example above in both forms (files `concentric-squares.gen` and `concentric-squares.json` in `docs/static/examples/gen/`, published at `https://wstein.github.io/cubacle/examples/gen/`):
@@ -253,7 +253,7 @@ The example of the worked example above in both forms (files `concentric-squares
 }
 ```
 
-Further examples in the same directory: `checkerboard-free-centre` (a 3x3 grid with a don't-care), `ring-symmetric` (with `symmetric(D4h)`) and `custom-scheme` (a colour scheme object with `#RGB` and `#RRGGBB` colours). All JSON examples start with `$schema`, so editors can offer completion and validation. The example files were validated against the schemas with the Python package `jsonschema` (Draft 2020-12).
+Further examples in the same directory: `checkerboard-free-center` (a 3x3 grid with a don't-care), `ring-symmetric` (with `symmetric(D4h)`) and `custom-scheme` (a color scheme object with `#RGB` and `#RRGGBB` colors). All JSON examples start with `$schema`, so editors can offer completion and validation. The example files were validated against the schemas with the Python package `jsonschema` (Draft 2020-12).
 
 ## Result lines
 
@@ -261,7 +261,7 @@ Found sequences are stored as result lines of the form `name | size | metric | s
 
 ## Worked example
 
-A 5x5x5 where every face has the same ring structure and a fixed colour `Z` in the middle. Per face, in the order of the face index:
+A 5x5x5 where every face has the same ring structure and a fixed color `Z` in the middle. Per face, in the order of the face index:
 
 ```text
 a b b b a
@@ -277,15 +277,15 @@ With the face index, the variables of the first face are `a1`, `b1` and `c1`. Th
 unique(a*, b*, c*)
 ```
 
-requires, for every face, that the three ring colours differ.
+requires, for every face, that the three ring colors differ.
 
 ## Measured facts
 
 Two throw-away spike branches (`spike/template` and `spike/template-count`) explored this schema. Counts only.
 
-For the 5x5x5 example above there are 393 120 target assignments with the centre `Z` included in `unique`, and 15 321 600 without it. Of these, the second spike (commit `d6a9751`) found these reachable colour states:
+For the 5x5x5 example above there are 393 120 target assignments with the center `Z` included in `unique`, and 15 321 600 without it. Of these, the second spike (commit `d6a9751`) found these reachable color states:
 
-| Reading | Assignments | Reachable colour states | Share |
+| Reading | Assignments | Reachable color states | Share |
 | --- | --- | --- | --- |
 | With `Z` in `unique` | 393 120 | 2 640 | 0.67 % |
 | Without `Z` | 15 321 600 | 28 032 | 0.18 % |
@@ -294,4 +294,4 @@ These state counts are to be re-confirmed after the mirrored-corner fix of the 5
 
 The only reasons for rejection are non-symmetry of `a` and `b`, mirrored corners, and corner/middle-edge parity. Corner twist and edge flip never reject. The result is the same for both readings of `c`.
 
-See also: [Colour schemes](colour-schemes.md).
+See also: [Color schemes](color-schemes.md).

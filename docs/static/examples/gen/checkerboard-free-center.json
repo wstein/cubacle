@@ -1,8 +1,8 @@
 {
   "$schema": "https://wstein.github.io/cubacle/schema/v1/gen-definition.schema.json",
   "version": 1,
-  "name": "checkerboard-free-centre",
-  "title": "Checkerboard with free centres",
+  "name": "checkerboard-free-center",
+  "title": "Checkerboard with free centers",
   "size": 3,
   "schema": [
     [

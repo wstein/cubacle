@@ -8,7 +8,7 @@ weight: 30
 
 Status: specification, not implemented yet. Nothing on this page can be run.
 
-The JSON form is described with the [.gen definition file](gen-file.md); colour schemes with [Colour schemes](colour-schemes.md). This page gives the contract of the planned search endpoint and the command line rules for choosing a form.
+The JSON form is described with the [.gen definition file](gen-file.md); color schemes with [Color schemes](color-schemes.md). This page gives the contract of the planned search endpoint and the command line rules for choosing a form.
 
 ## POST /v1/patterns/search
 

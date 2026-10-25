@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://wstein.github.io/cubacle/schema/v1/gen-definition.schema.json",
   "title": "cubacle pattern definition",
-  "description": "What a pattern is: name, size, colour scheme, schema grid, guard, symmetry, order and orbits. The JSON form of a .gen file; both forms are serialisations of one model. Run options are not part of it, see run-options.schema.json.",
+  "description": "What a pattern is: name, size, color scheme, schema grid, guard, symmetry, order and orbits. The JSON form of a .gen file; both forms are serializations of one model. Run options are not part of it, see run-options.schema.json.",
   "type": "object",
   "properties": {
     "$schema": { "type": "string", "format": "uri" },
@@ -11,7 +11,7 @@
     "title": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/title" },
     "aliases": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/aliases" },
     "size": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/sizes" },
-    "scheme": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/colourScheme" },
+    "scheme": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/colorScheme" },
     "schema": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/faceGrid" },
     "where": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/guard" },
     "symmetry": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/symmetryType" },
