@@ -110,3 +110,27 @@ fn possible_states_are_unchanged() {
         assert_eq!(err, "");
     }
 }
+
+#[test]
+fn identify_and_cycles_warn_and_go_on() {
+    for sub in ["identify", "cycles"] {
+        for n in [2usize, 3, 4] {
+            let size = n.to_string();
+            let (ok, out, err) = cubacle(&["patterns", sub, "--size", &size, &twisted(n)]);
+            assert!(ok, "{sub} {n}: {err}");
+            assert!(!out.is_empty(), "{sub} {n}");
+            // (other warnings, about the pattern sources, may come first)
+            assert!(
+                err.ends_with(
+                    "warning: the cube state is impossible (the corners are invalid: one corner \
+is twisted on its own)\nhint: turn one corner back"
+                ),
+                "{sub} {n}: {err}"
+            );
+            // a possible state gets no such warning
+            let (ok, _, err) = cubacle(&["patterns", sub, "--size", &size, "R U"]);
+            assert!(ok);
+            assert!(!err.contains("state is impossible"), "{sub} {n}: {err}");
+        }
+    }
+}

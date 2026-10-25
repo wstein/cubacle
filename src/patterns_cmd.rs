@@ -214,7 +214,10 @@ fn cycles_state(args: &IdentifyArgs, size: usize) -> Result<(), String> {
         None => parse_cube(&text, args.scheme).ok(),
     };
     let (cycles, state_of_cycles) = match cube {
-        Some(cube) => (patterns::cycles_of_state(&cube)?, Some(cube)),
+        Some(cube) => {
+            crate::state_check::warn(&cube);
+            (patterns::cycles_of_state(&cube)?, Some(cube))
+        }
         None => match parse_expression(&text, kind) {
             Ok(moves) => (
                 patterns::cycles_of_moves(kind, &moves)?,
@@ -241,6 +244,7 @@ fn identify_state(
         Some(scramble) => crate::scrambled(scramble, crate::kind_of(size)?)?,
         None => crate::parse_text(&args.cube.join(" "), args.scheme, size)?.0,
     };
+    crate::state_check::warn(&state);
     let report = patterns::detect(&state);
     if verbose {
         print!("{}", report.detailed());

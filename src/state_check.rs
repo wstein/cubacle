@@ -14,6 +14,17 @@ pub(crate) fn require(cube: &Facelets) -> Result<(), String> {
     })
 }
 
+/// For commands that work on illegally assembled cubes too: a warning on
+/// standard error, then the command goes on.
+pub(crate) fn warn(cube: &Facelets) {
+    if let Err(reason) = check(cube) {
+        eprintln!("warning: the cube state is impossible ({reason})");
+        if let Some(hint) = reason.hint() {
+            eprintln!("hint: {hint}");
+        }
+    }
+}
+
 /// Which colour has too many stickers and which too few, for a cube written
 /// as face letters whose colour counts are wrong.
 pub(crate) fn count_hint(text: &str) -> Option<String> {
