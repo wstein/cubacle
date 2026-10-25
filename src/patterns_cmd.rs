@@ -283,6 +283,7 @@ fn find_state(args: &FindArgs, size: usize) -> Result<(), String> {
         Some(scramble) => crate::scrambled(scramble, crate::kind_of(size)?)?,
         None => crate::parse_text(&args.cube.join(" "), args.scheme, size)?.0,
     };
+    crate::state_check::require(&state)?;
     let cap = Cap::megabytes(args.max_memory);
     let time = args.budget_ms.map(Duration::from_millis);
     let alphabet = match &args.moves {

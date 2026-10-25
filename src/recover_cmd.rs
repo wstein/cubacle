@@ -69,6 +69,7 @@ pub(crate) fn run_now(
     let input = shared.input;
     let original = read_cube(input)?;
     let current = parse_cube(now, input.scheme).map_err(|e| format!("--now: {e}"))?;
+    crate::state_check::require(&current).map_err(|e| format!("--now: {e}"))?;
     if current.kind() != original.kind() {
         return Err(format!(
             "the original cube is a {0}x{0}x{0} and the current one a {1}x{1}x{1}",

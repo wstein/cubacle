@@ -17,6 +17,7 @@ mod recover_icons;
 mod restricted_cmd;
 mod rows;
 mod stage_phases;
+mod state_check;
 mod steps;
 mod terminal;
 mod views;
@@ -355,7 +356,9 @@ fn read_input(input: &InputArgs) -> Result<(Facelets, Option<ColourScheme>), Str
         }
         parts => parts.join(" "),
     };
-    parse_text(&text, input.scheme, input.size)
+    let (cube, scheme) = parse_text(&text, input.scheme, input.size)?;
+    state_check::require(&cube)?;
+    Ok((cube, scheme))
 }
 
 /// Reads cube text: cube text always wins; only text that is no cube is tried
@@ -373,7 +376,8 @@ fn parse_text(
             match expression {
                 Ok(cube) => Ok((cube, None)),
                 Err(reason) => Err(format!(
-                    "not a cube ({error}) and not a move expression for a {size}x{size}x{size} ({reason})"
+                    "not a cube ({error}) and not a move expression for a {size}x{size}x{size} ({reason}){}",
+                    state_check::count_hint(text).map_or_else(String::new, |hint| format!("\n{hint}"))
                 )),
             }
         }
@@ -408,6 +412,7 @@ fn read_target(text: &str, args: &SolveArgs, start: &Facelets) -> Result<Target,
     }
     let (target, _) = parse_text(text, args.input.scheme, start.kind().size())
         .map_err(|error| format!("--to: {error}"))?;
+    state_check::require(&target).map_err(|error| format!("--to: {error}"))?;
     Ok(Target::complete(&target))
 }
 
