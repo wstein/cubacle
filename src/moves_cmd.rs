@@ -112,7 +112,7 @@ enum GroupMode {
 }
 
 /// The expression words joined, or standard input for a lone "-".
-fn read_text(words: &[String]) -> Result<String, String> {
+pub(crate) fn read_text(words: &[String]) -> Result<String, String> {
     match words {
         [single] if single == "-" => {
             let mut text = String::new();
@@ -125,12 +125,12 @@ fn read_text(words: &[String]) -> Result<String, String> {
     }
 }
 
-fn kind_of(size: usize) -> Result<PuzzleKind, String> {
+pub(crate) fn kind_of(size: usize) -> Result<PuzzleKind, String> {
     PuzzleKind::of_size(size).ok_or_else(|| format!("size must be between 2 and 7, not {size}"))
 }
 
 /// The moves of an expression on a cube of `kind`, checked for that size.
-fn expand(text: &str, kind: PuzzleKind) -> Result<MoveSequence, String> {
+pub(crate) fn expand(text: &str, kind: PuzzleKind) -> Result<MoveSequence, String> {
     parse_expression(text, kind).map_err(|error| error.to_string())
 }
 

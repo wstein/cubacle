@@ -5,6 +5,7 @@ mod improve;
 mod metrics_out;
 mod moves_cmd;
 mod optimal_cmd;
+mod order_cmd;
 mod partial_cmd;
 mod pattern_aware_cmd;
 mod patterns_cmd;
@@ -62,6 +63,8 @@ enum Command {
     Solve(SolveArgs),
     /// Print the plain move sequence an expression stands for
     Moves(moves_cmd::MovesArgs),
+    /// Print how many repetitions of a move sequence return the cube (its order)
+    Order(order_cmd::OrderArgs),
     /// List the pretty patterns (checkerboard, cube in a cube, ...) or show one with its generator
     Patterns(patterns_cmd::PatternsArgs),
     /// Print a random scramble
@@ -273,6 +276,7 @@ fn run(cli: Cli) -> Result<(), String> {
     match cli.command {
         Command::Solve(args) => solve(args),
         Command::Moves(args) => moves_cmd::run(args),
+        Command::Order(args) => order_cmd::run(args),
         Command::Patterns(args) => patterns_cmd::run(args),
         Command::Convert(args) => {
             let (cube, detected) = read_input(&args.input)?;
