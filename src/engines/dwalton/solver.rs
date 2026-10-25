@@ -9,7 +9,7 @@ use super::seven::Seven;
 use super::six::Six;
 use super::wings;
 use crate::puzzle::{
-    normalise, Facelets, Failure, Move, MoveSequence, PuzzleKind, SolveMetrics, SolveOptions,
+    normalise, Face, Facelets, Failure, Move, MoveSequence, PuzzleKind, SolveMetrics, SolveOptions,
     SolveResult, Solver,
 };
 use crate::reduction::par;
@@ -97,6 +97,19 @@ impl DwaltonSolver {
                 format!("this solver handles the {:?} only", self.kind),
                 &tally,
             );
+        }
+        // The 7x7x7 keeps its six face centres fixed; with a middle-slice turn
+        // in the scramble the centre stages would search for ever.
+        if self.kind == PuzzleKind::Cube7 {
+            let stickers = cube.stickers();
+            if (0..6).any(|face| stickers[face * 49 + 24] != Face::ALL[face]) {
+                return fail(
+                    Failure::InvalidInput,
+                    "the face centres have moved (a middle-slice turn?); the engine keeps them fixed"
+                        .into(),
+                    &tally,
+                );
+            }
         }
         // The Orbit64 codec checks that the pieces form a reachable cube; do it
         // before the search so an impossible cube is reported at once and plainly.
