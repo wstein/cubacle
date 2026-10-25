@@ -848,7 +848,7 @@ The first line is the same cube as `cubacle facelets "Rw U Fw'"`. The scramble i
 
 #### SSE (Superset ENG)
 
-SSE is the notation of Werner Randelshofer's cube pages, one page per size (2x2 to 7x7). It is read like the others, token by token, and written with `--notation sse`. Only the notation as the six pages describe it was used (read 2026-10-23); no code from the site. Faces are `U R F L D B`, a turn ends in nothing, `2`, `'` or `-` (`R-` is `R'`). Every twist below is expanded into plain moves when it is read, so the engines and the move count never see it.
+SSE is the notation of Werner Randelshofer's cube pages, one page per size (2x2 to 7x7). It is read like the others, token by token, and written with `--notation sse`. Only the notation as the six pages describe it was used (read 2026-10-23); no code from the site. Faces are `U R F L D B`, a turn ends in nothing, `2`, `2'` (the same half turn), `'` or `-` (`R-` is `R'`). Every twist below is expanded into plain moves when it is read, so the engines and the move count never see it.
 
 | Prefix | Twist | Layers turned, counted from the face named (1 is its own layer) | Examples |
 | --- | --- | --- | --- |
@@ -862,6 +862,8 @@ SSE is the notation of Werner Randelshofer's cube pages, one page per size (2x2 
 | `S` | slice | 1 to d from the face and from the opposite face (default 1), both the same way round the axis | `SR` (is `R L'`), `S2R` |
 | `S` | slice range | a to b from both faces | `S2-4R` |
 | `C` | cube rotation | all | `CR`, `CU'` |
+
+Moves may be written together. A word that is not one move is cut after a `'` that is followed by a letter or digit (`R'U'` is `R' U'`), after a `2` that follows a face letter and precedes an SSE prefix letter (`F2NR` is `F2 NR`), and after the face letter of an SSE move that is followed by a capital letter (`NBL` is `NB L`); every piece must be a valid move, otherwise the word is refused with its original error. `F2R` is not cut because it could be `F2 R` or `F 2R`, and `R22` has no cut; both stay errors. A word that already parses is never cut.
 
 What exists on each size follows the six pages, and anything else is refused with the position and the reason:
 
