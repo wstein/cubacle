@@ -44,10 +44,10 @@ Errors use the field `error` with `message`, optionally `expected`, and the posi
 
 - A file argument ending in `.cubacle` is read as text, one ending in `.json` as JSON. The double extension `.cubacle.json` is supported and recommended for JSON definition files; it is optional, and the file is read as JSON.
 - `-` reads standard input; `--format cubacle|json` says which form it is.
-- `cubacle gen convert FILE --to json|cubacle` writes the other form. Comments and layout of a definition file are not kept.
+- `cubacle definition convert FILE --to json|cubacle` writes the other form. Comments and layout of a definition file are not kept.
 
 ```text
 cubacle patterns find concentric-squares.json
 cubacle patterns find - --format json < concentric-squares.json
-cubacle gen convert concentric-squares.cubacle --to json
+cubacle definition convert concentric-squares.cubacle --to json
 ```
