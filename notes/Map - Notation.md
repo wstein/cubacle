@@ -26,3 +26,5 @@ Raw-material notes, category notation.
 - [[Don't-care stickers are written X or named as a subset]]
 - [[One check names an impossible state on every size]]
 - [[A corner is read with all three colours in turning order]]
+- [[Orbit64 reads colors so equal-colored pieces need no representative]]
+- [[The canonical token is the Orbit64 token of the standard-colored member of the detector's class]]

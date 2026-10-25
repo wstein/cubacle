@@ -9,5 +9,6 @@ The importer for tab-separated pattern tables (the layout of CubeTwister's `Patt
 
 - [[A pattern detector reads structure from the cubie state]]
 - [[Pattern files are listed in cubacle.toml and the default is the built-in library]]
+- [[The canonical token is the Orbit64 token of the standard-colored member of the detector's class]]
 
 Source: owner request of 2026-10-24, lines 1-1

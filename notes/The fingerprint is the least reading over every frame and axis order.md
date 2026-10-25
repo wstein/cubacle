@@ -9,5 +9,6 @@ Home needs a colour frame and a flip needs an axis priority, and neither is cano
 
 - [[A pattern detector reads structure from the cubie state]]
 - [[The detector explains patterns and never replaces the search]]
+- [[The canonical token is the Orbit64 token of the standard-colored member of the detector's class]]
 
 Source: src/patterns/detector/fingerprint.rs, lines 1-60

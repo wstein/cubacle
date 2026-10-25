@@ -10,5 +10,6 @@ tags: ["type/decision", "status/decided", "category/engines"]
 - [[Same-coloured inner pieces are equal and there is no strict mode]]
 - [[A target is solved as a relative state]]
 - [[A centre fix-up pass lets --to reach mixed centres]]
+- [[Orbit64 reads colors so equal-colored pieces need no representative]]
 
 Source: src/puzzle/relative.rs, lines 126-245

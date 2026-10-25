@@ -9,5 +9,6 @@ The owner decided on 2026-10-25 that solving and patterns are colour based. Inne
 
 - [[A target is solved as a relative state]]
 - [[A partial target is a map from slots to allowed colours]]
+- [[Orbit64 reads colors so equal-colored pieces need no representative]]
 
 Source: tests/same_colour_centres_test.rs, lines 1-4

@@ -10,5 +10,6 @@ An Orbit64 token cannot prove that its producer used the same slot numbering as 
 - [[Orbit64 tokens]]
 - [[Orbit64 example mismatch]]
 - [[Orbit64 slot tables from the size]]
+- [[The canonical token is the Orbit64 token of the standard-colored member of the detector's class]]
 
 Source: src/notation/orbit64/mod.rs, lines 5-17
