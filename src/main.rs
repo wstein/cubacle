@@ -1,4 +1,5 @@
 mod answer;
+mod canon_cmd;
 mod enumerate_cmd;
 mod fetch;
 mod icons;
@@ -70,6 +71,8 @@ enum Command {
     Moves(moves_cmd::MovesArgs),
     /// Print how many repetitions of a move sequence return the cube (its order)
     Order(order_cmd::OrderArgs),
+    /// Print the canonical Orbit64 token of a cube: one identifier for the cube and its turned, mirrored and recolored images
+    Canon(canon_cmd::CanonArgs),
     /// List the pretty patterns (checkerboard, cube in a cube, ...) or show one with its generator
     Patterns(patterns_cmd::PatternsArgs),
     /// Work with .cubacle template files: check that a schema and guard parse
@@ -323,6 +326,7 @@ fn run(cli: Cli) -> Result<(), String> {
         Command::Solve(args) => solve(*args),
         Command::Moves(args) => moves_cmd::run(args),
         Command::Order(args) => order_cmd::run(args),
+        Command::Canon(args) => canon_cmd::run(args),
         Command::Patterns(args) => patterns_cmd::run(args),
         Command::Template(args) => template_cmd::run(args),
         Command::Convert(args) => {
@@ -411,6 +415,15 @@ fn read_cube(input: &InputArgs) -> Result<Facelets, String> {
 /// The cube, and the color scheme its colors were written in when it was
 /// given as colors with centers to read it from.
 fn read_input(input: &InputArgs) -> Result<(Facelets, Option<ColorScheme>), String> {
+    let (cube, scheme) = read_unchecked(input)?;
+    state_check::require(&cube)?;
+    Ok((cube, scheme))
+}
+
+/// Like `read_input`, for commands that judge the state themselves (`canon`
+/// accepts any coloring of the six colors, so its centers need not be a
+/// rotation of the cube).
+fn read_unchecked(input: &InputArgs) -> Result<(Facelets, Option<ColorScheme>), String> {
     if let Some(scramble) = &input.scramble {
         return Ok((scrambled(scramble, kind_of(input.size)?)?, None));
     }
@@ -425,9 +438,7 @@ fn read_input(input: &InputArgs) -> Result<(Facelets, Option<ColorScheme>), Stri
         }
         parts => parts.join(" "),
     };
-    let (cube, scheme) = parse_text(&text, input.scheme, input.size)?;
-    state_check::require(&cube)?;
-    Ok((cube, scheme))
+    parse_text(&text, input.scheme, input.size)
 }
 
 /// Reads cube text: cube text always wins; only text that is no cube is tried
