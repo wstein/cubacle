@@ -1,6 +1,6 @@
 # Architecture
 
-cubacle is one crate organised by role. Every module below `src/` is written
+cubacle is one crate organized by role. Every module below `src/` is written
 so that it could become its own workspace crate by moving the directory and
 adding a `Cargo.toml`; nothing needs to be untangled first.
 
@@ -9,13 +9,13 @@ src/
   lib.rs          module list and crate docs only
   puzzle/         PuzzleKind, Facelets/Face, Move/MoveSequence, the Solver trait,
                   SolveOptions/SolveResult/Failure, Facelets::apply
-  notation/       Orbit64, colour schemes, input detection and parsing
+  notation/       Orbit64, color schemes, input detection and parsing
   generate/       random states and scrambles
   canonical/      the canonical Orbit64 token of a cube state (one identifier per pattern):
                   the detector's canonical form from `patterns`, written by `notation`
   phases/         the phases of a solution, from the engine's stages or the cube state
-  centres/        the route to a target whose centres differ in colour on one face: a goal with
-                  uniform centres, solved by an engine through the Solver trait, then a centre fix-up
+  centers/        the route to a target whose centers differ in color on one face: a goal with
+                  uniform centers, solved by an engine through the Solver trait, then a center fix-up
   metrics/        move counts in HTM, QTM, STM, ETM, OBTM, BTM and ATM
   ranges/         post-solve compression of axis runs into layer ranges (2-3r)
   render/         move icons (SVG, RGBA, Kitty graphics, text) from puzzle types
@@ -48,7 +48,7 @@ puzzle  <-  notation  <-  engines  <-  apps (CLI, server)
    ^            ^              ^
    +--- generate               |
    +--- phases                 |
-   +--- centres                 |
+   +--- centers                 |
    +--- render                 |
    +--- recover                 |
    +--- reduction  ------------+   (used by the reduction engines only)
@@ -57,8 +57,8 @@ puzzle  <-  notation  <-  engines  <-  apps (CLI, server)
 - `puzzle` depends on nothing else in the crate.
 - `metrics` depends only on `puzzle`; it counts and never rewrites.
 - `ranges` depends on `puzzle` and `notation` (it writes its moves in a `Notation`).
-- `notation`, `generate`, `phases`, `centres`, `recover` and `render` depend only on `puzzle`. `render` is pure
-  (no I/O, no global state) and never names `notation`: the CLI maps a colour
+- `notation`, `generate`, `phases`, `centers`, `recover` and `render` depend only on `puzzle`. `render` is pure
+  (no I/O, no global state) and never names `notation`: the CLI maps a color
   scheme to a `render::Palette`. Terminal detection lives in the CLI.
 - `canonical` depends on `puzzle`, `notation` and `patterns`; `patterns` itself never names `notation`.
 - `reduction` depends only on `puzzle`, knows no cube, and is crate-private.
@@ -67,7 +67,7 @@ puzzle  <-  notation  <-  engines  <-  apps (CLI, server)
 - An engine depends on `puzzle` (and, for the 2x2x2, on the Orbit64 corner
   tables in `notation`). Engines never use each other's internals: they meet
   the world only through the `Solver` trait and `puzzle` types.
-- `centres` uses an engine only through the `Solver` trait it is handed, never a concrete engine.
+- `centers` uses an engine only through the `Solver` trait it is handed, never a concrete engine.
 - Applications (the CLI and the server) sit on top and may use everything.
 - The worker pool lives in `engines/three/pool.rs` and is private to that engine.
 

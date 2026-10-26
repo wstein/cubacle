@@ -86,7 +86,7 @@ permutations that follow pieces through moves, and `cycles_of_state`, which pair
 equal pieces by index. They are not needed to make a token.
 
 Checked **[M]** with two kinds of pairs: the center-only swaps of
-`tests/same_colour_centres_test.rs` (4x4x4 to 6x6x6), and half-turn words found by
+`tests/same_color_centers_test.rs` (4x4x4 to 6x6x6), and half-turn words found by
 a random search that end in the same colors on different pieces (4x4x4 to 7x7x7,
 for example `2R2 2F2` and `2F2 2L2 2R2 2B2 2L2 2B2`). Their pieces differ
 (sticker permutations), their colors and tokens are equal.

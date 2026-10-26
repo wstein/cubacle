@@ -1,6 +1,6 @@
 ---
 title: "Don't-care targets"
-description: "Concept paper: targets for solve --to where some stickers are unconstrained (cross, F2L, centres only, free parts), per engine, with costs, delivery plan and open decisions."
+description: "Concept paper: targets for solve --to where some stickers are unconstrained (cross, F2L, centers only, free parts), per engine, with costs, delivery plan and open decisions."
 weight: 40
 ---
 
@@ -18,22 +18,22 @@ paper. Only ideas from the study of a GPL sticker solver were used (see the note
 1. **Cross only.** "Get the white cross from this scramble, shortest." The other
    pieces may land anywhere.
 2. **F2L.** Cross plus the four first-layer pairs, last layer free.
-3. **Centres only (4x4 and up).** Solve the centres, leave edges and corners
+3. **Centers only (4x4 and up).** Solve the centers, leave edges and corners
    alone. This is the first reduction stage of the 4x4 and 5x5 engines made
    available as a goal.
 4. **A pattern with free parts.** "Top face all white, rest don't care", or a
    chessboard on two faces only.
-5. **Moved centres (4x4 and up).** Today `--to` refuses them [M]:
+5. **Moved centers (4x4 and up).** Today `--to` refuses them [M]:
 
    ```
    $ cubacle solve --size 4 --to "r" "R U"
-   error: the target has centres out of place; the solvers can only reach a target
-   whose centres are on their own faces (...)
+   error: the target has centers out of place; the solvers can only reach a target
+   whose centers are on their own faces (...)
    ```
 
    The cause is that the relative-state method needs every sticker to have its own
-   identity, and equal centres have none. A colour target does not need identities:
-   "the up face shows white" is a statement about colours. Story 5 is therefore
+   identity, and equal centers have none. A color target does not need identities:
+   "the up face shows white" is a statement about colors. Story 5 is therefore
    solved by the same model as stories 1 to 4.
 
 Non-goals: partial *start* states (the start stays complete, as decided), and
@@ -42,7 +42,7 @@ optimal solutions on sizes where the engine is not optimal today.
 ## 2. Input syntax
 
 Decided (notes "Don't-care stickers are written X or named as a subset" and
-"A partial target is a map from slots to allowed colours"): `X` marks a sticker
+"A partial target is a map from slots to allowed colors"): `X` marks a sticker
 that does not matter; `?` is accepted on input and `X` is written back; only
 uppercase `X` counts because lowercase `x` is the cube rotation; an Orbit64 token
 cannot express it. Today both are rejected [M]:
@@ -59,19 +59,19 @@ targets first, then cube text, then a move expression; see `read_target` in
 | Form | Example (3x3x3) | Parsed as |
 |---|---|---|
 | Facelets, URFDLB | `UUUUUUUUUXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX` | the up face solved, 45 free stickers |
-| Colours, scheme letters | `WWWWWWWWWXXX...` | the same, read with `--scheme` |
-| Named subset | `cross`, `f2l`, `layer-d`, `centres` | a fixed X-mask over the solved cube |
+| Colors, scheme letters | `WWWWWWWWWXXX...` | the same, read with `--scheme` |
+| Named subset | `cross`, `f2l`, `layer-d`, `centers` | a fixed X-mask over the solved cube |
 | Move expression | `R U` | unchanged: applied to the solved cube |
 | Mask plus base | `cross+R U` or `f2l@R U` | the subset mask over the cube that the expression gives |
 
 Unambiguity rules:
 
-- `X` is not a face letter (URFDLB) and not a colour letter (WRGYOB), so a string
-  with an `X` and otherwise only face or colour letters can never also be a valid
+- `X` is not a face letter (URFDLB) and not a color letter (WRGYOB), so a string
+  with an `X` and otherwise only face or color letters can never also be a valid
   complete cube. A move expression with a literal `X` is not valid notation either.
   So a text is partial exactly when it has `X`/`?` as a sticker character *and*
   has the length of a cube string. No new flag is needed.
-- A string mixing face letters and colour letters is rejected as today (error
+- A string mixing face letters and color letters is rejected as today (error
   names the first character that fits neither alphabet).
 - Names are taken only when the whole text is the name (as `superflip` is). A
   suffix form `name+moves` is a separate, explicit syntax, so `cross` alone means
@@ -86,9 +86,9 @@ field is absent for complete targets, so existing responses stay byte-identical.
 
 ## 3. Model
 
-A target is a map from slot (a sticker position) to the set of allowed colours:
+A target is a map from slot (a sticker position) to the set of allowed colors:
 a one-element set for a cared sticker, all six for `X`. This is the decided
-representation. A subset of colours smaller than all but larger than one (for
+representation. A subset of colors smaller than all but larger than one (for
 example "white or yellow on U": useful for OLL-style goals) costs nothing extra
 and is left for a later step, but the model carries it from the start.
 
@@ -114,7 +114,7 @@ is the relative-state method, byte for byte (section 8).
 |---|---|---|
 | 2x2x2 | relative state, any orientation | **Exact.** Breadth-first search from the goal *set* (multi-source) over the 3,674,160 states gives exact distances to the nearest goal; the table is built per target, so no stored table changes. |
 | 3x3x3 min2phase | relative state, two-phase | Two routes. (a) **Few completions** (up to a threshold, for example 24 for a free whole-cube rotation, or a few free corners' twists): run min2phase once per completion, keep the shortest. Exact up to its usual two-phase caveat. (b) **Many completions** (cross, F2L, a face): the pattern search (`src/engines/pattern`) with projection tables as relaxed bounds, IDA* on the goal predicate. Exact for cross; best-effort with a node limit for F2L. |
-| 4x4x4, 5x5x5 | relative state; centres must be home | The engine's own stages are goals: centres only = stage one and two; centres + edges paired = reduction without the 3x3 finish. The stages already stop where a partial target stops. Other masks: best-effort search (below). |
+| 4x4x4, 5x5x5 | relative state; centers must be home | The engine's own stages are goals: centers only = stage one and two; centers + edges paired = reduction without the 3x3 finish. The stages already stop where a partial target stops. Other masks: best-effort search (below). |
 | 6x6x6, 7x7x7 (dwalton) | same | Stage-wise like 4x4/5x5 where the stage is a goal; otherwise refuse with a message naming the supported subsets. |
 | Pattern shortcut (4x4 and up) | tries known patterns, keeps the shorter | Only for complete targets that equal a library pattern; for a partial one it is skipped, not made to guess. |
 
@@ -141,17 +141,17 @@ so such a search takes a depth and node limit and says so.
 
 - **Symmetry.** A search symmetry (a whole-cube rotation or reflection) is usable
   only if it maps the *mask* to itself. The cross mask has 8 such symmetries
-  (those that fix the cross face) [E, count of the stabiliser]; a mask on one
+  (those that fix the cross face) [E, count of the stabilizer]; a mask on one
   face only has the 4-fold rotation plus mirrors. Unconstrained targets keep all
   48. Tables built under a symmetry are keyed by mask class, not shared across
   masks.
 - **Orbits.** If a whole orbit is free (all corners, all wings of a 4x4), its
-  coordinates drop out of the state, shrinking tables. Centres-only on a 4x4 is
-  24 centres in 6 colours: 24! / (4!^6) = 2,308,743,493,056 arrangements [M by
-  arithmetic], the number the 4x4 centre stages already face, so the existing
+  coordinates drop out of the state, shrinking tables. Centers-only on a 4x4 is
+  24 centers in 6 colors: 24! / (4!^6) = 2,308,743,493,056 arrangements [M by
+  arithmetic], the number the 4x4 center stages already face, so the existing
   stage tables apply.
-- **Equal centres.** Under a colour goal there is no identity to track, which
-  lifts today's centre limit.
+- **Equal centers.** Under a color goal there is no identity to track, which
+  lifts today's center limit.
 
 ### 4.3 Completeness, optimality, what is exact
 
@@ -178,7 +178,7 @@ only where the table above says yes, "best found in N nodes" otherwise.
   tables (corner-edge, two-pieces) as separate relaxed bounds, each a few MB.
   Search time for F2L **[E] seconds to minutes**, unmeasured, hence best-effort
   with a node limit.
-- 4x4 centres only: the existing centre stage tables (about 12 MB for the 4x4
+- 4x4 centers only: the existing center stage tables (about 12 MB for the 4x4
   engine, from `solve` start-up output [M]) are reused.
 - 5x5 and above: only stage goals, using the existing tables and the 5x5 cache.
 - Memory: every table respects the 1.5 GB cap (project figure; the 5x5 is already
@@ -207,7 +207,7 @@ only where the table above says yes, "best found in N nodes" otherwise.
   count when the mask has many free slots. This paper adds no flag; the two
   options only need to take a goal predicate rather than a state. Agree the
   interface with that agent before step 3 of the plan.
-- **MSRV 1.95.** Nothing here needs newer features: bit sets over six colours fit
+- **MSRV 1.95.** Nothing here needs newer features: bit sets over six colors fit
   a `u8`; masks are `Vec<u8>` or arrays.
 - **Memory cap 1.5 GB.** See section 4.4.
 - **Server.** Partial searches are compute-heavy: they run on the blocking pool
@@ -220,7 +220,7 @@ only where the table above says yes, "best found in N nodes" otherwise.
 CLI: `--to` accepts the forms of section 2. Optional later: `--show-free` prints
 the state the free stickers ended in. Without it the output is the moves, as now.
 
-Library: a `Target` type (`slot -> colour set`) in the puzzle layer; `Facelets`
+Library: a `Target` type (`slot -> color set`) in the puzzle layer; `Facelets`
 stays complete. A new trait method with a default, so existing engines compile
 unchanged:
 
@@ -237,10 +237,10 @@ REST: same `target` text; errors use the existing `bad_input` shape.
 Error cases (each with a distinct, tested message):
 
 - **Contradictory.** Two constraints that no state can meet: a facelet string
-  with the same colour on two stickers of one piece, or a piece with colours no
+  with the same color on two stickers of one piece, or a piece with colors no
   piece has (reuses `ImpossiblePiece`). Reported before searching.
 - **Unreachable.** Valid-looking constraints the start can never reach: a parity
-  or colour-count conflict (for example a cross with one edge in an impossible
+  or color-count conflict (for example a cross with one edge in an impossible
   orientation sum when the whole edge orbit is constrained), or the alphabet
   cannot reach it (`--moves`). Reported when the table proves it; for best-effort
   engines "not found within the limit" is a different message from "proved
@@ -254,7 +254,7 @@ Error cases (each with a distinct, tested message):
 ## 7. Tests
 
 - **Property test.** For random starts and random masks (random subset of slots,
-  random colours drawn from a real completion so the goal is reachable), every
+  random colors drawn from a real completion so the goal is reachable), every
   solution returned makes every constrained slot match when replayed on the start.
   Sizes 2 and 3 in the normal run; 4 under `--release` with a small sample.
 - **Equivalence.** A fully constrained mask gives *exactly* the old moves, byte for
@@ -275,7 +275,7 @@ Error cases (each with a distinct, tested message):
 Each step is one atomic commit that builds and passes the three checks. Effort is
 in focused working hours, **[E]**.
 
-1. `feat(puzzle): Target type with slot colour sets` and the parser for `X`/`?`
+1. `feat(puzzle): Target type with slot color sets` and the parser for `X`/`?`
    with the full-constraint conversion to `Facelets`; refusal elsewhere. 4 h.
 2. `refactor(cli): read_target returns a Target`; complete targets keep the old
    path; byte-identical tests added first. 3 h.
@@ -283,11 +283,11 @@ in focused working hours, **[E]**.
    the shape with the `--moves`/`--all` work first.)
 4. `feat(two): partial targets by multi-source search`. 5 h.
 5. `feat(three): partial targets by completion enumeration`. 5 h.
-6. `feat(patterns): named subsets cross, layer, centres`. 4 h.
+6. `feat(patterns): named subsets cross, layer, centers`. 4 h.
 7. `feat(three): cross and F2L partial targets with relaxed tables`. 16 h, with the
    node limit and messages.
-8. `feat(four,five): centres-only and colour targets for moved centres`. 12 h per
-   engine, including lifting the `CentresMoved` refusal for colour targets only.
+8. `feat(four,five): centers-only and color targets for moved centers`. 12 h per
+   engine, including lifting the `CentersMoved` refusal for color targets only.
 9. `feat(server): target with X`, response field `reached`. 3 h.
 10. `docs: cli, api, engines pages and notes`. 3 h.
 
@@ -302,21 +302,21 @@ Total **[E]** about 60 h. Steps 1 to 6 give stories 1 (cross on 2x2, partial on
   by mask class makes the server stateful in a small way.
 - Completion enumeration for the 3x3 is simple but multiplies the cost by the
   number of completions; the threshold needs a measurement.
-- On 4x4 and up, centres-only is exact only as far as the stage solvers are; users
+- On 4x4 and up, centers-only is exact only as far as the stage solvers are; users
   may expect "shortest".
-- A colour target on 4x4 is only meaningful if the person's colour scheme is known;
+- A color target on 4x4 is only meaningful if the person's color scheme is known;
   the existing `--scheme` handling applies, with an unambiguous default.
-- The meaning of "cross" on a cube whose centres are not home (after rotation) must
-  be defined: by the face the centre shows, or by the position.
+- The meaning of "cross" on a cube whose centers are not home (after rotation) must
+  be defined: by the face the center shows, or by the position.
 
 ## 10. Decisions for the owner
 
 1. **Scope of the first release.** Recommend: 2x2 any mask, 3x3 cross and
-   few-completion masks, 4x4 centres only; F2L and 5x5+ in a second release.
+   few-completion masks, 4x4 centers only; F2L and 5x5+ in a second release.
 2. **Name of the trait method and result field.** Recommend `solve_to` with a
    default error and an optional `reached` field in REST/CLI, absent for complete
    targets.
-3. **Colour subsets (more than one allowed colour per slot).** Recommend carry them
+3. **Color subsets (more than one allowed color per slot).** Recommend carry them
    in the model, but do not expose syntax for them in the first release.
 4. **Mask-plus-base syntax** (`cross+R U`). Recommend defer; only whole-name
    subsets first.
@@ -326,8 +326,8 @@ Total **[E]** about 60 h. Steps 1 to 6 give stories 1 (cross on 2x2, partial on
    decide.
 7. **Interface with `--moves`/`--all`.** Recommend both take a goal predicate and a
    stop count; settle before step 3.
-8. **Moved centres on 4x4+.** Recommend allow them only as colour targets, keep
-   refusing complete identity-based targets with moved centres.
+8. **Moved centers on 4x4+.** Recommend allow them only as color targets, keep
+   refusing complete identity-based targets with moved centers.
 
 ## 11. Status of the first release
 
@@ -340,18 +340,18 @@ Built, in this order (the order differs from section 8 where noted); the three c
 | 3. `solve_to` on the `Solver` trait | done, with the default "unsupported" error; built before the 2x2 so the engines could override it |
 | 4. 2x2 by a multi-source search | done, proven shortest |
 | 5. 3x3 by completion enumeration | done: at most 24 completions, best found (not proven shortest) |
-| 6. Named subsets | partly: `cross` and `cross-<face>`; `layer` and `centres` are not built |
+| 6. Named subsets | partly: `cross` and `cross-<face>`; `layer` and `centers` are not built |
 | 7. 3x3 cross and F2L with relaxed tables | partly: whole edges up to five, exact (the cross and its parts); F2L, a face and other masks with more than 24 completions are refused |
-| 8. 4x4 and 5x5 centres, moved centres as colour targets | not built: `reduce` in the 4x4 engine runs its three phases in one go to a 3x3x3, and a centres-only goal inside them was not looked for yet |
+| 8. 4x4 and 5x5 centers, moved centers as color targets | not built: `reduce` in the 4x4 engine runs its three phases in one go to a 3x3x3, and a centers-only goal inside them was not looked for yet |
 | 9. Server | not built, by decision of this task; the REST `target` field would take the same text and `reached` is still optional |
 | 10. Docs and notes | done for the CLI, the 2x2 and 3x3 engine pages and the notes |
 
 Choices that go beyond the paper:
 
 - **Rotation on the 2x2.** As for complete targets, a 2x2x2 goal counts after any of the 24 whole-cube rotations, so "U face white" means "some face white".
-- **Decision 7, the interface.** The shared goal predicate is `Target::matches` (a map from sticker to allowed colours, tested on a state) and the stop count stays the `--count` of the list options. `--moves`, `--all` and `--count` still search for the solved state of a relative cube; taking a target means testing `matches` where they test "solved". That step is not built, so these options are refused with a partial target.
+- **Decision 7, the interface.** The shared goal predicate is `Target::matches` (a map from sticker to allowed colors, tested on a state) and the stop count stays the `--count` of the list options. `--moves`, `--all` and `--count` still search for the solved state of a relative cube; taking a target means testing `matches` where they test "solved". That step is not built, so these options are refused with a partial target.
 - **Decision 5.** The result message begins `shortest:` only where the engine proved it and `best found:` otherwise; an unsupported target is refused, never answered by another method.
-- **Decision 3.** The model keeps colour sets of any size; the text form writes only one colour or `X`. `Target::to_text` is `None` for a set of two to five colours.
+- **Decision 3.** The model keeps color sets of any size; the text form writes only one color or `X`. `Target::to_text` is `None` for a set of two to five colors.
 
 Measured in release on a quiet machine, fixed scrambles, one process at a time, three runs each (the estimates are those of section 4.4):
 
@@ -362,6 +362,6 @@ Measured in release on a quiet machine, fixed scrambles, one process at a time, 
 | 3x3x3 cross and one more edge (12P5 * 2^5 = 7,962,624 entries) | cross + 1 pair 37 MB, not built | 0.7 s, 25 MB |
 | 3x3x3 one or two corners open (1 and 3 completions) | threshold needs a measurement | 0.04 s; 20 moves, 16 with `--probes 3000` |
 | 3x3x3 F2L | seconds to minutes | not built |
-| 4x4x4 centres only | existing stage tables, about 12 MB | not built |
+| 4x4x4 centers only | existing stage tables, about 12 MB | not built |
 
-Open questions: how far the completion threshold of 24 can be raised (it is a node limit of 200,000 in the enumeration, not a measured optimum); whether the 2x2 goal test should be faster (an incremental test would take it near the plain solve); the meaning of "cross" on a cube whose centres are not home, which is moot for the 3x3x3 (centres never move) and needs a decision with the 4x4 centres work.
+Open questions: how far the completion threshold of 24 can be raised (it is a node limit of 200,000 in the enumeration, not a measured optimum); whether the 2x2 goal test should be faster (an incremental test would take it near the plain solve); the meaning of "cross" on a cube whose centers are not home, which is moot for the 3x3x3 (centers never move) and needs a decision with the 4x4 centers work.

@@ -6,7 +6,7 @@ weight: 8
 
 # Patterns
 
-`cubacle patterns` lists the pretty patterns the library knows; `cubacle patterns show NAME` prints one with its generators. A pattern is defined by its structure (a colour for every sticker as a function of the cube size), never by a move list. Each generator was found by our own search from that definition and is replayed against it by the test suite (`src/patterns/tests.rs`). Patterns are sets of colour states: same-coloured inner pieces, such as centres, that look identical count as equal, and there is no strict mode.
+`cubacle patterns` lists the pretty patterns the library knows; `cubacle patterns show NAME` prints one with its generators. A pattern is defined by its structure (a color for every sticker as a function of the cube size), never by a move list. Each generator was found by our own search from that definition and is replayed against it by the test suite (`src/patterns/tests.rs`). Patterns are sets of color states: same-colored inner pieces, such as centers, that look identical count as equal, and there is no strict mode.
 
 ```sh
 cubacle patterns --size 3
@@ -28,7 +28,7 @@ cubacle patterns show chessboard --size 3
 ```text
 Checkerboard (checkerboard)
 also: chessboard, chess pattern
-Every face alternates its own colour and the opposite colour; the corners stay solved.
+Every face alternates its own color and the opposite color; the corners stay solved.
 3x3x3
   outer metric, 6 moves, optimal:
     F2 Fw2 Rw2 R2 Uw2 U2
@@ -49,7 +49,7 @@ Names, spaces, case and hyphens are not significant (`Cube-in-a-Cube` finds `cub
 | `half-turn-optimal` | Exhaustive over half turns only. |
 | `best-known` | The best found: a search inside a smaller move set (mirror-symmetric layer sets, face turns only), or the inverse of a solver's answer. Shorter ones may exist. |
 
-On even cubes, which have no fixed centres, a pattern is accepted in any orientation.
+On even cubes, which have no fixed centers, a pattern is accepted in any orientation.
 
 ## The library
 
@@ -57,16 +57,16 @@ Lengths are `outer/range`; `-` means no generator of that kind was found. All le
 
 | Pattern | Definition |
 | --- | --- |
-| Checkerboard | The colour of a sticker is its own on cubies whose distances from the nearest face sum to an even number, the opposite colour otherwise. |
-| Six spots | Every face keeps a block of its own colour in the middle inside a border of the next colour round a corner. |
-| Six centre spots | The same with the spot reduced to the middle (one sticker, or 2x2 on even cubes). |
-| Four spots | Spots on four faces round an axis on a border of the opposite colour, two faces solid. |
-| Four centre spots | The same with the spot reduced to the middle. |
-| Cube in a cube | At two opposite corners every face has a block of its own colour; the L-shaped rest shows the next colour round a corner. |
+| Checkerboard | The color of a sticker is its own on cubies whose distances from the nearest face sum to an even number, the opposite color otherwise. |
+| Six spots | Every face keeps a block of its own color in the middle inside a border of the next color round a corner. |
+| Six center spots | The same with the spot reduced to the middle (one sticker, or 2x2 on even cubes). |
+| Four spots | Spots on four faces round an axis on a border of the opposite color, two faces solid. |
+| Four center spots | The same with the spot reduced to the middle. |
+| Cube in a cube | At two opposite corners every face has a block of its own color; the L-shaped rest shows the next color round a corner. |
 | Cube in a cube in a cube | Three nested shells. |
 | Superflip | Every edge flipped in place, everything else solved. |
-| Opposite centres | Everything solved except the centres, which show the opposite colour. |
-| Cycled centres | Everything solved except the centres, which show the next colour round a corner. |
+| Opposite centers | Everything solved except the centers, which show the opposite color. |
+| Cycled centers | Everything solved except the centers, which show the next color round a corner. |
 
 The generated list (`cubacle patterns`):
 
@@ -74,17 +74,17 @@ The generated list (`cubacle patterns`):
 id	name	sizes (outer/range moves)
 checkerboard	Checkerboard	3:6/3 4:6/3 5:12/6 6:12/6 7:-/9
 six-spots	Six spots	3:8/6 4:8/4 5:8/6 6:8/4 7:8/8
-six-centre-spots	Six centre spots	5:8/6 6:8/4 7:-/8
+six-center-spots	Six center spots	5:8/6 6:8/4 7:-/8
 four-spots	Four spots	3:8/6 4:8/4 5:8/6 6:8/4 7:8/6
-four-centre-spots	Four centre spots	5:8/6 6:8/4
+four-center-spots	Four center spots	5:8/6 6:8/4
 cube-in-cube	Cube in a cube	2:10/10 3:15/15 4:15/15 5:15/15 6:15/15 7:15/15
 cube-in-cube-in-cube	Cube in a cube in a cube	5:44/44
 superflip	Superflip	3:20/20 4:20/20 5:20/20 6:20/20 7:20/20
-centres-opposite	Opposite centres	4:14/6 6:-/8
-centres-cycled	Cycled centres	4:8/4 5:8/4 6:8/4
+centers-opposite	Opposite centers	4:14/6 6:-/8
+centers-cycled	Cycled centers	4:8/4 5:8/4 6:8/4
 ```
 
-Not every pattern exists on every size or was found within the search budget; the missing entries are open, not impossible. The nested cube in a cube has only a long solver-derived generator (5x5x5); the 6x6x6 and 7x7x7 versions, the opposite centres on the 5x5x5 and 7x7x7 and the 2x2x2 analogues other than the cube in a cube were not found. Lists such as Tetris, Anaconda or Pons asinorum are not included because we could not state their structure with certainty.
+Not every pattern exists on every size or was found within the search budget; the missing entries are open, not impossible. The nested cube in a cube has only a long solver-derived generator (5x5x5); the 6x6x6 and 7x7x7 versions, the opposite centers on the 5x5x5 and 7x7x7 and the 2x2x2 analogues other than the cube in a cube were not found. Lists such as Tetris, Anaconda or Pons asinorum are not included because we could not state their structure with certainty.
 
 `cubacle patterns list` is the same list as `cubacle patterns` alone and takes the same options (`--size`, `--kind`, `--min-patternness`, `--sort`, `--tree`), before or after the word `list`; the output is identical. `--limit N` stops after N rows (standard error says how many were cut). Each of these options belongs to the list: `patterns show checkerboard --kind SYM` is refused with `--kind applies to the list only`. `--icons` adds a picture to every row, and to `show`, `find` and `identify`; see [Patterns with icons](icons.md#patterns-with-icons).
 
@@ -126,7 +126,7 @@ patternness: 19 %
 
 ## Identifying a state
 
-`cubacle patterns identify` reads the structure of a cube without searching for anything. The cube is given like the input of `solve` (an Orbit64 token, facelets, colours, a move expression or `-s`), on the size of `--size` (3 unless given), 2x2x2 to 7x7x7. It never replaces the search: it explains a state and names the family it belongs to.
+`cubacle patterns identify` reads the structure of a cube without searching for anything. The cube is given like the input of `solve` (an Orbit64 token, facelets, colors, a move expression or `-s`), on the size of `--size` (3 unless given), 2x2x2 to 7x7x7. It never replaces the search: it explains a state and names the family it belongs to.
 
 ```sh
 cubacle patterns identify "U2 D2 R2 L2 F2 B2"
@@ -141,7 +141,7 @@ partial: corners matches Solved cube exactly; edges differs
 fingerprint: C0t0 E12f0(2.2.2.2.2.2)
   corners: 8 pieces, 0 displaced, 0 twisted
   edges: 12 pieces, 12 displaced, 0 flipped, cycles of length 2, 2, 2, 2, 2, 2
-in corners only: no: an edge or centre piece is moved
+in corners only: no: an edge or center piece is moved
 in edges only: yes
 in G1 domino group, U/D axis: yes
 in G1 domino group, F/B axis: yes
@@ -150,11 +150,11 @@ in half-turn group <U2,D2,R2,L2,F2,B2>: yes
 in <R,U>: no: an edge these faces never touch is moved
 in <R,U,F>: no: an edge these faces never touch is moved
 symmetry: 48 of 48 operations fix it (24 rotations, 24 mirrored)
-  1 of them keep every colour, 47 rename colours
+  1 of them keep every color, 47 rename colors
   classes: 1 identity, 3 face mirrors, 3 face half turns, 1 inversion, 6 edge mirrors, 6 edge half turns, 6 face quarter turns, 6 quarter-turn mirrors, 8 corner third turns, 8 sixth-turn mirrors
 ```
 
-`identify -v` adds one line per class with the axes and the colour renaming of every operation.
+`identify -v` adds one line per class with the axes and the color renaming of every operation.
 
 ### Symmetry type and antisymmetry
 
@@ -188,20 +188,20 @@ The commutator is no symmetric cube, but a half turn about an edge axis carries 
 
 The report has these parts.
 
-- **pattern**: the state is put into canonical form, the smallest sticker string under the 48 cube symmetries (24 rotations and their mirror images) and every renaming of the six colours, and looked up among the library patterns and the solved cube of that size. The text after the name says how the state differs from the library's colouring: `exactly`, `turned`, `mirrored`, `with colours renamed`, or a combination. A state that is no library pattern prints `no library match`; a random cube does not match.
+- **pattern**: the state is put into canonical form, the smallest sticker string under the 48 cube symmetries (24 rotations and their mirror images) and every renaming of the six colors, and looked up among the library patterns and the solved cube of that size. The text after the name says how the state differs from the library's coloring: `exactly`, `turned`, `mirrored`, `with colors renamed`, or a combination. A state that is no library pattern prints `no library match`; a random cube does not match.
 - **canonical**: the [canonical Orbit64 token](design/canonical-form.md) of the state, one identifier for every turned, mirrored or recolored copy of it (`canonical: AAAABeBQZgAA` is the checkerboard on a 3x3x3). It sits below the `pattern:` lines, on every size from 2x2x2 to 7x7x7. A state that no turn can reach (it has a warning on standard error) has no such line.
-- **patternness** and **closest**: see below; `closest` names the three library patterns (the solved cube included) with the share of stickers that agree after the best of the 48 symmetries and colour renamings (a count of equal stickers, not a distance: see [Repair](#repair)), and a `partial:` line says in which orbits the state equals the closest pattern that matches in some (`partial: corners, edges match Solved cube exactly; wings (depth 1) differ`).
-- **fingerprint**: for every piece orbit (corners, edges, wings by depth, centres) the number of displaced pieces, of twisted corners or flipped edges, and, where pieces can be told apart (corners, and the edges of the 3x3x3 and the middle wings of odd cubes), the cycle type of their permutation. The compact code is `C` corners with `t` twisted, `E` edges and `W<depth>:` wings with `f` flipped, `X` (x-centres, on the diagonals of a face), `+` (+-centres, on its mid-lines) and `O` (oblique) centre orbits (the number of misplaced stickers; a ring number follows where a shape has more than one ring, `X2:`), each preceded by the number displaced and followed by the cycle lengths in brackets: `C0t0 E0f12` is the superflip. The code is read in every colour frame and axis order that fits and the least is kept, so a cube, its turned or mirrored image and any renaming of its colours give the same code. On an even cube, which has no fixed centres, the frame is the best matching of colours to faces.
-- **subgroups**: exact tests on the pieces. `corners only`, `edges only` and (4x4x4 up) `centres only` say that nothing else moved. On the 3x3x3, `G1 domino group` (corners untwisted, edges unflipped, the middle-layer edges in the middle layer; one line per axis) and the half-turn group are exact too: the half-turn test checks the classes of four corners and four edges and a table of 648 projected arrangements, and a test walks all 663 552 states of the group to confirm it. `<R,U>` and `<R,U,F>` have no description by pieces, so the test only refutes (a piece those faces never touch is moved) or answers `possible`; `cubacle solve --moves "<R,U>"` is the proof. The tests assume a legal cube.
-- **symmetry**: how many of the 48 symmetries fix the state when the colours may be renamed, how many of those keep every colour literally, and how many operations each class has; `-v` lists the operations with the renaming each needs (a superflip is fixed by all 48 but only after renaming colours; the identity keeps them).
+- **patternness** and **closest**: see below; `closest` names the three library patterns (the solved cube included) with the share of stickers that agree after the best of the 48 symmetries and color renamings (a count of equal stickers, not a distance: see [Repair](#repair)), and a `partial:` line says in which orbits the state equals the closest pattern that matches in some (`partial: corners, edges match Solved cube exactly; wings (depth 1) differ`).
+- **fingerprint**: for every piece orbit (corners, edges, wings by depth, centers) the number of displaced pieces, of twisted corners or flipped edges, and, where pieces can be told apart (corners, and the edges of the 3x3x3 and the middle wings of odd cubes), the cycle type of their permutation. The compact code is `C` corners with `t` twisted, `E` edges and `W<depth>:` wings with `f` flipped, `X` (x-centers, on the diagonals of a face), `+` (+-centers, on its mid-lines) and `O` (oblique) center orbits (the number of misplaced stickers; a ring number follows where a shape has more than one ring, `X2:`), each preceded by the number displaced and followed by the cycle lengths in brackets: `C0t0 E0f12` is the superflip. The code is read in every color frame and axis order that fits and the least is kept, so a cube, its turned or mirrored image and any renaming of its colors give the same code. On an even cube, which has no fixed centers, the frame is the best matching of colors to faces.
+- **subgroups**: exact tests on the pieces. `corners only`, `edges only` and (4x4x4 up) `centers only` say that nothing else moved. On the 3x3x3, `G1 domino group` (corners untwisted, edges unflipped, the middle-layer edges in the middle layer; one line per axis) and the half-turn group are exact too: the half-turn test checks the classes of four corners and four edges and a table of 648 projected arrangements, and a test walks all 663 552 states of the group to confirm it. `<R,U>` and `<R,U,F>` have no description by pieces, so the test only refutes (a piece those faces never touch is moved) or answers `possible`; `cubacle solve --moves "<R,U>"` is the proof. The tests assume a legal cube.
+- **symmetry**: how many of the 48 symmetries fix the state when the colors may be renamed, how many of those keep every color literally, and how many operations each class has; `-v` lists the operations with the renaming each needs (a superflip is fixed by all 48 but only after renaming colors; the identity keeps them).
 
-Centre orbits are named by where their stickers sit, never by colour, and the same names are used by `identify` and `cycles`. On the 5x5x5 the two orbits are `x-centres (corner side)` and `+-centres (edge side)`; the 6x6x6 and 7x7x7 add `x-centres (middle side)`, `+-centres (middle side)` and `oblique centres (1 and 2 cells in)`, whose two mirror images are told apart by `a` and `b`. For example (5x5x5):
+Center orbits are named by where their stickers sit, never by color, and the same names are used by `identify` and `cycles`. On the 5x5x5 the two orbits are `x-centers (corner side)` and `+-centers (edge side)`; the 6x6x6 and 7x7x7 add `x-centers (middle side)`, `+-centers (middle side)` and `oblique centers (1 and 2 cells in)`, whose two mirror images are told apart by `a` and `b`. For example (5x5x5):
 
 ```text
 fingerprint: C0t0 W1:0f12 E0f0 X0 +12
   ...
-  x-centres (corner side): 24 centre stickers, 0 misplaced
-  +-centres (edge side): 24 centre stickers, 12 misplaced
+  x-centers (corner side): 24 center stickers, 0 misplaced
+  +-centers (edge side): 24 center stickers, 12 misplaced
 ```
 
 On a 7x7x7 `identify` takes about 10 ms.
@@ -212,7 +212,7 @@ On a 7x7x7 `identify` takes about 10 ms.
 
 `patternness = 100 * (0.6 S + 0.4 U)`, rounded, with two parts from 0 to 1.
 
-- **S, symmetry**: `(ln order + ln(keep) / 2) / ln 2`, at most 1, where `order` is the number of the 48 operations that fix the state when colours may be renamed and `keep` the number that fix it with every colour kept. Any symmetry beyond the identity gives 1 (colour-keeping ones count extra); a random cube has none.
+- **S, symmetry**: `(ln order + ln(keep) / 2) / ln 2`, at most 1, where `order` is the number of the 48 operations that fix the state when colors may be renamed and `keep` the number that fix it with every color kept. Any symmetry beyond the identity gives 1 (color-keeping ones count extra); a random cube has none.
 - **U, uniformity**: the mean over the piece orbits of the share of tests an orbit passes: the displaced count is a simple share of the orbit (none, 1/6, 1/4, 1/3, 1/2, 2/3, 3/4, 5/6 or all), so is the twisted or flipped count, and the cycles of the pieces, where known, all have one length.
 
 Calibration, measured with `random_state` (1000 cubes per size) and the library:
@@ -263,7 +263,7 @@ kind: IRREG (no regularity of the kinds above)
 measures: fixed 0.78, defect symmetry 0.00, moved 7 of 26 pieces, symmetry 0.00 (order 1), faces 0.33, simple faces 0.00, orbits 1.00
 ```
 
-The measures: **fixed** is the share of stickers that agree with the solved cube after the whole-cube turn that makes most of them agree; the other stickers are the defect, **defect symmetry** is `ln(symmetries that map the defect onto itself) / ln 48`, and **moved** counts the pieces (corners, edge pieces, centre stickers) the defect touches. **faces** is the share of the six faces that show the most common arrangement (up to turning, mirroring and renaming colours), **simple faces** the share of faces that are one colour, stripes, a chequer, a cross, rings or similar. **symmetry** and **orbits** are the two parts of patternness.
+The measures: **fixed** is the share of stickers that agree with the solved cube after the whole-cube turn that makes most of them agree; the other stickers are the defect, **defect symmetry** is `ln(symmetries that map the defect onto itself) / ln 48`, and **moved** counts the pieces (corners, edge pieces, center stickers) the defect touches. **faces** is the share of the six faces that show the most common arrangement (up to turning, mirroring and renaming colors), **simple faces** the share of faces that are one color, stripes, a checker, a cross, rings or similar. **symmetry** and **orbits** are the two parts of patternness.
 
 The kinds are tried in order and the first that fits wins:
 
@@ -324,7 +324,7 @@ There used to be a seventh kind, `ORBIT` (every orbit of pieces moved in a regul
 
 So the goal "most patterns reach 90 in at least one measure" holds for every size, with 93 to 99.9 %; the kinds carry the 4x4x4 and bigger cubes (patternness alone reaches 83 to 94 %), and on the 2x2x2 and 3x3x3 the two measures together add 19 and 7.5 points to patternness alone.
 
-**Recognition.** `identify` against the built-in patterns and 70 % of the imported ones (chosen by a hash of the id), for the other 30 %, given as states: an exact match (up to turning, mirroring and renaming colours) is found for 73 % of the 2x2x2 patterns, 46 % of the 3x3x3, 35, 28, 24 and 16 % of the 4x4x4 to 7x7x7 patterns. Exact matches need a twin of the same state in the library, which the bigger tables have less often; for the rest the closest pattern agrees on at least 90 % of the stickers for 65 % (3x3x3) and 74 to 80 % (4x4x4 to 7x7x7) of all held-out patterns, and the median best similarity is 93 to 96 % (2x2x2: 100). As a baseline, 50 scrambles of 8 and of 12 turns have a median best similarity of 43 to 56 % on the 3x3x3 to 7x7x7 (2x2x2: 67 and 63 %), and none reaches 90 % (the 2x2x2 does for 16 % and 2 %, because a few turns of it are often a pattern). A similarity of 90 % or more is therefore a strong hint on the bigger cubes, and 80 % is where a few unrelated scrambles start to appear (up to 6 % on the 7x7x7).
+**Recognition.** `identify` against the built-in patterns and 70 % of the imported ones (chosen by a hash of the id), for the other 30 %, given as states: an exact match (up to turning, mirroring and renaming colors) is found for 73 % of the 2x2x2 patterns, 46 % of the 3x3x3, 35, 28, 24 and 16 % of the 4x4x4 to 7x7x7 patterns. Exact matches need a twin of the same state in the library, which the bigger tables have less often; for the rest the closest pattern agrees on at least 90 % of the stickers for 65 % (3x3x3) and 74 to 80 % (4x4x4 to 7x7x7) of all held-out patterns, and the median best similarity is 93 to 96 % (2x2x2: 100). As a baseline, 50 scrambles of 8 and of 12 turns have a median best similarity of 43 to 56 % on the 3x3x3 to 7x7x7 (2x2x2: 67 and 63 %), and none reaches 90 % (the 2x2x2 does for 16 % and 2 %, because a few turns of it are often a pattern). A similarity of 90 % or more is therefore a strong hint on the bigger cubes, and 80 % is where a few unrelated scrambles start to appear (up to 6 % on the 7x7x7).
 
 **Kind in lists.** `patterns --kind NAME` (case does not matter) keeps the library and imported patterns of that kind, judged at the size with the highest patternness (the smallest on a tie), and adds a `kind` column to the flat list; it combines with `--size`, `--sort` and `--min-patternness`, and filters the `--tree` too (which has no kind column).
 
@@ -344,8 +344,8 @@ cubacle patterns --kind FEW
 
 ```text
 id	name	sizes (outer/range moves)	kind
-six-centre-spots	Six centre spots	5:8/6 6:8/4 7:-/8	FEW
-four-centre-spots	Four centre spots	5:8/6 6:8/4	FEW
+six-center-spots	Six center spots	5:8/6 6:8/4 7:-/8	FEW
+four-center-spots	Four center spots	5:8/6 6:8/4	FEW
 cube-in-cube	Cube in a cube	2:10/10 3:15/15 4:15/15 5:15/15 6:15/15 7:15/15	FEW
 ```
 
@@ -401,7 +401,7 @@ cubacle patterns cycles "R U R' U'"
 ```text
 corners: (UBL UBR) +2 0; (DFR UFR) +2 +2; 4 in place
 edges: (UB FR UR); 9 in place
-centres: solved
+centers: solved
 order: 6
 ```
 
@@ -412,17 +412,17 @@ cubacle patterns cycles --size 4 "R U 2R' Fw"
 ```text
 corners: (DFL UFL UBL UBR DBR) +2 0 0 +2 +2; (DFR UFR); 1 in place
 wings 1: ...
-x-centres (corner side): (Ur2c2 Fr3c3 Dr3c3 ...); (Ur3c3 Rr2c2 ...); 5 in place
+x-centers (corner side): (Ur2c2 Fr3c3 Dr3c3 ...); (Ur3c3 Rr2c2 ...); 5 in place
 order: 780
-order without the centres: 60
+order without the centers: 60
 ```
 
 The spelling:
 
-- A **slot** is named by the faces that meet there in the order U/D, F/B, R/L: `UFR` for a corner, `UF` for an edge of the 3x3x3, `UF2` for the second wing of that edge on a bigger cube (wings are counted from L to R, from D to U and from B to F), `Ur2c3` for the centre sticker in row 2, column 3 of the U face in the usual net.
+- A **slot** is named by the faces that meet there in the order U/D, F/B, R/L: `UFR` for a corner, `UF` for an edge of the 3x3x3, `UF2` for the second wing of that edge on a bigger cube (wings are counted from L to R, from D to U and from B to F), `Ur2c3` for the center sticker in row 2, column 3 of the U face in the usual net.
 - A **cycle** `(UFR UBR DBR)` means that the piece that belongs at UFR sits at UBR, the one that belongs at UBR sits at DBR, and the one that belongs at DBR sits at UFR. Pieces in place and not turned are not listed; `N in place` counts them.
-- The **marks** after a cycle give the orientation of each of its pieces in the same order. A corner mark is the number of clockwise thirds, seen from outside the cube, from the slot's U/D face to the face that shows the piece's own U/D colour: `0`, `+1` or `+2`. An edge or wing mark is `0` if the piece shows its first-named colour (U/D before F/B before R/L) on the slot's first-named face and `+1` if it is flipped. Centres have no marks.
-- The **order** is how many times the sequence must be repeated for every piece to be back in place and orientation: the least common multiple, over all cycles, of the cycle length times 3 (corners) or 2 (wings) when the marks of the cycle do not sum to a multiple of that number. The second line leaves the centres out. A move sequence (also `-s`) is followed piece by piece and the order is exact; the tests repeat sequences until the cube returns. A cube given as colours defines an order only on the 2x2x2 and 3x3x3, where all pieces differ; on bigger cubes equal pieces are matched in index order, the cycles still rebuild the colours, and the order line says it is not defined. The cycles are read in a colour frame (the centres, or the piece at the D, B, L corner), so colour input may come back with renamed colours.
+- The **marks** after a cycle give the orientation of each of its pieces in the same order. A corner mark is the number of clockwise thirds, seen from outside the cube, from the slot's U/D face to the face that shows the piece's own U/D color: `0`, `+1` or `+2`. An edge or wing mark is `0` if the piece shows its first-named color (U/D before F/B before R/L) on the slot's first-named face and `+1` if it is flipped. Centers have no marks.
+- The **order** is how many times the sequence must be repeated for every piece to be back in place and orientation: the least common multiple, over all cycles, of the cycle length times 3 (corners) or 2 (wings) when the marks of the cycle do not sum to a multiple of that number. The second line leaves the centers out. A move sequence (also `-s`) is followed piece by piece and the order is exact; the tests repeat sequences until the cube returns. A cube given as colors defines an order only on the 2x2x2 and 3x3x3, where all pieces differ; on bigger cubes equal pieces are matched in index order, the cycles still rebuild the colors, and the order line says it is not defined. The cycles are read in a color frame (the centers, or the piece at the D, B, L corner), so color input may come back with renamed colors.
 
 Reading this spelling back as input is not implemented.
 
@@ -455,9 +455,9 @@ cubacle patterns import tables/3xDemo/demo.txt --dry-run
 counts: 0 of 16 claimed values differ from ours
 ```
 
-Without `--dry-run` the verified patterns are written in our own format to `~/.cache/cubacle/patterns/imported/` as `NAME.tsv`: a tab-separated file whose first line is `#cubacle-patterns 1 patternness-v1` (format version and patternness formula version), then `#source LABEL`, then one line per generator with `id`, `catalogue`, `size`, `number`, `name`, `aliases`, `groups`, `provenance`, `description`, `patternness` (an integer 0 to 100, or `-`) and the `moves` as the last field. The patternness is computed at import time; when the version in a file differs from the program's, the stored values are ignored, computed again and the file is rewritten the next time it is loaded (`CUBACLE_CACHE_DIR` and `XDG_CACHE_HOME` apply as for the table caches; `--out FILE` writes elsewhere). `--name-prefix P` goes in front of the ids and names, and `--source XX` sets the two-letter tag of the catalogue ids (default `ct`). A URL is refused with a hint: list it under `[patterns] files` in the config and run `cubacle patterns update`.
+Without `--dry-run` the verified patterns are written in our own format to `~/.cache/cubacle/patterns/imported/` as `NAME.tsv`: a tab-separated file whose first line is `#cubacle-patterns 1 patternness-v1` (format version and patternness formula version), then `#source LABEL`, then one line per generator with `id`, `catalog`, `size`, `number`, `name`, `aliases`, `groups`, `provenance`, `description`, `patternness` (an integer 0 to 100, or `-`) and the `moves` as the last field. The patternness is computed at import time; when the version in a file differs from the program's, the stored values are ignored, computed again and the file is rewritten the next time it is loaded (`CUBACLE_CACHE_DIR` and `XDG_CACHE_HOME` apply as for the table caches; `--out FILE` writes elsewhere). `--name-prefix P` goes in front of the ids and names, and `--source XX` sets the two-letter tag of the catalog ids (default `ct`). A URL is refused with a hint: list it under `[patterns] files` in the config and run `cubacle patterns update`.
 
-**Catalogue ids.** Every pattern has an id of at most 12 characters, `xx:code`: a two-letter source and a code of up to 9 characters from letters, digits, `.` and `-`. The built-ins use `cu:` with a short readable code (`cu:checker`, `cu:sixspot`, `cu:sixcentre`, `cu:foursp`, `cu:fourcen`, `cu:cubecube`, `cu:ccc`, `cu:superflip`, `cu:cenopp`, `cu:cencyc`); imported patterns keep the author's code (`ct:A200.01`). `show` takes a name, an alias, the short id or the catalogue id (case is not significant), and `#n` after it selects the generator with that number: `cubacle patterns show ct:X1.01#2`. The group path is separate from the id.
+**Catalog ids.** Every pattern has an id of at most 12 characters, `xx:code`: a two-letter source and a code of up to 9 characters from letters, digits, `.` and `-`. The built-ins use `cu:` with a short readable code (`cu:checker`, `cu:sixspot`, `cu:sixcentre`, `cu:foursp`, `cu:fourcen`, `cu:cubecube`, `cu:ccc`, `cu:superflip`, `cu:cenopp`, `cu:cencyc`); imported patterns keep the author's code (`ct:A200.01`). `show` takes a name, an alias, the short id or the catalog id (case is not significant), and `#n` after it selects the generator with that number: `cubacle patterns show ct:X1.01#2`. The group path is separate from the id.
 
 **Configuration.** `cubacle.toml` lists the pattern sources. It is looked up as `--config FILE`, then `$CUBACLE_CONFIG`, then `./cubacle.toml`, then the global file `~/.config/cubacle/config.toml` (`$XDG_CONFIG_HOME/cubacle/config.toml` when set). On the first run, when none of these exists, cubacle creates the global file from [`cubacle.example.toml`](https://github.com/wstein/cubacle/blob/develop/cubacle.example.toml) and prints one line on stderr saying so; if the location is not writable it says that instead and carries on with the built-in library. The created file has the built-in entry active and the six CubeTwister URLs (folders `2xPocket` to `7xVCube7`) commented out: that data belongs to its author, so check his terms first, then uncomment the entries you want. Enabling an entry is your consent to download it: cubacle fetches only URLs that are listed (uncommented) in your config, never a built-in list, and nothing at all until you run `cubacle patterns update` or set `auto_fetch = true`.
 
@@ -491,11 +491,11 @@ builtin: the built-in library
 tables/3xDemo/demo.txt: 3 patterns, 0 of 4 lines skipped (see `patterns import --dry-run`)
 ```
 
-With imports configured, `patterns` appends `imported from FILE` to the rows of imported patterns, `show` prints the catalogue id, the group path, the author text and every generator by number, and `identify` matches and ranks against the active library, the built-in patterns plus every imported source of the config. A state that equals an imported pattern up to turning, mirroring and recolouring (equal canonical forms) gets a `pattern:` line and an `imported:` line, and imported patterns appear in `closest:` and `partial:` with their catalogue id; `--closest N` lists N patterns instead of three. With a 3x3 table of two invented patterns:
+With imports configured, `patterns` appends `imported from FILE` to the rows of imported patterns, `show` prints the catalog id, the group path, the author text and every generator by number, and `identify` matches and ranks against the active library, the built-in patterns plus every imported source of the config. A state that equals an imported pattern up to turning, mirroring and recolouring (equal canonical forms) gets a `pattern:` line and an `imported:` line, and imported patterns appear in `closest:` and `partial:` with their catalog id; `--closest N` lists N patterns instead of three. With a 3x3 table of two invented patterns:
 
 ```text
 $ cubacle patterns identify -s "U2 D2"
-pattern: Slice (ct:D1.02), turned, with colours renamed
+pattern: Slice (ct:D1.02), turned, with colors renamed
 canonical: EBmpoPjf4AAA
 closest: Slice (ct:D1.02) 100 %, Four spots 85 %, Solved cube 78 %
 imported: ct:D1.02 Slice (imported from demo.txt)
@@ -516,7 +516,7 @@ ct:D1.03	patternness 33 %
 patternness: mean 73.3 %, lowest 33 %, 1 of 3 at least 95 %
 ```
 
-**The tree.** `cubacle patterns --tree` is the overview by category: headings for the category levels, then per pattern its catalogue id, name, number of generators and the shortest generator length per size. The flat list stays the default.
+**The tree.** `cubacle patterns --tree` is the overview by category: headings for the category levels, then per pattern its catalog id, name, number of generators and the shortest generator length per size. The flat list stays the default.
 
 ```sh
 cubacle patterns --tree --size 3
@@ -538,7 +538,7 @@ Demo patterns
     ct:X1.03	Loop	1 generator	3:6
 ```
 
-The built-ins have one level: Simple patterns (checkerboard, six spots, four spots and their centre variants), Cube in a cube (cube in a cube, cube in a cube in a cube), Flips (superflip) and Centres (the two centre patterns). The length counts moves as written in the generator (for a built-in the shorter of the outer and range metrics, for an import the number of turns).
+The built-ins have one level: Simple patterns (checkerboard, six spots, four spots and their center variants), Cube in a cube (cube in a cube, cube in a cube in a cube), Flips (superflip) and Centers (the two center patterns). The length counts moves as written in the generator (for a built-in the shorter of the outer and range metrics, for an import the number of turns).
 
 ## Using the library in `solve`
 

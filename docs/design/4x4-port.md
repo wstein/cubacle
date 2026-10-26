@@ -1,6 +1,6 @@
 ---
 title: "4x4x4 port plan"
-description: "Plan to port the TPR-4x4x4-Solver to Rust: licence, module map, 4x4 specifics, multi-core, benchmark and commits."
+description: "Plan to port the TPR-4x4x4-Solver to Rust: license, module map, 4x4 specifics, multi-core, benchmark and commits."
 weight: 90
 ---
 
@@ -10,7 +10,7 @@ Status: implemented (`src/engines/four`). This page is for contributors. Section
 1 to 12 are the plan as it was approved; the section "Result" at the end records
 what was built, what was measured and what differs from the plan.
 
-Numbers are labelled. **Claim** is what the reference README says. **Measured**
+Numbers are labeled. **Claim** is what the reference README says. **Measured**
 is a run on 2026-10-22 on an Apple M2 Pro (12 cores, 16 GB), Java 21, one JVM
 thread. **Estimate** is reasoning, not a run. **Unverified** is stated as such.
 
@@ -27,7 +27,7 @@ measurement below. The reference averages 44.6 moves; the greedy 3-cycle method
 of the first 5x5x5 engine (median 412 moves there) is dropped for the
 4x4x4; a few hundred moves on a 4x4x4 is the estimate, not a measurement.
 
-## 1. Licence
+## 1. License
 
 The reference has no `LICENSE` file. Its `README.md` carries two sections, both
 by Chen Shuang, quoted here as read in the clone:
@@ -72,9 +72,9 @@ tables and a mutable global `inited` flag are the main structural problem.
 
 | Phase | Java classes | What it does | Moves used | Tables |
 | --- | --- | --- | --- | --- |
-| 1 | `Center1` | Put the 8 centres of one colour axis on the two opposite faces of that axis. Tries the three axes. | 27 of 36 (U R F D L B and the wide u r f; d l b follow by symmetry) | 735,471 raw states, 15,582 after 48-fold symmetry; move table 15,582 x 36, prune table 15,582 |
-| 2 | `Center2` | Sort the remaining centres towards the arrangement phase 3 can finish (the 16 up/down and front/back centres by axis class, the 8 right/left ones by exact colour); tracks the parity bit of the edges. The exact goal is confirmed when the file is ported. | 23 of 28 (18 face turns, u2, r r2 r', f2) | 6,435 x 70 states, prune table 450,450 bytes; move tables 6,435 x 28 and 70 x 28 |
-| 3 | `Center3`, `Edge3` | Solve the centres and bring the 24 wings into the reduced state, tracking the parity of edges and corners (the `Edge3` coordinate is the relative arrangement of the two wing halves; zero is the reduced state, to be confirmed when ported). | 17 of 20 (U D F B quarter turns, R2 L2, u2 r2 f2) | centres 29,400 states x 20 moves; edges 1,538 x 20,160 = 31,006,080 symmetry-reduced states in 2 bits (7.75 MB) |
+| 1 | `Center1` | Put the 8 centers of one color axis on the two opposite faces of that axis. Tries the three axes. | 27 of 36 (U R F D L B and the wide u r f; d l b follow by symmetry) | 735,471 raw states, 15,582 after 48-fold symmetry; move table 15,582 x 36, prune table 15,582 |
+| 2 | `Center2` | Sort the remaining centers towards the arrangement phase 3 can finish (the 16 up/down and front/back centers by axis class, the 8 right/left ones by exact color); tracks the parity bit of the edges. The exact goal is confirmed when the file is ported. | 23 of 28 (18 face turns, u2, r r2 r', f2) | 6,435 x 70 states, prune table 450,450 bytes; move tables 6,435 x 28 and 70 x 28 |
+| 3 | `Center3`, `Edge3` | Solve the centers and bring the 24 wings into the reduced state, tracking the parity of edges and corners (the `Edge3` coordinate is the relative arrangement of the two wing halves; zero is the reduced state, to be confirmed when ported). | 17 of 20 (U D F B quarter turns, R2 L2, u2 r2 f2) | centers 29,400 states x 20 moves; edges 1,538 x 20,160 = 31,006,080 symmetry-reduced states in 2 bits (7.75 MB) |
 | 4 | `Search` + min2phase jar | 3x3x3 on the corners and the paired edges. | outer turns | jar tables (`twophase.data`, 0.96 MB) |
 
 `Search.doSearch` is a candidate pipeline: phase 1 enumerates up to 10,000
@@ -106,7 +106,7 @@ answer with `Facelets::apply`. A final rotation is replayed as wide turns
 | Mean time per cube | 250 ms | 131 ms mean, 112 ms median, 223 ms p90, 694 ms max over 1000 cubes (warm JVM). The first 20 cubes of a cold JVM average 314 ms |
 | Phase split of the time | not claimed | phase 1 6.7 ms, phase 2 60.1 ms, phase 3 52.1 ms, 3x3x3 11.7 ms (1000 cubes, own timers in a throwaway copy) |
 | Phase split of the length | not claimed | 6.75 + 5.81 + 12.40 + 19.60 = 44.56 (300 cubes, mean) |
-| Initialisation | 6 to 7 s | `Search.init()` 0.81 s (five runs 805 to 825 ms; 2.37 s on the very first, cold run). Command line, cold JVM, no data files: 1.23 s wall; with the data files: 0.87 s |
+| Initialization | 6 to 7 s | `Search.init()` 0.81 s (five runs 805 to 825 ms; 2.37 s on the very first, cold run). Command line, cold JVM, no data files: 1.23 s wall; with the data files: 0.87 s |
 | Memory | at most 30 MB with min2phase | runs with `-Xmx24m`; resident set 93 to 100 MB (JVM overhead) and 167 MB at default heap; the table sizes below are the number that matters |
 | Table file | about 20 MB, md5 `0ee2f10d...` | `threephase.data` 9,995,328 bytes (2,243,808 + 7,751,520 as computed), `twophase.data` 964,596 bytes; md5 `208740d4...` differs from the README, unexplained, irrelevant to the port |
 
@@ -130,7 +130,7 @@ Per-search buffers (`move1..3`, `tempe`, the candidate queues) live in a
 | `four/mod.rs` | | docs, `pub use solver::FourSolver` |
 | `four/solver.rs` | `Search.solution`, `solver.java` | `FourSolver::new(Arc<dyn Solver + Send + Sync>)`, `Solver` impl, budget and limit accounting, replay check |
 | `four/moves.rs` | `Moves` | 36 move ids (U R F D L B, then u r f d l b wide of two layers, three powers), conversion to `puzzle::Move`, the redundancy tables `ckmv`, `skipAxis` for the three move sets |
-| `four/cube.rs` | `CornerCube`, `EdgeCube`, `CenterCube`, `FullCube` | cubie state (8 corners, 24 wings, 24 centres), moves, lazy move buffer |
+| `four/cube.rs` | `CornerCube`, `EdgeCube`, `CenterCube`, `FullCube` | cubie state (8 corners, 24 wings, 24 centers), moves, lazy move buffer |
 | `four/facelets.rs` | `FullCube(byte[])`, `toFacelet`, `to333Facelet` | read and validate a `Facelets`, build the 3x3x3 `Facelets` for the hand-off, rotation to wide turns |
 | `four/sym.rs` | `Center1.initSym`, `symmult`, `symmove`, `syminv`, `finish`, `rot2str` | the 48 symmetries and their tables |
 | `four/center1.rs` | `Center1` | coordinate, symmetry reduction, move and prune tables |
@@ -164,27 +164,27 @@ opt-in feature if the Rust build turns out slower than the Java one.
 ### Reading a facelet string
 
 `Facelets` is already the right input: 96 stickers, `URFDLB`, row-major, which is
-the reference's own layout (replay verified, above). There are no fixed centres,
-so a facelet string does not name its colour scheme. The reference assumes the
-standard lettering (the letters are the colours, `U` and `D` opposite, `R` and
+the reference's own layout (replay verified, above). There are no fixed centers,
+so a facelet string does not name its color scheme. The reference assumes the
+standard lettering (the letters are the colors, `U` and `D` opposite, `R` and
 `L`, `F` and `B`, with the usual handedness) and reads corners relative to `U`/`D`.
 The port keeps that assumption and validates instead of trusting it (the
 reference has no validation and can throw `ArrayIndexOutOfBoundsException`, a
 known item in its README TODO):
 
-- every wing found exactly once among the 24 ordered colour pairs, every corner
+- every wing found exactly once among the 24 ordered color pairs, every corner
   exactly once with an orientation, otherwise `Failure::InvalidInput`;
 - a lettering that is a valid cube but not the standard scheme (for example a
   mirrored one) is also rejected as `InvalidInput` with the message that the
-  colours do not follow the `URFDLB` scheme. The other engines also refuse strings that are not a cube of the standard scheme. Cubes written in `W R G Y O B` are mapped to
-  letters by the colour scheme, as today; for an even cube the scheme cannot be
-  read from the centres, so the existing fallback (`boy` unless `--scheme` is
+  colors do not follow the `URFDLB` scheme. The other engines also refuse strings that are not a cube of the standard scheme. Cubes written in `W R G Y O B` are mapped to
+  letters by the color scheme, as today; for an even cube the scheme cannot be
+  read from the centers, so the existing fallback (`boy` unless `--scheme` is
   given) applies and the CLI already documents it.
 
 ### What "solved" means, and the rotation
 
-Without fixed centres a cube can be solved in any of the 24 orientations. The
-reference solves the centres up to rotation and then prints the rotation that
+Without fixed centers a cube can be solved in any of the 24 orientations. The
+reference solves the centers up to rotation and then prints the rotation that
 brings the cube to the standard orientation. Decision: the contract of
 `SolveResult` stays as it is (the solution turns the given cube into
 `Facelets::solved(Cube4)`, no whole-cube rotations in a solution). The final
@@ -211,7 +211,7 @@ The reference has no parity algorithms. Parity is part of the coordinates:
   the moves that flip it (within the phase 2 move set, the quarter turns of
   the wide `r` and `l`, which move an inner slice; an inner-slice quarter turn is
   what changes the permutation parity of the wings);
-- `Center3` combines the centre parity with the parity of the edge pairing and
+- `Center3` combines the center parity with the parity of the edge pairing and
   the corner parity (`eparity ^ corner.getParity()`), and its goal state
   requires that bit to be 0. A search that ends there ends in a cube whose
   corners and paired edges form a solvable 3x3x3;
@@ -221,7 +221,7 @@ The reference has no parity algorithms. Parity is part of the coordinates:
 Consequence for the port: both parity cases of a 4x4x4 (a single flipped paired
 edge, and two swapped edges or corners) can occur in the input and are all
 solved by the search itself; no fixed algorithms are needed, so nothing has to
-be verified by labelled replay except the move tables. Evidence: 1000 random
+be verified by labeled replay except the move tables. Evidence: 1000 random
 cubes, whose wing and corner parities are independent coin flips by
 construction, were all solved and replay-verified (measured; the four classes
 were not counted separately). The port must keep the loops bounded: the reference runs
@@ -229,15 +229,15 @@ were not counted separately). The port must keep the loops bounded: the referenc
 port returns `Failure::Exhausted` at length 100.
 
 Which cases are impossible: a corner twist that does not sum to 0 modulo 3 and a
-colour count other than four centres per colour. The permutation parities of
-corners and wings are independent, because centres of equal colour are
+color count other than four centers per color. The permutation parities of
+corners and wings are independent, because centers of equal color are
 interchangeable.
 
 ### The hand-off to the 3x3x3
 
-`to333Facelet` needs solved centres (it throws "Unsolved Center" otherwise) and
-writes a 54-sticker string: edges from the paired wings, centres from the four
-centre stickers, corners. In the port this is `Facelets::from_stickers` with the
+`to333Facelet` needs solved centers (it throws "Unsolved Center" otherwise) and
+writes a 54-sticker string: edges from the paired wings, centers from the four
+center stickers, corners. In the port this is `Facelets::from_stickers` with the
 stickers of the 3x3x3 positions, handed to the injected solver through the trait
 with `max_moves` 21 as in the reference, then verified exactly as the 5x5x5
 engine verifies its tail (replay on the reduced cube, then on the original).
@@ -250,15 +250,15 @@ the trait again with one move less until it fails (20 ms budget per step) gives
 19.49 moves in 25 ms per cube. So without a change the port loses about 1.3
 moves, and the tightening loop is time-based, hence not deterministic. Preparatory
 proposal (needs approval, it touches the 3x3x3 search options): a probe-count
-minimum in `SolveOptions` that `Min2PhaseSolver` honours, mirroring min2phase's
+minimum in `SolveOptions` that `Min2PhaseSolver` honors, mirroring min2phase's
 `probeMin`. Without it the acceptance threshold in section 8 cannot be met.
 
 ### Random states and validity
 
 `generate::random_state(Cube4)`: corner permutation uniform over 8! with a twist
 vector summing to 0 modulo 3; the 24 wings a uniform permutation of the 24
-ordered pairs; the centre colours a uniform arrangement of 4 x 6 colours. All
-independent, no parity coupling. Reason, measured: the number of such colour
+ordered pairs; the center colors a uniform arrangement of 4 x 6 colors. All
+independent, no parity coupling. Reason, measured: the number of such color
 states is 8! 3^7 24! (24!/(4!)^6) = 1.776e47 = 156.96 bits; divided by 24 it is
 the well-known 7.401e45 positions, and 156.96 bits is the figure of the Orbit64
 format for the 4x4x4. The reference's own generator (`FullCube(Random)`) does
@@ -269,10 +269,10 @@ exactly this, and all 1000 states it produced were solved. Also needed:
 
 `FORMAT.md` (flix-orbit64): the state is coordinates in `Orbit.layout(n)` order
 plus a frame; on even cubes the frame is required to be canonical (rank 0)
-because the movable centres already fix the pose; width 27 characters for 156.96
+because the movable centers already fix the pose; width 27 characters for 156.96
 bits; one reference vector. Feasible in principle: our facelet convention equals
 the format's, and the vector decodes to a cube the reference solves. Unverified:
-the slot numbering of the 24 wings and 24 centres and the ranking of the centre
+the slot numbering of the 24 wings and 24 centers and the ranking of the center
 multiset permutation (the document defines the order only through the 6x6x6 and
 7x7x7 extension rule and the source of `Orbit.layout`, which was not read), with a
 single vector as the only evidence, and the existing caveat that tokens do not
@@ -329,7 +329,7 @@ same 20 solutions.
 
 Another author ports `cs0x7f/cube555` (GPL-3.0 only in its README, five phases,
 a `PhaseSearch` base class and `Coord`/`SymCoord`/`RawCoord` helpers in
-`Util.java`; README claims 51 to 52 moves, 1 to 2 s, tables about 240 MB, licence
+`Util.java`; README claims 51 to 52 moves, 1 to 2 s, tables about 240 MB, license
 GPLv3 in the README, whether it also offers MIT was not checked). Its sources
 were not read for this plan; only the file list and the README. Proposal, to be
 aligned through the coordinator: a module `src/engines/reduction/` for code that
@@ -346,8 +346,8 @@ is written once, from scratch in Rust, and owned by neither port:
 Not shared: the phase coordinates and move tables (cube-size specific), the
 cube model, anything copied from either Java code base. Licensing consequence:
 the shared module contains no ported code, so it carries no third-party notice;
-each port keeps its own upstream licence in its own directory (TPR: MIT option;
-the cube555 licence is the other author's question, and keeping the shared
+each port keeps its own upstream license in its own directory (TPR: MIT option;
+the cube555 license is the other author's question, and keeping the shared
 module free of ported code means it cannot depend on that answer).
 
 The earlier idea of extracting the 5x5x5's move vocabulary and 3-cycle library
@@ -392,13 +392,13 @@ that can be committed later because it contains no reference code.
 - Unit: coordinate set/get round trips, the 48-symmetry tables (group laws), move
   tables against a cubie simulation on random states, prune tables against the
   reference's own depth counts for Edge3 (1, 4, 16, 55, 324, 1922, ... measured
-  from the reference output) and for the centre tables; ranks and parity.
+  from the reference output) and for the center tables; ranks and parity.
 - Golden: `tests/fixtures/four.txt` in the format of `five.txt` (about 40 cubes
   with length and hash of our output, plus a few cubes that must be refused) and
   a second file with the phase 1 to 3 prefix of the reference for the bit-identical
   check. A change of solver output needs an explicit decision, as for the others.
 - Orientation: the solved cube, the solved cube rotated by `x`, `y` and `z` (built
-  with wide turns), a cube whose centres are exchanged. Parity: states built from the
+  with wide turns), a cube whose centers are exchanged. Parity: states built from the
   reduced state by one wing pair flipped, two edge pairs swapped, both. Failure:
   wrong size, a lettering that is not the standard scheme, a duplicated wing, a
   twisted corner (3x3x3 stage refuses), a stub that fails or lies (replay catches
@@ -423,7 +423,7 @@ three streams that can run in parallel once commit 4 is in.
    hand-off facelets, rotation to wide turns). Rules in `architecture_test` in the
    same commit as the directories.
 5. `[A]` `feat(four): add the symmetry tables`, then `feat(four): add the phase 1
-   centre tables`, `phase 2`, `phase 3 centres`.
+   center tables`, `phase 2`, `phase 3 centers`.
 6. `[B]` `feat(four): add the wing coordinate and its prune table` (Edge3).
 7. `[A+B]` `feat(four): add the candidate pipeline of phases 1 to 3` with the
    bit-for-bit fixture.
@@ -439,7 +439,7 @@ three streams that can run in parallel once commit 4 is in.
 17. optional preparatory, on its own: probe-count minimum in `SolveOptions`
     (touches the 3x3x3 engine; needs approval; should come before 12).
 
-Streams: A is the three centre phases and symmetry (pure coordinate work), B the
+Streams: A is the three center phases and symmetry (pure coordinate work), B the
 wing table and its builder, C the application layer (generate, CLI, server) which
 needs only the `FourSolver` signature from commit 8. A benchmark harness and
 fixtures generation (outside the repo) can be done by a fourth person at any time.
@@ -448,7 +448,7 @@ fixtures generation (outside the repo) can be done by a fourth person at any tim
 
 | Risk | Mitigation |
 | --- | --- |
-| Licence headers: GPL-only 2014 headers in two files next to the dual README | MIT option recorded, GPL-3.0 combination with AGPL-3.0 allowed anyway; ask for a `LICENSE` file |
+| License headers: GPL-only 2014 headers in two files next to the dual README | MIT option recorded, GPL-3.0 combination with AGPL-3.0 allowed anyway; ask for a `LICENSE` file |
 | Java quirks (statics, unvalidated input, unbounded loops) copied by a literal port | validation and bounded loops are explicit requirements and tests |
 | 3x3x3 tail 1.3 moves longer without a probe minimum | preparatory commit 17, or the threshold is missed |
 | Bit-identical phases 1 to 3 depend on heap tie order | fallback criterion in section 8 |
@@ -477,7 +477,7 @@ fixtures generation (outside the repo) can be done by a fourth person at any tim
 Rust table sizes, build time and speed (no code exists); the speedup of the
 parallel design; the exact meaning of the `Edge3` coordinate beyond what the
 replay shows (to be confirmed when the file is ported); Orbit64 slot order for
-the 4x4x4; behaviour of the reference on invalid or non-standard input (read
+the 4x4x4; behavior of the reference on invalid or non-standard input (read
 from the code, not run); the README claim of about 20 MB of tables (the data
 files total 10.96 MB); the md5 in the README.
 

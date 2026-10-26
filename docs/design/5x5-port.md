@@ -37,7 +37,7 @@ Acceptance rule for the port: same reduction lengths as the Java run on the same
 cubes (identical algorithm and identical move order give identical lengths),
 time and memory not worse in order of magnitude.
 
-## 2. Licence handling
+## 2. License handling
 
 The README offers GPLv3 and MIT, both by Chen Shuang (the MIT notice is dated
 2023; `LICENSE-MIT` holds the 2024 notice of min2phase_rust). We take MIT.
@@ -57,17 +57,17 @@ The deleted greedy engine leaves NOTICE with it.
 
 ## 3. What the Java solver is
 
-Five phases over a facelet-free cubie model (`CubieCube`: 24 x-centres,
-24 t-centres, 24 wings, 12 middle edges, corners). Each phase is a table-driven
+Five phases over a facelet-free cubie model (`CubieCube`: 24 x-centers,
+24 t-centers, 24 wings, 12 middle edges, corners). Each phase is a table-driven
 IDA* with a restricted move set, followed by a best-first beam:
 
 | Phase | Goal | Moves | Coordinates | Prune tables (states, file) |
 | --- | --- | --- | --- | --- |
-| 1 | two opposite face colours of both centre types onto their two faces | 36 (18 face, 18 two-layer) | t and x centre C(24,8) = 735,471 each, 16-fold symmetry (46,935 and 46,371 classes) | t-sym, x-sym (23 KB each), joint x-sym by t-raw, depth-limited and hashed (2^26 entries, 33.5 MB) |
-| 2 | remaining centres of the two colours onto UD, edge parity fixed | 22 | t and x centre C(16,8) = 12,870 each, plus wing parity | two tables of 25,740 states (13 KB each) |
-| 3 | wings into four slots per layer, middle edges placed, centres into L/R-F/B halves | 24 | centre 1,225, middle edge 2,048, wing 2,704,156 raw / 86,048 sym classes, 32 symmetries | centre by middle edge 2.5 M states (1.25 MB); wing by middle edge 176 M states (88.1 MB) |
-| 4 | pair the high and low wings, finish UD centres | 16 | middle-low edge, UD and RL centre, high edge 70 x 1,680 | edge-sym 49.8 M states (24.9 MB); mid-low-edge by UD centre 145 M states (72.6 MB); by RL centre 6.4 M (3.2 MB); centre 1.06 M (0.5 MB) |
-| 5 | complete centres and pairing, leaving a 3x3x3 | 14 | centre, low edge | centre 176 k (88 KB); low-edge-sym by centre 25.9 M states (13 MB) |
+| 1 | two opposite face colors of both center types onto their two faces | 36 (18 face, 18 two-layer) | t and x center C(24,8) = 735,471 each, 16-fold symmetry (46,935 and 46,371 classes) | t-sym, x-sym (23 KB each), joint x-sym by t-raw, depth-limited and hashed (2^26 entries, 33.5 MB) |
+| 2 | remaining centers of the two colors onto UD, edge parity fixed | 22 | t and x center C(16,8) = 12,870 each, plus wing parity | two tables of 25,740 states (13 KB each) |
+| 3 | wings into four slots per layer, middle edges placed, centers into L/R-F/B halves | 24 | center 1,225, middle edge 2,048, wing 2,704,156 raw / 86,048 sym classes, 32 symmetries | center by middle edge 2.5 M states (1.25 MB); wing by middle edge 176 M states (88.1 MB) |
+| 4 | pair the high and low wings, finish UD centers | 16 | middle-low edge, UD and RL center, high edge 70 x 1,680 | edge-sym 49.8 M states (24.9 MB); mid-low-edge by UD center 145 M states (72.6 MB); by RL center 6.4 M (3.2 MB); center 1.06 M (0.5 MB) |
+| 5 | complete centers and pairing, leaving a 3x3x3 | 14 | center, low edge | center 176 k (88 KB); low-edge-sym by center 25.9 M states (13 MB) |
 
 (Table sizes are the measured file sizes; the sum is 237 MB. The goal column
 is my reading of the code and the first four rows should be confirmed while
@@ -194,7 +194,7 @@ Measured speedup (100 cubes, 12 cores): mean solve time 444 ms on one thread and
 
 The owner plans to port `cs0x7f/TPR-4x4x4-Solver` (README: 44.39 moves, 250 ms,
 at most 30 MB, MIT). I looked at its file list and class names only. It is a
-min2phase-style three-phase solver with symmetry-reduced centre and edge
+min2phase-style three-phase solver with symmetry-reduced center and edge
 coordinates (Center1/2/3, Edge3) and one IDA search, not the beam of
 `PhaseSearch`. So the two code bases share primitives and not the driver:
 

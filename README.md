@@ -28,7 +28,7 @@ cubacle facelets "R U R' U'"
 
 A scramble is standard move notation with whitespace between the moves (`R U R' U'`, `F2`, `B'`). SiGN spellings (`r`, `3r`) and SSE spellings (`TR`, `T3R`, `MR`, `N2-4R`) are read too and `--notation sign` or `--notation sse` writes them; see [docs/cli.md](docs/cli.md#move-notations). The aliases `R1` (`R`), `R3` (`R'`), and `R2'` or `R'2` (`R2`) are accepted too, as in the WCA export form; unseparated runs such as `RUR'` and a lone `-` are rejected.
 
-A cube may be written as an [Orbit64](https://github.com/wstein/flix-orbit64) state token, as `URFDLB` facelets, or as sticker colours `W R G Y O B`. Facelets and colours may be compact or spaced, in any grouping, and need no quoting. Colours are read from the fixed centres of an odd cube, so western and Japanese cubes need no flag. A cube without centres (the 2×2×2) uses `--scheme`:
+A cube may be written as an [Orbit64](https://github.com/wstein/flix-orbit64) state token, as `URFDLB` facelets, or as sticker colors `W R G Y O B`. Facelets and colors may be compact or spaced, in any grouping, and need no quoting. Colors are read from the fixed centers of an odd cube, so western and Japanese cubes need no flag. A cube without centers (the 2×2×2) uses `--scheme`:
 
 | Scheme | U R F D L B | Opposite pairs |
 | --- | --- | --- |
@@ -82,7 +82,7 @@ A limit of 20 or 21 moves is recommended for the 3×3×3 (`SolveOptions::with_ma
 ## API overview
 
 - `puzzle`: `PuzzleKind`, `Facelets` (with `apply(&MoveSequence)`), `Move` and `MoveSequence` (parse with `str::parse`), the `Solver` trait, `SolveOptions`, `SolveResult` and `Failure`.
-- `notation`: `parse_cube` (Orbit64 tokens, facelets and colours), `parse_expression` (move expressions with `(...)*N`, `M E S` and `x y z`), `ColourScheme` (with `paint`), the `orbit64` codec.
+- `notation`: `parse_cube` (Orbit64 tokens, facelets and colors), `parse_expression` (move expressions with `(...)*N`, `M E S` and `x y z`), `ColorScheme` (with `paint`), the `orbit64` codec.
 - `render`: `icon(&state, &action, &style)` draws a move as SVG, RGBA pixels, Kitty graphics or text; see the [move icons](docs/icons.md) page.
 - `generate`: `random_state(kind)` (a uniform 2×2×2, 3×3×3 or 5×5×5 state) and `scramble(kind, length)`.
 - `engines::three::Min2PhaseSolver`: the 3×3×3 `Solver`, plus
@@ -183,7 +183,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --release
 ```
 
-`tests/golden_test.rs` replays `tests/fixtures/golden.txt`, a record of the exact solutions and probe counts of both engines for 554 fixed cubes; a change that alters search behaviour fails it. `tests/architecture_test.rs` enforces the module dependency rules.
+`tests/golden_test.rs` replays `tests/fixtures/golden.txt`, a record of the exact solutions and probe counts of both engines for 554 fixed cubes; a change that alters search behavior fails it. `tests/architecture_test.rs` enforces the module dependency rules.
 
 ## HTTP server
 

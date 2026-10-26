@@ -50,4 +50,4 @@ curl -s localhost:8080/health
 - [Engines and limits](engines/_index.md)
 - [Architecture](architecture.md)
 - [Contributing](contributing.md)
-- [Credits and licence](credits.md)
+- [Credits and license](credits.md)

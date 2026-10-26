@@ -36,6 +36,6 @@ hugo --source "$tmp" --destination "$tmp/public"
 
 Open `$tmp/public/index.html` to read the result, or run `hugo server --source "$tmp"` for a live preview. Internal links between pages are written as `page.md` and resolved by Hugo, so a broken link fails the build.
 
-## Licence of contributions
+## License of contributions
 
-cubacle is licensed under AGPL-3.0-or-later. See [Credits and licence](credits.md).
+cubacle is licensed under AGPL-3.0-or-later. See [Credits and license](credits.md).

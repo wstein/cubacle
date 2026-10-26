@@ -34,7 +34,7 @@ The server binds to the local machine by default. It has no authentication, so d
 | `GET /v1/scramble?moves=25&size=3` | `moves`: 1 to 200; `size`: 2 to 7; `notation`?: `wca`, `sign` or `sse` | `{"scramble":"U' L2 F2 D U2"}` |
 | `GET /v1/random?size=3` | `size`: 2 to 7 (only 2 to 5 have engines) | `{"kind":"2x2x2","facelets":"...","token":"..."}` |
 | `POST /v1/convert` | `{"cube" or "scramble","size"?,"scheme"?}` | `{"kind","facelets","token"?}` |
-| `POST /v1/solve` | `{"cube" or "scramble","size"?,"scheme"?,"maxMoves"?,"budgetMs"?,"minProbes"?,"improve"?,"slices"?,"notation"?,"optimise"?,"target"?}` | `{"kind","solution","length","metrics","compressed"?,"compressedLength"?,"compressedMetrics"?,"elapsedMicros"}` |
+| `POST /v1/solve` | `{"cube" or "scramble","size"?,"scheme"?,"maxMoves"?,"budgetMs"?,"minProbes"?,"improve"?,"slices"?,"notation"?,"optimize"?,"target"?}` | `{"kind","solution","length","metrics","compressed"?,"compressedLength"?,"compressedMetrics"?,"elapsedMicros"}` |
 
 For `POST` requests, send the header `Content-Type: application/json`.
 
@@ -42,7 +42,7 @@ For `POST` requests, send the header `Content-Type: application/json`.
 
 | Field | Meaning |
 | --- | --- |
-| `cube` | The cube as an Orbit64 token, URFDLB facelets (spaced or compact) or W/R/G/Y/O/B colours. See [Input notations](cli.md#input-notations). |
+| `cube` | The cube as an Orbit64 token, URFDLB facelets (spaced or compact) or W/R/G/Y/O/B colors. See [Input notations](cli.md#input-notations). |
 | `scheme` | Optional. `boy`, `jp` or six letters in URFDLB order. |
 | `maxMoves` | Optional. Longest accepted solution, 1 to 25 (1 to 255 for a 4x4x4 or 5x5x5, whose solutions have about 48 and 73 moves). |
 | `slices` | Optional, default `false`. For a 4x4x4 or 5x5x5: allow single inner layers (`2R`) in the answer where they make it shorter. Without it the answer uses outer layers and two-layer turns only (a 5x5x5 also second layers). Ignored for other sizes. See [the move metric](performance.md#move-metric). |
@@ -50,9 +50,9 @@ For `POST` requests, send the header `Content-Type: application/json`.
 | `minProbes` | Optional, 3x3x3 only. Keep improving the solution until this many probes were made, 1 to 100000000. Counts work, not time, so the answer is the same on every machine. See [3x3x3 performance](engines/3x3.md). |
 | `improve` | Optional, 3x3x3 only. Keep improving until `budgetMs` is spent and return the best solution found; `budgetMs` is required and `minProbes` cannot be combined with it. Spending the budget is not an error once a solution exists. |
 | `notation` | Optional, `wca` (default), `sign` or `sse`. How the `solution` is written: `Rw`, `3Rw` or `r`, `3r` or `TR`, `T3R` (see [Move notations](cli.md#move-notations)). Also a query parameter of `/v1/scramble`. Anything else is a 400. |
-| `optimise` | Optional, `ranges`. Adds `compressed` (the solution with layer ranges such as `2-3r`, in the chosen `notation`), `compressedLength` and `compressedMetrics` to the answer; `solution`, `length` and `metrics` are unchanged. Anything else is a 400. See [`--optimise`](cli.md). |
+| `optimize` | Optional, `ranges`. Adds `compressed` (the solution with layer ranges such as `2-3r`, in the chosen `notation`), `compressedLength` and `compressedMetrics` to the answer; `solution`, `length` and `metrics` are unchanged. Anything else is a 400. See [`--optimize`](cli.md). |
 
-| `target` | Optional, `/v1/solve` only. Solve to this state instead of to the solved cube; the `solution` takes the start (`cube` or `scramble`) to it. How the server reads the text: if it is exactly `superflip`, `checkerboard` or `cube-in-cube` it is that pattern (3x3x3 only); otherwise, if it parses as a cube (an Orbit64 token, URFDLB facelets or colours, read with `scheme`), it is that cube; otherwise it is read as a move expression applied to the solved cube of the start's size. Cube text always wins over a move expression, as it does for the start on the command line. On a 4x4x4 to 7x7x7 a target whose centres of one kind show different colours on one face (built with inner slices or wide turns) is reached by a centre fix-up, the last moves of the `solution`; `maxMoves` and `budgetMs` count the whole route. See [Solve to a target](cli.md#solve-to-a-target) and [Targets with mixed centres](cli.md#targets-with-mixed-centres). |
+| `target` | Optional, `/v1/solve` only. Solve to this state instead of to the solved cube; the `solution` takes the start (`cube` or `scramble`) to it. How the server reads the text: if it is exactly `superflip`, `checkerboard` or `cube-in-cube` it is that pattern (3x3x3 only); otherwise, if it parses as a cube (an Orbit64 token, URFDLB facelets or colors, read with `scheme`), it is that cube; otherwise it is read as a move expression applied to the solved cube of the start's size. Cube text always wins over a move expression, as it does for the start on the command line. On a 4x4x4 to 7x7x7 a target whose centers of one kind show different colors on one face (built with inner slices or wide turns) is reached by a center fix-up, the last moves of the `solution`; `maxMoves` and `budgetMs` count the whole route. See [Solve to a target](cli.md#solve-to-a-target) and [Targets with mixed centers](cli.md#targets-with-mixed-centers). |
 
 Other sizes answer 400 to `minProbes` and `improve`.
 
@@ -77,7 +77,7 @@ curl -s -XPOST localhost:8080/v1/solve -H 'Content-Type: application/json' \
 {"error":{"code":"bad_input","message":"the start is a 3x3x3 but the target is a 2x2x2"}}
 ```
 
-A target of another size is a 400. A target with an impossible piece is a 422 `impossible_cube`; a state the engine finds impossible only while solving says `the start or the target state is impossible`. A target with the wrong centre colours (a colour on more or fewer than four places of an orbit, or centres no cube has) is a 422 `impossible_cube`; a middle-slice target of the 5x5x5 or 7x7x7 is reached too. A route that cannot be finished within `maxMoves` is a 422 `no_solution_within_limit`, one that the time budget ends a 504 `budget_exhausted`, as for any target. The 2x2x2 reaches the target up to a rotation of the whole cube. `/v1/convert` has no `target` and answers 400 to it, like any unknown field.
+A target of another size is a 400. A target with an impossible piece is a 422 `impossible_cube`; a state the engine finds impossible only while solving says `the start or the target state is impossible`. A target with the wrong center colors (a color on more or fewer than four places of an orbit, or centers no cube has) is a 422 `impossible_cube`; a middle-slice target of the 5x5x5 or 7x7x7 is reached too. A route that cannot be finished within `maxMoves` is a 422 `no_solution_within_limit`, one that the time budget ends a 504 `budget_exhausted`, as for any target. The 2x2x2 reaches the target up to a rotation of the whole cube. `/v1/convert` has no `target` and answers 400 to it, like any unknown field.
 
 ### Examples
 
@@ -105,11 +105,11 @@ The `elapsedMicros` value varies between runs.
 
 ### Move counts
 
-Every solve answer carries `metrics`: the length of `solution` in all seven metrics of [Move metrics](metrics.md), as integers, always in the key order `htm`, `qtm`, `stm`, `etm`, `obtm`, `btm`, `atm`. The command line shows three or four of them on its `metrics:` line; the server always sends all seven, so a client picks what it needs and ignores the rest. The counts are those of `cubacle::metrics::count` on the returned moves (`length` is the solver's own count, `moves N` on the command line). The same object under `compressedMetrics` counts `compressed` when `optimise` asked for it. The counts are part of every answer and cannot be turned off.
+Every solve answer carries `metrics`: the length of `solution` in all seven metrics of [Move metrics](metrics.md), as integers, always in the key order `htm`, `qtm`, `stm`, `etm`, `obtm`, `btm`, `atm`. The command line shows three or four of them on its `metrics:` line; the server always sends all seven, so a client picks what it needs and ignores the rest. The counts are those of `cubacle::metrics::count` on the returned moves (`length` is the solver's own count, `moves N` on the command line). The same object under `compressedMetrics` counts `compressed` when `optimize` asked for it. The counts are part of every answer and cannot be turned off.
 
 The server has no endpoint for `solve --now`, so there is no route variant to count; `/v1/solve` is the only answer with moves.
 
-Before and after, the same request (`{"cube":"A4ib8aejxj4Y","maxMoves":21,"budgetMs":2000,"optimise":"ranges"}`), run against the server:
+Before and after, the same request (`{"cube":"A4ib8aejxj4Y","maxMoves":21,"budgetMs":2000,"optimize":"ranges"}`), run against the server:
 
 ```json
 {"kind":"3x3x3","solution":"B R L B L' U' D B D2 R2 F2 R2 L2 D R2 L2 U' L2 U' F2 R","length":21,"compressed":"B R L B L' U' D B D2 R2 F2 R2 L2 D R2 L2 U' L2 U' F2 R","compressedLength":21,"elapsedMicros":1062}
@@ -132,7 +132,7 @@ curl -s -XPOST localhost:8080/v1/solve \
 {"kind":"4x4x4","solution":"D' Uw Rw' Bw' R' F' Uw' U' F' D Bw' D2 B R' L B2 D' Fw2 L Dw2 L' Lw2 F2 Bw2 D Fw2 F' U' D R D2 B2 L F' R' U2 B' R2 F2 D2 F2 U2 L2 B2 U'","length":45,"metrics":{"htm":45,"qtm":63,"stm":55,"etm":45,"obtm":45,"btm":45,"atm":38},"elapsedMicros":256354}
 ```
 
-A 4x4x4 solution has about 48 moves. Its last wide turns (`Rw Lw'` and the like, at most four) turn the whole cube back to the standard orientation, because a 4x4x4 has no fixed centres; the cube is solved exactly after them. The tables (12 MB) are built at startup, and each solve uses one thread, so concurrent requests do not compete for cores.
+A 4x4x4 solution has about 48 moves. Its last wide turns (`Rw Lw'` and the like, at most four) turn the whole cube back to the standard orientation, because a 4x4x4 has no fixed centers; the cube is solved exactly after them. The tables (12 MB) are built at startup, and each solve uses one thread, so concurrent requests do not compete for cores.
 
 The 6x6x6 and 7x7x7 are solved by reduction through the 4x4x4, 5x5x5 and 3x3x3 engines (see [the dwalton port](design/dwalton-port.md)). They ignore `maxMoves` limits below the reduction's length: the engine does not search for shorter answers. `budgetMs` ends a solve in progress: the center searches look at the clock every few thousand nodes and the wing stages get what is left, so a spent budget is a 504 `budget_exhausted`.
 
@@ -163,7 +163,7 @@ Errors have this shape:
 
 | Status | Code | Cause |
 | --- | --- | --- |
-| 400 | `bad_input` | Unparseable cube, bad JSON, unknown field or query parameter, or an out-of-range value. |
+| 400 | `bad_input` | Unparsable cube, bad JSON, unknown field or query parameter, or an out-of-range value. |
 | 404 | `not_found` | Unknown path. |
 | 405 | `method_not_allowed` | Wrong method. The response has an `Allow` header. |
 | 413 | `payload_too_large` | Body larger than `--max-body-bytes`. |

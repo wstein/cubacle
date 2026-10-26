@@ -1,6 +1,6 @@
 ---
 title: "Move metrics"
-description: "How cubacle counts moves: HTM, QTM, STM, ETM, OBTM, BTM and ATM, what each engine minimises, and the metrics lines on stderr."
+description: "How cubacle counts moves: HTM, QTM, STM, ETM, OBTM, BTM and ATM, what each engine minimizes, and the metrics lines on stderr."
 weight: 5
 ---
 
@@ -23,7 +23,7 @@ The line shows the four counts most useful for the cube: `htm qtm stm` for the 2
 
 | Command | Where the line appears |
 | --- | --- |
-| `solve` | after `moves N`; with `--optimise ranges` a second line `compressed metrics: ...` follows `compressed moves M` (not with `--group phases`) |
+| `solve` | after `moves N`; with `--optimize ranges` a second line `compressed metrics: ...` follows `compressed moves M` (not with `--group phases`) |
 | `solve --all`, `--count` | once, before `solutions N`: `metrics over the listed solutions: htm 20, qtm 24-26, stm 20`, the smallest and the largest count of the solutions listed (several solutions of one length differ in QTM) |
 | `solve --now` | `fresh metrics: ...` for the fresh solution, `recover route metrics: ...` for the recommended way back (with `--fresh` a plain `metrics:` line for the solution) |
 | `patterns find` | after `moves N` |
@@ -95,7 +95,7 @@ Produced with `cubacle moves --metrics --size N "..."` (output of the commands, 
 ### Where sources differ, and the choice made
 
 - **Half turns in QTM.** All sources agree a half turn is two quarter turns. Kept.
-- **Inner blocks in HTM and OBTM.** On the 3x3x3 every source counts a slice turn (`M`) as two face turns. For a bigger cube the rule is generalised: an inner block is two outer-block turns (the outer `b` layers, then the outer `a-1` layers back). Block moves that touch the outside count 1.
+- **Inner blocks in HTM and OBTM.** On the 3x3x3 every source counts a slice turn (`M`) as two face turns. For a bigger cube the rule is generalized: an inner block is two outer-block turns (the outer `b` layers, then the outer `a-1` layers back). Block moves that touch the outside count 1.
 - **Wide turns in STM.** Some sources count `Rw` as one slice turn, others as the number of layers it moves. The layer count is used (2 for `Rw`, 3 for `3Rw`): it never undercounts, and a turn of `n-1` layers is not shortened to the single opposite layer, because that would be a change of orientation the move as written does not make.
 - **Rotations.** Metrics that exist for the shortest-path question (HTM, QTM, STM, OBTM, BTM) ignore rotations; ETM, which models execution, counts them as one each. ATM ignores them as moves but lets them sit in a run of their own axis.
 - **Middle slices on even cubes.** `M`, `E` and `S` are refused on even cubes, as everywhere in the tool.
@@ -106,7 +106,7 @@ Produced with `cubacle moves --metrics --size N "..."` (output of the commands, 
 
 The expression reader turns `M`, `x` and a range such as `2-3Rw` into several plain layer moves (`x` on a 3x3x3 is `Rw L'`). Counting those would count one turn as two. `moves` and `convert --metrics` therefore count the words as typed whenever the input is a flat list of WCA or SiGN words, middle slices, rotations and ranges. Text with groups, repeats, commutators or SSE words is counted after expansion into plain moves, which can count rotations and slices as the layer moves they stand for.
 
-The output of a solver never contains rotations, slices or ranges unless `--optimise ranges` is given, so its counts need no care.
+The output of a solver never contains rotations, slices or ranges unless `--optimize ranges` is given, so its counts need no care.
 
 ## What each engine works on
 
@@ -116,7 +116,7 @@ The output of a solver never contains rotations, slices or ranges unless `--opti
 | --- | --- | --- |
 | 2x2x2 | optimal in HTM (exact distance table) | 20 cubes: htm 8.55, qtm 11.00 |
 | 3x3x3 | two-phase search over the 18 face turns; shortest answers come from `--improve`, but none is proven HTM-optimal | 20 cubes: default htm 20.70, qtm 30.90; `--improve -b 300`: htm 18.30, qtm 25.40 |
-| 4x4x4 | reduction; counts blocks and the 3x3x3 tail, no metric is minimised | 4x4x4, 20 cubes: moves 44.00, obtm 44.00, btm 44.00, qtm 62.30, stm 54.10 |
+| 4x4x4 | reduction; counts blocks and the 3x3x3 tail, no metric is minimized | 4x4x4, 20 cubes: moves 44.00, obtm 44.00, btm 44.00, qtm 62.30, stm 54.10 |
 | 5x5x5 | reduction, as above | 8 cubes: moves 67.88, btm 67.88, obtm 68.75, qtm 104.25, stm 92.75 |
 | `--moves qtm` | the default answer written as quarter turns, merged, not proven shortest | e.g. 25 quarter turns where `--improve` gives 11 |
 
@@ -130,9 +130,9 @@ Measured with `cubacle solve --size N -s "<30 scramble moves>"` on fixed pseudo-
 | --- | --- | --- |
 | plain moves (default) | `moves`, `solve` | HTM and OBTM (a half turn is one move) |
 | every half turn as two quarter turns | `moves --expand quarter` | QTM: every written move is one count, so the number of words is the QTM count (R2 becomes R R) |
-| runs of one axis as layer ranges | `moves --optimise ranges`, `solve --optimise ranges` | BTM and ETM on big cubes: `3Rw R'` becomes `2-3Rw`, one block turn |
+| runs of one axis as layer ranges | `moves --optimize ranges`, `solve --optimize ranges` | BTM and ETM on big cubes: `3Rw R'` becomes `2-3Rw`, one block turn |
 
-`--expand quarter` is exact and costs nothing: `R2` and `R R` turn the same layer by the same angle. It writes only quarter turns, so the HTM count of the output is its QTM count. It does not combine with `--optimise ranges`, which writes half turns of a block as one move (`2-3Rw2`). `convert` prints a cube, not moves, so it has nothing to rewrite; its `--metrics` counts an input expression. `solve` has no `--expand` (follow-up).
+`--expand quarter` is exact and costs nothing: `R2` and `R R` turn the same layer by the same angle. It writes only quarter turns, so the HTM count of the output is its QTM count. It does not combine with `--optimize ranges`, which writes half turns of a block as one move (`2-3Rw2`). `convert` prints a cube, not moves, so it has nothing to rewrite; its `--metrics` counts an input expression. `solve` has no `--expand` (follow-up).
 
 Neither form searches: the sequence stays the one the solver found, so no form makes a solution shorter in a metric it was not found in.
 

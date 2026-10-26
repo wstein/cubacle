@@ -15,7 +15,7 @@ cubacle has five roles.
 | Role | Responsibility |
 | --- | --- |
 | Puzzle | Describes a cube of any size from 2x2x2 to 7x7x7 and the moves on it. Defines the solver trait that every engine implements. |
-| Notation | Reads and writes cube states: Orbit64 tokens, facelets, colours, schemes and move sequences. |
+| Notation | Reads and writes cube states: Orbit64 tokens, facelets, colors, schemes and move sequences. |
 | Render | Draws a move on a cube state as an icon: SVG, pixels, Kitty graphics or text. Depends only on puzzle and does no I/O. |
 | Engines | Solve one cube size each: the 2x2x2 table solver, the 3x3x3 two-phase solver and the 4x4x4 and 5x5x5 reduction solvers, with the other sizes planned. |
 | Apps | The command-line tool and the REST backend. They parse input through notation, pick an engine and print the result. |

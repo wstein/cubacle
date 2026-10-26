@@ -8,18 +8,18 @@ weight: 30
 
 Status: landed (`src/engines/dwalton`). The engine follows the stage order of
 [dwalton76/rubiks-cube-NxNxN-solver](https://github.com/dwalton76/rubiks-cube-NxNxN-solver)
-(MIT, Copyright (c) 2019 Daniel Walton; see `NOTICE.md`): the centres are
+(MIT, Copyright (c) 2019 Daniel Walton; see `NOTICE.md`): the centers are
 reduced in stages, the wings are paired through a fake 4x4x4 or 5x5x5, and a
 3x3x3 solver finishes. Everything else is new code: no Python, no subprocess,
 no lookup-table files of the reference.
 
 ## Method
 
-1. **Centre stages.** Each stage is an iterative-deepening search (the generic
+1. **Center stages.** Each stage is an iterative-deepening search (the generic
    `reduction::ida`, thread-count independent) over pruning tables. A node is
    one bit mask per group of stickers (bit set: the sticker shows a marked
-   colour); a move permutes the bits through byte lookup tables.
-   - Stages that the reference hands to its 5x5x5 centre tables (6x6x6: stages 2
+   color); a move permutes the bits through byte lookup tables.
+   - Stages that the reference hands to its 5x5x5 center tables (6x6x6: stages 2
      and 4; 7x7x7: the inner and outer staging of both axes) use two dense
      tables of 735,471 states (8 of 24 stickers marked), built by breadth-first
      search with 4-bit entries and cached like the 5x5x5 tables.
@@ -37,7 +37,7 @@ no lookup-table files of the reference.
    lifted to the layers it stands for (a slice of the fake cube is a block of
    layers of the big one, so it becomes a wide turn followed by an outer turn
    back). The 4x4x4 engine keeps the frame of the cube in `reduce_only`, because
-   the centres of the big cube must not turn as a whole.
+   the centers of the big cube must not turn as a whole.
 3. **Finish.** The corners and one wing of each edge form a 3x3x3 that
    `Min2PhaseSolver` solves.
 
@@ -52,10 +52,10 @@ with the reference's mean over the same cubes:
 
 | 6x6x6 stage | here | reference |
 | --- | --- | --- |
-| LR inner x-centres staged, obliques paired | 9.60 | 9.65 |
-| LR centres staged | 10.20 | 10.0 |
-| UD inner x-centres staged, obliques paired | 9.00 | 9.1 |
-| UD centres staged | 9.55 | 9.6 |
+| LR inner x-centers staged, obliques paired | 9.60 | 9.65 |
+| LR centers staged | 10.20 | 10.0 |
+| UD inner x-centers staged, obliques paired | 9.00 | 9.1 |
+| UD centers staged | 9.55 | 9.6 |
 | step 50 (LR reducible) | 6.55 | 8.55 |
 | step 60 | 13.25 | 13.6 |
 | inner wings (4x4x4) | 19.05 | 16.05 |
@@ -65,12 +65,12 @@ with the reference's mean over the same cubes:
 
 | 7x7x7 stage | here | reference |
 | --- | --- | --- |
-| LR inner centres staged | 9.85 | 9.85 |
+| LR inner centers staged | 9.85 | 9.85 |
 | LR obliques paired | 12.55 | 12.2 |
-| LR centres staged | 10.30 | 10.1 |
-| UD inner centres staged | 9.80 | 9.65 |
+| LR centers staged | 10.30 | 10.1 |
+| UD inner centers staged | 9.80 | 9.65 |
 | UD obliques paired | 10.70 | 11.05 |
-| UD centres staged | 9.10 | 9.7 |
+| UD centers staged | 9.10 | 9.7 |
 | step 40 (LR vertical bars) | 10.10 | 9.55 |
 | step 50 | 11.00 | 11.3 |
 | step 60 | 12.95 | 12.75 |
@@ -88,28 +88,28 @@ not longer for it.
 `SolveResult::stages` carries six stages that group the steps above (the table
 is in [Move icons](../icons.md#phases)). The engine records the length of the
 raw move list at the end of each step, and the ends of the six stages are then
-matched to the normalised answer by the cube state they leave. The match is
-by colours, so a stage can end a few moves before its raw end when the
+matched to the normalized answer by the cube state they leave. The match is
+by colors, so a stage can end a few moves before its raw end when the
 rewriting has shortened the moves before it. On eight random 6x6x6 and eight
 7x7x7 cubes, 79 of the 80 ends found a state of the final answer equal to the
 engine's; the last took the closest state (see `stage_ends`). On three cubes of
-each size the state-based phases ended at the end of `inner wings and centres`
-and `outer wings and centres`.
+each size the state-based phases ended at the end of `inner wings and centers`
+and `outer wings and centers`.
 
 ## Differences from the reference
 
 - Tables are searched, not read: no 7.3 GB of lookup files. The 5x5x5 edge
   tables of the reference (about 4.5 GB) are not ported; the 5x5x5 engine of this
   repository pairs the wings.
-- The reference counts wide quarter turns to control OLL parity in some centre
-  stages. No cube of the 40 validation cubes needed it, and the centre stages
+- The reference counts wide quarter turns to control OLL parity in some center
+  stages. No cube of the 40 validation cubes needed it, and the center stages
   here do not track it.
 - Moves are the repository's: outer, wide (two layers) and three-layer wide
-  turns; the 7x7x7 results are normalised by `normalise`.
+  turns; the 7x7x7 results are normalized by `normalize`.
 
 ## Open
 
 - Times, memory and table sizes on an idle machine (not yet measured).
 - Inner wings of the 6x6x6: 3 moves over the reference, from the closing
   rotation of the 4x4x4 reduction.
-- A shorter search for the centres (beam instead of IDA*), and `improve`.
+- A shorter search for the centers (beam instead of IDA*), and `improve`.

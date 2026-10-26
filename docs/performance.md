@@ -1,6 +1,6 @@
 ---
 title: "Performance"
-description: "Measured solve times, move counts, tables and memory of all four engines, how to use the cores, and the planned optimisations."
+description: "Measured solve times, move counts, tables and memory of all four engines, how to use the cores, and the planned optimizations."
 weight: 7
 ---
 
@@ -14,7 +14,7 @@ All numbers are from the measurement of 2026-10-22 on one Apple M2 Pro with 12 c
 
 - **[M]** measured, **[D]** derived from measured numbers, **[E]** estimate. Estimates are never presented as measurements.
 - A harness crate outside the repository wrapped a copy of the code with scratch counters (phase times, node counts, thread spawns, mutex wait). The instrumentation cost +0.6 % at 1 thread and +5 % at 12 threads (4x4, 200 cubes) [M].
-- Tables are prepared first and 3 warm-up solves run before the timed loop (2x2: none). Cores busy = CPU time / wall time; utilisation = cores busy / threads.
+- Tables are prepared first and 3 warm-up solves run before the timed loop (2x2: none). Cores busy = CPU time / wall time; utilization = cores busy / threads.
 - Exactly one measurement ran at a time, after a check that the machine was at least 90 % idle; two runs that failed the check were discarded and redone.
 - Cubes: 2x2 and 3x3 1000 random states; 4x4 1000 cubes of the TPR generator (seed 1); 5x5 300 random states (subsets of 100 and 30).
 - The Java solvers run one warm JVM each (3x3: 3 passes over 1000 cubes, the third reported; 4x4: 50 warm-up solves; 5x5: 5). They are single-threaded: no `Thread` or `Executor` appears in the three sources, and the measured cores busy were 1.00 to 1.01. Node counters were added at the same place as in Rust, so "same work" can be checked.
@@ -23,7 +23,7 @@ All numbers are from the measurement of 2026-10-22 on one Apple M2 Pro with 12 c
 
 A solution's length is the number of moves in it. Every move counts one: a quarter turn, a half turn (`R2`), an outer layer (`R`), an inner layer (`2R`, a slice) and a two-layer turn (`Rw`) alike. Whole-cube rotations (`x`, `y`, `z`) are not moves and never appear in an answer; the 4x4x4 reaches the standard orientation with wide turns (`Rw Lw'`), which count as the two moves they are. All figures on this page use this metric.
 
-Answers are normalised per axis: all turns about one axis commute, so a run of them is rewritten with the fewest moves that turn each layer by the same net angle (`R Rw'` stays two moves, `R L R' L'` vanishes, and merges happen across runs that cancel). The 4x4x4 and 5x5x5 write only outer layers, two-layer turns and (5x5x5) second layers unless `--slices` (API `slices`) is given, which also allows any single inner layer, so that `R Rw'` becomes `2R'`.
+Answers are normalized per axis: all turns about one axis commute, so a run of them is rewritten with the fewest moves that turn each layer by the same net angle (`R Rw'` stays two moves, `R L R' L'` vanishes, and merges happen across runs that cancel). The 4x4x4 and 5x5x5 write only outer layers, two-layer turns and (5x5x5) second layers unless `--slices` (API `slices`) is given, which also allows any single inner layer, so that `R Rw'` becomes `2R'`.
 
 Measured (1 thread, 2026-10-22, another process on the machine; every answer replayed): the pass costs 14 us (4x4x4) and 34 us (5x5x5) per call on a 45-move answer, twice per solve, so it is lost in the noise. On the 1000 4x4x4 cubes it changes nothing by default (44.39 moves before and after: the wide-turn swaps already leave no run to merge), and `--slices` gives 43.99. On the first 100 5x5x5 cubes it gives 70.99 to 69.95 moves by default, and `--slices` the same 69.95.
 
@@ -35,7 +35,7 @@ Milliseconds per cube. 4x4 moves include the closing rotation; 5x5 includes the 
 | --- | --- | --- | --- | --- |
 | Moves, mean / median / p90 / max | 8.76 / 9 / 10 / 10 (optimal) | 20.81 / 21 / 21 / 21 | 44.39 / 45 / 46 / 49 (47.47 before the wide-turn swaps; closing rotation 0.05 moves instead of 3.12) | 72.90 / 73 / 75 / 77 |
 | Time, 1 thread, mean / median / p90 | 0.002 / 0.002 / 0.003 | 0.482 / 0.290 / 1.011 (0.845 / 0.433 / 1.82 before twist-flip pruning) | 72.2 / 62.6 / 116.8 | 408.4 / 362.5 / 666.5 |
-| 2 threads, one solve, mean (cores busy, utilisation) | n/a | n/a | 52.1 (1.53, 77 %) | 239.5 (1.97, 99 %) |
+| 2 threads, one solve, mean (cores busy, utilization) | n/a | n/a | 52.1 (1.53, 77 %) | 239.5 (1.97, 99 %) |
 | 4 threads | n/a | n/a | 41.7 (2.22, 56 %) | 142.4 (3.84, 96 %) |
 | 8 threads | n/a | n/a | 40.6 (3.60, 45 %) | 89.8 (7.38, 92 %) |
 | 12 threads, mean / median / p90 | n/a | n/a | 41.6 / 40.3 / 55.6 (5.13 cores, 43 %) | 100.2 / 79.1 / 158.9 (9.24 cores, 77 %) |
@@ -61,7 +61,7 @@ Java does the same work: node counts of the Rust and Java searches agree within 
 | Pool threads | 1 | 2 | 4 | 6 | 8 | 10 | 12 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Wall time (ms) | 788 | 427 | 218 | 146 | 112 | 98 | 87.5 |
-| Utilisation | 100 % | 99 % | 96 % | 93 % | 90 % | 89 % | 87 % |
+| Utilization | 100 % | 99 % | 96 % | 93 % | 90 % | 89 % | 87 % |
 
 That is 9.0x at 12 threads and 7.1x at 8. `solve_parallel` (the six URF searches of one cube on the pool) has no latency mode: without a time budget it did not finish one cube in 30 s, because it runs in improve mode and returns only at the deadline.
 
@@ -141,7 +141,7 @@ Release `cubacle-server` on `127.0.0.1` with defaults: 12 permits, 1 thread per 
 - The 5x5x5 server runs 12 permits x 12 threads = 144 threads, which is the oversubscribed 12 x 12 case: 10.3 per second with p50 970 ms. The measured 3 x 4 split gives 14.5 per second at p50 192 ms on the command line.
 - In a burst, permits beyond the limit are rejected with 429, never queued (by design).
 
-## Planned optimisations
+## Planned optimizations
 
 These are ranked proposals from the measurement, **not done**. Gains marked [E] are estimates; [M] marks the measured basis.
 
@@ -152,14 +152,14 @@ These are ranked proposals from the measurement, **not done**. Gains marked [E] 
 | C | Bound speculation: cancel or deprioritise tasks past the cut; give each task the global remaining quota (also fixes the 1-thread overshoot) | 5x5x5 CPU per cube 927 to about 500 ms, latency -25 to -35 %; 1-thread 5x5x5 -3 to -8 % [E] | low | medium | [M] node inflation 2x (5x5x5), +54 to +82 % (4x4x4) |
 | D | 3x3x3 parity with upstream min2phase: twist-flip and conjugate pruning are done (answers unchanged, 0.845 to 0.482 ms per cube [M]); `MAX_DEPTH2` 12 is done too (answers changed, golden file re-recorded; 20.81 to 20.67 moves, time unchanged) | 3x3x3 0.79 to about 0.3-0.4 ms; hand-off 21 to about 8-10 ms single-threaded [E] | changes every 3x3x3 answer and touches the search code (needs an owner decision) | medium to large | [M] 4.1x fewer nodes in Java |
 | E | Thread defaults: 4x4x4 latency 4 threads, 5x5x5 8 threads; server 5x5x5 threads per solve = cores / permits (for example 3 x 4) | server 5x5x5 10.3 to 14.5 per second, p50 970 to about 190 ms; 2-3x less CPU for 4x4x4 [E] | none | trivial | [M] report 3 and 5 |
-| F | Micro-optimisations: read the clock every N nodes instead of `Instant::now()` per 3x3x3 node when a budget is set; stop re-walking the root for each first-move task; prefetch pruning entries in 5x5x5 phases 1 and 4 | 2 to 10 % each [E] | low | small | [M] 0.65 us per node in 5x5x5 phase 1 |
+| F | Micro-optimizations: read the clock every N nodes instead of `Instant::now()` per 3x3x3 node when a budget is set; stop re-walking the root for each first-move task; prefetch pruning entries in 5x5x5 phases 1 and 4 | 2 to 10 % each [E] | low | small | [M] 0.65 us per node in 5x5x5 phase 1 |
 | G | Parallel 4x4x4 phase 1 | at most 1.8 ms | low | medium | [M] |
 
 Changing answers (A and D) needs an owner decision, because the recorded fixtures pin the solver output. Estimated latency with A to F [E]: 2x2x2 unchanged (0.002 ms); 3x3x3 about 0.3-0.4 ms (now 0.79, Java 0.57); 4x4x4 about 12-15 ms (now 41.6, Java 114); 5x5x5 about 50-65 ms (now 100, Java 576). A speed-up of 10x over Java is not reached today for either size (4x4x4: 2.74x; 5x5x5: 5.75x at 12 threads); 4x4x4 would need about 11.4 ms, and the sequential parts alone take 23 ms now [D]. For throughput it is reached for the 4x4x4 (12.1x) [D].
 
 ## Reproduce
 
-The full measurement used a scratch harness outside the repository (instrumented copy of the code, serialised and idle-checked runs); its commands are in the report, not in the repository. What anyone can run from the repository:
+The full measurement used a scratch harness outside the repository (instrumented copy of the code, serialized and idle-checked runs); its commands are in the report, not in the repository. What anyone can run from the repository:
 
 ```sh
 cargo build --release

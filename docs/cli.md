@@ -38,7 +38,7 @@ The first two lines go to standard error. `moves N` is always printed there, `el
 | --- | --- |
 | `-s`, `--scramble <MOVES>` | Solve the cube produced by this scramble instead of reading one. |
 | `--size <N>` | Cube size for `--scramble`: 2 to 7, default 3. A cube given as text has its size already. |
-| `--scheme <SCHEME>` | Colour scheme for colour input. See [Colour schemes](#colour-schemes). |
+| `--scheme <SCHEME>` | Color scheme for color input. See [Color schemes](#color-schemes). |
 | `--to <TARGET>` | Solve to a state other than the solved cube, or to any state that matches a target with open stickers (`X`). See [Solve to a target](#solve-to-a-target) and [Targets with open stickers](#targets-with-open-stickers). |
 | `-m`, `--max-moves <N>` | Longest solution to accept. Default: 21 for the 2x2x2 and 3x3x3, none for the 4x4x4 and 5x5x5. Also caps the default 3000 probes. |
 | `-b`, `--budget-ms <MS>` | Hard time limit in milliseconds. Given on a 3x3x3 it also restores the first-answer search (no default 3000 probes). Reaching it is the same error as `--max-time` (exit status 3). |
@@ -53,11 +53,11 @@ The first two lines go to standard error. `moves N` is always printed there, `el
 | `--then-solve` | With `--within`: when no route of at most K moves exists, solve with the normal solver. |
 | `--slices` | 4x4x4 and 5x5x5: allow single inner layers (`2R`) in the answer where they make it shorter. Default: outer layers and two-layer turns only. See [the move metric](performance.md#move-metric). |
 | `--notation <wca\|sign\|sse>` | How the solution is written. Default `wca` (`Rw`, `3Rw`); `sign` writes `r`, `3r`; `sse` writes `TR`, `T3R`, `MR` (see [Move notations](#move-notations)). With `--icons` it also sets the move lines and the last line; the icon labels stay WCA. |
-| `--optimise ranges` | After the solve, with no search: adjacent turns of one axis are written as layer ranges where that is shorter (`2-3r` in sign, `2-3Rw` in wca, `V2R`, `M2R` or `N2-4R` in sse; only contiguous layers). Off by default. The solution is the same state; stderr reports `moves N` (as solved), `compressed moves M` and, after the metrics line of the plain answer, `compressed metrics: ...`; stdout holds the compressed text. Not combined with `--icons`. On 20 random 4x4x4 to 7x7x7 solutions it saved 0 to 2 moves (2 of 20 saved any, both 7x7x7), on 14 human 4x4x4+ states 0 to 5, because the solvers already merge most axis runs. |
-| `--group <none\|phases\|axis>` | `phases` writes the solution with ` · ` between the solver phases that the engine reports (see [Hand units](#hand-units)); `axis` writes ` · ` between hand units by axis (turns about one axis on disjoint layers); both are given as `--group phases,axis`; `none` (default) is the plain list. Not with `--icons`. With `--optimise ranges` each phase is compressed on its own, so no range crosses a dot. |
+| `--optimize ranges` | After the solve, with no search: adjacent turns of one axis are written as layer ranges where that is shorter (`2-3r` in sign, `2-3Rw` in wca, `V2R`, `M2R` or `N2-4R` in sse; only contiguous layers). Off by default. The solution is the same state; stderr reports `moves N` (as solved), `compressed moves M` and, after the metrics line of the plain answer, `compressed metrics: ...`; stdout holds the compressed text. Not combined with `--icons`. On 20 random 4x4x4 to 7x7x7 solutions it saved 0 to 2 moves (2 of 20 saved any, both 7x7x7), on 14 human 4x4x4+ states 0 to 5, because the solvers already merge most axis runs. |
+| `--group <none\|phases\|axis>` | `phases` writes the solution with ` · ` between the solver phases that the engine reports (see [Hand units](#hand-units)); `axis` writes ` · ` between hand units by axis (turns about one axis on disjoint layers); both are given as `--group phases,axis`; `none` (default) is the plain list. Not with `--icons`. With `--optimize ranges` each phase is compressed on its own, so no range crosses a dot. |
 | `--icons` | Show each move as an icon. The output begins with `Start state: TOKEN`, then the start state as a picture (on rows of its own, one and a half times as large as a move icon, with a frame), has a line `State after phase N as token: TOKEN` after each phase but the last, and ends with `End state: TOKEN`, the end picture and `Moves: …`, so that a checkpoint can be compared with your cube. See [Move icons](icons.md#checkpoints). |
 | `--icon-size <PIXELS>` | With `--icons`: icon height in pixels. Default: 32 per cube layer, at least 96. |
-| `--background <dark\|light>` | With `--icons`: what the icons are seen on. It sets the notation colour and the dimming. Default: the terminal is asked (`OSC 11`), dark when it does not answer. |
+| `--background <dark\|light>` | With `--icons`: what the icons are seen on. It sets the notation color and the dimming. Default: the terminal is asked (`OSC 11`), dark when it does not answer. |
 | `--graphics <auto\|kitty\|ansi\|plain>` | With `--icons`: how the pictures are drawn. Default `auto` (variables, then a question to the terminal). An explicit value is used as given, also when output is not a terminal. The variable `CUBACLE_GRAPHICS` has the same values; the flag wins. Also accepted by `moves` and by `solve --now`. See [Forcing the graphics](icons.md#forcing-the-graphics-and-terminals). |
 | `--columns <N>` | With `--icons` on a graphics terminal: icons per row. Default: as many as fit the terminal width. See [Move icons](icons.md#how-the-terminal-is-asked). |
 | `--views <folded\|both\|urf\|net\|all>` | With `--icons`: how the whole-cube state pictures are drawn. `folded` (default) draws the Up-Right-Front corner in perspective with L, D and B unfolded flat around it, every sticker once; `both` draws each state from the Up-Right-Front and from the opposite Down-Left-Back corner, side by side, so all six faces show; `urf` only the first; `net` the flat cross net (U above F, L F R B in a row, D below), every sticker once; `all` the net and both corners. See [The folded view](icons.md#the-folded-view), [Two views of a state](icons.md#two-views-of-a-state) and [The flat net](icons.md#the-flat-net). |
@@ -72,7 +72,7 @@ cubacle random | cubacle solve -
 
 ### What solved means
 
-`solve` works on colours: a cube is solved when every face shows one colour. Inner pieces of one colour that cannot be told apart by looking, such as the centres of the 4x4x4 to 7x7x7, are interchangeable, so two cubes that differ only by a swap of same-coloured centres are the same cube and get the same answer. There is no strict mode that tells them apart. A `--to` target on the 4x4x4 and larger may still ask for a scrambled arrangement of same-coloured centres, that is for centres of one kind on one face in different colours (`Rw` moves half of the centres of the front face away): the route then ends in a centre fix-up, see [Targets with mixed centres](#targets-with-mixed-centres).
+`solve` works on colors: a cube is solved when every face shows one color. Inner pieces of one color that cannot be told apart by looking, such as the centers of the 4x4x4 to 7x7x7, are interchangeable, so two cubes that differ only by a swap of same-colored centers are the same cube and get the same answer. There is no strict mode that tells them apart. A `--to` target on the 4x4x4 and larger may still ask for a scrambled arrangement of same-colored centers, that is for centers of one kind on one face in different colors (`Rw` moves half of the centers of the front face away): the route then ends in a center fix-up, see [Targets with mixed centers](#targets-with-mixed-centers).
 
 ```sh
 cubacle solve --size 4 "R U" --to Rw
@@ -85,7 +85,7 @@ U' R' Rw
 
 ### Solve to a target
 
-`--to <TARGET>` makes `solve` print the moves that take the start cube to the target instead of to the solved cube. The target is one argument (quote it) and is read like the start: an Orbit64 token, URFDLB facelets, W/R/G/Y/O/B colours (with `--scheme`), or, when the text is no cube, a move expression applied to the solved cube of the start's size. A text that is exactly `superflip`, `checkerboard` or `cube-in-cube` is the pattern of that name instead; these are 3x3x3 patterns, and other sizes get `--to: superflip is a 3x3x3 pattern, not a 4x4x4 one`. Longer texts such as `superflip R` are not names.
+`--to <TARGET>` makes `solve` print the moves that take the start cube to the target instead of to the solved cube. The target is one argument (quote it) and is read like the start: an Orbit64 token, URFDLB facelets, W/R/G/Y/O/B colors (with `--scheme`), or, when the text is no cube, a move expression applied to the solved cube of the start's size. A text that is exactly `superflip`, `checkerboard` or `cube-in-cube` is the pattern of that name instead; these are 3x3x3 patterns, and other sizes get `--to: superflip is a 3x3x3 pattern, not a 4x4x4 one`. Longer texts such as `superflip R` are not names.
 
 ```sh
 cubacle solve "R U F2 D' L" --to superflip
@@ -105,14 +105,14 @@ Rules and limits:
 
 - Start and target must have the same size: `the start is a 3x3x3 but the target is a 2x2x2`.
 - An impossible start or target is rejected: `the start or the target state is impossible`.
-- 4x4x4 and larger: the target holds exactly, with orientation, and the colours of its centres count. Equal pieces are paired fixed points first, so the centres may sit on other faces: `solve --size 4 "R U" --to "Rw2 Lw2"` prints `U' R' Rw2 Lw2`. A target whose centres of one kind show different colours on one face is reached by a centre fix-up (next section). A target with centre colours no cube has (a colour on more or fewer than four places of an orbit) is `impossible`.
-- 2x2x2: it has no centres to fix its frame, and its solver ends in any of the 24 orientations, so the target counts as reached when the cube shows it after a rotation of the whole cube.
+- 4x4x4 and larger: the target holds exactly, with orientation, and the colors of its centers count. Equal pieces are paired fixed points first, so the centers may sit on other faces: `solve --size 4 "R U" --to "Rw2 Lw2"` prints `U' R' Rw2 Lw2`. A target whose centers of one kind show different colors on one face is reached by a center fix-up (next section). A target with center colors no cube has (a color on more or fewer than four places of an orbit) is `impossible`.
+- 2x2x2: it has no centers to fix its frame, and its solver ends in any of the 24 orientations, so the target counts as reached when the cube shows it after a rotation of the whole cube.
 - With `--icons` the output has `Target state: TOKEN` below `Start state: TOKEN`, and the move pictures end in the target.
 - A target is one argument, so `--to` does not read standard input.
 
-### Targets with mixed centres
+### Targets with mixed centers
 
-On the 4x4x4 to 7x7x7 the solvers work on colours: they bring every centre to its face but leave the centres of a face in any order. A target built with inner slices (`2R`, SSE `VB`), wide turns with slices or an imported pattern can show different colours on one face, and the solver cannot aim for that directly. `solve --to` then plans the route in three steps: find moves `w` that make the target's centres uniform, solve the start to that nearby target as for any uniform target, and append `w` undone, the centre fix-up. `w` is the shortest sequence of layer moves when a search finds it within a fixed work limit (so the answer is the same on every machine), else a short one from a beam search, else the shortest prefix of the engine's own solution of the target that leaves the centres uniform. When the target is given as moves, undoing those moves bounds the fix-up, so the route is never longer than solving to the solved cube and then making the target's moves. The fix-up is its own phase, `centre fix-up`, the last one in `-v`, `--group phases` and `--icons`.
+On the 4x4x4 to 7x7x7 the solvers work on colors: they bring every center to its face but leave the centers of a face in any order. A target built with inner slices (`2R`, SSE `VB`), wide turns with slices or an imported pattern can show different colors on one face, and the solver cannot aim for that directly. `solve --to` then plans the route in three steps: find moves `w` that make the target's centers uniform, solve the start to that nearby target as for any uniform target, and append `w` undone, the center fix-up. `w` is the shortest sequence of layer moves when a search finds it within a fixed work limit (so the answer is the same on every machine), else a short one from a beam search, else the shortest prefix of the engine's own solution of the target that leaves the centers uniform. When the target is given as moves, undoing those moves bounds the fix-up, so the route is never longer than solving to the solved cube and then making the target's moves. The fix-up is its own phase, `center fix-up`, the last one in `-v`, `--group phases` and `--icons`.
 
 The owner's SSE slice target on a 7x7x7, from a 40-move scramble (`B L2 3R' 3U' ... B' 3D2`; 220 moves, 188 for the start and 32 for the fix-up, 35 s on a busy machine):
 
@@ -122,10 +122,10 @@ cubacle solve --size 7 -s "B L2 3R' 3U' 3L 3R2 2F2 U 3R' 3D' 2R U 3F 2R2 3B2 2L 
 ```
 
 ```text
-centre fix-up: 32 moves (the moves that built the target, undone)
+center fix-up: 32 moves (the moves that built the target, undone)
 moves 220
 phase 6: 3x3 stage, moves 168-188
-phase 7: centre fix-up, moves 189-220
+phase 7: center fix-up, moves 189-220
 ```
 
 Measured routes (random 40-move starts, targets of 3, 5 and 8 random inner-slice turns; moves and seconds on a busy machine). Naive is the plain solve of the start plus the target's own moves:
@@ -140,9 +140,9 @@ Measured routes (random 40-move starts, targets of 3, 5 and 8 random inner-slice
 
 So the route is as short as the naive one and sometimes one or two moves shorter; a target of many slice turns given only as facelets costs a few moves more, because no short sequence is found for it. Rules:
 
-- The odd cubes keep their face centres: a target built with the middle slice (`3F` on a 5x5x5) is first put into the start's frame by middle-layer turns, which count in the fix-up.
-- `-m` counts the whole route: `the centre fix-up alone takes 5 moves, over the limit of 5`; `-b` covers the planning too (`the budget went into planning the centre fix-up`).
-- `--probes` and `--improve` act on the solve to the nearby target; `--parallel` stays 3x3x3 only. `--moves` (a move set) is refused with such a target. `--optimise ranges`, `--notation`, `--group` and `--icons` work as for any target.
+- The odd cubes keep their face centers: a target built with the middle slice (`3F` on a 5x5x5) is first put into the start's frame by middle-layer turns, which count in the fix-up.
+- `-m` counts the whole route: `the center fix-up alone takes 5 moves, over the limit of 5`; `-b` covers the planning too (`the budget went into planning the center fix-up`).
+- `--probes` and `--improve` act on the solve to the nearby target; `--parallel` stays 3x3x3 only. `--moves` (a move set) is refused with such a target. `--optimize ranges`, `--notation`, `--group` and `--icons` work as for any target.
 - Every route is replayed against the target before it is printed.
 
 #### A target without a cube
@@ -167,9 +167,9 @@ error: no cube given; give a cube state or --scramble (or use --to TARGET to sta
 
 ### Targets with open stickers
 
-A `--to` target may leave stickers open: the printed moves then reach any state that shows the right colour on every sticker that is fixed. An open sticker is written `X` (a `?` is read as `X`). Lowercase `x` stays the cube rotation and is never a sticker. A text is a target with open stickers when it has the length of a cube string (24, 54, 96, ...) and an `X` or `?` among face letters (`URFDLB`) or colour letters (`WRGYOB`, read with `--scheme`); every other text is read as above, and a target without an open sticker keeps the old code path and the old output, byte for byte. Orbit64 tokens cannot express open stickers.
+A `--to` target may leave stickers open: the printed moves then reach any state that shows the right color on every sticker that is fixed. An open sticker is written `X` (a `?` is read as `X`). Lowercase `x` stays the cube rotation and is never a sticker. A text is a target with open stickers when it has the length of a cube string (24, 54, 96, ...) and an `X` or `?` among face letters (`URFDLB`) or color letters (`WRGYOB`, read with `--scheme`); every other text is read as above, and a target without an open sticker keeps the old code path and the old output, byte for byte. Orbit64 tokens cannot express open stickers.
 
-Two names stand for a 3x3x3 subset over the solved cube: `cross` (the four edges of the down face, both stickers each, and the centres) and `cross-u`, `cross-r`, `cross-f`, `cross-d`, `cross-l`, `cross-b` for the cross of another face. A name is only taken as the whole text.
+Two names stand for a 3x3x3 subset over the solved cube: `cross` (the four edges of the down face, both stickers each, and the centers) and `cross-u`, `cross-r`, `cross-f`, `cross-d`, `cross-l`, `cross-b` for the cross of another face. A name is only taken as the whole text.
 
 ```sh
 cubacle solve --size 2 "R U F2 R' U' F R2 U F'" --to UUUURRRRXXXXXXXXXXXXXXXX
@@ -197,7 +197,7 @@ The line after the metrics says what the answer is. `shortest` is printed only w
 | Size | Targets with open stickers | Answer |
 |---|---|---|
 | 2x2x2 | any mask | shortest, by a search from the whole goal set (24 rotations of the cube count, as for complete targets) |
-| 3x3x3 | up to five whole edges and the centres (`cross`, `cross-u`, ...) | shortest, by an exact search over those edges |
+| 3x3x3 | up to five whole edges and the centers (`cross`, `cross-u`, ...) | shortest, by an exact search over those edges |
 | 3x3x3 | any mask that allows at most 24 complete cubes (for example one corner open) | best found: the shortest of the two-phase answers to each cube; `--probes N` makes them shorter, 16 moves instead of 20 in the example below |
 | 3x3x3 | more (a face, F2L) | refused with `unsupported: the target allows more than 24 complete cubes` |
 | 4x4x4 and larger | any | refused with `unsupported: the 4x4x4 engine cannot solve targets with open stickers yet` |
@@ -213,7 +213,7 @@ best found: the shortest of the two-phase answers to 1 complete cube(s) the targ
 U2 B U' D R' L2 U2 R F2 D2 B' R2 B D' L' F'
 ```
 
-Errors name the case: `unreachable: no state of the 2x2x2 meets the target (all 3674160 states tested)` for three stickers of one corner all `U`; `the target needs colour U on 12 stickers but a cube has only 4 of it; the target is contradictory` for too many of a colour; `contradictory: no edge of the cube has the colours U and D`; `unreachable: the target wants another colour on a centre, and the centres of a 3x3x3 never move`; `--to: cross is a 3x3x3 subset, not a 2x2x2 one`. With a target that has open stickers `--moves`, `--all`, `--count`, `--icons`, `--improve` and `--parallel` are refused for now. Measured on a quiet machine in release (fixed scrambles, one process at a time): any 2x2x2 mask 0.25 to 0.3 s and about 30 MB (a plain 2x2x2 solve is 0.08 s and 21 MB), the 3x3x3 cross 0.03 s and 4.5 MB, a cross and one more edge 0.7 s and 25 MB, one or two corners open 0.04 s.
+Errors name the case: `unreachable: no state of the 2x2x2 meets the target (all 3674160 states tested)` for three stickers of one corner all `U`; `the target needs color U on 12 stickers but a cube has only 4 of it; the target is contradictory` for too many of a color; `contradictory: no edge of the cube has the colors U and D`; `unreachable: the target wants another color on a center, and the centers of a 3x3x3 never move`; `--to: cross is a 3x3x3 subset, not a 2x2x2 one`. With a target that has open stickers `--moves`, `--all`, `--count`, `--icons`, `--improve` and `--parallel` are refused for now. Measured on a quiet machine in release (fixed scrambles, one process at a time): any 2x2x2 mask 0.25 to 0.3 s and about 30 MB (a plain 2x2x2 solve is 0.08 s and 21 MB), the 3x3x3 cross 0.03 s and 4.5 MB, a cross and one more edge 0.7 s and 25 MB, one or two corners open 0.04 s.
 
 ### Shorter solutions
 
@@ -259,7 +259,7 @@ The tables depend on the memory this machine really has, read at run time (macOS
 
 ### A nearly solved cube: --within
 
-`--within K` is for a cube that is only slightly scrambled: it finds an optimal route of at most K moves (K from 1 to 7; write `--within=5`, plain `--within` means 6). The search starts at the cube and at the target and meets in the middle on the colours of the stickers, so it needs no relative state and works for every size from the 2x2x2 to the 7x7x7 and for every target: the solved cube, `--to` as a move expression or as a state text, also a state with mixed center colors (made with slice moves). Every route is replayed colour by colour before it is printed.
+`--within K` is for a cube that is only slightly scrambled: it finds an optimal route of at most K moves (K from 1 to 7; write `--within=5`, plain `--within` means 6). The search starts at the cube and at the target and meets in the middle on the colors of the stickers, so it needs no relative state and works for every size from the 2x2x2 to the 7x7x7 and for every target: the solved cube, `--to` as a move expression or as a state text, also a state with mixed center colors (made with slice moves). Every route is replayed color by color before it is printed.
 
 ```sh
 cubacle solve -s "R U2 F' D L2 B" --within=6
@@ -302,7 +302,7 @@ metrics: obtm 6, qtm 6, stm 3, btm 3
 3B 3D 3L
 ```
 
-If nothing is found, stdout stays empty and the status is 2. Before it searches, `--within` counts the stickers that differ between the cube and the target in each orbit (corners, each kind of edge or centre piece) and divides by the most stickers one move of the alphabet displaces in that orbit; a bound above K ends the run at once. The same bound proves a target unreachable when a move never touches an orbit (the centres of the 3x3x3 with face turns). The proof is in `src/meet/alphabet.rs` and a test checks the bound against the search.
+If nothing is found, stdout stays empty and the status is 2. Before it searches, `--within` counts the stickers that differ between the cube and the target in each orbit (corners, each kind of edge or center piece) and divides by the most stickers one move of the alphabet displaces in that orbit; a bound above K ends the run at once. The same bound proves a target unreachable when a move never touches an orbit (the centers of the 3x3x3 with face turns). The proof is in `src/meet/alphabet.rs` and a test checks the bound against the search.
 
 `--then-solve` (it needs `--within`) goes on with the normal solver, with the same options as without `--within`, when no route of at most K moves exists:
 
@@ -317,7 +317,7 @@ metrics: htm 9, qtm 12, stm 9
 F2 U' R B' L2 D' F U2 R'
 ```
 
-(the first line is on stderr). `--max-time MS` (default 60000, 0 for none) and `--max-memory MB` (default 1000) bound the search; when one ends it, stderr says `error: time limit` or `error: memory limit` and the status is 3. `--within` works with `--notation`, `--icons`, `--group`, `--optimise` and `-v`. It does not combine with `--now`, `--optimal`, `--moves`, `--count`, `--all` (one route is listed) and, without `--then-solve`, with the options of the normal solver (`-m`, `-b`, `--probes`, `--improve`, `--parallel`, `--fast`); each is refused by name. The 2x2x2 route ends on the exact solved cube, not on a whole-cube rotation of it.
+(the first line is on stderr). `--max-time MS` (default 60000, 0 for none) and `--max-memory MB` (default 1000) bound the search; when one ends it, stderr says `error: time limit` or `error: memory limit` and the status is 3. `--within` works with `--notation`, `--icons`, `--group`, `--optimize` and `-v`. It does not combine with `--now`, `--optimal`, `--moves`, `--count`, `--all` (one route is listed) and, without `--then-solve`, with the options of the normal solver (`-m`, `-b`, `--probes`, `--improve`, `--parallel`, `--fast`); each is refused by name. The 2x2x2 route ends on the exact solved cube, not on a whole-cube rotation of it.
 
 Exit codes of `solve`: 0 success; 1 input error or refused option; 2 no route (or an impossible state); 3 a time or memory limit ended the search.
 
@@ -346,7 +346,7 @@ A "none" run takes about as long as a hit of the same K. The stored side is capp
 
 ### Move counts
 
-`solve` writes `moves N` and one more line to standard error, the counts in the common move metrics (`htm qtm stm` up to the 3x3x3, `obtm qtm stm btm` from the 4x4x4). Standard output is unchanged. The page [Move metrics](metrics.md) defines each count, says what the solvers minimise (the move count of their own alphabet, not QTM or STM) and lists where else the line appears.
+`solve` writes `moves N` and one more line to standard error, the counts in the common move metrics (`htm qtm stm` up to the 3x3x3, `obtm qtm stm btm` from the 4x4x4). Standard output is unchanged. The page [Move metrics](metrics.md) defines each count, says what the solvers minimize (the move count of their own alphabet, not QTM or STM) and lists where else the line appears.
 
 ```sh
 cubacle solve -s "R U R' U' F2 D L2 B'"
@@ -363,7 +363,7 @@ B L2 D' F2 U R U' R'
 ```sh
 cubacle moves --metrics "R2 L' M x"
 cubacle moves --expand quarter "R2 U' F2"
-cubacle moves --size 5 --optimise ranges "3Rw R'"
+cubacle moves --size 5 --optimize ranges "3Rw R'"
 cubacle convert --metrics -s "R U2"
 ```
 
@@ -378,7 +378,7 @@ metrics: htm 2, qtm 3, stm 2, etm 2, obtm 2, btm 2, atm 2
 FUUFUUFUULLLRRRRRRUBBFFDFFDDDBDDBDDBRRRLLLLLLFFDUBBUBB
 ```
 
-`moves --expand quarter` writes every half turn as two quarter turns (QTM form; exact, no search) and `moves --optimise ranges` writes block turns as layer ranges, as `solve --optimise ranges` does. They do not combine, and `convert` has no move output to rewrite.
+`moves --expand quarter` writes every half turn as two quarter turns (QTM form; exact, no search) and `moves --optimize ranges` writes block turns as layer ranges, as `solve --optimize ranges` does. They do not combine, and `convert` has no move output to rewrite.
 
 ### Known patterns
 
@@ -413,7 +413,7 @@ pattern: cu:superflip Superflip (library route, 1 move shorter)
 R L U2 F U' D F2 R2 B2 L U2 F' B' U R2 D F2 U R2 U
 ```
 
-A 4x4x4 whose centres were cycled (`U' 3Fw F' 3Uw' U 3Fw' F 3Uw`) goes from 12 moves to 8, by the six-spot route (`pattern: cu:sixspot Six spots (library route, 4 moves shorter)`). The lookup is one hash lookup in a map built once per run from the generators of the library under the 48 symmetries; the built-in library takes about 0.3 ms to index on a 3x3x3 (`-v` prints the time). A route keeps to the alphabet of the solver: face turns on the 3x3x3, outer blocks (`Rw`) from the 4x4x4 up, single inner layers only with `--slices`. With `--to`, the relative state and its inverse are looked up; when the relative state cannot be made for a size, the normal route is used.
+A 4x4x4 whose centers were cycled (`U' 3Fw F' 3Uw' U 3Fw' F 3Uw`) goes from 12 moves to 8, by the six-spot route (`pattern: cu:sixspot Six spots (library route, 4 moves shorter)`). The lookup is one hash lookup in a map built once per run from the generators of the library under the 48 symmetries; the built-in library takes about 0.3 ms to index on a 3x3x3 (`-v` prints the time). A route keeps to the alphabet of the solver: face turns on the 3x3x3, outer blocks (`Rw`) from the 4x4x4 up, single inner layers only with `--slices`. With `--to`, the relative state and its inverse are looked up; when the relative state cannot be made for a size, the normal route is used.
 
 ### Restricted move sets
 
@@ -522,7 +522,7 @@ The 6x6x6 and 7x7x7 solve by reduction; see [Engines and limits](engines/_index.
 
 ### Impossible states
 
-Every command that reads a cube state checks first that turns can reach it, for every size from the 2x2x2 to the 7x7x7, and says why not in the same words on every size: a twisted corner, a flipped edge, two swapped pieces (parity), a sticker combination no piece has (this includes corners that are the mirror image of real corners), a wrong centre. `solve` (also `--to` and `--now`), `convert` and `patterns find` stop with a non-zero exit status. A hint follows where the repair is certain. A twisted corner on a 3x3x3:
+Every command that reads a cube state checks first that turns can reach it, for every size from the 2x2x2 to the 7x7x7, and says why not in the same words on every size: a twisted corner, a flipped edge, two swapped pieces (parity), a sticker combination no piece has (this includes corners that are the mirror image of real corners), a wrong center. `solve` (also `--to` and `--now`), `convert` and `patterns find` stop with a non-zero exit status. A hint follows where the repair is certain. A twisted corner on a 3x3x3:
 
 ```sh
 cubacle solve UUUUUUUURFRRRRRRRRFFUFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB
@@ -540,11 +540,11 @@ error: the cube state is impossible (the cube is invalid: two pieces are swapped
 hint: swap two edges
 ```
 
-A cube written as face letters with wrong colour counts says which colour has too many or too few stickers:
+A cube written as face letters with wrong color counts says which color has too many or too few stickers:
 
 ```text
-error: not a cube (colour R appears 10 times, expected 9) and not a move expression for a 3x3x3 (character 0: invalid move "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBR")
-hint: colour R has 1 sticker too many, colour B has 1 sticker too few
+error: not a cube (color R appears 10 times, expected 9) and not a move expression for a 3x3x3 (character 0: invalid move "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBR")
+hint: color R has 1 sticker too many, color B has 1 sticker too few
 ```
 
 `patterns identify` and `patterns cycles` do not fail: patterns on illegally assembled cubes are legitimate. They print a warning on standard error, leave standard output as it is, and go on:
@@ -571,7 +571,7 @@ metrics: htm 6, qtm 8, stm 6
 U L' F2 B2 D' F'
 ```
 
-The cube after these moves is not the facelet string of a solved cube (`U` on the up face, and so on) but every face is one color, which is what a solved cube is. A cube with moved centers whose faces already are one color is `moves 0`: `cubacle solve -s x` on a 3x3x3 is a rotation, nothing to turn. The 5x5x5 pattern `centres-cycled` is solved the same way:
+The cube after these moves is not the facelet string of a solved cube (`U` on the up face, and so on) but every face is one color, which is what a solved cube is. A cube with moved centers whose faces already are one color is `moves 0`: `cubacle solve -s x` on a 3x3x3 is a rotation, nothing to turn. The 5x5x5 pattern `centers-cycled` is solved the same way:
 
 ```sh
 cubacle solve --size 5 --scramble "2-4Uw 2-4Rw' 2-4Uw' 2-4Rw"
@@ -599,7 +599,7 @@ The REST server solves such a cube the same way (the answer leaves every face on
 
 ## Solve a 4x4x4
 
-Give `solve` a 96-sticker cube, or a scramble with `--size 4`. A 4x4x4 scramble may turn the first two layers of a face (`R`, `2R`) and use wide turns (`Rw`); the 4x4x4 has no fixed centres, so the solver brings the cube to the standard colour scheme and the solution may end with whole-cube rotations.
+Give `solve` a 96-sticker cube, or a scramble with `--size 4`. A 4x4x4 scramble may turn the first two layers of a face (`R`, `2R`) and use wide turns (`Rw`); the 4x4x4 has no fixed centers, so the solver brings the cube to the standard color scheme and the solution may end with whole-cube rotations.
 
 ```sh
 cubacle solve --size 4 --scramble "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F Uw Rw' F2 Lw"
@@ -653,7 +653,7 @@ The first 5x5x5 solve prints `preparing the 5x5x5 tables (cache directory ...)` 
 
 ## Recover a mistake
 
-**Made a mistake? Do not try to fix it by hand.** Moves made to repair the cube (building centres again, undoing a few turns from memory) only move it further from the printed path, and the search can no longer name the mistake. Stop, rescan the cube and run `cubacle solve --now`, with `--at-move N` for the move you did last before you noticed.
+**Made a mistake? Do not try to fix it by hand.** Moves made to repair the cube (building centers again, undoing a few turns from memory) only move it further from the printed path, and the search can no longer name the mistake. Stop, rescan the cube and run `cubacle solve --now`, with `--at-move N` for the move you did last before you noticed.
 
 `solve --now` helps a person who followed a printed solution and made a mistake. Give `solve` the original cube (the one the solution was made for, written as always), the cube as it is now with `--now`, and optionally the solution that was handed out with `--solution`. Without `--solution` it derives the solution with the same defaults as `solve`; the solver is deterministic for the same cube, so this gives the printed one. It works for every size from the 2x2x2 to the 7x7x7.
 
@@ -739,7 +739,7 @@ cubacle solve --size 4 -s "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F Uw Rw' F2 Lw" --no
 
 ```text
 Your cube is off the path of the solution.
-Most likely: mistake at move 4, phase 1 (centres staged): move 4 (F') was turned the wrong way (F).
+Most likely: mistake at move 4, phase 1 (centers staged): move 4 (F') was turned the wrong way (F).
 You had done 9 of 43 moves when you stopped.
 Recover: undo 6 moves by turning B' Uw L2 F Lw' F', then continue with move 4 (F'). That is 46 moves in all.
 Fresh: solve your cube again from where it is, 42 moves.
@@ -774,7 +774,7 @@ These options belong to `solve --now`. All but `--now` itself need it, and `--no
 
 | Option | Meaning |
 | --- | --- |
-| `--now <CUBE>` | The cube as it is now, an Orbit64 token, facelets or colors (quote it when it has spaces). Switches `solve` to this mode. It cannot be combined with `-m`, `-b`, `--probes`, `--improve`, `--parallel`, `--fast`, `--optimise`, `--slices`, `--moves`, `--all`, `--count`, `--raw`, `--optimal`, `--nodes`, `--max-memory` or `--group`. With `--to` the way leads to the target (see [Towards a target](#towards-a-target)). |
+| `--now <CUBE>` | The cube as it is now, an Orbit64 token, facelets or colors (quote it when it has spaces). Switches `solve` to this mode. It cannot be combined with `-m`, `-b`, `--probes`, `--improve`, `--parallel`, `--fast`, `--optimize`, `--slices`, `--moves`, `--all`, `--count`, `--raw`, `--optimal`, `--nodes`, `--max-memory` or `--group`. With `--to` the way leads to the target (see [Towards a target](#towards-a-target)). |
 | `--solution <MOVES>` | The solution the person followed, in WCA, SiGN or SSE, groups and ranges allowed (see [Move notations](#move-notations)). Default: the one `solve` prints for the original cube. |
 | `--notation <wca\|sign\|sse>` | How the moves in the explanation and in `Moves now:` are written. Default `wca`. |
 | `--at-move <N>` | The move you did last before you noticed the mismatch, counting from 1. The mistake is at move N or before; later moves are ignored. |
@@ -811,7 +811,7 @@ cubacle convert CFJnI
 UUUUBFRRFRFFDDDDLLLLRBBB
 ```
 
-`convert --to token` writes a token instead. It accepts facelets, colours or a token:
+`convert --to token` writes a token instead. It accepts facelets, colors or a token:
 
 ```sh
 cubacle convert --to token LFDRFLDBFURLBBLUURUDDFRB
@@ -861,19 +861,19 @@ cubacle solve UUUU BFRR FRFF DDDD LLLL RBBB
 U R U' R F2 R' U R F2 R2
 ```
 
-### Colours
+### Colors
 
-Each sticker is a colour letter: `W`, `R`, `G`, `Y`, `O` or `B`. Compact and spaced forms both work.
+Each sticker is a color letter: `W`, `R`, `G`, `Y`, `O` or `B`. Compact and spaced forms both work.
 
 ```sh
 cubacle solve GWGWWGGGG WWWWRRWRW RRRGGRRGR BYBBYYBBB YOYYOOYYY OBOBBOOOO
 ```
 
-This prints the same solution as the Orbit64 example above. On a cube with fixed centres (3x3x3), cubacle reads the scheme from the centres, so western and Japanese cubes need no flag.
+This prints the same solution as the Orbit64 example above. On a cube with fixed centers (3x3x3), cubacle reads the scheme from the centers, so western and Japanese cubes need no flag.
 
-### Colour schemes
+### Color schemes
 
-A cube without centres, such as the 2x2x2, needs a scheme to map colours to faces. Use `--scheme`.
+A cube without centers, such as the 2x2x2, needs a scheme to map colors to faces. Use `--scheme`.
 
 | Scheme | U R F D L B | Opposite pairs |
 | --- | --- | --- |
@@ -944,7 +944,7 @@ cubacle convert A4ib8aejxj4Y
 FUFUUFFFFUUUURRURURRRFFRRFRBDBBDDBBBDLDDLLDDDLBLBBLLLL
 ```
 
-`--to` picks the output: `facelets` (default), `token` or `color`. `color` (also spelled `colour`) writes one W/R/G/Y/O/B letter per sticker, in the same order as the facelets output, through the colour scheme named by `--scheme` (default: the scheme the input colours were read in, else `boy`, the western scheme, white up and yellow down; so a Japanese-scheme colour cube with its centres converts back into Japanese letters, and tokens, facelets and scrambles come out western). `--scheme western` is another name for `boy`; `jp` and six letters in URFDLB order work too. The text reads back with `convert --scheme <same>`.
+`--to` picks the output: `facelets` (default), `token` or `color`. `color` (also spelled `color`) writes one W/R/G/Y/O/B letter per sticker, in the same order as the facelets output, through the color scheme named by `--scheme` (default: the scheme the input colors were read in, else `boy`, the western scheme, white up and yellow down; so a Japanese-scheme color cube with its centers converts back into Japanese letters, and tokens, facelets and scrambles come out western). `--scheme western` is another name for `boy`; `jp` and six letters in URFDLB order work too. The text reads back with `convert --scheme <same>`.
 
 ```sh
 cubacle convert A4ib8aejxj4Y --to color
@@ -980,7 +980,7 @@ cubacle scramble -n 8
 L' U F' R2 F L2 F' D2
 ```
 
-The output is random; moves are separated by single spaces. `random` prints a random state as facelets, uniform for the 2x2x2 and 3x3x3. `--size` takes 2, 3, 4 or 5 (default: 3); the 4x4x4 and 5x5x5 states are uniform shuffles of corners, wings and centres:
+The output is random; moves are separated by single spaces. `random` prints a random state as facelets, uniform for the 2x2x2 and 3x3x3. `--size` takes 2, 3, 4 or 5 (default: 3); the 4x4x4 and 5x5x5 states are uniform shuffles of corners, wings and centers:
 
 ```sh
 cubacle random
@@ -1075,7 +1075,7 @@ R Rw L' · L · U
 R L · Rw Lw · 3Rw R' 3Lw L' · U
 ```
 
-Without `--icons` `moves --group axis` writes the dotted line (`--group none` needs `--icons`; `--expand` and `--optimise` cannot be combined with it). With `--icons` the units are drawn with brackets as for typed dots (`group 1 of 5: U D'`). `solve --group axis` puts the dots into the answer:
+Without `--icons` `moves --group axis` writes the dotted line (`--group none` needs `--icons`; `--expand` and `--optimize` cannot be combined with it). With `--icons` the units are drawn with brackets as for typed dots (`group 1 of 5: U D'`). `solve --group axis` puts the dots into the answer:
 
 ```sh
 cubacle solve --size 4 --group axis "R U 2R 2U' Fw 2L' B2 D 2D' R' U2 2F Uw Rw' F2 Lw"
@@ -1085,7 +1085,7 @@ cubacle solve --size 4 --group axis "R U 2R 2U' Fw 2L' B2 D 2D' R' U2 2F Uw Rw' 
 B' · L' · F' · R · Bw · Dw' · B F' · R' · Dw2 · L' Rw2 · Fw' · D' · L' R' · Fw2 · U' · Bw2 · R2 L' · F2 · Dw2 · R · U · Rw2 · U · B · U · L2 · B2 · D2 · F' · U · F2 · L2 · D2 · R · B2 · L · F2 · R2 · U2 · L' · B' · L
 ```
 
-`--group phases,axis` combines the two. The phase border wins: a unit never crosses it, so the dots are those of `phases` plus those of `axis`, and `U | D'` split across two phases is `U · D'` although `axis` alone writes `U D'` (the 4x4x4 answer above has the same dots both ways; a unit test covers the split). With `--optimise ranges` each unit is compressed on its own. `solve --group axis` has no icons form (`--icons` stays the phase pictures). The dotted answer is read back by `moves` as the same moves (a test checks it for wca, sign and sse). The 2x2x2 and the 3x3x3 (min2phase) report no stage ends: in the runs made for this page the whole solution was one phase and no dot was written. The REST backend returns a flat string; it has no groups.
+`--group phases,axis` combines the two. The phase border wins: a unit never crosses it, so the dots are those of `phases` plus those of `axis`, and `U | D'` split across two phases is `U · D'` although `axis` alone writes `U D'` (the 4x4x4 answer above has the same dots both ways; a unit test covers the split). With `--optimize ranges` each unit is compressed on its own. `solve --group axis` has no icons form (`--icons` stays the phase pictures). The dotted answer is read back by `moves` as the same moves (a test checks it for wca, sign and sse). The 2x2x2 and the 3x3x3 (min2phase) report no stage ends: in the runs made for this page the whole solution was one phase and no dot was written. The REST backend returns a flat string; it has no groups.
 
 ### Middle slices and whole-cube rotations
 
@@ -1096,7 +1096,7 @@ B' · L' · F' · R · Bw · Dw' · B F' · R' · Dw2 · L' Rw2 · Fw' · D' · 
 
 All of them take `'`, `2` and the aliases above, and `*N`. An even cube (2x2x2, 4x4x4, 6x6x6) has no middle layer and refuses `M`, `E` and `S` with an error; `x`, `y` and `z` work on every size. Wide forms such as `Mw` and prefixed forms such as `2M` are not accepted. The expression is expanded into plain layer turns: a rotation becomes a wide turn of all layers but one plus the opposite outer face turned the same way round the axis, so `x` on a 3x3x3 is `Rw L'` (`Rw` is the two layers on the right). The standard identities hold and are tested: `x = R M' L'`, `y = U E' D'`, `z = F S B'`.
 
-A rotation moves the centres, so the state after it is a rotated cube, not a solved-looking one: after `x` a solved 3x3x3 shows `F` on the up face.
+A rotation moves the centers, so the state after it is a rotated cube, not a solved-looking one: after `x` a solved 3x3x3 shows `F` on the up face.
 
 ```sh
 cubacle facelets "x"
@@ -1116,7 +1116,7 @@ UBUUBUUBURRRRRRRRRFUFFUFFUFDFDDFDDFDLLLLLLLLLBDBBDBBDB
 
 `facelets` and `--scramble` read the same notation.
 
-For `convert` and `solve` the text is tried as a cube first (token, facelets, colours), and only when it is none of those as a move expression. So `U U U U R R R R F F F F D D D D L L L L B B B B` is read as the 2x2x2 facelets it spells, whereas `facelets` and `--scramble` always read a scramble: use `--scramble` when the text could be both. `--size` is not compared with the size of a cube given as text. When the text is neither, the error gives both reasons. `convert` and `solve` also take an expression in place of a cube when the text is not a cube; `--size` picks the cube:
+For `convert` and `solve` the text is tried as a cube first (token, facelets, colors), and only when it is none of those as a move expression. So `U U U U R R R R F F F F D D D D L L L L B B B B` is read as the 2x2x2 facelets it spells, whereas `facelets` and `--scramble` always read a scramble: use `--scramble` when the text could be both. `--size` is not compared with the size of a cube given as text. When the text is neither, the error gives both reasons. `convert` and `solve` also take an expression in place of a cube when the text is not a cube; `--size` picks the cube:
 
 ```sh
 cubacle convert --size 3 "(R U)*6"
@@ -1266,7 +1266,7 @@ The same moves in the three notations (each row was run with `cubacle moves --si
 | 5x5x5 | `2R`, `3R`, `4R2` | `2R`, `3R`, `4R2` | `NR`, `MR`, `N4R2` |
 | 6x6x6 | `3R`, `4R` | `3R`, `4R` | `MR`, `N4R` |
 | 7x7x7 | `2R`, `4R` | `2R`, `4R` | `NR`, `MR` |
-| 7x7x7 | `2-4Rw` | `2-4r` | `T4R R'` (`moves` writes plain moves; `--optimise ranges` writes `V3R`) |
+| 7x7x7 | `2-4Rw` | `2-4r` | `T4R R'` (`moves` writes plain moves; `--optimize ranges` writes `V3R`) |
 
 ```sh
 cubacle moves --size 7 --notation wca "TR T3R NL N4R V3U MR WF N2-5R'"
@@ -1274,7 +1274,7 @@ cubacle moves --size 5 "SR S2R S2-3R CR"
 cubacle moves --size 3 "x M S' E2"
 cubacle facelets --size 3 "MR SU CF2 R-"
 cubacle facelets --size 3 "2R U D' z2 R'"
-cubacle solve --size 4 -s "R U 2R 2U' f 2L' B2 D" --notation sse --optimise ranges
+cubacle solve --size 4 -s "R U 2R 2U' f 2L' B2 D" --notation sse --optimize ranges
 cubacle facelets --size 4 "R N2R"
 ```
 
@@ -1298,7 +1298,7 @@ How the three notations are told apart, and the decisions that were needed:
 - The pages write a twist that "is equivalent" in a shorter form (`S2-4F2` is written `SF2`). Such pairs differ by a rotation of the whole cube, which changes the state, so this program reads each as the layers it names and does not swap them. On the other hand, a range that starts at layer 1 or ends at the last layer, a one-layer range, and the forms the pages call never used (`T1R`, `T2R`, `N2R`, `M1R`, `V2R`) are read as the layers they name, so non-canonical spellings are accepted and written back in the canonical one.
 - On a cube with an even number of layers the middle layers closer to the face named are meant: `MR` is layer 2 of a 4x4 and layer 3 of a 6x6 counted from `R`, and `M3R` on a 6x6 is layers 2 to 4. The 4x4 has no `N`, so layer 3 from `R` is written from the other side, `ML'`.
 - A void twist `V3R` and a numbered range `N2-4R` name the same layers (both appear in the 7x7 page). The writer keeps the shorter form in this order: a tier (layers from layer 1, or to the last layer from the opposite face, turned the other way), `WR`, a void twist, `MR`/`M2R` in the middle, `N`, then `N2-4R`. So `N2-4R` is read, `V3R` is written.
-- Writing is per turn. `R L'` stays two moves; `S` is only read. `--optimise ranges` writes the merged blocks (`VR`, `M2R`, `N3-5R`, `T4L'`).
+- Writing is per turn. `R L'` stays two moves; `S` is only read. `--optimize ranges` writes the merged blocks (`VR`, `M2R`, `N3-5R`, `T4L'`).
 - The pages also describe permutation and orientation cycles of individual cubies. They are not supported: such text is rejected with the position of the first token that is not a move (`(UFR,URB) R` gives `character 1: invalid move "UFR"`).
 - `parse_moves` (the library function with no cube size) reads the twists that do not depend on the size (`T`, `N`, `V`, `-`); `M`, `W`, `S` and `C` need the size and are read by `parse_expression`, which every command uses.
 
