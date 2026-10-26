@@ -53,6 +53,7 @@ The first two lines go to standard error. `moves N` is always printed there, `el
 | `--notation <wca\|sign\|sse>` | How the solution is written. Default `wca` (`Rw`, `3Rw`); `sign` writes `r`, `3r`; `sse` writes `TR`, `T3R`, `MR` (see [Move notations](move-notations.md#move-notations)). With `--icons` it also sets the move lines and the last line; the icon labels stay WCA. |
 | `--optimize ranges` | After the solve, with no search: adjacent turns of one axis are written as layer ranges where that is shorter (`2-3r` in sign, `2-3Rw` in wca, `V2R`, `M2R` or `N2-4R` in sse; only contiguous layers). Off by default. The solution is the same state; stderr reports `moves N` (as solved), `compressed moves M` and, after the metrics line of the plain answer, `compressed metrics: ...`; stdout holds the compressed text. With `--icons` the pictures show the compressed solution: each range or block move is one picture with one arrow (compressed over the whole solution, so the pictures are as many as the compressed words) over the layers it turns (see [Ranges in the pictures](../icons.md#ranges-in-the-pictures)). On 20 random 4x4x4 to 7x7x7 solutions it saved 0 to 2 moves (2 of 20 saved any, both 7x7x7), on 14 human 4x4x4+ states 0 to 5, because the solvers already merge most axis runs. |
 | `--group <none\|phases\|axis>` | `phases` writes the solution with ` · ` between the solver phases that the engine reports (see [Hand units](moves.md#hand-units)); `axis` writes ` · ` between hand units by axis (turns about one axis on disjoint layers); both are given as `--group phases,axis`; `none` (default) is the plain list. Not with `--icons` (refused with the reason: the pictures are headed by the solver phases already). With `--optimize ranges` the whole solution is compressed and cut at the phase borders; a range that spans a border stays in the phase where it starts, so the count is that of the plain `--optimize ranges` answer (only with `axis` is each unit compressed on its own). |
+| `--every <N>` | Cut the answer after every N moves, whatever the solver phases are (for example `--every 10` or `--every 20`): ` · ` between the parts, or with `--icons` a heading per part. With `--optimize ranges` the N counts compressed steps. Opt-in; see [Phases of about 20 moves](solve-options.md#phases-of-about-20-moves). |
 | `--icons` | Show each move as an icon. The output begins with `Start state: TOKEN`, then the start state as a picture (on rows of its own, one and a half times as large as a move icon, with a frame), has a line `State after phase N as token: TOKEN` after each phase but the last, and ends with `End state: TOKEN`, the end picture and `Moves: …`, so that a checkpoint can be compared with your cube. See [Move icons](../icons.md#checkpoints). |
 | `--icon-size <PIXELS>` | With `--icons`: icon height in pixels. Default: 32 per cube layer, at least 96. |
 | `--background <dark\|light>` | With `--icons`: what the icons are seen on. It sets the notation color and the dimming. Default: the terminal is asked (`OSC 11`), dark when it does not answer. |
@@ -60,7 +61,7 @@ The first two lines go to standard error. `moves N` is always printed there, `el
 | `--columns <N>` | With `--icons` on a graphics terminal: icons per row. Default: as many as fit the terminal width. See [Move icons](../icons.md#how-the-terminal-is-asked). |
 | `--views <folded\|both\|urf\|net\|all>` | With `--icons`: how the whole-cube state pictures are drawn. `folded` (default) draws the Up-Right-Front corner in perspective with L, D and B unfolded flat around it, every sticker once; `both` draws each state from the Up-Right-Front and from the opposite Down-Left-Back corner, side by side, so all six faces show; `urf` only the first; `net` the flat cross net (U above F, L F R B in a row, D below), every sticker once; `all` the net and both corners. See [The folded view](../icons.md#the-folded-view), [Two views of a state](../icons.md#two-views-of-a-state) and [The flat net](../icons.md#the-flat-net). |
 | `--numbers <auto\|on\|off>` | With `--icons`: the move number in the top-left corner of every icon (`on`) or none (`off`); `auto` (default) is `on`, except that SVG files written by `moves` have no numbers. The number is the position in the move list, the N of `solve --now --at-move N`. See [Move numbers](../icons.md#move-numbers). |
-| `-v`, `--verbose` | Print timing and search statistics to standard error. With `--probes` or `--improve` also `improved from L1 to L2 moves`. Also one line per phase of the solution, such as `phase 1: to the G1 subgroup, moves 1-14` or `phase 2: wings staged, moves 20-25`; the 4x4x4 to 7x7x7 name the stages of their engine (see [Move icons](../icons.md#phases)). |
+| `-v`, `--verbose` | Print timing and search statistics to standard error. With `--probes` or `--improve` also `improved from L1 to L2 moves`. Also one line per phase of the solution, such as `phase 1: to the G1 subgroup, moves 1-14` or `phase 2: wings sorted, moves 20-25`; the 4x4x4 to 7x7x7 name the stages of their engine (see [Move icons](../icons.md#phases)). |
 
 A cube argument of `-` reads the cube from standard input:
 
@@ -122,9 +123,43 @@ cubacle solve --size 7 -s "B L2 3R' 3U' 3L 3R2 2F2 U 3R' 3D' 2R U 3F 2R2 3B2 2L 
 ```text
 center fix-up: 32 moves (the moves that built the target, undone)
 moves 220
-phase 6: 3x3 stage, moves 168-188
-phase 7: center fix-up, moves 189-220
+phase 1: LR centers on L/R (1/3), moves 1-9
+phase 2: LR centers on L/R (2/3), moves 10-21
+phase 3: LR centers on L/R (3/3), moves 22-31
+phase 4: UD/FB centers on their axes (1/2), moves 32-49
+phase 5: UD/FB centers on their axes (2/2), moves 50-58
+phase 6: centers solved (1/3), moves 59-68
+phase 7: centers solved (2/3), moves 69-78
+phase 8: centers solved (3/3), moves 79-91
+phase 9: middle wings paired (1/3), moves 92-99
+phase 10: middle wings paired (2/3), moves 100-112
+phase 11: middle wings paired (3/3), moves 113-126
+phase 12: outer wings paired (1/3), moves 127-141
+phase 13: outer wings paired (2/3), moves 142-152
+phase 14: outer wings paired (3/3), moves 153-167
+phase 15: 3x3 stage, moves 168-188
+phase 16: center fix-up (1/2), moves 189-204
+phase 17: center fix-up (2/2), moves 205-220
 ```
+
+The fix-up has phases like any solution: a fix-up of at most 20 moves is one phase, `center fix-up`, a longer one is cut into equal parts (`center fix-up (1/2)`). When the fix-up is the start of the engine's own solution of the target, the stages of that solution are carried through, undone in reverse order. A 7x7x7 target given as an Orbit64 token, from the solved cube (`-v` also lists the phases without moves, which are left out of the `--icons` headings otherwise):
+
+```sh
+cubacle solve --size 7 --to FxnPH-jRPlq7IufcH-uQYFlfnhxdBAeZGz6ONPglYfRsWaqD8wxhAFR7zJ-nheZxFv2Gw_5ahskca3-5Xz288Kj7Lw -v
+```
+
+```text
+center fix-up: 172 moves (prefix of the engine's solution of the target)
+moves 193
+phase 6: 3x3 stage, moves 1-21
+phase 7: undo phase 14: outer wings paired (3/3), moves 22-34
+phase 8: undo phase 13: outer wings paired (2/3), moves 35-47
+...
+phase 19: undo phase 2: LR centers on L/R (2/3), moves 170-182
+phase 20: undo phase 1: LR centers on L/R (1/3), moves 183-193
+```
+
+(phases 1 to 5 read `nothing to do` there, and the lines between phase 8 and phase 19 are left out here). Every phase has 21 moves or fewer.
 
 Measured routes (random 40-move starts, targets of 3, 5 and 8 random inner-slice turns; moves and seconds on a busy machine). Naive is the plain solve of the start plus the target's own moves:
 

@@ -13,6 +13,7 @@ Raw-material notes, category architecture.
 - [[Terminal probing uses rustix and own parsing]]
 - [[Graphics mode and the Kitty question]]
 - [[Phases come from the solver's stages]]
+- [[A long phase is cut at the engine's own steps]]
 - [[Recover searches sticker permutations along the solution]]
 - [[Recover advises the shorter way]]
 - [[Recover searches the stop first and widens]]

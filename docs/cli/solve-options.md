@@ -6,6 +6,31 @@ weight: 2
 
 # Solve options
 
+### Phases of about 20 moves
+
+A phase is where a person checks the cube, so the engines of the 4x4x4 to 7x7x7 report phases of 10 to 20 moves where they can. The phases are named after what can be seen at their end: the 4x4x4 has `centers staged`, `centers sorted, wings split`, `centers solved, wings paired`, `3x3 stage`; the 5x5x5 `centers on their axes`, `wings sorted`, `centers solved, wings paired`, `3x3 stage`; the 6x6x6 `LR centers on L/R`, `UD/FB centers on their axes`, `inner centers solved`, `inner wings paired`, `outer wings paired, centers solved`, `3x3 stage`; the 7x7x7 the same with `centers solved`, `middle wings paired`, `outer wings paired`. A stage over 20 moves is cut at the ends of the engine's own steps into numbered parts such as `centers solved, wings paired (1/2)`. The borders are for grouping only: a move may sit on the wrong side of one, and no answer is longer for it. Measured on 20 random cubes per size (`cubacle random`, then `solve --group phases`), phase lengths in moves:
+
+| Cube | Before: phases per solution, min / median / max | After: phases per solution, min / median / max |
+| --- | --- | --- |
+| 4x4x4 | 4, 4 / 9.5 / 21 | 4, 4 / 9.5 / 21 |
+| 5x5x5 | 4, 4 / 19 / 28 | 5, 5 / 14 / 21 |
+| 6x6x6 | 3 to 6, 15 / 20 / 97 | 7 to 11, 6 / 14 / 21 |
+| 7x7x7 | 1 to 6, 20 / 32 / 190 | 13 to 16, 7 / 12 / 21 |
+
+The phases per solution of the "before" runs vary because a short stage end used to be placed wrongly and all moves fell into one phase; the 21 moves are the 3x3 stage. The moves of the answers did not change.
+
+#### --every N
+
+`--every N` cuts the answer after every N moves instead, whatever the solver phases are: ` · ` between the parts, and with `--icons` a heading `Phase 1: moves (N moves, ...)` per part. It replaces the solver phases and combines with `--group axis` (a unit never crosses a cut). On a 4x4x4:
+
+```sh
+cubacle solve --size 4 -s "R U 2R 2U' Fw 2L' B2 D 2D' R' U2 2F Uw Rw' F2 Lw" --every 10
+```
+
+```text
+B' L' F' R Bw Dw' B F' R' Dw2 · L' Rw2 Fw' D' L' R' Fw2 U' Bw2 R2 · L' F2 Dw2 R U Rw2 U B U L2 · B2 D2 F' U F2 L2 D2 R B2 L · F2 R2 U2 L' B' L
+```
+
 ### A nearly solved cube: --within
 
 `--within K` is for a cube that is only slightly scrambled: it finds an optimal route of at most K moves (K from 1 to 7; write `--within=5`, plain `--within` means 6). The search starts at the cube and at the target and meets in the middle on the colors of the stickers, so it needs no relative state and works for every size from the 2x2x2 to the 7x7x7 and for every target: the solved cube, `--to` as a move expression or as a state text, also a state with mixed center colors (made with slice moves). Every route is replayed color by color before it is printed.

@@ -10,5 +10,6 @@ The reduction engines read centers by color, so the relative state of a target w
 - [[Equal pieces are matched fixed points first]]
 - [[A target is solved as a relative state]]
 - [[6x6 and 7x7 improve modes only vary the tail]]
+- [[A long phase is cut at the engine's own steps]]
 
 Source: src/centres/mod.rs, lines 1-30

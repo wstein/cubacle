@@ -93,8 +93,12 @@ by colors, so a stage can end a few moves before its raw end when the
 rewriting has shortened the moves before it. On eight random 6x6x6 and eight
 7x7x7 cubes, 79 of the 80 ends found a state of the final answer equal to the
 engine's; the last took the closest state (see `stage_ends`). On three cubes of
-each size the state-based phases ended at the end of `inner wings and centers`
-and `outer wings and centers`.
+each size the state-based phases ended at the end of the wing stages
+(`inner wings paired` or `middle wings paired`, and `outer wings paired`).
+
+## Phases
+
+The six stages are named `LR centers on L/R`, `UD/FB centers on their axes`, `inner centers solved` (7x7x7: `centers solved`), `inner wings paired` (`middle wings paired`), `outer wings paired, centers solved` (`outer wings paired`) and `3x3 stage`. A stage over 20 moves is cut at the ends of the reference's steps; the wing stages are cut at the stages of the 4x4x4 or 5x5x5 engine that makes them, lifted to the big cube. The ends are matched to the normalized answer by cube state; a stage end is moved at most four moves later where normalizing merged moves across it, and the end before the 3x3 stage is moved behind the last slice or wide turn. Before, the repair ran on to the end of the answer when no state matched, and a 7-move scramble of a 6x6x6 had all 52 moves in one phase (`tests/dwalton_test.rs` checks it). The step lengths in the table above are unchanged.
 
 ## Differences from the reference
 

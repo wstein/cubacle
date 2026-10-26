@@ -122,18 +122,18 @@ On a Kitty-graphics terminal the solution is shown in phases (see below) and the
 
 ### Phases
 
-The solution is cut into phases, and each phase has a heading line, then its rows of icons. The heading says how many moves the phase has and which moves of the whole solution they are: `Phase 4: 3x3 stage (19 moves, moves 9-27 of 27)`, or `(1 move, move 27 of 27)` for one move. A phase that is the whole solution, as on the 2x2x2 and often on the 3x3x3, says only `Phase 1: solve (3 moves)`; an empty phase says `(nothing to do)`. The picture of the cube after a phase is an item of the last row of the phase, right after its last icon, as tall as an icon with its notation line and as wide as its shape needs (two icon cells, gap included); when fewer than two cells are left in the row it starts the next row. The picture is left-aligned in the row and lies on a faint rounded panel without a frame line, a little lighter than a dark terminal and a little darker than a light one (from `--background`), so that it differs from a move icon, and has no heading of its own. The block of a phase ends with the line `State after phase N as token: TOKEN` on a line of its own, and one blank line separates it from the next block. The last phase has no such line: the output ends with the line `End state: TOKEN`, the end picture on rows of its own (as large as the start picture), a blank line and `Moves: ` with the plain move string. A row never spans two phases. The start picture comes before the first phase, on rows of its own and one and a half times as large as an icon.
+The solution is cut into phases, and each phase has a heading line, then its rows of icons. The heading says how many moves the phase has and which moves of the whole solution they are: `Phase 4: 3x3 stage (19 moves, moves 9-27 of 27)`, or `(1 move, move 27 of 27)` for one move. A phase that is the whole solution, as on the 2x2x2 and often on the 3x3x3, says only `Phase 1: solve (3 moves)`; an empty phase says `(nothing to do)` only with `-v`; without it the heading is left out and the next phase keeps its number. The picture of the cube after a phase is an item of the last row of the phase, right after its last icon, as tall as an icon with its notation line and as wide as its shape needs (two icon cells, gap included); when fewer than two cells are left in the row it starts the next row. The picture is left-aligned in the row and lies on a faint rounded panel without a frame line, a little lighter than a dark terminal and a little darker than a light one (from `--background`), so that it differs from a move icon, and has no heading of its own. The block of a phase ends with the line `State after phase N as token: TOKEN` on a line of its own, and one blank line separates it from the next block. The last phase has no such line: the output ends with the line `End state: TOKEN`, the end picture on rows of its own (as large as the start picture), a blank line and `Moves: ` with the plain move string. A row never spans two phases. The start picture comes before the first phase, on rows of its own and one and a half times as large as an icon.
 
 ```text
-Phase 1: centers staged (19 moves, moves 1-19 of 70)
+Phase 1: centers on their axes (19 moves, moves 1-19 of 70)
 (rows of icons numbered 1 to 19, the last row ends with the picture of the cube after the phase)
 State after phase 1 as token: TOKEN
 
-Phase 2: wings staged (6 moves, moves 20-25 of 70)
+Phase 2: wings sorted (6 moves, moves 20-25 of 70)
 ...
 ```
 
-With `-v` the lines `phase 1: centers staged, moves 1-19` go to standard error as before, except with `--icons` on a graphics terminal, where the headings already say it.
+With `-v` the lines `phase 1: centers on their axes, moves 1-19` go to standard error as before, except with `--icons` on a graphics terminal, where the headings already say it.
 
 Without graphics there are no phase headings: the text output is one picture per move, as before, and the token line of a phase follows the last move of that phase.
 
