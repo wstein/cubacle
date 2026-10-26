@@ -87,7 +87,7 @@ fn block_move(n: usize, axis: usize, (first, last, q): (usize, usize, u8)) -> La
 }
 
 /// The run itself, or its net blocks when those are fewer.
-fn compress_run(n: usize, run: &[Move], out: &mut Vec<LayerMove>) {
+fn compress_run(n: usize, base: usize, run: &[Move], out: &mut Vec<(LayerMove, usize)>) {
     let axis = axis_of(run[0].face);
     let mut net = vec![0u8; n];
     for mv in run {
@@ -97,15 +97,29 @@ fn compress_run(n: usize, run: &[Move], out: &mut Vec<LayerMove>) {
     // Every layer turned alike is a rotation of the cube: keep the run.
     let rotation = found.len() == 1 && found[0].1 - found[0].0 + 1 == n;
     if !rotation && found.len() < run.len() {
-        out.extend(found.into_iter().map(|b| block_move(n, axis, b)));
+        out.extend(found.into_iter().map(|b| (block_move(n, axis, b), base)));
     } else {
-        out.extend(run.iter().copied().map(LayerMove::from));
+        out.extend(
+            run.iter()
+                .enumerate()
+                .map(|(i, mv)| (LayerMove::from(*mv), base + i)),
+        );
     }
 }
 
 /// `moves` with each run of turns about one axis replaced by layer ranges
 /// where that is shorter. Replaying the result gives the same state.
 pub fn compress(kind: PuzzleKind, moves: &MoveSequence) -> Vec<LayerMove> {
+    compress_indexed(kind, moves)
+        .into_iter()
+        .map(|(mv, _)| mv)
+        .collect()
+}
+
+/// [`compress`], each step with the index of the move where it starts: the
+/// first move of its run for a range, its own index for a move left alone.
+/// The indices never decrease.
+pub fn compress_indexed(kind: PuzzleKind, moves: &MoveSequence) -> Vec<(LayerMove, usize)> {
     let n = kind.size();
     let mut out = Vec::new();
     let all = moves.moves();
@@ -116,7 +130,7 @@ pub fn compress(kind: PuzzleKind, moves: &MoveSequence) -> Vec<LayerMove> {
         while end < all.len() && axis_of(all[end].face) == axis {
             end += 1;
         }
-        compress_run(n, &all[start..end], &mut out);
+        compress_run(n, start, &all[start..end], &mut out);
         start = end;
     }
     out

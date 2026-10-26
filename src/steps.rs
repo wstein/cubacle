@@ -338,8 +338,9 @@ impl<'a> Pictures<'a> {
     }
 
     /// The pictures of a compressed solution (`--optimize ranges`): one step
-    /// per range or block move. The ranges are formed inside each phase, and
-    /// the phases and the numbers count the compressed steps.
+    /// per range or block move. The solution is compressed as a whole; a range
+    /// that spans a phase border is drawn in the phase where it starts, and the
+    /// phases and the numbers count the compressed steps.
     pub fn compressed_steps(
         &self,
         start: &Facelets,
@@ -430,7 +431,7 @@ impl<'a> Pictures<'a> {
 }
 
 /// The steps `print_solution` draws with `ranges`: the solution compressed
-/// inside each phase, so that no range crosses a phase border.
+/// as a whole; a range belongs to the phase where it starts.
 pub fn compressed(start: &Facelets, solution: &MoveSequence, found: &[Phase]) -> Vec<LayerMove> {
     compress_phases(start.kind(), solution, found).0
 }

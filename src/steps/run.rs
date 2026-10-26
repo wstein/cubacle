@@ -55,31 +55,34 @@ impl Run {
     }
 }
 
-/// A solution compressed phase by phase, so that no range crosses a phase
-/// border: the steps and the phases renumbered to them.
+/// A solution compressed as a whole, so a range may span a phase border: the
+/// steps, and the phases renumbered to them. A step belongs to the phase in
+/// which it starts.
 pub(crate) fn compress_phases(
     kind: PuzzleKind,
     solution: &MoveSequence,
     found: &[Phase],
 ) -> (Vec<LayerMove>, Vec<Phase>) {
-    let moves = solution.moves();
+    let indexed = ranges::compress_indexed(kind, solution);
+    let steps: Vec<LayerMove> = indexed.iter().map(|(mv, _)| *mv).collect();
     let covered = !found.is_empty()
         && found[0].moves.start == 0
         && found.windows(2).all(|w| w[0].moves.end == w[1].moves.start)
-        && found.last().is_some_and(|p| p.moves.end == moves.len());
+        && found.last().is_some_and(|p| p.moves.end == solution.len());
     if !covered {
-        return (ranges::compress(kind, solution), Vec::new());
+        return (steps, Vec::new());
     }
-    let mut steps = Vec::new();
     let mut phases = Vec::new();
+    let mut next = 0;
     for phase in found {
-        let part = MoveSequence::new(moves[phase.moves.clone()].to_vec());
-        let start = steps.len();
-        steps.extend(ranges::compress(kind, &part));
+        let start = next;
+        while next < indexed.len() && indexed[next].1 < phase.moves.end {
+            next += 1;
+        }
         phases.push(Phase {
             number: phase.number,
             name: phase.name,
-            moves: start..steps.len(),
+            moves: start..next,
         });
     }
     (steps, phases)
@@ -126,7 +129,7 @@ mod tests {
     }
 
     #[test]
-    fn ranges_do_not_cross_a_phase_border() {
+    fn a_range_spans_a_phase_border_and_belongs_to_where_it_starts() {
         let solution: MoveSequence = "U 2R 3R U".parse().unwrap();
         let phase = |number, moves| Phase {
             number,
@@ -135,17 +138,34 @@ mod tests {
         };
         let found = [phase(1, 0..2), phase(2, 2..4)];
         let (steps, phases) = compress_phases(PuzzleKind::Cube5, &solution, &found);
-        // inside one phase the two layers are one block
-        assert_eq!(ranges::compress(PuzzleKind::Cube5, &solution).len(), 3);
-        assert_eq!(steps.len(), 4);
+        assert_eq!(steps.len(), 3);
         assert_eq!(phases[0].moves, 0..2);
-        assert_eq!(phases[1].moves, 2..4);
-        let joined = [phase(1, 0..4)];
-        assert_eq!(
-            compress_phases(PuzzleKind::Cube5, &solution, &joined)
-                .0
-                .len(),
-            3
-        );
+        assert_eq!(phases[1].moves, 2..3);
+    }
+
+    /// The pictures are as many as the words of the compressed answer.
+    #[test]
+    fn the_pictures_count_the_compressed_words() {
+        for kind in [
+            PuzzleKind::Cube4,
+            PuzzleKind::Cube5,
+            PuzzleKind::Cube6,
+            PuzzleKind::Cube7,
+        ] {
+            for _ in 0..20 {
+                let moves = scramble(kind, 80);
+                let cut = moves.len() / 2;
+                let phase = |number, range| Phase {
+                    number,
+                    name: "p",
+                    moves: range,
+                };
+                let found = [phase(1, 0..cut), phase(2, cut..moves.len())];
+                let (steps, _) = compress_phases(kind, &moves, &found);
+                let (_, words) = ranges::compressed_text(Notation::Wca, kind, &moves);
+                assert_eq!(steps.len(), words);
+                assert_eq!(Run::packed(&steps, Notation::Wca, kind).len(), words);
+            }
+        }
     }
 }
