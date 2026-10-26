@@ -6,7 +6,7 @@ weight: 3
 
 # Command-line guide
 
-The `cubacle` tool has nine subcommands: `solve` (also the way back after a mistake, with `--now`), `convert`, `scramble`, `random`, `facelets`, `moves`, `order`, `template` (see "Check a template file") and `patterns` (see [Patterns](patterns.md); its actions are `list` (the same as `patterns` alone), `show`, `find`, `identify` for the structure of a state and `cycles` for its part cycles and order, `import` for pattern tables, `update` (alias `download`) to download the URL sources of the config, `sources` for the pattern files in use and `--tree` for the overview by category; `--icons` draws pictures of the list, `show`, `find` and `identify`, see [Patterns with icons](icons.md#patterns-with-icons); see "Importing pattern files"). Run `cubacle <command> --help` for the full option list.
+The `cubacle` tool has ten subcommands: `solve` (also the way back after a mistake, with `--now`), `convert`, `canon`, `scramble`, `random`, `facelets`, `moves`, `order`, `template` (see "Check a template file") and `patterns` (see [Patterns](patterns.md); its actions are `list` (the same as `patterns` alone), `show`, `find`, `identify` for the structure of a state and `cycles` for its part cycles and order, `import` for pattern tables, `update` (alias `download`) to download the URL sources of the config, `sources` for the pattern files in use and `--tree` for the overview by category; `--icons` draws pictures of the list, `show`, `find` and `identify`, see [Patterns with icons](icons.md#patterns-with-icons); see "Importing pattern files"). Run `cubacle <command> --help` for the full option list.
 
 ## Pages
 
@@ -19,6 +19,7 @@ The `cubacle` tool has nine subcommands: `solve` (also the way back after a mist
 - [Convert a cube](convert.md): Convert a cube between notations.
 - [Generate scrambles and cubes](generate.md): Generate random scrambles and cubes.
 - [Apply a scramble](moves.md): Apply a scramble: groups, commutators, hand units and slices.
+- [Canonical token](canon.md): The canonical Orbit64 token, one identifier per pattern.
 - [Order of a move sequence](order.md): The order of a move sequence.
 - [Draw moves](draw.md): Draw moves in the terminal.
 - [Move notations](move-notations.md): WCA, SiGN and SSE move notations.

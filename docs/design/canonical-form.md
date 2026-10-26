@@ -6,8 +6,9 @@ weight: 50
 
 # Canonical form
 
-Status: in the library and in `cubacle patterns identify` (the `canonical:` line); not in the REST
-server, and there is no `canon` command. The code is
+Status: in the library, in `cubacle patterns identify` (the `canonical:` line), in
+`cubacle canon` ([Canonical token](../cli/canon.md)) and in the REST field `canonical` of
+`/v1/convert` and `/v1/random` ([REST API](../api.md#the-canonical-field)). The code is
 `src/canonical/mod.rs`, its tests `src/canonical/tests.rs`. Numbers
 marked **[M]** were measured for this paper (release build, one Apple Silicon
 core, `nice`); every command below was run.
@@ -166,7 +167,7 @@ loops are small constants times `n^2`), once or twice. Measured above.
 | Use | Rating (1 to 5) | Reason |
 | --- | --- | --- |
 | Library use: store the token with every pattern and look patterns up by it | 5 | Same discrimination as the detector form, short, printable and convertible back; the detector keeps its in-memory form (2.5 ms for the library). |
-| REST: a `canonical` field on identify and on the solve response | 4 | Cheap (under 60 us) and stateless. Not built in the spike. |
-| CLI `cubacle canon <cube>` | 4 | One token per line, any notation; useful in scripts. Not built in the spike. |
+| REST: a `canonical` field on the state descriptions | 4 | Cheap (under 60 us) and stateless. Built on `/v1/convert` and `/v1/random`. |
+| CLI `cubacle canon <cube>` | 4 | One token per line, any notation; useful in scripts. Built. |
 | Use inside searches (transposition keys) | 2 | The search state space is not quotiented by colors; 20 to 60 us per call is slow there. |
 | Identifier for chiral patterns | 2 | See "Mirror images" above. |

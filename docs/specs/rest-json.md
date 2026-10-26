@@ -10,6 +10,10 @@ Status: specification, not implemented yet. Nothing on this page can be run.
 
 The JSON form is described with the [definition file](definition-file.md); color schemes with [Color schemes](color-schemes.md). This page gives the contract of the planned search endpoint and the command line rules for choosing a form.
 
+## The `canonical` field (implemented)
+
+Unlike the rest of this page, this part runs. The state descriptions of `POST /v1/convert` and `GET /v1/random` carry `canonical`, an object with `token` (the canonical Orbit64 token) and `schema` (`orbit64-Nxn-draft@1`), after the existing keys `kind`, `facelets` and `token`, which are unchanged. The key is absent when the stickers are not a cube. Keys are camelCase, as everywhere in the API. The pattern identifier is the canonical token stored with its schema name; the token is not a search key and never a file name. Example and meaning: [REST API reference](../api.md#the-canonical-field).
+
 ## POST /v1/patterns/search
 
 The server is stateless and stores nothing. The compute work does not run on async threads.

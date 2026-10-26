@@ -32,8 +32,8 @@ The server binds to the local machine by default. It has no authentication, so d
 | --- | --- | --- |
 | `GET /health` | None | `{"status":"ok"}` |
 | `GET /v1/scramble?moves=25&size=3` | `moves`: 1 to 200; `size`: 2 to 7; `notation`?: `wca`, `sign` or `sse` | `{"scramble":"U' L2 F2 D U2"}` |
-| `GET /v1/random?size=3` | `size`: 2 to 7 (only 2 to 5 have engines) | `{"kind":"2x2x2","facelets":"...","token":"..."}` |
-| `POST /v1/convert` | `{"cube" or "scramble","size"?,"scheme"?}` | `{"kind","facelets","token"?}` |
+| `GET /v1/random?size=3` | `size`: 2 to 7 (only 2 to 5 have engines) | `{"kind":"2x2x2","facelets":"...","token":"...","canonical":{"token":"...","schema":"..."}}` |
+| `POST /v1/convert` | `{"cube" or "scramble","size"?,"scheme"?}` | `{"kind","facelets","token"?,"canonical"?}` |
 | `POST /v1/solve` | `{"cube" or "scramble","size"?,"scheme"?,"maxMoves"?,"budgetMs"?,"minProbes"?,"improve"?,"slices"?,"notation"?,"optimize"?,"target"?}` | `{"kind","solution","length","metrics","compressed"?,"compressedLength"?,"compressedMetrics"?,"elapsedMicros"}` |
 
 For `POST` requests, send the header `Content-Type: application/json`.
@@ -152,6 +152,24 @@ curl -s -XPOST localhost:8080/v1/solve \
 ```
 
 The solution is shortened here, and the `metrics` object is left out; it has 67 moves; the time is that of the command-line run of the same cube with warm tables and will differ.
+
+### The canonical field
+
+`/v1/convert` and `/v1/random` describe a cube with `kind`, `facelets` and `token`. They also carry `canonical`, an object with the canonical Orbit64 token of the cube (the same for the cube, its turned and mirrored images and any renaming of its colors) and `schema`, the name of the slot convention the token is written in (`orbit64-Nxn-draft@1`, N the size). Like `token`, it is absent when the stickers are not a cube. The other fields are unchanged. No separate endpoint was added: `/v1/convert` already takes every input form. The same request as `cubacle canon`, for a scramble and its mirror image:
+
+```sh
+curl -s -XPOST localhost:8080/v1/convert \
+  -H 'Content-Type: application/json' -d '{"scramble":"R U"}'
+curl -s -XPOST localhost:8080/v1/convert \
+  -H 'Content-Type: application/json' -d '{"scramble":"L'"'"' U'"'"'"}'
+```
+
+```json
+{"kind":"3x3x3","facelets":"UUUUUUFFFUBBRRRRRRRRRFFDFFDDDBDDBDDBFFDLLLLLLLLLUBBUBB","token":"AwtB4B1fWQAA","canonical":{"token":"C0RkZMybxEmw","schema":"orbit64-3x3-draft@1"}}
+{"kind":"3x3x3","facelets":"UUUUUUFFFDFFRRRRRRLLLDFFDFFBDDBDDBDDBBULLLLLLRRRBBUBBU","token":"JIWvcIcwO0AA","canonical":{"token":"C0RkZMybxEmw","schema":"orbit64-3x3-draft@1"}}
+```
+
+The tokens differ, the canonical tokens are one. A stored identifier of a pattern is the canonical token together with the `schema`. See [Canonical token](cli/canon.md) for the command line.
 
 ## Errors
 
