@@ -6,7 +6,7 @@ weight: 40
 
 # Synthetic face generator
 
-Status: implemented in `src/synthetic/` (revision r1). The page describes what the code does and `tests/synthetic_test.rs` verifies it.
+Status: implemented in `src/synthetic/` (revision r2). The page describes what the code does and `tests/synthetic_test.rs` verifies it.
 
 The generator renders one cube face as a `size x size` RGBA photo from a grid of sticker letters. The photo looks like a cropped camera shot: rounded stickers on a dark backdrop, a thin border, a vignette. A strip at the bottom carries the text `SYNTHETIC <PRESET>`, so the image is never mistaken for a camera photo. The command `cubacle photo` writes such photos as PNG files, see [Photos of a cube](../cli/photo.md). It is meant as test material for color recognition.
 
@@ -93,13 +93,27 @@ With `margin = round(size * marginShare)`, `inner = size - 2 margin`, `cell = in
 | `clean` | none |
 | `scatter` | none, but the scatter option defaults to 1 |
 | `gradient` | `r * (0.7 + 0.6 tx)`, `b * (1.3 - 0.6 tx)`, `g` unchanged |
-| `shadow` | diagonal band: `t = (tx + ty) / 2`, `inside = clamp((t - 0.4) / 0.03, 0, 1) * clamp((0.65 - t) / 0.03, 0, 1)`, all channels times `1 - 0.45 inside` |
+| `shadow` | the shadow stage below, with the `shadow` option (strength 0.15, shape `band`, softness 0.03 by default) |
 | `dim-warm` | channels times (0.6, 0.5, 0.35), then noise with sigma 8 |
 | `glare` | four elliptical highlights toward white |
 | `noise` | noise with sigma 20 |
 | `bad-camera` | box blur of radius `max(1, round(0.006 size))`, then noise with sigma 15 |
 
 `tx = x / size`, `ty = y / size`. Noise adds `gauss(seed, 3k + c) * sigma` to channel `c` of pixel `k = y * size + x`. Glare spot `j = 0..3` has center `(unit(seed, 5000 + 4j), unit(seed, 5001 + 4j))` and radii `rx = 0.06 + 0.08 unit(seed, 5002 + 4j)`, `ry = 0.05 + 0.07 unit(seed, 5003 + 4j)`; with `q = ((tx - cx) / rx)^2 + ((ty - cy) / ry)^2` its weight is `0.7 (1 - q)` for `q < 1`, else 0; the largest weight wins and each channel becomes `c (1 - weight) + 255 weight`. The blur is a separable box blur, horizontal pass first, edges replicated, each pass reading the 8-bit result of the previous one.
+
+## Shadow stage
+
+With `width = max(softness, 1e-6)`, `tx = x / size` and `ty = y / size`, the shape gives `inside` in 0..1:
+
+```
+band:   t = (tx + ty) / 2
+        inside = clamp((t - 0.4) / width, 0, 1) * clamp((0.65 - t) / width, 0, 1)
+half:   inside = clamp(((tx + ty) / 2 - 0.5) / width + 0.5, 0, 1)
+spot:   d = sqrt((tx - 0.65)^2 + (ty - 0.35)^2);  inside = clamp((0.25 - d) / width, 0, 1)
+corner: d = sqrt((tx - 1)^2 + (ty - 1)^2);        inside = clamp((0.7 - d) / width, 0, 1)
+```
+
+and every channel is multiplied by `1 - strength * inside`. Defaults: strength 0.15 (a soft real shadow dims about 15 percent; 0.45 misread 154 stickers in a color recognizer test, 0.15 none), shape `band`, softness 0.03 (edge width as a share of the photo). The type `ShadowShape` parses `band half spot corner`; any other name fails with `Unknown shadow shape: <name>`.
 
 ## Options
 
@@ -109,6 +123,7 @@ With `margin = round(size * marginShare)`, `inner = size - 2 margin`, `cell = in
 | `lightness` | 1 | scale of the brightness jitter between stickers |
 | `palette` | none | letters to colors, merged over the default palette; new letters allowed |
 | `logo` | none | round patch on one sticker (`row`, `col`, `color`, optional `size`) |
+| `shadow` | none | `{strength, shape, softness}` of the shadow stage; the `shadow` preset takes them, any other preset gets a shadow when given |
 | `brightness` | none | factor on every channel, applied after the preset |
 | `blur` | none | box blur radius `round(blur)`, used when at least 1, after brightness |
 | `noise` | none | noise with this sigma and `seed + 7919`, used when above 0, after blur |
@@ -120,7 +135,19 @@ The text is `SYNTHETIC ` plus the preset name in upper case. Glyphs are 5x7 pixe
 
 ## Processing order
 
-1. Draw the face. 2. Apply the preset. 3. Brightness, blur, noise. 4. Label.
+1. Draw the face. 2. Apply the preset. 3. Shadow option (when given and the preset is not `shadow`, which has applied it), brightness, blur, noise. 4. Label.
+
+## Differences from r1
+
+r2 follows the shadow stage of the owner's other implementation (cube-assembler, specification section 7.3):
+
+- The default shadow strength is 0.15, not 0.45, which was too harsh for color recognition.
+- The shadow has a shape (`band`, `half`, `spot`, `corner`), a strength and a softness, and the formulas above. The r1 band is the `band` shape with strength 0.45 and softness 0.03.
+- The `shadow` option applies to the `shadow` preset, or adds a shadow to any other preset (first step of the option effects).
+- The golden hash of the `shadow` preset changes; four hashes for shapes and `clean` plus shadow are new (`tests/synthetic_test.rs`).
+- `cubacle photo` gets `--shadow-strength`, `--shadow-shape` and `--shadow-softness`.
+
+The shadow vectors of the other implementation, section 11, do not match byte for byte, presumably because the sticker brightness jitter differs (the hash of r1 is another one, see the r0 differences below). The shadow itself agrees: `px(48,48)` of all four vectors is identical, and the ratios of shadowed to unshadowed pixels at other places agree to within about 0.3 percent.
 
 ## Differences from the draft r0
 
@@ -138,4 +165,5 @@ The draft r0 came from the owner's ReScript prototype, which ran on JavaScript. 
 | Revision | Content |
 | --- | --- |
 | r0 | Draft from the owner's prototype (cube-assembler, `SyntheticFace.res`), with JavaScript-exact arithmetic and 15 SHA-256 vectors. |
-| r1 | This page: the Rust implementation in `src/synthetic/` and the command `cubacle photo`, with the differences above. Golden hashes pin the output of r1. |
+| r1 | The Rust implementation in `src/synthetic/` and the command `cubacle photo`, with the differences from r0. Golden hashes pin the output of r1. |
+| r2 | This page: the shadow stage with shape, strength and softness, default strength 0.15 (see Differences from r1). |

@@ -56,6 +56,29 @@ out4/L.png
 out4/B.png
 ```
 
+## Shadows
+
+The `shadow` preset puts a soft shadow on the face. `--shadow-strength` (how much light it takes, 0 to 1, default 0.15), `--shadow-shape` (`band`, `half`, `spot` or `corner`, default `band`) and `--shadow-softness` (width of the edge as a share of the photo, default 0.03) change it. Giving any of the three adds the shadow to any other preset as well:
+
+```sh
+cubacle photo --scramble "R U" --out out --pixels 64 --shadow-shape half --shadow-strength 0.3 --shadow-softness 0.2
+cubacle photo --scramble "R U" --out out --pixels 64 --preset glare --shadow-shape corner
+```
+
+Both write the six face paths like above. The default strength of 0.15 is about what a soft real shadow does; a stronger one is a test for color recognition, not a realistic photo. An unknown shape is refused:
+
+```sh
+cubacle photo --scramble R --shadow-shape ring --out out
+```
+
+```text
+error: invalid value 'ring' for '--shadow-shape <SHADOW_SHAPE>': Unknown shadow shape: ring
+
+For more information, try '--help'.
+```
+
+## Unknown preset
+
 An unknown preset is refused:
 
 ```sh
