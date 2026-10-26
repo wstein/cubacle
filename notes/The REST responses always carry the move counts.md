@@ -8,5 +8,6 @@ The owner decided on 2026-10-24 that the solve and recover responses of the REST
 ## Links
 
 - [[Crate roles and dependency direction]]
+- [[A pattern is identified by its canonical token together with the schema name]]
 
 Source: docs/metrics.md, lines 1-40

@@ -13,6 +13,7 @@ The spike for a universal pattern identifier takes the detector's canonical form
 - [[The fingerprint is the least reading over every frame and axis order]]
 - [[A pattern table is read by structure and every line is replayed]]
 - [[A picture list stops at 24 patterns and says how many it cut]]
+- [[A pattern is identified by its canonical token together with the schema name]]
 
 Source: src/canonical/mod.rs, lines 1-20
 Source: src/canonical/mod.rs, lines 79-100
