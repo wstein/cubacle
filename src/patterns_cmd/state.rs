@@ -6,9 +6,11 @@ use cubacle::canonical::canonical;
 use cubacle::engines::pattern::{find_generator_with, Cap};
 use cubacle::notation::{parse_cube, parse_expression};
 use cubacle::patterns;
-use cubacle::puzzle::{Facelets, Move};
+use cubacle::puzzle::{Facelets, Move, PuzzleKind};
 
+use super::icons::Gallery;
 use super::{FindArgs, IdentifyArgs};
+use crate::steps::SolutionIcons;
 
 /// `patterns cycles`: a move sequence is followed piece by piece; a cube given
 /// as text is read from its colours.
@@ -48,6 +50,7 @@ pub(super) fn identify_state(
     verbose: bool,
     size: usize,
     library: &crate::patterns_config::Library,
+    icons: Option<&SolutionIcons>,
 ) -> Result<(), String> {
     let state = match &args.scramble {
         Some(scramble) => crate::scrambled(scramble, crate::kind_of(size)?)?,
@@ -70,7 +73,34 @@ pub(super) fn identify_state(
             pattern.origin.as_deref().unwrap_or("?")
         );
     }
+    if let Some(icons) = icons {
+        let mut gallery = Gallery::new(icons);
+        print!("{}", gallery.state("your cube", &state));
+        for similar in &report.closest {
+            let label = format!(
+                "closest: {} ({}) {} %",
+                similar.name, similar.id, similar.percent
+            );
+            match library_state(library, &similar.id, state.kind()) {
+                Some(pattern) => print!("{}", gallery.state(&label, &pattern)),
+                None => eprintln!("{label}: no picture at this size"),
+            }
+        }
+    }
     Ok(())
+}
+
+/// A library pattern as a cube state of `kind`; the solved cube for `solved`.
+fn library_state(
+    library: &crate::patterns_config::Library,
+    id: &str,
+    kind: PuzzleKind,
+) -> Option<Facelets> {
+    match library.find(id) {
+        Some(pattern) => pattern.state(kind),
+        None if id == "solved" => Some(Facelets::solved(kind)),
+        None => None,
+    }
 }
 
 /// The report with the line `canonical: TOKEN` below its `pattern:` lines, which name the
@@ -107,7 +137,11 @@ fn print_kind(m: &patterns::Measures) {
 }
 
 /// `patterns find`: the moves that build a state from the solved cube.
-pub(super) fn find_state(args: &FindArgs, size: usize) -> Result<(), String> {
+pub(super) fn find_state(
+    args: &FindArgs,
+    size: usize,
+    icons: Option<&SolutionIcons>,
+) -> Result<(), String> {
     let state = match &args.scramble {
         Some(scramble) => crate::scrambled(scramble, crate::kind_of(size)?)?,
         None => crate::parse_text(&args.cube.join(" "), args.scheme, size)?.0,
@@ -141,5 +175,12 @@ pub(super) fn find_state(args: &FindArgs, size: usize) -> Result<(), String> {
         (None, false) => eprintln!("best known, a shorter one may exist"),
     }
     println!("{}", args.notation.write(state.kind(), &generator.moves));
+    if let Some(icons) = icons {
+        let mut gallery = Gallery::new(icons);
+        let solved = Facelets::solved(state.kind());
+        print!("{}", gallery.steps(&solved, &generator.moves)?);
+        println!();
+        print!("{}", gallery.end(&state)?);
+    }
     Ok(())
 }

@@ -2,6 +2,32 @@
 
 use cubacle::notation::orbit64;
 use cubacle::patterns::{self, Generator, Pattern, Span};
+use cubacle::puzzle::PuzzleKind;
+
+use super::icons::Gallery;
+use crate::steps::SolutionIcons;
+
+/// The picture of the pattern at a size, when pictures are on.
+fn draw_pattern(gallery: &mut Option<Gallery<'_>>, pattern: &Pattern, size: usize) {
+    let (Some(gallery), Some(kind)) = (gallery.as_mut(), PuzzleKind::of_size(size)) else {
+        return;
+    };
+    match pattern.state(kind) {
+        Some(state) => print!(
+            "{}",
+            gallery.state(&format!("{size}x{size}x{size} pattern"), &state)
+        ),
+        None => eprintln!("{}: no picture at {size}x{size}x{size}", pattern.id),
+    }
+}
+
+/// The move icons of a generator, when pictures are on.
+fn draw_moves(gallery: &mut Option<Gallery<'_>>, generator: &Generator) -> Result<(), String> {
+    if let Some(gallery) = gallery.as_mut() {
+        print!("{}", gallery.moves(generator)?);
+    }
+    Ok(())
+}
 
 fn print_generator(generator: &Generator) {
     println!(
@@ -31,7 +57,9 @@ fn show_numbered(
     pattern: &Pattern,
     size: Option<usize>,
     number: Option<usize>,
+    icons: Option<&SolutionIcons>,
 ) -> Result<(), String> {
+    let mut gallery = icons.map(Gallery::new);
     println!("{} ({})", pattern.name, pattern.catalogue);
     if !pattern.aliases.is_empty() {
         println!("also: {}", pattern.aliases.join(", "));
@@ -58,10 +86,12 @@ fn show_numbered(
             if let Some(score) = pattern.patternness(g.size) {
                 println!("{0}x{0}x{0} patternness: {score} %", g.size);
             }
+            draw_pattern(&mut gallery, pattern, g.size);
         }
         shown += 1;
         println!("{0}x{0}x{0} #{1}: {2} moves", g.size, g.number, g.length);
         println!("    {}", g.moves);
+        draw_moves(&mut gallery, g)?;
     }
     if shown == 0 {
         return Err(format!("{} has no such generator", pattern.catalogue));
@@ -107,12 +137,14 @@ pub(super) fn show(
     library: &crate::patterns_config::Library,
     text: &str,
     size: Option<usize>,
+    icons: Option<&SolutionIcons>,
 ) -> Result<(), String> {
     let (name, number) = split_number(text);
     let pattern = find(library, name)?;
     if number.is_some() || pattern.origin.is_some() {
-        return show_numbered(pattern, size, number);
+        return show_numbered(pattern, size, number, icons);
     }
+    let mut gallery = icons.map(Gallery::new);
     println!("{} ({})", pattern.name, pattern.id);
     if !pattern.aliases.is_empty() {
         println!("also: {}", pattern.aliases.join(", "));
@@ -140,6 +172,7 @@ pub(super) fn show(
         if let Some(score) = pattern.patternness(s) {
             println!("  patternness: {score} %");
         }
+        draw_pattern(&mut gallery, pattern, s);
         for metric in [Span::Outer, Span::Range] {
             let Some(generator) = pattern.generator(s, Some(metric)) else {
                 continue;
@@ -147,6 +180,7 @@ pub(super) fn show(
             // A range answer that is an outer generator was printed already.
             if metric == Span::Outer || generator.metric == Span::Range {
                 print_generator(generator);
+                draw_moves(&mut gallery, generator)?;
             }
         }
     }

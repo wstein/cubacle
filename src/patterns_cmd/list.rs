@@ -2,7 +2,34 @@
 
 use cubacle::patterns::{self, Pattern, PatternKind, Span};
 
+use cubacle::puzzle::PuzzleKind;
+
+use super::icons::Gallery;
 use super::ListArgs;
+use crate::steps::SolutionIcons;
+
+/// How many patterns `--icons` draws unless `--limit` says otherwise.
+const ICON_LIMIT: usize = 24;
+
+/// How many patterns are listed: `--limit`, else all, else (with `--icons`) 24.
+fn effective_limit(limit: Option<u32>, icons: bool) -> usize {
+    match (limit, icons) {
+        (Some(n), _) => n as usize,
+        (None, true) => ICON_LIMIT,
+        (None, false) => usize::MAX,
+    }
+}
+
+/// The size a pattern is drawn at: the size asked for, else the 3x3x3, else
+/// the smallest size the pattern has.
+fn picture_size(pattern: &Pattern, size: Option<usize>) -> Option<usize> {
+    let sizes = sizes_of(pattern, size);
+    let wanted = size.unwrap_or(3);
+    sizes
+        .contains(&wanted)
+        .then_some(wanted)
+        .or_else(|| sizes.first().copied())
+}
 
 fn lengths(pattern: &Pattern, size: usize) -> String {
     let of = |metric| {
@@ -29,12 +56,14 @@ pub(super) fn print(
     library: &crate::patterns_config::Library,
     size: Option<usize>,
     args: &ListArgs,
+    icons: Option<&SolutionIcons>,
 ) -> Result<(), String> {
     let ListArgs {
         tree,
         sort,
         min_patternness: min,
         kind,
+        limit,
     } = *args;
     let scored = sort.is_some() || min.is_some();
     let mut items: Vec<(&Pattern, u8)> = library
@@ -50,6 +79,9 @@ pub(super) fn print(
         items.sort_by_key(|(_, score)| std::cmp::Reverse(*score));
     }
     if tree {
+        if icons.is_some() {
+            eprintln!("note: --tree is text only, so --icons and --limit draw and cut nothing");
+        }
         let items: Vec<(&Pattern, Option<u8>)> = items
             .into_iter()
             .map(|(p, score)| (p, scored.then_some(score)))
@@ -62,6 +94,10 @@ pub(super) fn print(
         if scored { "\tpatternness" } else { "" },
         if kind.is_some() { "\tkind" } else { "" }
     );
+    let total = items.len();
+    let limit = effective_limit(limit, icons.is_some());
+    items.truncate(limit);
+    let mut gallery = icons.map(Gallery::new);
     for (pattern, score) in items {
         let sizes = sizes_of(pattern, size);
         let text: Vec<String> = sizes
@@ -79,8 +115,29 @@ pub(super) fn print(
             Some(origin) => println!("\timported from {origin}"),
             None => println!(),
         }
+        let Some(gallery) = gallery.as_mut() else {
+            continue;
+        };
+        let state = picture_size(pattern, size)
+            .and_then(PuzzleKind::of_size)
+            .and_then(|kind| pattern.state(kind));
+        match state {
+            Some(state) => print!("{}", gallery.state(&label(&state), &state)),
+            None => eprintln!("{}: no picture, the state is not defined", pattern.id),
+        }
+    }
+    if total > limit {
+        eprintln!(
+            "showing the first {limit} of {total} patterns; --limit {total} shows all of them"
+        );
     }
     Ok(())
+}
+
+/// The line above a picture: the size it is drawn at (the row above names the pattern).
+fn label(state: &cubacle::puzzle::Facelets) -> String {
+    let n = state.kind().size();
+    format!("{n}x{n}x{n}")
 }
 
 /// The highest patternness of a pattern over the sizes shown.
@@ -168,5 +225,18 @@ fn print_tree(items: &[(&Pattern, Option<u8>)], depth: usize, size: Option<usize
             .collect();
         println!("{pad}{heading}");
         print_tree(&below, depth + 1, size);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pictures_cap_the_list_unless_a_limit_is_given() {
+        assert_eq!(effective_limit(None, false), usize::MAX);
+        assert_eq!(effective_limit(None, true), 24);
+        assert_eq!(effective_limit(Some(5), true), 5);
+        assert_eq!(effective_limit(Some(500), false), 500);
     }
 }

@@ -6,6 +6,10 @@ use cubacle::engines::pattern::DEFAULT_MAX_MEMORY_MB;
 use cubacle::notation::{ColourScheme, Notation};
 use cubacle::patterns::PatternKind;
 
+use crate::steps::PictureArgs;
+
+mod icons;
+
 #[derive(Args)]
 pub struct PatternsArgs {
     /// Cube size, 3 to 7: list only the patterns that exist for it (with
@@ -17,6 +21,8 @@ pub struct PatternsArgs {
     config: Option<std::path::PathBuf>,
     #[command(flatten)]
     list: ListArgs,
+    #[command(flatten)]
+    pictures: PictureArgs,
     /// Never use the network, not even for `update` or `auto_fetch` (also CUBACLE_OFFLINE=1)
     #[arg(long, global = true, env = "CUBACLE_OFFLINE", value_parser = clap::builder::BoolishValueParser::new())]
     offline: bool,
@@ -46,6 +52,10 @@ pub struct ListArgs {
     /// column. Library and imported patterns alike
     #[arg(long, global = true, value_name = "NAME")]
     kind: Option<PatternKind>,
+    /// List at most N patterns (default: all; with --icons 24, and a hint on
+    /// standard error says how many were cut)
+    #[arg(long, global = true, value_name = "N", value_parser = clap::value_parser!(u32).range(1..))]
+    limit: Option<u32>,
 }
 
 impl ListArgs {
@@ -56,6 +66,7 @@ impl ListArgs {
             (self.sort.is_some(), "--sort"),
             (self.min_patternness.is_some(), "--min-patternness"),
             (self.kind.is_some(), "--kind"),
+            (self.limit.is_some(), "--limit"),
         ]
         .into_iter()
         .find_map(|(given, name)| given.then_some(name))
@@ -158,6 +169,14 @@ pub fn run(args: PatternsArgs) -> Result<(), String> {
             ));
         }
     }
+    if args.pictures.icons
+        && !matches!(
+            args.action,
+            None | Some(Action::List | Action::Show { .. } | Action::Find(_) | Action::Identify(_))
+        )
+    {
+        return Err("--icons applies to patterns list, show, find and identify".to_owned());
+    }
     let config = crate::patterns_config::load(args.config.as_deref())?;
     let mode = crate::patterns_update::Mode {
         force: false,
@@ -193,11 +212,23 @@ pub fn run(args: PatternsArgs) -> Result<(), String> {
         library
     };
     match args.action {
-        None | Some(Action::List) => list::print(&library(), args.size, &args.list),
-        Some(Action::Show { name }) => show::show(&library(), &name.join(" "), args.size),
-        Some(Action::Find(find)) => state::find_state(&find, args.size.unwrap_or(3)),
+        None | Some(Action::List) => {
+            let icons = icons::options(&args.pictures, None, Notation::default());
+            list::print(&library(), args.size, &args.list, icons.as_ref())
+        }
+        Some(Action::Show { name }) => {
+            let icons = icons::options(&args.pictures, None, Notation::default());
+            show::show(&library(), &name.join(" "), args.size, icons.as_ref())
+        }
+        Some(Action::Find(find)) => {
+            let icons = icons::options(&args.pictures, find.scheme, find.notation);
+            state::find_state(&find, args.size.unwrap_or(3), icons.as_ref())
+        }
         Some(Action::Identify(identify)) => {
-            state::identify_state(&identify.state, verbose, args.size.unwrap_or(3), &library())
+            let state = &identify.state;
+            let icons = icons::options(&args.pictures, state.scheme, Notation::default());
+            let size = args.size.unwrap_or(3);
+            state::identify_state(state, verbose, size, &library(), icons.as_ref())
         }
         Some(Action::Cycles(cycles)) => state::cycles_state(&cycles, args.size.unwrap_or(3)),
         Some(Action::Import(import)) => {
