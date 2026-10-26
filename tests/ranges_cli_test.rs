@@ -1,4 +1,4 @@
-//! `--optimise ranges` on the command line: opt-in, both counts reported.
+//! `--optimize ranges` on the command line: opt-in, both counts reported.
 
 use std::process::Command;
 
@@ -27,7 +27,7 @@ fn off_by_default_and_on_request() {
     assert!(ok, "{error}");
     assert!(!error.contains("compressed"), "{error}");
 
-    let (ok, packed, error) = cubacle(&["solve", "--size", "4", "--optimise", "ranges", SCRAMBLE]);
+    let (ok, packed, error) = cubacle(&["solve", "--size", "4", "--optimize", "ranges", SCRAMBLE]);
     assert!(ok, "{error}");
     let count = |label: &str| -> usize {
         error
@@ -46,7 +46,7 @@ fn off_by_default_and_on_request() {
 
 #[test]
 fn only_ranges_is_known() {
-    let (ok, _, error) = cubacle(&["solve", "--size", "4", "--optimise", "all", SCRAMBLE]);
+    let (ok, _, error) = cubacle(&["solve", "--size", "4", "--optimize", "all", SCRAMBLE]);
     assert!(!ok);
     assert!(error.contains("ranges"), "{error}");
 }

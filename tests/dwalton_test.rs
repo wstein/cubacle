@@ -26,11 +26,11 @@ fn check_stages(cube: &Facelets, result: &SolveResult) {
     assert_eq!(
         got,
         [
-            "left/right centres staged",
-            "up/down centres staged",
-            "centres prepared",
-            "inner wings and centres",
-            "outer wings and centres",
+            "left/right centers staged",
+            "up/down centers staged",
+            "centers prepared",
+            "inner wings and centers",
+            "outer wings and centers",
             "3x3 stage",
         ]
     );
@@ -155,7 +155,7 @@ fn seven_by_seven_scrambles_are_solved_and_replay() {
 fn an_impossible_7x7x7_is_refused_before_any_search() {
     // Corner and edge permutations of different parity: no turns lead here.
     let text = "WWYYYYWWWWYWYWWWYRYYWWWOWOYWWWYRYYWWWWYWYWWYWWWWWOOOOOOOORBOBROORRGRROORYRYROORRGRROORBOBROOOOOOOOBBGGGBBBBOGOBBBBBWBBBBBGGGBBBBBWBBBBBOGOBBBBBBBBBYYWWWWYYYYWYWYYYWOWWYYYRYRWYYYWOWWYYYYWYWYYWYYYYYRRRRRRRROGRGORROOBOORROWOWORROOBOORROGRGORRRRRRRRGGGGGGGGGRBRGGGGGYGGGGGBBBGGGGGYGGGGGRBRGGGGBBBGG";
-    // colours to face letters: white up, red right, green front, yellow down, orange left, blue back
+    // colors to face letters: white up, red right, green front, yellow down, orange left, blue back
     let letters: String = text
         .chars()
         .map(|c| match c {

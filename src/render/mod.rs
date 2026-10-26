@@ -1,13 +1,13 @@
 //! Move icons: a small picture of a cube state and the move about to be made.
 //!
 //! The view is a deep oblique one (Front, Up and Right faces) of flat bright
-//! stickers. The moving layers keep their colours while the rest is darkened
+//! stickers. The moving layers keep their colors while the rest is darkened
 //! (or the moving layers turn grey, see [`Shading`]); a soft violet arrow with
 //! a white outline lies on the face where the layer is visible, an upright
 //! violet "2x" marks half turns, whole-cube rotations get a curved arrow, and
 //! the notation is written below the cube in Quicksand Bold. [`state_icon`]
 //! draws a state alone, framed, for the result of a group of moves. The [`Backdrop`]
-//! decides how strongly the resting pieces are dimmed and the colour of the
+//! decides how strongly the resting pieces are dimmed and the color of the
 //! notation.
 //!
 //! Everything is a pure function of the state, the [`Action`] and the
@@ -119,7 +119,7 @@ pub fn icon(state: &Facelets, action: &Action, style: &Style) -> Result<Icon, Re
 }
 
 /// Draws the cube `state` and nothing else: no arrow, no notation, no dimming,
-/// every sticker in full colour, inside a thin frame so that it cannot be
+/// every sticker in full color, inside a thin frame so that it cannot be
 /// mistaken for a move. It has the size of a move icon, so the two sit in one
 /// row. [`Icon::label`] is `"state"` and [`Icon::direction`] is `None`.
 pub fn state_icon(state: &Facelets, style: &Style) -> Icon {
@@ -146,7 +146,7 @@ fn state_icon_seen(state: &Facelets, style: &Style, camera: Camera) -> Icon {
     }
 }
 
-/// How many stickers of `state` differ in colour from `reference`.
+/// How many stickers of `state` differ in color from `reference`.
 pub fn differing_stickers(state: &Facelets, reference: &Facelets) -> usize {
     state
         .stickers()
@@ -157,7 +157,7 @@ pub fn differing_stickers(state: &Facelets, reference: &Facelets) -> usize {
 }
 
 /// Like [`state_icon`], with a small amber square on every visible sticker
-/// whose colour differs from `reference`. Stickers on the three faces that are
+/// whose color differs from `reference`. Stickers on the three faces that are
 /// out of sight cannot be marked; [`differing_stickers`] counts them all.
 pub fn state_icon_against(state: &Facelets, reference: &Facelets, style: &Style) -> Icon {
     state_icon_against_seen(state, reference, style, Camera::Above)
@@ -235,7 +235,7 @@ impl Icon {
         raster::rasterise_canvas(&self.shapes, self.canvas, height, self.background)
     }
 
-    /// The icon as letters; with `ansi` as coloured cells. See the module `text`.
+    /// The icon as letters; with `ansi` as colored cells. See the module `text`.
     pub fn to_text(&self, ansi: bool) -> String {
         self.grid.render(ansi)
     }

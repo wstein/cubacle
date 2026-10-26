@@ -6,20 +6,20 @@
 //! the order U/D, F/B, R/L: `UFR` for a corner, `UF` for an edge, `UF2` for
 //! the second wing of that edge on a bigger cube (counted towards +x, +y or
 //! +z, that is from L to R, from D to U and from B to F), `Ur2c3` for the
-//! centre sticker in row 2, column 3 of the U face in the usual net. The
+//! center sticker in row 2, column 3 of the U face in the usual net. The
 //! cycle `(UFR UBR DBR)` means: the corner that belongs at UFR sits at UBR,
 //! the one that belongs at UBR sits at DBR, and the one that belongs at DBR
 //! sits at UFR. The marks after a cycle say how each of those pieces is turned,
 //! in the same order. A corner mark is the number of clockwise thirds (seen
 //! from outside the cube) from the slot's U/D face to the face that shows the
-//! piece's own U/D colour: `0`, `+1`, `+2`. An edge or wing mark is `0` if the
-//! piece shows its first-named colour (U/D before F/B before R/L) on the
+//! piece's own U/D color: `0`, `+1`, `+2`. An edge or wing mark is `0` if the
+//! piece shows its first-named color (U/D before F/B before R/L) on the
 //! slot's first-named face, `+1` if it is flipped.
 
 use std::fmt;
 
-use super::center_names::{centre_classes, pair_up};
-use super::matching::{centre_groups, Permutation};
+use super::center_names::{center_classes, pair_up};
+use super::matching::{center_groups, Permutation};
 use super::pieces::{axis, layout};
 use crate::puzzle::{locate, Face, Facelets, PuzzleKind};
 
@@ -28,15 +28,15 @@ use crate::puzzle::{locate, Face, Facelets, PuzzleKind};
 pub struct Order {
     /// Every piece back in place and orientation.
     pub whole: u128,
-    /// The same with the centres left out.
-    pub without_centres: u128,
+    /// The same with the centers left out.
+    pub without_centers: u128,
 }
 
 /// One cycle of pieces, listed by slot, with the mark of each piece.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Cycle {
     pub slots: Vec<String>,
-    /// Empty when the orbit has no orientation (centres).
+    /// Empty when the orbit has no orientation (centers).
     pub marks: Vec<u8>,
 }
 
@@ -44,7 +44,7 @@ pub struct Cycle {
 enum Class {
     Corner,
     Wing,
-    Centre,
+    Center,
 }
 
 /// A piece orbit: its cycles, leaving out the pieces in place.
@@ -64,7 +64,7 @@ pub struct OrbitCycles {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Cycles {
     pub orbits: Vec<OrbitCycles>,
-    /// `None` when the pieces were read from colours and equal pieces had to
+    /// `None` when the pieces were read from colors and equal pieces had to
     /// be matched arbitrarily, so no order is defined.
     pub order: Option<Order>,
     kind: PuzzleKind,
@@ -126,7 +126,7 @@ fn lcm(a: u128, b: u128) -> u128 {
 }
 
 /// The cycle form of a permutation.
-pub(crate) fn analyse(kind: PuzzleKind, pi: &Permutation, exact: bool) -> Cycles {
+pub(crate) fn analyze(kind: PuzzleKind, pi: &Permutation, exact: bool) -> Cycles {
     let layout = layout(kind);
     let face_len = layout.face_len;
     let n = kind.size();
@@ -194,7 +194,7 @@ pub(crate) fn analyse(kind: PuzzleKind, pi: &Permutation, exact: bool) -> Cycles
         orbits.push(build(name, Class::Wing, pieces, &wing_name));
     }
 
-    let centre_name = |s: usize| {
+    let center_name = |s: usize| {
         let row = (s % face_len) / n;
         format!(
             "{}r{}c{}",
@@ -203,17 +203,17 @@ pub(crate) fn analyse(kind: PuzzleKind, pi: &Permutation, exact: bool) -> Cycles
             s % n + 1
         )
     };
-    let groups = centre_groups(kind);
-    let mut names: Vec<String> = centre_classes(kind).into_iter().map(|c| c.name).collect();
+    let groups = center_groups(kind);
+    let mut names: Vec<String> = center_classes(kind).into_iter().map(|c| c.name).collect();
     pair_up(names.iter_mut());
     for (g, group) in groups.iter().enumerate() {
         let name = match names.get(g) {
             Some(name) => name.clone(),
-            None if n == 3 => "centres".to_owned(),
-            None => "centres (face middles)".to_owned(),
+            None if n == 3 => "centers".to_owned(),
+            None => "centers (face middles)".to_owned(),
         };
         let pieces = group.iter().map(|&s| (s, pi[s], 0)).collect();
-        orbits.push(build(name, Class::Centre, pieces, &centre_name));
+        orbits.push(build(name, Class::Center, pieces, &center_name));
     }
 
     let order = exact.then(|| order_of(&orbits));
@@ -259,7 +259,7 @@ fn build(
         }
         cycles.push(Cycle {
             slots: slots.iter().map(|&s| slot_name(s)).collect(),
-            marks: if class == Class::Centre {
+            marks: if class == Class::Center {
                 Vec::new()
             } else {
                 marks
@@ -280,7 +280,7 @@ fn modulus(class: Class) -> u32 {
     match class {
         Class::Corner => 3,
         Class::Wing => 2,
-        Class::Centre => 0,
+        Class::Center => 0,
     }
 }
 
@@ -301,13 +301,13 @@ fn order_of(orbits: &[OrbitCycles]) -> Order {
             result = lcm(result, cycle.slots.len() as u128 * u128::from(turns));
         }
         whole = lcm(whole, result);
-        if orbit.class != Class::Centre {
+        if orbit.class != Class::Center {
             without = lcm(without, result);
         }
     }
     Order {
         whole,
-        without_centres: without,
+        without_centers: without,
     }
 }
 
@@ -338,7 +338,7 @@ impl Cycles {
                         pi[from[0]] = to[flip];
                         pi[from[1]] = to[1 - flip];
                     }
-                    Class::Centre => pi[home] = slot,
+                    Class::Center => pi[home] = slot,
                 }
             }
         }
@@ -346,7 +346,7 @@ impl Cycles {
         for (i, &to) in pi.iter().enumerate() {
             stickers[to] = Face::ALL[i / face_len];
         }
-        Facelets::from_stickers(stickers).expect("a permutation keeps every colour count")
+        Facelets::from_stickers(stickers).expect("a permutation keeps every color count")
     }
 }
 
@@ -388,13 +388,13 @@ impl fmt::Display for Cycles {
         match self.order {
             Some(order) => {
                 writeln!(f, "order: {}", order.whole)?;
-                if order.without_centres != order.whole {
-                    writeln!(f, "order without the centres: {}", order.without_centres)?;
+                if order.without_centers != order.whole {
+                    writeln!(f, "order without the centers: {}", order.without_centers)?;
                 }
             }
             None => writeln!(
                 f,
-                "order: not defined from colours alone (equal pieces are matched in index order); give the moves"
+                "order: not defined from colors alone (equal pieces are matched in index order); give the moves"
             )?,
         }
         Ok(())

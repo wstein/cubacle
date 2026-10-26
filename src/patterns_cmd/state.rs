@@ -14,7 +14,7 @@ use super::{FindArgs, IdentifyArgs};
 use crate::steps::SolutionIcons;
 
 /// `patterns cycles`: a move sequence is followed piece by piece; a cube given
-/// as text is read from its colours.
+/// as text is read from its colors.
 pub(super) fn cycles_state(args: &IdentifyArgs, size: usize) -> Result<(), String> {
     let kind = crate::kind_of(size)?;
     let text = match &args.scramble {
@@ -72,7 +72,7 @@ pub(super) fn identify_state(
     for pattern in patterns::identify_imported(&library.extra, &state) {
         println!(
             "imported: {} {} (imported from {})",
-            pattern.catalogue,
+            pattern.catalog,
             pattern.name,
             pattern.origin.as_deref().unwrap_or("?")
         );

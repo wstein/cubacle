@@ -1,9 +1,9 @@
 //! Random 4x4x4 states.
 //!
 //! Like the reference solver's generator, the eight corners (with twists
-//! summing to zero), the 24 wings and the 24 centres are drawn independently
+//! summing to zero), the 24 wings and the 24 centers are drawn independently
 //! and uniformly. On a 4x4x4 the three piece kinds are not tied by parity,
-//! and the centres are seen by colour only, so every such combination is
+//! and the centers are seen by color only, so every such combination is
 //! reachable; `engines::four` solves each one by reduction.
 
 use rand::RngExt;
@@ -30,17 +30,17 @@ pub(super) fn random(rng: &mut impl RngExt) -> Facelets {
     let corner_twist = orientations(rng, corners.len(), 3);
     place(kind, &mut stickers, &corners, &corner_perm, &corner_twist);
 
-    let centres: Vec<usize> = (0..kind.facelet_count())
+    let centers: Vec<usize> = (0..kind.facelet_count())
         .filter(|&index| {
             let (position, _) = locate(kind, index);
             position.iter().filter(|c| c.abs() == 3).count() == 1
         })
         .collect();
-    let colours: Vec<Face> = centres.iter().map(|&index| stickers[index]).collect();
-    for (&slot, source) in centres.iter().zip(shuffled(rng, centres.len())) {
-        stickers[slot] = colours[source];
+    let colors: Vec<Face> = centers.iter().map(|&index| stickers[index]).collect();
+    for (&slot, source) in centers.iter().zip(shuffled(rng, centers.len())) {
+        stickers[slot] = colors[source];
     }
-    Facelets::from_stickers(stickers).expect("a permutation of the solved colours")
+    Facelets::from_stickers(stickers).expect("a permutation of the solved colors")
 }
 
 /// The two stickers of a wing, ordered so that the cross product of their
@@ -70,7 +70,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn generated_states_keep_the_colour_counts_and_vary() {
+    fn generated_states_keep_the_color_counts_and_vary() {
         let mut rng = rand::rng();
         let states: Vec<_> = (0..20).map(|_| random(&mut rng)).collect();
         for cube in &states {

@@ -3,7 +3,7 @@
 //! `#` starts a comment, a line that starts with white space continues the
 //! value of the previous key, a blank line ends it.
 
-use crate::notation::{ColourScheme, SchemeError};
+use crate::notation::{ColorScheme, SchemeError};
 use crate::puzzle::PuzzleKind;
 
 use super::error::TemplateError;
@@ -38,7 +38,7 @@ pub struct GenFile {
     pub name: String,
     pub title: Option<String>,
     pub aliases: Vec<String>,
-    pub scheme: ColourScheme,
+    pub scheme: ColorScheme,
     /// The text of the `color-constraints` key, empty when there is none.
     pub guard: String,
     pub alphabet: Option<String>,
@@ -95,7 +95,7 @@ impl GenFile {
             }
         }
         let scheme = match find("color-scheme") {
-            None => ColourScheme::new(['U', 'R', 'F', 'D', 'L', 'B']).expect("distinct letters"),
+            None => ColorScheme::new(['U', 'R', 'F', 'D', 'L', 'B']).expect("distinct letters"),
             Some(entry) => entry.value().parse().map_err(|e: SchemeError| {
                 entry.error(format!(
                     "{}, expected URFDLB, western (boy), japanese or six distinct letters",
@@ -138,7 +138,7 @@ fn scheme_problem(error: &SchemeError) -> String {
     match error {
         SchemeError::Unknown(text) => format!("unknown color scheme \"{text}\""),
         SchemeError::Duplicate(letter) => format!("the letter '{letter}' is used twice"),
-        SchemeError::NoCentres(_) => "the scheme cannot be read".to_owned(),
+        SchemeError::NoCenters(_) => "the scheme cannot be read".to_owned(),
     }
 }
 

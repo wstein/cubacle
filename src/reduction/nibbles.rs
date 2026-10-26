@@ -49,7 +49,7 @@ impl Nibbles {
 /// A pruning table over pairs `(state1, state2)`, or over one state.
 ///
 /// `mask` folds the pair index into the table (all ones unless the table is
-/// a hash of a larger space, as for the first phase's centres).
+/// a hash of a larger space, as for the first phase's centers).
 pub(crate) struct Prun {
     table: Nibbles,
     stride: usize,

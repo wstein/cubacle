@@ -75,7 +75,7 @@ pub enum RepairOrder {
 pub struct Repair {
     pub id: String,
     pub name: String,
-    pub catalogue: String,
+    pub catalog: String,
     pub order: RepairOrder,
     /// The extra moves; for `Before` they are performed first, in the cube's
     /// own orientation.
@@ -380,7 +380,7 @@ impl<'p> Search<'p> {
         Repair {
             id: pattern.id.clone(),
             name: pattern.name.clone(),
-            catalogue: pattern.catalogue.clone(),
+            catalog: pattern.catalog.clone(),
             order: hit.order,
             moves: self.al.sequence(&hit.blocks),
             frame: self.rotations[hit.rotation].name.clone(),

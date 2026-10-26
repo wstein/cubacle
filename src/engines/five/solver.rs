@@ -16,7 +16,7 @@ use crate::reduction::par;
 
 /// The 5x5x5 reduction solver, a port of the five-phase solver cube555.
 ///
-/// Five phases bring the centres and wings into place (about 52 moves), then
+/// Five phases bring the centers and wings into place (about 52 moves), then
 /// the solver it was built with solves the 3x3x3 that is left (about 22). The
 /// 3x3x3 solver is injected through the [`Solver`] trait, so any engine (or a
 /// stub) will do.
@@ -115,8 +115,8 @@ impl FiveSolver {
     }
 }
 
-/// The colour index of every sticker (the face it belongs to), provided the
-/// six face centres are where they started.
+/// The color index of every sticker (the face it belongs to), provided the
+/// six face centers are where they started.
 fn colors_of(facelets: &Facelets) -> Result<[u8; 150], (Failure, String)> {
     let stickers = facelets.stickers();
     if (0..6).any(|face| stickers[face * 25 + 12] != Face::ALL[face]) {
@@ -184,7 +184,7 @@ pub(super) fn three_by_three(cube: &Facelets) -> Facelets {
             }
         }
     }
-    Facelets::from_stickers(out).expect("nine stickers of each colour")
+    Facelets::from_stickers(out).expect("nine stickers of each color")
 }
 
 impl Solver for FiveSolver {
@@ -244,11 +244,11 @@ impl FiveSolver {
                 "the solver for the 3x3x3 stage does not solve 3x3x3 cubes",
             );
         }
-        let colours = match colors_of(facelets) {
-            Ok(colours) => colours,
+        let colors = match colors_of(facelets) {
+            Ok(colors) => colors,
             Err((failure, why)) => return fail(failure, &why),
         };
-        let cube = match Cubie::from_colours(&colours) {
+        let cube = match Cubie::from_colors(&colors) {
             Ok(cube) => cube,
             Err(why) => return fail(Failure::InvalidInput, why.describe()),
         };

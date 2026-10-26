@@ -105,7 +105,7 @@ pub enum Item {
 }
 
 /// A run of items. The root returned by [`super::parse_grouped`] holds the hand
-/// units (groups of moves) and the parenthesised blocks (groups of units).
+/// units (groups of moves) and the parenthesized blocks (groups of units).
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Group {
     pub items: Vec<Item>,

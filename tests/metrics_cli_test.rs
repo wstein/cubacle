@@ -51,8 +51,8 @@ fn expand_quarter_writes_half_turns_as_two_moves() {
 }
 
 #[test]
-fn optimise_ranges_counts_the_compressed_form() {
-    let (ok, out, err) = cubacle(&["moves", "--size", "5", "--optimise", "ranges", "3Rw R'"]);
+fn optimize_ranges_counts_the_compressed_form() {
+    let (ok, out, err) = cubacle(&["moves", "--size", "5", "--optimize", "ranges", "3Rw R'"]);
     assert!(ok, "{err}");
     assert_eq!(out, "2-3Rw");
     assert_eq!(err, "metrics: obtm 2, qtm 2, stm 2, btm 1");

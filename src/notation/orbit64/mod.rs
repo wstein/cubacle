@@ -8,7 +8,7 @@
 //! code; the orbit structure and the slot tables are derived from the size
 //! (see `layout`). Slots follow the convention `orbit64-Nxn-draft@1` of the
 //! format: the standard Kociemba order for corners (URF UFL ULB UBR DFR DLF DBL
-//! DRB) and midges (UR UF UL UB DR DF DL DB FR FL BL BR), wings and centres by
+//! DRB) and midges (UR UF UL UB DR DF DL DB FR FL BL BR), wings and centers by
 //! facelet index. A token carries ordinals only, so it cannot prove its
 //! producer used the same numbering; the reference vectors of the format are
 //! the evidence it matches: facelet vectors for the 2x2x2 to 5x5x5, and for
@@ -32,7 +32,7 @@ use big::Big;
 use coords::{radices, Coords};
 use layout::Layout;
 
-pub(crate) use layout::{CORNER_COLOURS, CORNER_FACELETS};
+pub(crate) use layout::{CORNER_COLORS, CORNER_FACELETS};
 
 const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
@@ -140,7 +140,7 @@ pub fn decode(token: &str) -> Result<Facelets, Orbit64Error> {
     digits.reverse();
 
     let layout = Layout::new(size);
-    let odd = layout.has_fixed_centres();
+    let odd = layout.has_fixed_centers();
     let frame = if odd {
         digits.pop().unwrap_or(0) as usize
     } else {
@@ -157,10 +157,10 @@ pub fn decode(token: &str) -> Result<Facelets, Orbit64Error> {
 
 /// Encodes facelets as a state token; the inverse of [`decode`].
 ///
-/// An odd cube's fixed centres select the stored frame. Facelets whose pieces
+/// An odd cube's fixed centers select the stored frame. Facelets whose pieces
 /// are not those of a cube (a stickers swapped in place, a twisted corner,
-/// corner and edge parity that disagree, moved fixed centres that are not a
-/// rotation) are an error, not a token. An even cube has no fixed centres and
+/// corner and edge parity that disagree, moved fixed centers that are not a
+/// rotation) are an error, not a token. An even cube has no fixed centers and
 /// is encoded as it stands.
 pub fn encode(facelets: &Facelets) -> Result<String, Orbit64Error> {
     let size = facelets.kind().size();
@@ -172,17 +172,17 @@ pub fn encode(facelets: &Facelets) -> Result<String, Orbit64Error> {
         .collect();
 
     let mut frame = None;
-    if layout.has_fixed_centres() {
+    if layout.has_fixed_centers() {
         let found = (0..frame::FRAME_COUNT).find_map(|rank| {
             let upright = frame::unapply(size, &stickers, rank);
-            let centred = layout
+            let centered = layout
                 .fixed
                 .iter()
                 .enumerate()
                 .all(|(face, &at)| upright[at] == face);
-            centred.then_some((rank, upright))
+            centered.then_some((rank, upright))
         });
-        let (rank, upright) = found.ok_or(Orbit64Error::Impossible(Impossible::FixedCentres))?;
+        let (rank, upright) = found.ok_or(Orbit64Error::Impossible(Impossible::FixedCenters))?;
         frame = Some(rank);
         stickers = upright;
     }

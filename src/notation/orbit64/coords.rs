@@ -4,7 +4,7 @@
 //! A cube state is a list of digits with fixed radices. Corners are a
 //! permutation (Lehmer digits) and seven base-3 twists; midges a permutation of
 //! the parity the corners dictate (the last two digits are implied) and eleven
-//! base-2 flips; each wing orbit a permutation of 24; each centre orbit five
+//! base-2 flips; each wing orbit a permutation of 24; each center orbit five
 //! combination ranks. An odd cube ends with its frame, radix 24. Written most
 //! significant digit first, the digits are one big mixed-radix number.
 
@@ -23,7 +23,7 @@ pub(super) struct Coords {
     pub(super) midge_perm: Vec<usize>,
     pub(super) midge_flip: Vec<usize>,
     pub(super) wings: Vec<Vec<usize>>,
-    pub(super) centres: Vec<Vec<usize>>,
+    pub(super) centers: Vec<Vec<usize>>,
 }
 
 fn choose(n: usize, k: usize) -> u32 {
@@ -37,7 +37,7 @@ fn permutation_radices(n: usize, free: usize) -> impl Iterator<Item = u32> {
     (0..free).map(move |i| (n - i) as u32)
 }
 
-fn centre_radices() -> impl Iterator<Item = u32> {
+fn center_radices() -> impl Iterator<Item = u32> {
     (0..5).map(|t| choose(24 - 4 * t, 4))
 }
 
@@ -53,7 +53,7 @@ pub(super) fn radices(n: usize) -> Vec<u32> {
         out.extend(permutation_radices(24, 24));
     }
     for _ in 0..(n - 2) * (n - 2) / 4 {
-        out.extend(centre_radices());
+        out.extend(center_radices());
     }
     if n % 2 == 1 {
         out.push(FRAME_COUNT as u32);
@@ -129,15 +129,15 @@ fn orientations(mut value: u32, count: usize, radix: u32) -> Vec<usize> {
     out
 }
 
-fn centre_digits(colours: &[usize], out: &mut Vec<u32>) -> Result<(), Impossible> {
-    let counts_ok = (0..6).all(|c| colours.iter().filter(|&&x| x == c).count() == 4);
-    if colours.len() != 24 || !counts_ok {
-        return Err(Impossible::CentreColours);
+fn center_digits(colors: &[usize], out: &mut Vec<u32>) -> Result<(), Impossible> {
+    let counts_ok = (0..6).all(|c| colors.iter().filter(|&&x| x == c).count() == 4);
+    if colors.len() != 24 || !counts_ok {
+        return Err(Impossible::CenterColors);
     }
     let mut remaining: Vec<usize> = (0..24).collect();
-    for colour in 0..5 {
+    for color in 0..5 {
         let hits: Vec<usize> = (0..remaining.len())
-            .filter(|&p| colours[remaining[p]] == colour)
+            .filter(|&p| colors[remaining[p]] == color)
             .collect();
         let rank: u32 = hits
             .iter()
@@ -145,15 +145,15 @@ fn centre_digits(colours: &[usize], out: &mut Vec<u32>) -> Result<(), Impossible
             .map(|(i, &p)| choose(p, i + 1))
             .sum();
         out.push(rank);
-        remaining.retain(|&slot| colours[slot] != colour);
+        remaining.retain(|&slot| colors[slot] != color);
     }
     Ok(())
 }
 
-fn unrank_centres(digits: &mut impl Iterator<Item = u32>) -> Vec<usize> {
-    let mut colours = vec![5; 24];
+fn unrank_centers(digits: &mut impl Iterator<Item = u32>) -> Vec<usize> {
+    let mut colors = vec![5; 24];
     let mut remaining: Vec<usize> = (0..24).collect();
-    for colour in 0..5 {
+    for color in 0..5 {
         let mut rank = digits.next().unwrap_or(0);
         let mut positions = [0usize; 4];
         for i in (1..=4).rev() {
@@ -165,7 +165,7 @@ fn unrank_centres(digits: &mut impl Iterator<Item = u32>) -> Vec<usize> {
             positions[i - 1] = c;
         }
         for &p in &positions {
-            colours[remaining[p]] = colour;
+            colors[remaining[p]] = color;
         }
         remaining = remaining
             .iter()
@@ -174,7 +174,7 @@ fn unrank_centres(digits: &mut impl Iterator<Item = u32>) -> Vec<usize> {
             .map(|(_, &slot)| slot)
             .collect();
     }
-    colours
+    colors
 }
 
 impl Coords {
@@ -209,8 +209,8 @@ impl Coords {
             }
             lehmer(wing, 24, &mut out);
         }
-        for centre in &self.centres {
-            centre_digits(centre, &mut out)?;
+        for center in &self.centers {
+            center_digits(center, &mut out)?;
         }
         Ok(out)
     }
@@ -233,8 +233,8 @@ impl Coords {
         coords.wings = (0..(n - 2) / 2)
             .map(|_| unlehmer(&mut digits, 24, None))
             .collect();
-        coords.centres = (0..(n - 2) * (n - 2) / 4)
-            .map(|_| unrank_centres(&mut digits))
+        coords.centers = (0..(n - 2) * (n - 2) / 4)
+            .map(|_| unrank_centers(&mut digits))
             .collect();
         coords
     }
@@ -267,7 +267,7 @@ mod tests {
         coords.corner_twist[0] = 2;
         coords.corner_twist[1] = 1;
         coords.wings[0].swap(2, 20);
-        coords.centres[1].swap(0, 23);
+        coords.centers[1].swap(0, 23);
         let digits = coords.digits(5).unwrap();
         let radices = radices(5);
         assert_eq!(digits.len() + 1, radices.len());

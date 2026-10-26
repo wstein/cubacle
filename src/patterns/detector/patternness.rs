@@ -2,9 +2,9 @@
 //!
 //! It is a measure of regularity, not a probability: a weighted mean of
 //!
-//! - **symmetry** `S`: `(ln order + ln(colour-keeping) / 2) / ln 2`, at most 1,
+//! - **symmetry** `S`: `(ln order + ln(color-keeping) / 2) / ln 2`, at most 1,
 //!   where `order` is the number of the 48 operations that fix the state up to
-//!   renaming colours and the colour-keeping ones count extra (any symmetry
+//!   renaming colors and the color-keeping ones count extra (any symmetry
 //!   beyond the identity is already rare: a random cube has none);
 //! - **uniformity** `U`: the mean over the piece orbits of how regular the
 //!   orbit is: the displaced count, and the twisted or flipped count, are a
@@ -45,7 +45,7 @@ fn orbit_regularity(orbit: &OrbitStat) -> f64 {
 /// The symmetry part, 0 to 1.
 pub(crate) fn symmetry_score(symmetry: &Symmetry) -> f64 {
     let order = symmetry.order().max(1) as f64;
-    let keep = symmetry.colour_preserving().max(1) as f64;
+    let keep = symmetry.color_preserving().max(1) as f64;
     ((order.ln() + 0.5 * keep.ln()) / FULL_SYMMETRY.ln()).min(1.0)
 }
 

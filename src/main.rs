@@ -45,14 +45,14 @@ use cubacle::engines::two::PocketSolver;
 use cubacle::generate;
 use cubacle::notation::orbit64;
 use cubacle::notation::{
-    colour_scheme_of, named_subset, named_target, parse_cube, parse_expression, parse_partial,
-    ColourScheme, Notation,
+    color_scheme_of, named_subset, named_target, parse_cube, parse_expression, parse_partial,
+    ColorScheme, Notation,
 };
 use cubacle::puzzle::{
     oriented_by_centers, relative_state, Facelets, Failure, PuzzleKind, SolveOptions, Solver,
     Target,
 };
-use cubacle::ranges::Optimise;
+use cubacle::ranges::Optimize;
 
 /// Rubik's cube solver and generator.
 #[derive(Parser)]
@@ -92,7 +92,7 @@ enum Command {
         #[arg(long, default_value_t = 3)]
         size: usize,
     },
-    /// Translate any supported notation into URFDLB facelets, colours or an Orbit64 token
+    /// Translate any supported notation into URFDLB facelets, colors or an Orbit64 token
     Convert(ConvertArgs),
     /// Print the facelets reached by applying a scramble to a solved cube
     Facelets {
@@ -107,7 +107,7 @@ enum Command {
 /// How a cube is written on the command line.
 #[derive(Args)]
 struct InputArgs {
-    /// An Orbit64 token, URFDLB facelets, W/R/G/Y/O/B colours, or (when the
+    /// An Orbit64 token, URFDLB facelets, W/R/G/Y/O/B colors, or (when the
     /// text is no cube) a move expression such as "(R U)*3" for a cube of
     /// --size; spaces are allowed and need no quoting. "-" reads stdin.
     #[arg(num_args = 1.., conflicts_with = "scramble")]
@@ -119,11 +119,11 @@ struct InputArgs {
     /// its size already)
     #[arg(long, default_value_t = 3)]
     size: usize,
-    /// Colour scheme: boy, jp or six letters in URFDLB order (default for
-    /// reading colours: from the centres, boy without centres; for `convert
-    /// --to color`: the scheme the colours were read in, else boy)
+    /// Color scheme: boy, jp or six letters in URFDLB order (default for
+    /// reading colors: from the centers, boy without centers; for `convert
+    /// --to color`: the scheme the colors were read in, else boy)
     #[arg(long)]
-    scheme: Option<ColourScheme>,
+    scheme: Option<ColorScheme>,
 }
 
 /// What `convert` writes.
@@ -134,9 +134,9 @@ enum Output {
     /// An Orbit64 state token
     Token,
     /// W/R/G/Y/O/B sticker letters in facelet order, written with --scheme
-    /// (default: the scheme of colour input, else boy)
-    #[value(name = "color", alias = "colour")]
-    Colour,
+    /// (default: the scheme of color input, else boy)
+    #[value(name = "color")]
+    Color,
 }
 
 #[derive(Args)]
@@ -161,7 +161,7 @@ struct SolveArgs {
     /// Orbit64 token, URFDLB facelets or colors; quote it when it has spaces).
     /// With --to the way back leads to the target, not to the solved cube
     #[arg(long, value_name = "CUBE", conflicts_with_all = [
-        "max_moves", "budget_ms", "probes", "improve", "parallel", "fast", "optimise",
+        "max_moves", "budget_ms", "probes", "improve", "parallel", "fast", "optimize",
         "slices", "moves", "all", "count", "raw", "optimal", "nodes", "max_memory", "group",
         "pattern_aware",
     ])]
@@ -195,7 +195,7 @@ struct SolveArgs {
     /// Post-solve compression (no search): `ranges` writes adjacent turns of one axis as
     /// layer ranges (2-3r in sign, 2-3Rw in wca) and reports both move counts
     #[arg(long, value_name = "WHAT", conflicts_with = "icons")]
-    optimise: Option<Optimise>,
+    optimize: Option<Optimize>,
     /// Allow single inner layers (2R) in 4x4x4 and 5x5x5 answers where they make them shorter
     #[arg(long)]
     slices: bool,
@@ -208,10 +208,10 @@ struct SolveArgs {
     #[arg(long, value_name = "SET", conflicts_with_all = ["improve", "parallel", "probes", "slices"])]
     moves: Option<String>,
     /// 3x3x3 only: list every solution of the shortest length (with --moves, within the set), one order of commuting moves
-    #[arg(long, conflicts_with_all = ["improve", "parallel", "probes", "slices", "optimise", "icons", "count"])]
+    #[arg(long, conflicts_with_all = ["improve", "parallel", "probes", "slices", "optimize", "icons", "count"])]
     all: bool,
     /// 3x3x3 only: list this many solutions, shortest first, then stop
-    #[arg(long, value_name = "N", conflicts_with_all = ["improve", "parallel", "probes", "slices", "optimise", "icons"])]
+    #[arg(long, value_name = "N", conflicts_with_all = ["improve", "parallel", "probes", "slices", "optimize", "icons"])]
     count: Option<usize>,
     /// With --all or --count: also list the solutions up to this many moves,
     /// grouped by length. With --now: moves the search for a way back onto the
@@ -254,12 +254,12 @@ struct SolveArgs {
     #[arg(long)]
     then_solve: bool,
     /// Solve to this state instead of to the solved cube: an Orbit64 token,
-    /// URFDLB facelets, W/R/G/Y/O/B colours or a move expression applied to the
+    /// URFDLB facelets, W/R/G/Y/O/B colors or a move expression applied to the
     /// solved cube of the start's size (one argument: quote it), or one of the
     /// names superflip, checkerboard, cube-in-cube, or the subset cross (3x3x3:
     /// the down cross; cross-u, cross-r, cross-f, cross-l, cross-b pick the
     /// face, the rest is free). An X (or ?) in facelets or
-    /// colours marks a sticker that may show any colour; the moves printed
+    /// colors marks a sticker that may show any color; the moves printed
     /// reach any such state. The moves printed take the start to the target.
     #[arg(long, value_name = "TARGET")]
     to: Option<String>,
@@ -333,12 +333,12 @@ fn run(cli: Cli) -> Result<(), String> {
             match args.to {
                 Output::Facelets => println!("{cube}"),
                 Output::Token => println!("{}", orbit64::encode(&cube).map_err(|e| e.to_string())?),
-                Output::Colour => {
+                Output::Color => {
                     let scheme = args
                         .input
                         .scheme
                         .or(detected)
-                        .unwrap_or(ColourScheme::WESTERN_BOY);
+                        .unwrap_or(ColorScheme::WESTERN_BOY);
                     println!("{}", scheme.paint(&cube));
                 }
             }
@@ -408,9 +408,9 @@ fn read_cube(input: &InputArgs) -> Result<Facelets, String> {
     read_input(input).map(|(cube, _)| cube)
 }
 
-/// The cube, and the colour scheme its colours were written in when it was
-/// given as colours with centres to read it from.
-fn read_input(input: &InputArgs) -> Result<(Facelets, Option<ColourScheme>), String> {
+/// The cube, and the color scheme its colors were written in when it was
+/// given as colors with centers to read it from.
+fn read_input(input: &InputArgs) -> Result<(Facelets, Option<ColorScheme>), String> {
     if let Some(scramble) = &input.scramble {
         return Ok((scrambled(scramble, kind_of(input.size)?)?, None));
     }
@@ -434,11 +434,11 @@ fn read_input(input: &InputArgs) -> Result<(Facelets, Option<ColourScheme>), Str
 /// as a move expression for a cube of `size`.
 fn parse_text(
     text: &str,
-    scheme: Option<ColourScheme>,
+    scheme: Option<ColorScheme>,
     size: usize,
-) -> Result<(Facelets, Option<ColourScheme>), String> {
+) -> Result<(Facelets, Option<ColorScheme>), String> {
     match parse_cube(text, scheme) {
-        Ok(cube) => Ok((cube, scheme.or_else(|| colour_scheme_of(text)))),
+        Ok(cube) => Ok((cube, scheme.or_else(|| color_scheme_of(text)))),
         Err(error) if text.trim().is_empty() => Err(error.to_string()),
         Err(error) => {
             let expression = kind_of(size).and_then(|kind| expression_cube(text, kind));
@@ -526,7 +526,7 @@ fn engine_for(kind: PuzzleKind) -> Box<dyn Solver> {
             let four = FourSolver::new(three.clone());
             let five = FiveSolver::new(three.clone());
             eprintln!(
-                "preparing the 4x4x4 and 5x5x5 tables for the wings (the centre tables are built on first use)"
+                "preparing the 4x4x4 and 5x5x5 tables for the wings (the center tables are built on first use)"
             );
             four.prepare();
             five.prepare();
@@ -598,8 +598,8 @@ fn solve(args: SolveArgs) -> Result<(), String> {
     let target = target.and_then(|t| t.as_state());
     // The cube to solve: the start itself, or what is left of it after the
     // target is taken out.
-    // A target whose centres differ in colour on one face is reached through
-    // a centre fix-up; its cube to solve is made once the engine is at hand.
+    // A target whose centers differ in color on one face is reached through
+    // a center fix-up; its cube to solve is made once the engine is at hand.
     let mixed = target.as_ref().is_some_and(|t| !centers::uniform(t));
     let facelets = match &target {
         Some(target) if !mixed => {
@@ -630,7 +630,7 @@ fn solve(args: SolveArgs) -> Result<(), String> {
     enumerate_cmd::check(&args, facelets.kind())?;
     if mixed && restricted.is_some() {
         return Err(
-            "--moves cannot be combined with a target whose centres differ in colour on a face: the centre fix-up uses inner slices"
+            "--moves cannot be combined with a target whose centers differ in color on a face: the center fix-up uses inner slices"
                 .into(),
         );
     }
@@ -745,7 +745,7 @@ fn solve(args: SolveArgs) -> Result<(), String> {
     }
     if let (true, Some(plan)) = (args.verbose, &plan) {
         eprintln!(
-            "centre fix-up: {} moves ({})",
+            "center fix-up: {} moves ({})",
             plan.tail().len(),
             plan.method()
         );

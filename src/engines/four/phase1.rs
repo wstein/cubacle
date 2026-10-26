@@ -1,11 +1,11 @@
-//! Phase 1: the first search, 10,000 solutions of the first centre phase
+//! Phase 1: the first search, 10,000 solutions of the first center phase
 //! kept as the 500 best.
 //!
 //! Ported from cs0x7f/TPR-4x4x4-Solver src/Search.java (`doSearch`'s first
 //! loop, `search1`, `init2`), MIT, Copyright (c) 2023 Chen Shuang; this file
 //! is AGPL-3.0-or-later, see NOTICE.md.
 //!
-//! The search goes through the three kinds of centres (R/L first, then U/D,
+//! The search goes through the three kinds of centers (R/L first, then U/D,
 //! then F/B), for lengths from the least pruning value up, and hands every
 //! solution to `init2` until 10,000 have been seen. `init2` turns a solution
 //! into a candidate and keeps the 500 with the smallest bound.
@@ -14,7 +14,7 @@ use super::candidates::{Cand, Heap};
 use super::center1::Flags;
 use super::center2::State;
 use super::control::{Control, Stop, TICK};
-use super::cube::{flips_wing_parity, move_centres, Cube};
+use super::cube::{flips_wing_parity, move_centers, Cube};
 use super::moves::{BX3, DX3, FX1, UX1};
 use super::tables::Tables;
 
@@ -55,9 +55,9 @@ pub(super) fn run(t: &Tables, cube: &Cube, ctl: &Control) -> Result<Vec<Cand>, S
     };
     let mut starts = [(0usize, 0usize, 0usize); 3];
     for (urf, start) in starts.iter_mut().enumerate() {
-        let flags = Flags::of_centres(&cube.ct, urf as u8);
+        let flags = Flags::of_centers(&cube.ct, urf as u8);
         let Some(cs) = flags.class_sym(&t.c1.sym2raw) else {
-            return Err(Stop::Internal("a centre state has no symmetry class"));
+            return Err(Stop::Internal("a center state has no symmetry class"));
         };
         *start = (
             (cs >> 6) as usize,
@@ -131,7 +131,7 @@ impl Search<'_> {
         let mut parity = self.base_parity;
         let mut turn = |cand: &mut Cand, m: usize| {
             cand.push(m);
-            move_centres(&mut ct, m);
+            move_centers(&mut ct, m);
             parity ^= u8::from(flips_wing_parity(m));
         };
         for i in 0..self.length1 {
@@ -156,7 +156,7 @@ impl Search<'_> {
         };
         let Some((s2ct, s2rl)) = State::of(&ct, parity).numbers() else {
             self.stop = Some(Stop::Internal(
-                "the centres after the first phase do not fit the second",
+                "the centers after the first phase do not fit the second",
             ));
             return true;
         };

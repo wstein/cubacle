@@ -60,7 +60,7 @@ fn convert_reads_the_japanese_scheme() {
     assert_eq!(cubacle(&["convert", "--scheme", "jp", japanese]).1, solved);
     let (ok, _, error) = cubacle(&["convert", "--scheme", "boy", japanese]);
     assert!(!ok);
-    assert!(error.contains("centres"), "{error}");
+    assert!(error.contains("centers"), "{error}");
 }
 
 #[test]
@@ -147,14 +147,14 @@ fn sticker_perm(mv: &str) -> [usize; 24] {
     let moved: Vec<char> = cube3(mv).chars().collect();
     let mut perm: [usize; 24] = std::array::from_fn(|i| i);
     for slot in CORNERS_3X3 {
-        let mut colours: Vec<char> = slot.iter().map(|&f| moved[f]).collect();
-        colours.sort();
+        let mut colors: Vec<char> = slot.iter().map(|&f| moved[f]).collect();
+        colors.sort();
         let home = CORNERS_3X3
             .iter()
             .find(|home| {
                 let mut c: Vec<char> = home.iter().map(|&f| solved[f]).collect();
                 c.sort();
-                c == colours
+                c == colors
             })
             .unwrap();
         for &dest in &slot {
@@ -166,7 +166,7 @@ fn sticker_perm(mv: &str) -> [usize; 24] {
 }
 
 /// Replays a solution on 2x2 facelets and reports whether every face ended
-/// up one colour.
+/// up one color.
 fn solves_2x2(facelets: &str, solution: &str) -> bool {
     let mut state: Vec<char> = facelets.chars().collect();
     for mv in solution.split_whitespace() {
@@ -180,11 +180,11 @@ fn solves_2x2(facelets: &str, solution: &str) -> bool {
 
 #[test]
 fn a_2x2_is_solved_from_every_notation() {
-    // The same cube as an Orbit64 token, as facelets and as colours.
+    // The same cube as an Orbit64 token, as facelets and as colors.
     let token = "ASj79";
     let facelets = "LFDRFLDBFURLBBLUURUDDFRB";
     assert_eq!(cubacle(&["convert", token]).1, facelets);
-    let colours = facelets
+    let colors = facelets
         .chars()
         .map(|c| match c {
             'U' => 'W',
@@ -200,7 +200,7 @@ fn a_2x2_is_solved_from_every_notation() {
     for args in [
         vec!["solve", token],
         vec!["solve", facelets],
-        vec!["solve", "--scheme", "boy", &colours],
+        vec!["solve", "--scheme", "boy", &colors],
     ] {
         let (ok, solution, error) = cubacle(&args);
         assert!(ok, "{args:?}: {error}");
@@ -577,7 +577,7 @@ fn solve_always_reports_the_move_count() {
 }
 
 #[test]
-fn moves_icons_background_sets_the_notation_colour_and_opaque_paints_it() {
+fn moves_icons_background_sets_the_notation_color_and_opaque_paints_it() {
     let svg = |extra: &[&str]| {
         let mut args = vec!["moves", "R", "--icons", "--format", "svg"];
         args.extend_from_slice(extra);
@@ -648,14 +648,14 @@ fn a_4x4_verbose_solve_reports_its_reduction() {
     let (ok, _, err) = cubacle(&["solve", "--size", "4", "-s", "R U Rw Fw2 U' 2R B", "-v"]);
     assert!(ok, "{err}");
     let phases: Vec<&str> = err.lines().filter(|l| l.starts_with("phase ")).collect();
-    assert!(phases.iter().any(|l| l.contains("centres")), "{phases:?}");
+    assert!(phases.iter().any(|l| l.contains("centers")), "{phases:?}");
     assert!(phases.last().unwrap().contains("3x3 stage"), "{phases:?}");
     // the engine's own stages: four, numbered in order, no `edges` phase
     assert_eq!(phases.len(), 4, "{phases:?}");
     let names = [
-        "centres staged",
-        "centres sorted and wings split",
-        "centres and wings paired",
+        "centers staged",
+        "centers sorted and wings split",
+        "centers and wings paired",
         "3x3 stage",
     ];
     for (i, (line, name)) in phases.iter().zip(names).enumerate() {

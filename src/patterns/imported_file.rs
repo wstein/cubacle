@@ -5,7 +5,7 @@
 //! ```text
 //! #cubacle-patterns 1 patternness-v1
 //! #source <label>
-//! id  catalogue  size  number  name  aliases  groups  provenance  description  patternness  moves
+//! id  catalog  size  number  name  aliases  groups  provenance  description  patternness  moves
 //! ```
 //!
 //! `aliases` are comma separated, `groups` is `de=en;de=en;de=en` (outermost
@@ -14,7 +14,7 @@
 //! When the formula version in the header is not the code's, the stored
 //! values are ignored and computed again.
 
-use super::detector::{canonical, colours, PATTERNNESS_VERSION};
+use super::detector::{canonical, colors, PATTERNNESS_VERSION};
 use super::{Generator, Group, Pattern, Span, Status};
 use crate::puzzle::{Facelets, PuzzleKind};
 
@@ -59,7 +59,7 @@ pub fn write_imported(patterns: &[Pattern], source: &str) -> String {
                 .join(",");
             let fields = [
                 p.id.clone(),
-                p.catalogue.clone(),
+                p.catalog.clone(),
                 g.size.to_string(),
                 g.number.to_string(),
                 clean(&p.name),
@@ -118,7 +118,7 @@ pub fn read_imported(text: &str, origin: &str) -> Result<Vec<Pattern>, String> {
             Some(i) => i,
             None => {
                 let mut p = Pattern::new(f[0]);
-                p.catalogue = f[1].to_owned();
+                p.catalog = f[1].to_owned();
                 p.name = f[4].to_owned();
                 p.group = f[6]
                     .split(';')
@@ -153,15 +153,15 @@ pub fn read_imported(text: &str, origin: &str) -> Result<Vec<Pattern>, String> {
 }
 
 /// The imported patterns whose state is `state` up to turning, mirroring and
-/// recolouring (equal canonical forms).
+/// recoloring (equal canonical forms).
 pub fn identify_imported<'a>(patterns: &'a [Pattern], state: &Facelets) -> Vec<&'a Pattern> {
     let kind = state.kind();
-    let wanted = canonical(kind, &colours(state));
+    let wanted = canonical(kind, &colors(state));
     patterns
         .iter()
         .filter(|p| {
             p.state(kind)
-                .is_some_and(|s| canonical(kind, &colours(&s)) == wanted)
+                .is_some_and(|s| canonical(kind, &colors(&s)) == wanted)
         })
         .collect()
 }

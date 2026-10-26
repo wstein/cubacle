@@ -1,9 +1,9 @@
-//! Targets with mixed centres on the 4x4x4 to 7x7x7, through the public API:
-//! the route takes the start to the target exactly (colour by colour).
+//! Targets with mixed centers on the 4x4x4 to 7x7x7, through the public API:
+//! the route takes the start to the target exactly (color by color).
 //!
 //! Every test prints its route lengths and times with `--nocapture`. The
 //! targets use inner slices and wide turns; the middle layer of the 5x5x5 and
-//! 7x7x7 is left alone, since the engines keep the face centres where they are.
+//! 7x7x7 is left alone, since the engines keep the face centers where they are.
 
 use std::path::PathBuf;
 use std::sync::{Arc, OnceLock};
@@ -135,7 +135,7 @@ fn a_7x7_reaches_the_owners_slice_target_and_other_slice_targets() {
     let kind = PuzzleKind::Cube7;
     check(&engine, kind, SCRAMBLE_7, OWNER, false);
     check(&engine, kind, "", "2R 3U' 2F 5L2 3D' 2B", false);
-    // the middle slice turns the face centres
+    // the middle slice turns the face centers
     check(&engine, kind, "R U", "2R 4U' 3F", false);
     check(
         &engine,

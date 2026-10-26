@@ -1,10 +1,10 @@
 //! 6x6x6 and 7x7x7 reduction engine, after dwalton76/rubiks-cube-NxNxN-solver.
 //!
-//! The stages follow the reference: centres are staged and solved in steps
+//! The stages follow the reference: centers are staged and solved in steps
 //! (each an iterative-deepening search over small pruning tables), the wings
 //! are paired by the 4x4x4 and 5x5x5 engines, and a 3x3x3 solver finishes.
 //! Files: `geometry` (sticker sets of the reference), `pattern` (pruning
-//! tables over colour patterns of sticker sets), `stage` (the search over
+//! tables over color patterns of sticker sets), `stage` (the search over
 //! them).
 
 mod fake;

@@ -174,7 +174,7 @@ impl Swaps {
     }
 
     /// As [`Swaps::finish`], for any end condition `goal` that a rotation of
-    /// the end state can satisfy (the reduction wants the centres home).
+    /// the end state can satisfy (the reduction wants the centers home).
     pub(super) fn finish_with(
         &self,
         rotations: &Rotations,

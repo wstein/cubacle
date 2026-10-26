@@ -1,7 +1,7 @@
 //! `solve --within K`: the shortest route of at most K moves between two
 //! states, if there is one.
 //!
-//! The search meets in the middle on colour-wise hashes. A table holds every
+//! The search meets in the middle on color-wise hashes. A table holds every
 //! sequence of up to `d` moves applied to the *target* (the same moves, so the
 //! route runs through their inverses), the walk applies sequences of `w`
 //! moves to the *start*, and a matching hash gives the route
@@ -10,9 +10,9 @@
 //! `w` plus the stored distance moves, the stored distance is at most `d`, and
 //! a shorter route would have been found at a lower level.
 //!
-//! Nothing is relative: the colours of the start are compared with the colours
+//! Nothing is relative: the colors of the start are compared with the colors
 //! of the target position by position, so every state is a valid target (also
-//! one with mixed centre colours) and no equal pieces have to be paired. Every
+//! one with mixed center colors) and no equal pieces have to be paired. Every
 //! route is replayed with [`Facelets::apply`] before it is returned.
 //!
 //! Before any search, [`lower_bound`] answers "more than K moves" from the
@@ -111,14 +111,14 @@ pub fn describe(kit: Kit, kind: PuzzleKind) -> (&'static str, &'static str) {
     }
 }
 
-fn colours(cube: &Facelets) -> Vec<u8> {
+fn colors(cube: &Facelets) -> Vec<u8> {
     cube.stickers().iter().map(|f| f.index() as u8).collect()
 }
 
 /// The fewest moves any route from `start` to `target` has in the alphabet,
 /// as a bound: `None` when no route exists whatever its length.
 pub fn lower_bound(start: &Facelets, target: &Facelets, kit: Kit) -> Option<usize> {
-    Alphabet::new(start.kind(), kit).lower_bound(&colours(start), &colours(target))
+    Alphabet::new(start.kind(), kit).lower_bound(&colors(start), &colors(target))
 }
 
 /// The shortest route of at most `limits.max_moves` moves from `start` to
@@ -149,7 +149,7 @@ fn find(
         return Outcome::NotFound;
     }
     let al = Alphabet::new(start.kind(), kit);
-    let (a, b) = (colours(start), colours(target));
+    let (a, b) = (colors(start), colors(target));
     stats.bound = al.lower_bound(&a, &b);
     if use_bound && stats.bound.is_none_or(|bound| bound > k) {
         return Outcome::Excluded;

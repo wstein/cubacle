@@ -1,10 +1,10 @@
-//! The 6x6x6 centre stages in a row.
+//! The 6x6x6 center stages in a row.
 //!
 //! New code; the stages are in `six_stage1` and `six_stage2`.
 
 use std::time::Instant;
 
-use super::geometry::{catalogue, MoveDef};
+use super::geometry::{catalog, MoveDef};
 use super::six_stage1::{self, Unpaired};
 use super::six_stage2::{self as s2, UdPaired};
 use super::six_stage5 as s5;
@@ -27,14 +27,14 @@ pub(super) type Done = (&'static str, Vec<String>);
 impl Six {
     pub(super) fn new(threads: usize) -> Six {
         Six {
-            defs: catalogue(PuzzleKind::Cube6),
+            defs: catalog(PuzzleKind::Cube6),
             cache: Cache::new(crate::reduction::cache::default_dir(), FORMAT),
             threads,
         }
     }
 
     fn apply(cube: &Facelets, moves: &[String]) -> Facelets {
-        let seq: MoveSequence = moves.join(" ").parse().expect("moves of the catalogue");
+        let seq: MoveSequence = moves.join(" ").parse().expect("moves of the catalog");
         cube.apply(&seq).expect("moves fit the cube")
     }
 
@@ -71,7 +71,7 @@ impl Six {
             deadline,
         )?;
         cube = Self::apply(&cube, &m);
-        done.push(("LR centres staged", m));
+        done.push(("LR centers staged", m));
 
         let used = select(&self.defs, s2::ud_pair_moves);
         let table = s2::ud_inner_table(&used, &self.cache, t);
@@ -95,7 +95,7 @@ impl Six {
             deadline,
         )?;
         cube = Self::apply(&cube, &m);
-        done.push(("UD centres staged", m));
+        done.push(("UD centers staged", m));
 
         let used = select(&self.defs, s5::step50_moves);
         let table = s5::step50_table(&used, &self.cache, t);
@@ -107,7 +107,7 @@ impl Six {
             deadline,
         )?;
         cube = Self::apply(&cube, &m);
-        done.push(("LR centres reducible", m));
+        done.push(("LR centers reducible", m));
 
         let used = select(&self.defs, s5::step60_moves);
         let tables = s5::step60_tables(&used);
@@ -122,7 +122,7 @@ impl Six {
         let ok = m.is_some();
         let m = m.unwrap_or_default();
         cube = Self::apply(&cube, &m);
-        done.push(("UD FB centres reducible", m));
+        done.push(("UD FB centers reducible", m));
         Some((cube, done, ok))
     }
 }
@@ -153,12 +153,12 @@ mod tests {
             let n = stage.node_of(|s| cube.stickers()[s] as u8);
             let m = solve(&stage, n, 12, None).expect("solvable");
             let after = Six::apply(&cube, &m);
-            assert!(s5::centres_reduced(&after));
+            assert!(s5::centers_reduced(&after));
         }
     }
 
     #[test]
-    fn centre_stages_reduce_the_centres() {
+    fn center_stages_reduce_the_centers() {
         let six = Six::new(crate::reduction::par::threads());
         for _ in 0..3 {
             let cube = Facelets::solved(PuzzleKind::Cube6)
@@ -166,7 +166,7 @@ mod tests {
                 .unwrap();
             let (after, done, ok) = six.centers(&cube, 20, None).expect("stages");
             assert!(ok);
-            assert!(s5::centres_reduced(&after));
+            assert!(s5::centers_reduced(&after));
             let lens: Vec<usize> = done.iter().map(|d| d.1.len()).collect();
             assert!(lens.iter().sum::<usize>() < 80, "{lens:?}");
         }

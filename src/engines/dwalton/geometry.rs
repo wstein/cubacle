@@ -1,4 +1,4 @@
-//! Sticker numbering of the reference and the move catalogue.
+//! Sticker numbering of the reference and the move catalog.
 //!
 //! Ported from dwalton76/rubiks-cube-NxNxN-solver rubikscubennnsolver/RubiksCube666.py
 //! (the position tables), MIT, Copyright (c) 2019 Daniel Walton; this file is
@@ -21,7 +21,7 @@ pub(super) fn from_ref_all(n: usize, list: &[usize]) -> Vec<usize> {
     list.iter().map(|&i| from_ref(n, i)).collect()
 }
 
-/// Colour bit of a face letter in a mask over the cubacle face indices.
+/// Color bit of a face letter in a mask over the cubacle face indices.
 pub(super) const fn bit(face: usize) -> u8 {
     1 << face
 }
@@ -50,7 +50,7 @@ pub(super) const RIGHT_OBLIQUE_666: [usize; 24] = [
     203, 207, 194,
 ];
 
-/// One move of the catalogue.
+/// One move of the catalog.
 pub(super) struct MoveDef {
     pub name: String,
     pub mv: Move,
@@ -60,7 +60,7 @@ pub(super) struct MoveDef {
 
 /// The reference's move set of a cube of size `n`: `X`, `Xw`, `3Xw` and, for
 /// 7x7x7, nothing deeper, each in three turns.
-pub(super) fn catalogue(kind: PuzzleKind) -> Vec<MoveDef> {
+pub(super) fn catalog(kind: PuzzleKind) -> Vec<MoveDef> {
     let mut out = Vec::new();
     for face in ["U", "L", "F", "R", "B", "D"] {
         for kindname in ["", "w", "3w"] {

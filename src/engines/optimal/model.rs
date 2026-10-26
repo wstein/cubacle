@@ -119,33 +119,33 @@ impl Cube {
         if facelets.kind() != PuzzleKind::Cube3 {
             return None;
         }
-        let colour = |i: usize| face_number(facelets.stickers()[i]);
+        let color = |i: usize| face_number(facelets.stickers()[i]);
         let mut cube = Cube::SOLVED;
         let mut seen = [false; 12];
         for (place, slots) in CORNER_FACELETS.iter().enumerate() {
-            let colours = slots.map(colour);
-            let piece = (0..8).find(|&p| same_set(&colours, &corner_colours(p)))?;
+            let colors = slots.map(color);
+            let piece = (0..8).find(|&p| same_set(&colors, &corner_colors(p)))?;
             if std::mem::replace(&mut seen[piece], true) {
                 return None;
             }
-            let twist = colours.iter().position(|&c| c == 0 || c == 3)?;
+            let twist = colors.iter().position(|&c| c == 0 || c == 3)?;
             cube.corners[piece] = (3 * place + twist) as u8;
         }
         seen = [false; 12];
         for (place, slots) in EDGE_FACELETS.iter().enumerate() {
-            let colours = slots.map(colour);
-            let piece = (0..12).find(|&p| same_set(&colours, &edge_colours(p)))?;
+            let colors = slots.map(color);
+            let piece = (0..12).find(|&p| same_set(&colors, &edge_colors(p)))?;
             if std::mem::replace(&mut seen[piece], true) {
                 return None;
             }
-            // A piece with a U or D colour is turned right when that colour
+            // A piece with a U or D color is turned right when that color
             // is on the first facelet, a middle-layer piece with F or B.
-            let own = edge_colours(piece);
+            let own = edge_colors(piece);
             let reference = own
                 .into_iter()
                 .find(|&c| c == 0 || c == 3)
                 .or_else(|| own.into_iter().find(|&c| c == 2 || c == 5))?;
-            cube.edges[piece] = (2 * place + usize::from(colours[0] != reference)) as u8;
+            cube.edges[piece] = (2 * place + usize::from(colors[0] != reference)) as u8;
         }
         cube.invert();
         Some(cube)
@@ -196,11 +196,11 @@ fn same_set(a: &[u8], b: &[u8]) -> bool {
     a == b
 }
 
-fn corner_colours(piece: usize) -> [u8; 3] {
+fn corner_colors(piece: usize) -> [u8; 3] {
     CORNER_FACELETS[piece].map(|i| (i / 9) as u8)
 }
 
-fn edge_colours(piece: usize) -> [u8; 2] {
+fn edge_colors(piece: usize) -> [u8; 2] {
     EDGE_FACELETS[piece].map(|i| (i / 9) as u8)
 }
 

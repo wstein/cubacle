@@ -34,7 +34,7 @@ fn g1_is_closed_under_its_generators_and_left_by_the_others() {
         assert!(!holds(in_g1, &after(cube, outside)), "{outside}");
     }
     // a pure edge flip of the middle layer: F then B' then a G1 move keeps the
-    // domino colours wrong
+    // domino colors wrong
     assert!(!holds(in_g1, &after(cube, "F R F'")));
 }
 
@@ -56,21 +56,21 @@ fn g1_agrees_with_the_generators_on_many_walks() {
 }
 
 #[test]
-fn centres_and_edges_on_a_4x4() {
+fn centers_and_edges_on_a_4x4() {
     let cube = PuzzleKind::Cube4;
-    assert!(holds(centres_solved, &after(cube, "R U' F2 B")));
+    assert!(holds(centers_solved, &after(cube, "R U' F2 B")));
     // outer turns move both wings of an edge together
     assert!(holds(edges_paired, &after(cube, "R U' F2 B")));
     assert!(!holds(edges_paired, &after(cube, "Rw")));
-    assert!(!holds(centres_solved, &after(cube, "Rw")));
+    assert!(!holds(centers_solved, &after(cube, "Rw")));
     assert!(holds(edges_paired, &Facelets::solved(cube)));
 }
 
 #[test]
 fn the_middle_sticker_of_an_odd_cube_counts() {
     let cube = PuzzleKind::Cube5;
-    assert!(holds(centres_solved, &after(cube, "R U")));
-    assert!(!holds(centres_solved, &after(cube, "2R")));
+    assert!(holds(centers_solved, &after(cube, "R U")));
+    assert!(!holds(centers_solved, &after(cube, "2R")));
     assert!(holds(edges_paired, &Facelets::solved(cube)));
 }
 
@@ -98,7 +98,7 @@ fn a_3x3_solution_is_cut_where_it_enters_g1_for_good() {
 
 #[test]
 fn an_empty_phase_is_kept_and_counted() {
-    // a 4x4 that has its centres and edges: only the 3x3 stage is left
+    // a 4x4 that has its centers and edges: only the 3x3 stage is left
     let solution = "R U R'";
     let start = after(PuzzleKind::Cube4, &inverse(solution).to_string());
     let found = phases(&start, &seq(solution)).unwrap();

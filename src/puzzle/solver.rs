@@ -20,9 +20,9 @@ pub struct SolveOptions {
     /// other sizes ignore it.
     pub slices: bool,
     /// Stop when the cube is reduced to a 3x3x3 and answer with the moves
-    /// that reduce it (centres solved, wings paired), not with a solution.
+    /// that reduce it (centers solved, wings paired), not with a solution.
     /// For engines that build on another reduction engine; the 4x4x4 and
-    /// 5x5x5 honour it, the others ignore it.
+    /// 5x5x5 honor it, the others ignore it.
     pub reduce_only: bool,
 }
 
@@ -91,7 +91,7 @@ pub struct SolveResult {
     pub metrics: SolveMetrics,
     /// The engine's own stages, in order, covering the solution exactly (see
     /// [`SolveStage`]); empty when the engine reports none. Their ends are
-    /// positions in the final `solution`, after the engine's normalising.
+    /// positions in the final `solution`, after the engine's normalizing.
     pub stages: Vec<SolveStage>,
 }
 

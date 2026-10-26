@@ -1,4 +1,4 @@
-//! The `optimise` field of `/v1/solve`: opt-in layer ranges.
+//! The `optimize` field of `/v1/solve`: opt-in layer ranges.
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -55,7 +55,7 @@ async fn ranges_are_added_only_on_request() {
     assert_eq!(status, StatusCode::OK, "{plain}");
     assert!(plain.get("compressed").is_none() && plain.get("compressedLength").is_none());
 
-    let (status, packed) = call(json!({"cube": cube_text, "optimise": "ranges"})).await;
+    let (status, packed) = call(json!({"cube": cube_text, "optimize": "ranges"})).await;
     assert_eq!(status, StatusCode::OK, "{packed}");
     assert_eq!(packed["solution"], plain["solution"]);
     let text = packed["compressed"].as_str().unwrap();
@@ -67,8 +67,8 @@ async fn ranges_are_added_only_on_request() {
 }
 
 #[tokio::test]
-async fn an_unknown_optimisation_is_a_400() {
+async fn an_unknown_optimization_is_a_400() {
     let cube = Facelets::solved(PuzzleKind::Cube3).to_string();
-    let (status, _) = call(json!({"cube": cube, "optimise": "all"})).await;
+    let (status, _) = call(json!({"cube": cube, "optimize": "all"})).await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
 }

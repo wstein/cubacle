@@ -1,14 +1,14 @@
-//! Phase 1: eight centres of one kind onto two opposite faces.
+//! Phase 1: eight centers of one kind onto two opposite faces.
 //!
 //! Ported from cs0x7f/TPR-4x4x4-Solver src/Center1.java, MIT, Copyright (c)
 //! 2023 Chen Shuang; this file is AGPL-3.0-or-later, see NOTICE.md.
 //!
-//! The state is which 8 of the 24 centre places hold the chosen kind
-//! (colours `c % 3 == urf`): C(24,8) = 735,471 states, 15,582 classes under the
+//! The state is which 8 of the 24 center places hold the chosen kind
+//! (colors `c % 3 == urf`): C(24,8) = 735,471 states, 15,582 classes under the
 //! 48 symmetries. A state is written `class << 6 | symmetry`, the symmetry
 //! that takes the state to its class representative.
 
-use super::cube::move_centres;
+use super::cube::move_centers;
 use super::sym::{step, Syms};
 use crate::reduction::comb::CNK;
 
@@ -18,7 +18,7 @@ pub(super) const N_CLASS: usize = 15_582;
 /// Moves in the pruning table's search: `U R F D L B u r f`.
 const N_SEARCH_MOVES: usize = 27;
 
-/// Which centre places hold the chosen kind (1) or not (0).
+/// Which center places hold the chosen kind (1) or not (0).
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(super) struct Flags {
     ct: [u8; 24],
@@ -40,11 +40,11 @@ impl Flags {
         Flags { ct }
     }
 
-    /// The flags for the kind `urf` (0 to 2) of the centre colours `ct`.
-    pub(super) fn of_centres(ct: &[u8; 24], urf: u8) -> Flags {
+    /// The flags for the kind `urf` (0 to 2) of the center colors `ct`.
+    pub(super) fn of_centers(ct: &[u8; 24], urf: u8) -> Flags {
         let mut flags = [0u8; 24];
-        for (flag, &colour) in flags.iter_mut().zip(ct) {
-            *flag = u8::from(colour % 3 == urf);
+        for (flag, &color) in flags.iter_mut().zip(ct) {
+            *flag = u8::from(color % 3 == urf);
         }
         Flags { ct: flags }
     }
@@ -66,7 +66,7 @@ impl Flags {
     }
 
     fn moved(mut self, m: usize) -> Flags {
-        move_centres(&mut self.ct, m);
+        move_centers(&mut self.ct, m);
         self
     }
 

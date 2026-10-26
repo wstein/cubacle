@@ -32,7 +32,7 @@ pub struct ImportOptions {
     pub name_prefix: String,
     /// Where the data came from, shown by `patterns show`.
     pub origin: String,
-    /// Catalogue tag in front of the code, for example `ct`.
+    /// Catalog tag in front of the code, for example `ct`.
     pub source: String,
 }
 
@@ -88,7 +88,7 @@ pub(crate) fn slug(text: &str) -> String {
 }
 
 /// His spelling to ours: `R-` and `R2-` are inverses.
-fn normalise_move(token: &str) -> String {
+fn normalize_move(token: &str) -> String {
     match token.strip_suffix('-') {
         Some(base) if base.ends_with('2') => base.to_owned(),
         Some(base) => format!("{base}'"),
@@ -98,7 +98,7 @@ fn normalise_move(token: &str) -> String {
 
 /// The plain reader: whitespace-separated face turns, `-` or `'` for the inverse.
 pub fn read_plain(field: &str) -> Result<MoveSequence, String> {
-    let text: Vec<String> = field.split_whitespace().map(normalise_move).collect();
+    let text: Vec<String> = field.split_whitespace().map(normalize_move).collect();
     text.join(" ")
         .parse()
         .map_err(|e| format!("cannot read the moves: {e}"))
@@ -226,7 +226,7 @@ pub fn import_tab(text: &str, options: &ImportOptions, read: Reader) -> Imported
                 if !field(6).is_empty() && field(6) != field(7) {
                     pattern.aliases.push(field(6).to_owned());
                 }
-                pattern.catalogue = format!("{}:{code}", options.source);
+                pattern.catalog = format!("{}:{code}", options.source);
                 pattern.group = (0..3)
                     .map(|level| Group {
                         de: field(2 + 2 * level).to_owned(),
@@ -234,7 +234,7 @@ pub fn import_tab(text: &str, options: &ImportOptions, read: Reader) -> Imported
                     })
                     .filter(|g| !g.de.is_empty() || !g.en.is_empty())
                     .collect();
-                pattern.description = format!("Catalogue pattern {code}.");
+                pattern.description = format!("Catalog pattern {code}.");
                 pattern.provenance = field(14).to_owned();
                 pattern.origin = Some(options.origin.clone());
                 if generator.number == 0 {

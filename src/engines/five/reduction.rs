@@ -108,7 +108,7 @@ fn phase<S: Stage>(
         .map_err(|TimedOut| Stuck::TimedOut)
 }
 
-/// The moves (numbers 0 to 35) that bring the centres and wings of `cube`
+/// The moves (numbers 0 to 35) that bring the centers and wings of `cube`
 /// into a state where only a 3x3x3 is left.
 pub(super) fn reduce(
     tables: &Tables,
@@ -287,11 +287,11 @@ mod tests {
     }
 
     fn cube_of(facelets: &str) -> Cubie {
-        let mut colours = [0u8; 150];
-        for (c, f) in colours.iter_mut().zip(facelets.chars()) {
-            *c = "URFDLB".find(f).expect("a colour") as u8;
+        let mut colors = [0u8; 150];
+        for (c, f) in colors.iter_mut().zip(facelets.chars()) {
+            *c = "URFDLB".find(f).expect("a color") as u8;
         }
-        Cubie::from_colours(&colours).expect("a valid cube")
+        Cubie::from_colors(&colors).expect("a valid cube")
     }
 
     /// The Rust port finds the very reduction the Java solver found.

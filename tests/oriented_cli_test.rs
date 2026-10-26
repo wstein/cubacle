@@ -63,7 +63,7 @@ fn slice_turns_of_the_5x5x5_are_solved() {
     for scramble in [
         "3R",
         "R U 3R2 F 2L 3U Rw",
-        // the generator of the pattern centres-cycled
+        // the generator of the pattern centers-cycled
         "2-4Uw 2-4Rw' 2-4Uw' 2-4Rw",
     ] {
         let run = assert_solved("5", scramble);

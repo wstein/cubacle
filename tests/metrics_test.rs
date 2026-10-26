@@ -28,7 +28,7 @@ fn pseudo_random(kind: PuzzleKind, seed: u64, length: usize) -> MoveSequence {
 #[test]
 fn compressing_into_ranges_never_raises_the_axial_or_block_count() {
     // Ranges merge turns of one axis, and a run that cancels lets its
-    // neighbours join: both counts can only fall.
+    // neighbors join: both counts can only fall.
     for size in 4..=7 {
         let kind = PuzzleKind::of_size(size).unwrap();
         for seed in 0..40 {

@@ -10,7 +10,7 @@
 use crate::puzzle::{Face, Facelets, Move, PuzzleKind, Turn};
 
 /// Picks stickers (1-based cell numbers of the big cube, per face) for the
-/// cells of a fake cube; cells without a source show the colour of their face.
+/// cells of a fake cube; cells without a source show the color of their face.
 fn build(
     big: &Facelets,
     fake_kind: PuzzleKind,
@@ -27,7 +27,7 @@ fn build(
             });
         }
     }
-    Facelets::from_stickers(out).expect("every colour appears as often as it should")
+    Facelets::from_stickers(out).expect("every color appears as often as it should")
 }
 
 /// The 4x4x4 of an even cube: its corners and the inner wing orbit.
@@ -53,7 +53,7 @@ pub(super) fn four_of(big: &Facelets) -> Facelets {
 }
 
 /// The 5x5x5 for pairing the wings of `orbit` (0 is the outermost) of an
-/// even or odd cube: its corners, the centres (only for orbit 0 of an odd
+/// even or odd cube: its corners, the centers (only for orbit 0 of an odd
 /// cube, else solved) and the wings of the orbit beside the middle edge.
 pub(super) fn five_of(big: &Facelets, orbit: usize) -> Facelets {
     let n = big.kind().size();
@@ -74,8 +74,8 @@ pub(super) fn five_of(big: &Facelets, orbit: usize) -> Facelets {
     let r3c1 = n * (half - 1) + 1;
     let r4c1 = n * n - (orbit + 2) * n + 1;
     let far = (n - 1) * n;
-    // Centres.
-    let (c, show_centres) = if odd {
+    // Centers.
+    let (c, show_centers) = if odd {
         let hc = (n - 2) / 2;
         let r1 = n + 2;
         let r2 = (n * n).div_ceil(2);
@@ -106,7 +106,7 @@ pub(super) fn five_of(big: &Facelets, orbit: usize) -> Facelets {
         5 => Some(n),
         21 => Some(n * n - n + 1),
         25 => Some(n * n),
-        7 | 8 | 9 | 12 | 13 | 14 | 17 | 18 | 19 if !show_centres => None,
+        7 | 8 | 9 | 12 | 13 | 14 | 17 | 18 | 19 if !show_centers => None,
         7 => Some(c[0][0]),
         8 => Some(c[0][1]),
         9 => Some(c[0][2]),
@@ -178,5 +178,5 @@ pub(super) fn three_of(big: &Facelets) -> Facelets {
             }
         }
     }
-    Facelets::from_stickers(out).expect("nine stickers of each colour")
+    Facelets::from_stickers(out).expect("nine stickers of each color")
 }

@@ -2,7 +2,7 @@ id checkerboard
 name Checkerboard
 alias chessboard
 alias chess pattern
-desc Every face alternates its own colour and the opposite colour; the corners stay solved.
+desc Every face alternates its own color and the opposite color; the corners stay solved.
 def 3,4,5,6,7 parity
 
 id six-spots
@@ -10,14 +10,14 @@ name Six spots
 alias 6 spots
 alias six dots
 alias 6 dots
-desc Every face keeps a block of its own colour in the middle (one sticker on the 3x3x3) inside a border of the next colour round a corner.
+desc Every face keeps a block of its own color in the middle (one sticker on the 3x3x3) inside a border of the next color round a corner.
 def 3,4,5,6,7 classes cw cw id
 
-id six-centre-spots
-name Six centre spots
-alias 6 centre spots
-alias six centre dots
-desc Six spots on the big cubes with the spot reduced to the very middle: one sticker on odd cubes, the middle 2x2 on even ones; everything around it shows the next colour round a corner.
+id six-center-spots
+name Six center spots
+alias 6 center spots
+alias six center dots
+desc Six spots on the big cubes with the spot reduced to the very middle: one sticker on odd cubes, the middle 2x2 on even ones; everything around it shows the next color round a corner.
 def 5 rings cw cw id
 def 6 rings cw cw id
 def 7 rings cw cw cw id
@@ -27,13 +27,13 @@ name Four spots
 alias 4 spots
 alias four dots
 alias 4 dots
-desc Spots on four faces round one axis, on a border of the opposite colour; the two other faces stay solid.
+desc Spots on four faces round one axis, on a border of the opposite color; the two other faces stay solid.
 def 3,4,5,6,7 classes:RLFB opp opp id
 
-id four-centre-spots
-name Four centre spots
-alias 4 centre spots
-alias four centre dots
+id four-center-spots
+name Four center spots
+alias 4 center spots
+alias four center dots
 desc Four spots on the big cubes with the spot reduced to the very middle.
 def 5 rings:RLFB opp opp id
 def 6 rings:RLFB opp opp id
@@ -42,14 +42,14 @@ id cube-in-cube
 name Cube in a cube
 alias cube in a cube
 alias cube in cube
-desc A cube of the face colours seems to sit in the corner of a shell: on every face the block at two opposite corners keeps the face colour, the L-shaped rest shows the next colour round a corner.
+desc A cube of the face colors seems to sit in the corner of a shell: on every face the block at two opposite corners keeps the face color, the L-shaped rest shows the next color round a corner.
 def 2,3,4,5,6,7 blocks cw id
 
 id cube-in-cube-in-cube
 name Cube in a cube in a cube
 alias cube in a cube in a cube
 alias cube in cube in cube
-desc Three nested shells of one cubie thickness: the colour two steps, then one step round a corner, then the face colour.
+desc Three nested shells of one cubie thickness: the color two steps, then one step round a corner, then the face color.
 def 5 blocks ccw cw id
 
 id superflip
@@ -58,14 +58,14 @@ alias flipped edges
 desc Every edge piece flipped in place and everything else solved.
 def 3,4,5,6,7 superflip
 
-id centres-opposite
-name Opposite centres
-alias swapped centres
-desc Everything solved except the centres, which show the opposite colour (needs centres that move: 4x4x4 and up).
+id centers-opposite
+name Opposite centers
+alias swapped centers
+desc Everything solved except the centers, which show the opposite color (needs centers that move: 4x4x4 and up).
 def 4,6 rings id opp
 
-id centres-cycled
-name Cycled centres
-alias rotated centres
-desc Everything solved except the centres, which show the next colour round a corner (4x4x4 and up).
+id centers-cycled
+name Cycled centers
+alias rotated centers
+desc Everything solved except the centers, which show the next color round a corner (4x4x4 and up).
 def 4,5,6 rings id cw

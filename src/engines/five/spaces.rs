@@ -3,7 +3,7 @@
 //! The pruning tables over two coordinates move both at once; this is the
 //! `PruningTable(Move1, Move2, ...)` of the Java solver.
 //!
-//! Reorganised from cs0x7f/cube555 src/Util.java (the move-table parts of
+//! Reorganized from cs0x7f/cube555 src/Util.java (the move-table parts of
 //! `PruningTable`), MIT, Copyright (c) 2023 Chen Shuang; this file is
 //! AGPL-3.0-or-later, see NOTICE.md.
 

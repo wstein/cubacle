@@ -1,23 +1,23 @@
-//! Targets whose centres show different colours on one face.
+//! Targets whose centers show different colors on one face.
 //!
-//! The reduction engines (4x4x4 to 7x7x7) are colour based: the relative state
-//! `target^-1 * start` only tells a centre which face to go to, so they may
-//! leave the centres of a face in any order, and a target whose centres of one
-//! orbit differ in colour on one face cannot be aimed at directly (the target
-//! of an inner slice move, a centre spot, an imported pattern).
+//! The reduction engines (4x4x4 to 7x7x7) are color based: the relative state
+//! `target^-1 * start` only tells a center which face to go to, so they may
+//! leave the centers of a face in any order, and a target whose centers of one
+//! orbit differ in color on one face cannot be aimed at directly (the target
+//! of an inner slice move, a center spot, an imported pattern).
 //!
-//! The way out is to aim at a nearby target that has uniform centres and to
+//! The way out is to aim at a nearby target that has uniform centers and to
 //! finish with the moves that lead from there to the real one:
 //!
-//! 1. find moves `w` that make the centres of the target `T` uniform, so
+//! 1. find moves `w` that make the centers of the target `T` uniform, so
 //!    that `U = T w` is a state the engines can aim at;
 //! 2. solve the start to `U` as for any uniform target;
-//! 3. append `w^-1`, which takes `U` to `T`: the centre fix-up.
+//! 3. append `w^-1`, which takes `U` to `T`: the center fix-up.
 //!
 //! `w` depends on the target alone. It is the shortest sequence of layer moves
-//! (a search with a table per orbit and colour) when that is short, else a
+//! (a search with a table per orbit and color) when that is short, else a
 //! short one from a beam search, else the shortest prefix of the engine's own
-//! solution of `T` that leaves the centres uniform. The engine is used only
+//! solution of `T` that leaves the centers uniform. The engine is used only
 //! through [`Solver`].
 
 mod search;
@@ -25,7 +25,7 @@ mod search;
 use std::time::{Duration, Instant};
 
 use crate::puzzle::{
-    centre_orbits, normalise, relative_state, Face, Facelets, Failure, Move, MoveSequence,
+    center_orbits, normalize, relative_state, Face, Facelets, Failure, Move, MoveSequence,
     PuzzleKind, SolveMetrics, SolveOptions, SolveResult, SolveStage, Solver, Turn,
 };
 
@@ -36,29 +36,29 @@ const SEARCH_NODES: u64 = 3_000_000;
 /// The longest fix-up the search looks for.
 const SEARCH_DEPTH: usize = 12;
 /// The beam searches tried when the exact one finds nothing: whether the
-/// colours go to their own faces (else to any face), and the beam width.
+/// colors go to their own faces (else to any face), and the beam width.
 const BEAMS: [(bool, usize); 3] = [(true, 250), (true, 1000), (false, 500)];
 /// The longest sequence a beam search builds.
 const BEAM_DEPTH: usize = 40;
 
 /// The name of the last stage of a route that ends in a fix-up.
-pub const STAGE_NAME: &str = "centre fix-up";
+pub const STAGE_NAME: &str = "center fix-up";
 
-/// Whether every face of `state` shows one colour in each of its centre
+/// Whether every face of `state` shows one color in each of its center
 /// orbits. Cubes below 4x4x4 have nothing to sort and are uniform.
 pub fn uniform(state: &Facelets) -> bool {
     let kind = state.kind();
     if kind.size() < 4 {
         return true;
     }
-    centre_orbits(kind).iter().all(|orbit| {
+    center_orbits(kind).iter().all(|orbit| {
         (0..6).all(|face| {
             let mut on = orbit
                 .iter()
                 .filter(|&&s| s / kind.face_len() == face)
                 .map(|&s| state.stickers()[s]);
             let first = on.next();
-            on.all(|colour| Some(colour) == first)
+            on.all(|color| Some(color) == first)
         })
     })
 }
@@ -94,7 +94,7 @@ pub enum PlanError {
     Impossible(String),
     /// The time budget ran out while planning.
     BudgetExhausted,
-    /// The engine could not sort the centres of the target.
+    /// The engine could not sort the centers of the target.
     Failed(String),
 }
 
@@ -107,11 +107,11 @@ impl std::fmt::Display for PlanError {
             PlanError::BudgetExhausted => {
                 write!(
                     f,
-                    "the time budget ran out while fixing the target's centres"
+                    "the time budget ran out while fixing the target's centers"
                 )
             }
             PlanError::Failed(why) => {
-                write!(f, "the centres of the target could not be fixed up ({why})")
+                write!(f, "the centers of the target could not be fixed up ({why})")
             }
         }
     }
@@ -119,7 +119,7 @@ impl std::fmt::Display for PlanError {
 
 impl std::error::Error for PlanError {}
 
-/// The route to a target with mixed centres: solve to [`Plan::goal`], then
+/// The route to a target with mixed centers: solve to [`Plan::goal`], then
 /// make the [`Plan::tail`] moves.
 #[derive(Debug, Clone)]
 pub struct Plan {
@@ -130,12 +130,12 @@ pub struct Plan {
 }
 
 impl Plan {
-    /// The state with uniform centres to solve to first.
+    /// The state with uniform centers to solve to first.
     pub fn goal(&self) -> &Facelets {
         &self.goal
     }
 
-    /// The centre fix-up: the moves from the goal to the target.
+    /// The center fix-up: the moves from the goal to the target.
     pub fn tail(&self) -> &MoveSequence {
         &self.tail
     }
@@ -166,7 +166,7 @@ impl Plan {
                     return Err(failed(
                         Failure::Exhausted,
                         format!(
-                            "the centre fix-up alone takes {} moves, over the limit of {most}",
+                            "the center fix-up alone takes {} moves, over the limit of {most}",
                             self.tail.len()
                         ),
                     ))
@@ -179,7 +179,7 @@ impl Plan {
                 None => {
                     return Err(failed(
                         Failure::BudgetExhausted,
-                        "the budget went into planning the centre fix-up".into(),
+                        "the budget went into planning the center fix-up".into(),
                     ))
                 }
             }
@@ -214,7 +214,7 @@ impl Plan {
     }
 }
 
-/// The odd cube's face centres must be those of the start: the engines keep
+/// The odd cube's face centers must be those of the start: the engines keep
 /// the frame, and a goal in another frame could not be reached.
 fn keeps_frame(goal: &Facelets, start: &Facelets) -> bool {
     let kind = start.kind();
@@ -229,7 +229,7 @@ fn keeps_frame(goal: &Facelets, start: &Facelets) -> bool {
 }
 
 /// The shortest prefix of the engine's solution of `target` that leaves the
-/// centres uniform, and the state it leaves.
+/// centers uniform, and the state it leaves.
 fn from_engine(
     solver: &dyn Solver,
     start: &Facelets,
@@ -276,13 +276,13 @@ fn from_engine(
         }
     }
     Err(PlanError::Failed(
-        "the engine's solution never leaves the centres uniform".into(),
+        "the engine's solution never leaves the centers uniform".into(),
     ))
 }
 
-/// The turns of the middle layers that bring the face centres of `target`
+/// The turns of the middle layers that bring the face centers of `target`
 /// into the frame of `start`. Odd cubes only; an empty list when they agree.
-/// The face centres of an odd cube move only with a middle layer, and the
+/// The face centers of an odd cube move only with a middle layer, and the
 /// engines keep them where they are, so a target built with middle layers
 /// has to be put into the frame of the start first.
 fn frame_moves(start: &Facelets, target: &Facelets) -> Result<MoveSequence, PlanError> {
@@ -315,7 +315,7 @@ fn frame_moves(start: &Facelets, target: &Facelets) -> Result<MoveSequence, Plan
         level = next;
     }
     Err(PlanError::Impossible(
-        "the face centres of the target are not those of the start in any orientation".into(),
+        "the face centers of the target are not those of the start in any orientation".into(),
     ))
 }
 
@@ -329,7 +329,7 @@ fn model_of(kind: PuzzleKind) -> search::Model {
 fn known_way(target: &Facelets, hint: Option<&MoveSequence>) -> Option<MoveSequence> {
     let kind = target.kind();
     let hint = hint.filter(|m| m.fits(kind))?;
-    let shortened = MoveSequence::new(normalise(kind.size(), hint.moves(), true));
+    let shortened = MoveSequence::new(normalize(kind.size(), hint.moves(), true));
     let hint = if shortened.len() < hint.len() {
         &shortened
     } else {
@@ -344,7 +344,7 @@ fn known_way(target: &Facelets, hint: Option<&MoveSequence>) -> Option<MoveSeque
 }
 
 /// The plan to reach `target` from `start`, or `None` when the target has
-/// uniform centres (or the cube has none to sort) and the plain relative
+/// uniform centers (or the cube has none to sort) and the plain relative
 /// state does. `solver` is the engine of the cube's size. `hint` may be the
 /// moves that build the target from the solved cube, when they are known: the
 /// plan is then never longer than undoing them.
@@ -363,7 +363,7 @@ pub fn plan(
     debug_assert!(kind >= PuzzleKind::Cube4);
     if !model_of(kind).balanced(target) {
         return Err(PlanError::Impossible(
-            "a centre orbit shows a colour more or less than four times".into(),
+            "a center orbit shows a color more or less than four times".into(),
         ));
     }
     let known = known_way(target, hint);
@@ -381,7 +381,7 @@ pub fn plan(
         base.apply(w)
             .is_ok_and(|goal| uniform(&goal) && keeps_frame(&goal, start))
     };
-    // colours to their own faces, then colours to any face (another frame),
+    // colors to their own faces, then colors to any face (another frame),
     // the second only if it can be shorter
     let own = model
         .shortest(&base, true, SEARCH_DEPTH.min(room), SEARCH_NODES)
@@ -455,8 +455,8 @@ impl PlanError {
     }
 }
 
-/// Solves `start` to a `target` with mixed centres with `engine`, as the
-/// plan says; for a target with uniform centres this is the plain solve of
+/// Solves `start` to a `target` with mixed centers with `engine`, as the
+/// plan says; for a target with uniform centers this is the plain solve of
 /// the relative state. `hint` is as for [`plan`]. The answer is not replayed
 /// here.
 pub fn solve_to(

@@ -1,10 +1,10 @@
 //! The sticker permutation of a cube: where every sticker of the solved cube
 //! has gone.
 //!
-//! From a move sequence it is exact. From colours alone it is exact only
-//! where pieces can be told apart (every corner, and every edge and centre of
+//! From a move sequence it is exact. From colors alone it is exact only
+//! where pieces can be told apart (every corner, and every edge and center of
 //! the 2x2x2 and 3x3x3); pieces that look alike are matched to the nearest
-//! free place in index order, which reproduces the colours but is one of
+//! free place in index order, which reproduces the colors but is one of
 //! several permutations that do.
 
 use std::collections::HashMap;
@@ -45,12 +45,12 @@ pub(crate) fn covered(kind: PuzzleKind) -> Vec<bool> {
     covered
 }
 
-/// The centre sticker groups: each orbit of the movable ones, then the face
+/// The center sticker groups: each orbit of the movable ones, then the face
 /// middles of an odd cube.
-pub(crate) fn centre_groups(kind: PuzzleKind) -> Vec<Vec<usize>> {
+pub(crate) fn center_groups(kind: PuzzleKind) -> Vec<Vec<usize>> {
     let layout = layout(kind);
     let covered = covered(kind);
-    let mut groups: Vec<Vec<usize>> = layout.centres.clone();
+    let mut groups: Vec<Vec<usize>> = layout.centers.clone();
     let used: Vec<usize> = groups.iter().flatten().copied().collect();
     let rest: Vec<usize> = (0..kind.facelet_count())
         .filter(|&s| !covered[s] && !used.contains(&s))
@@ -61,8 +61,8 @@ pub(crate) fn centre_groups(kind: PuzzleKind) -> Vec<Vec<usize>> {
     groups
 }
 
-/// A frame for a cube without fixed centres: the piece at the D, B, L corner
-/// is taken to be home, and the colours it never shares a corner with are the
+/// A frame for a cube without fixed centers: the piece at the D, B, L corner
+/// is taken to be home, and the colors it never shares a corner with are the
 /// opposite faces.
 fn corner_frame(kind: PuzzleKind, state: &[u8]) -> Option<[u8; 6]> {
     let layout = layout(kind);
@@ -83,9 +83,9 @@ fn corner_frame(kind: PuzzleKind, state: &[u8]) -> Option<[u8; 6]> {
     })?;
     let mut frame = [u8::MAX; 6];
     for &s in home {
-        let (colour, face) = (state[s] as usize, s / face_len);
-        frame[colour] = face as u8;
-        frame[opposite(colour)?] = ((face + 3) % 6) as u8;
+        let (color, face) = (state[s] as usize, s / face_len);
+        frame[color] = face as u8;
+        frame[opposite(color)?] = ((face + 3) % 6) as u8;
     }
     let mut seen = [false; 6];
     for f in frame {
@@ -96,7 +96,7 @@ fn corner_frame(kind: PuzzleKind, state: &[u8]) -> Option<[u8; 6]> {
     Some(frame)
 }
 
-/// The permutation of a colour state, read in its best colour frame. `Err`
+/// The permutation of a color state, read in its best color frame. `Err`
 /// when the pieces are no cube's.
 pub(crate) fn of_state(cube: &Facelets) -> Result<Permutation, String> {
     let kind = cube.kind();
@@ -106,7 +106,7 @@ pub(crate) fn of_state(cube: &Facelets) -> Result<Permutation, String> {
     } else {
         corner_frame(kind, &state)
     }
-    .ok_or("the colours are no cube's")?;
+    .ok_or("the colors are no cube's")?;
     let lab = Cube::new(kind, &state, &frame).lab;
     let layout = layout(kind);
     let face = |s: usize| s / layout.face_len;
@@ -114,9 +114,9 @@ pub(crate) fn of_state(cube: &Facelets) -> Result<Permutation, String> {
     let bits = |list: &[usize], f: &dyn Fn(usize) -> usize| {
         list.iter().fold(0u8, |acc, &s| acc | 1 << f(s))
     };
-    let colour = |s: usize| lab[s] as usize;
+    let color = |s: usize| lab[s] as usize;
 
-    // Corners: a corner is the set of its colours.
+    // Corners: a corner is the set of its colors.
     let mut corner_home: HashMap<u8, usize> = HashMap::new();
     for (h, c) in layout.corners.iter().enumerate() {
         corner_home.insert(bits(c, &face), h);
@@ -124,7 +124,7 @@ pub(crate) fn of_state(cube: &Facelets) -> Result<Permutation, String> {
     let mut taken = vec![false; layout.corners.len()];
     for slot in &layout.corners {
         let h = *corner_home
-            .get(&bits(slot, &colour))
+            .get(&bits(slot, &color))
             .ok_or("the corners are no cube's")?;
         if std::mem::replace(&mut taken[h], true) {
             return Err("a corner appears twice".to_owned());
@@ -132,13 +132,13 @@ pub(crate) fn of_state(cube: &Facelets) -> Result<Permutation, String> {
         for &j in slot {
             let home = layout.corners[h]
                 .iter()
-                .find(|&&s| face(s) == colour(j))
+                .find(|&&s| face(s) == color(j))
                 .ok_or("the corners are no cube's")?;
             pi[*home] = j;
         }
     }
 
-    // Wings: the free homes of a colour pair and depth, fixed ones first.
+    // Wings: the free homes of a color pair and depth, fixed ones first.
     let mut free: HashMap<(u8, usize), Vec<usize>> = HashMap::new();
     for (h, w) in layout.wings.iter().enumerate() {
         free.entry((bits(&w.stickers, &face), w.depth))
@@ -147,7 +147,7 @@ pub(crate) fn of_state(cube: &Facelets) -> Result<Permutation, String> {
     }
     let mut home_of = vec![usize::MAX; layout.wings.len()];
     for (w, wing) in layout.wings.iter().enumerate() {
-        let key = (bits(&wing.stickers, &colour), wing.depth);
+        let key = (bits(&wing.stickers, &color), wing.depth);
         if key.0 == bits(&wing.stickers, &face) {
             if let Some(list) = free.get_mut(&key) {
                 if let Some(at) = list.iter().position(|&h| h == w) {
@@ -161,7 +161,7 @@ pub(crate) fn of_state(cube: &Facelets) -> Result<Permutation, String> {
         if home_of[w] != usize::MAX {
             continue;
         }
-        let key = (bits(&wing.stickers, &colour), wing.depth);
+        let key = (bits(&wing.stickers, &color), wing.depth);
         let list = free.get_mut(&key).ok_or("the edges are no cube's")?;
         if list.is_empty() {
             return Err("the edges are no cube's".to_owned());
@@ -173,19 +173,19 @@ pub(crate) fn of_state(cube: &Facelets) -> Result<Permutation, String> {
             let home = layout.wings[home_of[w]]
                 .stickers
                 .iter()
-                .find(|&&s| face(s) == colour(j))
+                .find(|&&s| face(s) == color(j))
                 .ok_or("the edges are no cube's")?;
             pi[*home] = j;
         }
     }
 
-    // Centres: a sticker keeps its place if it can, then the nearest free one
-    // of its colour in its orbit.
-    for group in centre_groups(kind) {
+    // Centers: a sticker keeps its place if it can, then the nearest free one
+    // of its color in its orbit.
+    for group in center_groups(kind) {
         let mut free: Vec<usize> = group.clone();
         let mut placed = vec![usize::MAX; kind.facelet_count()];
         for &j in &group {
-            if colour(j) == face(j) {
+            if color(j) == face(j) {
                 free.retain(|&h| h != j);
                 placed[j] = j;
             }
@@ -196,8 +196,8 @@ pub(crate) fn of_state(cube: &Facelets) -> Result<Permutation, String> {
             }
             let at = free
                 .iter()
-                .position(|&h| face(h) == colour(j))
-                .ok_or("the centres are no cube's")?;
+                .position(|&h| face(h) == color(j))
+                .ok_or("the centers are no cube's")?;
             placed[j] = free.remove(at);
         }
         for &j in &group {

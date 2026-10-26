@@ -3,7 +3,7 @@
 //! to the same position.
 //!
 //! The index holds, for every pattern with a generator on one cube size and for
-//! each of the 48 symmetries, the sticker colouring of the image. Looking a
+//! each of the 48 symmetries, the sticker coloring of the image. Looking a
 //! state up is one hash lookup. A hit gives the moves that solve the state and
 //! the moves that build it from the solved cube; both are replayed before they
 //! are returned, so a hit is never wrong.
@@ -17,7 +17,7 @@ use crate::puzzle::{Face, Facelets, Move, MoveSequence, PuzzleKind, Turn};
 /// What the index holds for one pattern.
 struct Entry {
     name: String,
-    catalogue: String,
+    catalog: String,
     /// The shortest plain-move generator on this size.
     generator: MoveSequence,
 }
@@ -26,7 +26,7 @@ struct Entry {
 pub struct RouteIndex {
     kind: PuzzleKind,
     entries: Vec<Entry>,
-    /// Image colouring to (entry, symmetry).
+    /// Image coloring to (entry, symmetry).
     map: HashMap<Vec<u8>, (u32, u8)>,
 }
 
@@ -34,7 +34,7 @@ pub struct RouteIndex {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KnownRoute {
     pub name: String,
-    pub catalogue: String,
+    pub catalog: String,
     /// Moves that take the state to the solved cube.
     pub solve: MoveSequence,
     /// Moves that take the solved cube to the state.
@@ -132,12 +132,12 @@ impl RouteIndex {
         let at = self.entries.len() as u32;
         self.entries.push(Entry {
             name: pattern.name.clone(),
-            catalogue: pattern.catalogue.clone(),
+            catalog: pattern.catalog.clone(),
             generator,
         });
-        let colours: Vec<u8> = state.stickers().iter().map(|f| *f as u8).collect();
+        let colors: Vec<u8> = state.stickers().iter().map(|f| *f as u8).collect();
         for (g, &sym) in symmetries().iter().enumerate() {
-            let key = turned_key(kind, &colours, g, sym);
+            let key = turned_key(kind, &colors, g, sym);
             let shorter = |old: &(u32, u8)| {
                 self.entries[at as usize].generator.len()
                     < self.entries[old.0 as usize].generator.len()
@@ -179,21 +179,21 @@ impl RouteIndex {
         }
         Some(KnownRoute {
             name: entry.name.clone(),
-            catalogue: entry.catalogue.clone(),
+            catalog: entry.catalog.clone(),
             solve,
             build,
         })
     }
 }
 
-/// The colouring of the image under `sym`, the colours renamed to follow
+/// The coloring of the image under `sym`, the colors renamed to follow
 /// the faces they sit on (so the solved cube maps to itself).
-fn turned_key(kind: PuzzleKind, colours: &[u8], g: usize, sym: Sym) -> Vec<u8> {
+fn turned_key(kind: PuzzleKind, colors: &[u8], g: usize, sym: Sym) -> Vec<u8> {
     let mut rename = [0u8; 6];
     for face in Face::ALL {
         rename[face as usize] = face_under(sym, face) as u8;
     }
-    image(kind, colours, g)
+    image(kind, colors, g)
         .into_iter()
         .map(|c| rename[c as usize])
         .collect()

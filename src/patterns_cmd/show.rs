@@ -60,7 +60,7 @@ fn show_numbered(
     icons: Option<&SolutionIcons>,
 ) -> Result<(), String> {
     let mut gallery = icons.map(Gallery::new);
-    println!("{} ({})", pattern.name, pattern.catalogue);
+    println!("{} ({})", pattern.name, pattern.catalog);
     if !pattern.aliases.is_empty() {
         println!("also: {}", pattern.aliases.join(", "));
     }
@@ -94,7 +94,7 @@ fn show_numbered(
         draw_moves(&mut gallery, g)?;
     }
     if shown == 0 {
-        return Err(format!("{} has no such generator", pattern.catalogue));
+        return Err(format!("{} has no such generator", pattern.catalog));
     }
     Ok(())
 }

@@ -66,13 +66,13 @@ pub(crate) fn rasterise_canvas(
 }
 
 impl Raster {
-    /// Draws a frame of `colour` along the border of the raster, over what is
+    /// Draws a frame of `color` along the border of the raster, over what is
     /// there. The thickness is 3 px at 109 px height and grows with the height.
     #[cfg(feature = "quarter-frame")]
-    pub fn framed(mut self, colour: Rgb) -> Raster {
+    pub fn framed(mut self, color: Rgb) -> Raster {
         let (w, h) = (self.width as usize, self.height as usize);
         let t = (h / 36).max(2).min(w / 2).min(h / 2);
-        let px = [colour.0, colour.1, colour.2, 255];
+        let px = [color.0, color.1, color.2, 255];
         for y in 0..h {
             for x in 0..w {
                 if x < t || y < t || x >= w - t || y >= h - t {
@@ -84,10 +84,10 @@ impl Raster {
     }
 
     /// The raster on a panel: `pad` clear pixels on every side filled with
-    /// `colour` (straight RGBA, translucent, so it stays a soft tint on any
+    /// `color` (straight RGBA, translucent, so it stays a soft tint on any
     /// terminal background), rounded corners of the given radius, the raster
     /// drawn over it.
-    pub fn on_panel(&self, pad: u32, colour: [u8; 4], radius: f64) -> Raster {
+    pub fn on_panel(&self, pad: u32, color: [u8; 4], radius: f64) -> Raster {
         let (w, h) = (self.width + 2 * pad, self.height + 2 * pad);
         let mut data = vec![0u8; w as usize * h as usize * 4];
         let (half_w, half_h) = (f64::from(w) / 2.0, f64::from(h) / 2.0);
@@ -101,8 +101,8 @@ impl Raster {
                 let d = dx.max(0.0).hypot(dy.max(0.0)) + dx.max(dy).min(0.0) - radius;
                 let cover = (0.5 - d).clamp(0.0, 1.0);
                 let at = (y as usize * w as usize + x as usize) * 4;
-                let alpha = (f64::from(colour[3]) * cover).round() as u8;
-                data[at..at + 4].copy_from_slice(&[colour[0], colour[1], colour[2], alpha]);
+                let alpha = (f64::from(color[3]) * cover).round() as u8;
+                data[at..at + 4].copy_from_slice(&[color[0], color[1], color[2], alpha]);
             }
         }
         // the picture over the panel (source-over, straight alpha)
@@ -151,7 +151,7 @@ impl Raster {
     }
 
     /// Places `rasters` side by side, top-aligned, with `gap` transparent
-    /// pixels between neighbours. The result is as tall as the tallest one;
+    /// pixels between neighbors. The result is as tall as the tallest one;
     /// where a raster is shorter, the rest of its column is transparent.
     /// An empty list gives an empty raster.
     pub fn hstack(rasters: &[Raster], gap: u32) -> Raster {
@@ -177,7 +177,7 @@ impl Raster {
     }
 }
 
-fn fill(buf: &mut [f32], w: usize, h: usize, points: &[[f64; 2]], colour: Rgb, opacity: f32) {
+fn fill(buf: &mut [f32], w: usize, h: usize, points: &[[f64; 2]], color: Rgb, opacity: f32) {
     if points.len() < 3 {
         return;
     }
@@ -194,7 +194,7 @@ fn fill(buf: &mut [f32], w: usize, h: usize, points: &[[f64; 2]], colour: Rgb, o
         .ceil()
         .max(0.0) as usize)
         .min(h);
-    let rgb = [colour.0, colour.1, colour.2].map(|c| f32::from(c) / 255.0);
+    let rgb = [color.0, color.1, color.2].map(|c| f32::from(c) / 255.0);
     let mut coverage = vec![0.0_f32; w];
     let mut crossings: Vec<f64> = Vec::new();
     for y in min_y..max_y {

@@ -29,7 +29,7 @@ pub fn count(moves: &MoveSequence, kind: PuzzleKind, metric: Metric) -> usize {
     count::count_units(kind, &units, metric)
 }
 
-/// The same for a compressed sequence of layer ranges (`--optimise ranges`).
+/// The same for a compressed sequence of layer ranges (`--optimize ranges`).
 pub fn count_layer_moves(moves: &[LayerMove], kind: PuzzleKind, metric: Metric) -> usize {
     let units: Vec<Unit> = moves
         .iter()

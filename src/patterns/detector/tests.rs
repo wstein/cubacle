@@ -1,7 +1,7 @@
 //! Properties of the detector over the whole pattern library and random cubes.
 
 use super::geometry::image;
-use super::{canon, colours, detect};
+use super::{canon, colors, detect};
 use crate::patterns;
 use crate::puzzle::{Facelets, PuzzleKind};
 
@@ -31,7 +31,7 @@ pub(crate) fn random_cube(kind: PuzzleKind, seed: u64, length: usize) -> Facelet
         .expect("the layers exist")
 }
 
-/// A state with its colours renamed by `names`.
+/// A state with its colors renamed by `names`.
 fn renamed(state: &[u8], names: [u8; 6]) -> Vec<u8> {
     state.iter().map(|&c| names[c as usize]).collect()
 }
@@ -48,7 +48,7 @@ fn every_library_pattern_is_found_under_all_48_symmetries_and_renamings() {
     for pattern in patterns::all() {
         for size in pattern.sizes() {
             let kind = PuzzleKind::of_size(size).expect("a cube size");
-            let state = colours(&pattern.state(kind).expect("defined"));
+            let state = colors(&pattern.state(kind).expect("defined"));
             for g in 0..48 {
                 for names in NAMINGS {
                     let seen = renamed(&image(kind, &state, g), names);
@@ -95,7 +95,7 @@ fn the_canonical_form_is_stable_and_idempotent() {
         let cube = random_cube(kind, 11, 30);
         let report = detect(&cube);
         assert_eq!(detect(&report.canonical).canonical, report.canonical);
-        let state = colours(&cube);
+        let state = colors(&cube);
         for g in [1, 7, 19, 30, 47] {
             let moved = renamed(&image(kind, &state, g), NAMINGS[3]);
             assert_eq!(detect(&canon::facelets(&moved)).canonical, report.canonical);
@@ -118,7 +118,7 @@ fn symmetry_orders_are_invariant_for_the_library() {
     for pattern in patterns::all() {
         for size in pattern.sizes() {
             let kind = PuzzleKind::of_size(size).expect("a cube size");
-            let state = colours(&pattern.state(kind).expect("defined"));
+            let state = colors(&pattern.state(kind).expect("defined"));
             let order = detect(&pattern.state(kind).unwrap()).symmetry.order();
             for g in [3, 20, 41] {
                 let seen = renamed(&image(kind, &state, g), NAMINGS[2]);
@@ -153,7 +153,7 @@ fn the_fingerprint_is_the_same_for_every_turn_and_renaming() {
     for kind in PuzzleKind::ALL {
         for seed in [3, 4] {
             let cube = random_cube(kind, seed, 25);
-            let state = colours(&cube);
+            let state = colors(&cube);
             let want = detect(&cube).fingerprint;
             for g in 0..48 {
                 let seen = renamed(&image(kind, &state, g), NAMINGS[1 + g % 3]);
@@ -232,12 +232,12 @@ fn the_cycles_of_a_scramble_rebuild_its_facelets() {
 }
 
 #[test]
-fn the_cycles_of_colours_rebuild_the_cube() {
+fn the_cycles_of_colors_rebuild_the_cube() {
     for kind in PuzzleKind::ALL {
         for seed in 1..5 {
             let cube = random_cube(kind, seed, 30);
             let cycles = super::cycles_of_state(&cube).unwrap();
-            // The cycles are read in a colour frame, so the colours may be renamed.
+            // The cycles are read in a color frame, so the colors may be renamed.
             assert_eq!(
                 detect(&cycles.state()).canonical,
                 detect(&cube).canonical,
@@ -248,8 +248,8 @@ fn the_cycles_of_colours_rebuild_the_cube() {
     }
 }
 
-/// How many repetitions of `moves` bring the colours back, up to `limit`.
-fn colour_return(kind: PuzzleKind, moves: &crate::puzzle::MoveSequence, limit: u32) -> Option<u32> {
+/// How many repetitions of `moves` bring the colors back, up to `limit`.
+fn color_return(kind: PuzzleKind, moves: &crate::puzzle::MoveSequence, limit: u32) -> Option<u32> {
     let solved = Facelets::solved(kind);
     let mut cube = solved.clone();
     for count in 1..=limit {
@@ -273,7 +273,7 @@ fn the_order_is_how_often_the_sequence_must_be_repeated() {
         let moves = text.parse().unwrap();
         let cycles = super::cycles_of_moves(kind, &moves).unwrap();
         assert_eq!(cycles.order.unwrap().whole, order, "{text}");
-        assert_eq!(colour_return(kind, &moves, 2000), Some(order as u32));
+        assert_eq!(color_return(kind, &moves, 2000), Some(order as u32));
     }
 }
 
@@ -285,7 +285,7 @@ fn the_order_matches_repetition_for_random_sequences() {
             let order = super::cycles_of_moves(kind, &moves).unwrap().order.unwrap();
             if order.whole <= 1500 {
                 assert_eq!(
-                    colour_return(kind, &moves, 1500),
+                    color_return(kind, &moves, 1500),
                     Some(order.whole as u32),
                     "{kind:?} {seed}"
                 );
@@ -295,13 +295,13 @@ fn the_order_matches_repetition_for_random_sequences() {
 }
 
 #[test]
-fn on_big_cubes_the_colours_return_within_the_order() {
+fn on_big_cubes_the_colors_return_within_the_order() {
     for kind in [PuzzleKind::Cube4, PuzzleKind::Cube5] {
         for seed in 1..15 {
             let moves = random_moves(kind, seed, 3);
             let order = super::cycles_of_moves(kind, &moves).unwrap().order.unwrap();
             if order.whole <= 1500 {
-                let back = colour_return(kind, &moves, 1500).expect("returns");
+                let back = color_return(kind, &moves, 1500).expect("returns");
                 assert_eq!(order.whole % u128::from(back), 0, "{kind:?} {seed}");
             }
         }
@@ -329,7 +329,7 @@ fn subgroup_verdicts_are_invariant_under_turning_and_renaming() {
         let cube = Facelets::solved(kind)
             .apply(&text.parse().unwrap())
             .unwrap();
-        let state = colours(&cube);
+        let state = colors(&cube);
         let verdicts = |c: &Facelets| {
             let mut v: Vec<String> = detect(c)
                 .subgroups
@@ -384,7 +384,7 @@ fn patternness_of_random_scrambles_stays_low() {
 fn patternness_is_the_same_for_every_turn_and_renaming() {
     let kind = PuzzleKind::Cube3;
     let cube = patterns::find("cube-in-cube").unwrap().state(kind).unwrap();
-    let state = colours(&cube);
+    let state = colors(&cube);
     for g in [3, 11, 29, 47] {
         let seen = renamed(&image(kind, &state, g), NAMINGS[2]);
         assert_eq!(

@@ -49,12 +49,12 @@ fn finish(
     }
 }
 
-/// The colour (face index) of a facelet position.
-fn colour(facelet: u8) -> usize {
+/// The color (face index) of a facelet position.
+fn color(facelet: u8) -> usize {
     usize::from(facelet) / 9
 }
 
-/// The single colour a sticker must show, if the target fixes it.
+/// The single color a sticker must show, if the target fixes it.
 fn fixed(set: u8) -> Option<usize> {
     (set.count_ones() == 1).then(|| set.trailing_zeros() as usize)
 }
@@ -75,12 +75,12 @@ pub(super) fn solve_to(
         return fail(Failure::InvalidInput, "the start cube state is impossible");
     }
     let sets = target.sets();
-    // The centres never move: a target that wants another colour there cannot be met.
+    // The centers never move: a target that wants another color there cannot be met.
     for face in Face::ALL {
         if sets[face.index() * 9 + 4] >> face.index() & 1 == 0 {
             return fail(
                 Failure::Exhausted,
-                "unreachable: the target wants another colour on a centre, and the centres of a 3x3x3 never move",
+                "unreachable: the target wants another color on a center, and the centers of a 3x3x3 never move",
             );
         }
     }
@@ -98,13 +98,13 @@ pub(super) fn solve_to(
 type Wanted = Vec<(usize, usize, u8)>;
 
 /// The edges the target fixes, as (slot, piece, flip), when it constrains
-/// nothing but whole edges and centres; `Ok(None)` when it constrains other
+/// nothing but whole edges and centers; `Ok(None)` when it constrains other
 /// stickers (corners, or half an edge); `Err` when a fixed edge is no edge.
 fn whole_edges(sets: &[u8]) -> Result<Option<Wanted>, String> {
     let on_edge = |facelet: u8| EDGE_FACELET.iter().any(|pair| pair.contains(&facelet));
     for (position, &set) in sets.iter().enumerate() {
-        let centre = position % 9 == 4;
-        if set != ANY && !centre && !on_edge(position as u8) {
+        let center = position % 9 == 4;
+        if set != ANY && !center && !on_edge(position as u8) {
             return Ok(None);
         }
     }
@@ -118,22 +118,17 @@ fn whole_edges(sets: &[u8]) -> Result<Option<Wanted>, String> {
             return Ok(None);
         };
         let piece = EDGE_FACELET.iter().position(|home| {
-            (colour(home[0]), colour(home[1])) == (a, b)
-                || (colour(home[1]), colour(home[0])) == (a, b)
+            (color(home[0]), color(home[1])) == (a, b) || (color(home[1]), color(home[0])) == (a, b)
         });
         let Some(piece) = piece else {
             return Err(format!(
-                "contradictory: no edge of the cube has the colours {} and {}",
+                "contradictory: no edge of the cube has the colors {} and {}",
                 Face::ALL[a].letter(),
                 Face::ALL[b].letter()
             ));
         };
-        let flip = u8::from(
-            (
-                colour(EDGE_FACELET[piece][0]),
-                colour(EDGE_FACELET[piece][1]),
-            ) != (a, b),
-        );
+        let flip =
+            u8::from((color(EDGE_FACELET[piece][0]), color(EDGE_FACELET[piece][1])) != (a, b));
         if wanted.iter().any(|&(_, other, _)| other == piece) {
             return Err(format!(
                 "contradictory: the target wants the edge {}{} in two places",

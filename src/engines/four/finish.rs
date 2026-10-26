@@ -13,7 +13,7 @@ use super::reduce::{after, Reduction};
 use super::solver::FourSolver;
 use super::stages::stages;
 use super::tables::Tables;
-use crate::puzzle::normalise;
+use crate::puzzle::normalize;
 use crate::puzzle::{Face, Facelets, Failure, Move, MoveSequence, SolveOptions, SolveStage};
 use crate::reduction::improve::Plan;
 
@@ -49,8 +49,8 @@ fn miss(failure: Failure, message: &str) -> Miss {
     }
 }
 
-/// Whether the centres of every face show the face's own colour.
-fn centres_home(cube: &Facelets) -> bool {
+/// Whether the centers of every face show the face's own color.
+fn centers_home(cube: &Facelets) -> bool {
     let s = cube.stickers();
     Face::ALL
         .iter()
@@ -76,7 +76,7 @@ impl FourSolver {
         let Some(three) = facelets::three_by_three(&model) else {
             return Err(miss(
                 Failure::Internal,
-                "the reduced cube has no 3x3x3 (the centres are not solved)",
+                "the reduced cube has no 3x3x3 (the centers are not solved)",
             ));
         };
         let (length1, add1, sym) = (
@@ -88,14 +88,14 @@ impl FourSolver {
         let head_moves: Vec<Move> = head.iter().map(|&c| to_move(c)).collect();
         if options.reduce_only {
             // Keep the cube's frame: the big cubes lift these moves.
-            let head = normalise(4, &head_moves, false);
+            let head = normalize(4, &head_moves, false);
             let Some(head) = self
                 .swaps
-                .finish_with(&self.rotations, facelets, &head, centres_home)
+                .finish_with(&self.rotations, facelets, &head, centers_home)
             else {
-                return Err(miss(Failure::Internal, "the reduced centres are not home"));
+                return Err(miss(Failure::Internal, "the reduced centers are not home"));
             };
-            let fin = normalise(4, &head, false);
+            let fin = normalize(4, &head, false);
             let stages = stages(
                 &self.rotations,
                 facelets,
@@ -116,10 +116,10 @@ impl FourSolver {
                 "the reduction moves do not fit the cube",
             ));
         };
-        let Some(rotation) = self.rotations.find(&reduced, centres_home) else {
+        let Some(rotation) = self.rotations.find(&reduced, centers_home) else {
             return Err(miss(
                 Failure::Internal,
-                "the reduced cube is not a rotation of the standard colour scheme",
+                "the reduced cube is not a rotation of the standard color scheme",
             ));
         };
 
@@ -210,14 +210,14 @@ impl FourSolver {
         }
         let real = to_real(&t.syms, &all, length1, add1, sym);
         let raw: Vec<Move> = real.iter().map(|&c| to_move(c)).collect();
-        let moves = normalise(4, &raw, false);
+        let moves = normalize(4, &raw, false);
         let Some(moves) = self.swaps.finish(&self.rotations, facelets, &moves) else {
             return Err(miss(
                 Failure::Internal,
                 "the solution does not solve the cube (the 3x3x3 stage was given an unsolvable state?)",
             ));
         };
-        let fin = normalise(4, &moves, options.slices);
+        let fin = normalize(4, &moves, options.slices);
         let stages = stages(&self.rotations, facelets, reduction, &raw, &fin, true);
         let solution = MoveSequence::new(fin);
         if limit.is_some_and(|max| solution.len() > max) {

@@ -1,6 +1,6 @@
 use super::*;
 
-fn scheme() -> ColourScheme {
+fn scheme() -> ColorScheme {
     "URFDLB".parse().unwrap()
 }
 
@@ -49,7 +49,7 @@ fn every_dont_care_is_independent() {
 
 #[test]
 fn fixed_colors_go_through_the_scheme() {
-    let western: ColourScheme = "western".parse().unwrap();
+    let western: ColorScheme = "western".parse().unwrap();
     let schema = parse(
         "W W W W / R R R R / G G G G / Y Y Y Y / O O O O / B B B B",
         PuzzleKind::Cube2,
@@ -71,7 +71,7 @@ fn fixed_colors_go_through_the_scheme() {
 
 #[test]
 fn custom_scheme_letters_are_fixed_colors() {
-    let custom: ColourScheme = "ABCDEF".parse().unwrap();
+    let custom: ColorScheme = "ABCDEF".parse().unwrap();
     let text = "A A A A / B B B B / C C C C / D D D D / E E E E / F F F F";
     let schema = parse(text, PuzzleKind::Cube2, &custom).unwrap();
     assert_eq!(schema.slots[20], Slot::Fixed(Face::B));

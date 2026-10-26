@@ -21,7 +21,7 @@ pub struct ImportArgs {
     /// Put in front of every imported id and name
     #[arg(long, default_value = "")]
     name_prefix: String,
-    /// Two-letter catalogue tag of the ids written as `tag:code`
+    /// Two-letter catalog tag of the ids written as `tag:code`
     #[arg(long, default_value = "ct")]
     source: String,
     /// Check and report only, including the counts each line claims (read in
@@ -133,7 +133,7 @@ fn print_patternness(patterns: &[cubacle::patterns::Pattern], size: usize) {
     let mut scores: Vec<u8> = Vec::new();
     for p in patterns {
         if let Some(score) = p.patternness(size) {
-            println!("{}\tpatternness {score} %", p.catalogue);
+            println!("{}\tpatternness {score} %", p.catalog);
             scores.push(score);
         }
     }

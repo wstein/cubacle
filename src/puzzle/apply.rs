@@ -1,6 +1,6 @@
 //! Turning layers of a facelet state.
 //!
-//! Stickers are placed on a grid with the cube centred on the origin, `x`
+//! Stickers are placed on a grid with the cube centered on the origin, `x`
 //! pointing right, `y` up and `z` towards the viewer of the F face. A layer
 //! turn is then a quarter rotation of every sticker in that layer, which works
 //! for every cube size without per-size tables.
@@ -45,7 +45,7 @@ impl Facelets {
         for mv in moves.moves() {
             stickers = turned(kind, &stickers, mv);
         }
-        Ok(Facelets::from_stickers(stickers).expect("turning keeps every colour count"))
+        Ok(Facelets::from_stickers(stickers).expect("turning keeps every color count"))
     }
 }
 

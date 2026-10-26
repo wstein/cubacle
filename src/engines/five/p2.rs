@@ -1,4 +1,4 @@
-//! Phase 2: the remaining centres of the two colours onto U and D, with the
+//! Phase 2: the remaining centers of the two colors onto U and D, with the
 //! parity of the wings made even.
 //!
 //! Ported from cs0x7f/cube555 src/Phase2Center.java and src/Phase2Search.java,
@@ -25,13 +25,13 @@ const PARITY_DIFF: [u32; COUNT] = [
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0,
 ];
 
-/// The centres on the 16 slots of U, D, F and B, as slot arrays.
-struct Centre {
+/// The centers on the 16 slots of U, D, F and B, as slot arrays.
+struct Center {
     t: [i32; 16],
     x: [i32; 16],
 }
 
-impl Centre {
+impl Center {
     fn do_move(&mut self, m: usize) {
         let code = MOVES[m];
         let (axis, pow) = (code / 3, i32::from(code % 3));
@@ -107,7 +107,7 @@ pub(super) struct P2 {
 
 impl P2 {
     pub(super) fn build(b: &Build) -> P2 {
-        let mut c = Centre {
+        let mut c = Center {
             t: [0; 16],
             x: [0; 16],
         };
@@ -150,7 +150,7 @@ impl P2 {
     }
 
     pub(super) fn start(&self, cube: &Cubie) -> Node2 {
-        let mut c = Centre {
+        let mut c = Center {
             t: [0; 16],
             x: [0; 16],
         };

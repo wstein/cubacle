@@ -1,4 +1,4 @@
-//! Move expressions (`(...)*N`, slices, rotations) and colour output on the command line.
+//! Move expressions (`(...)*N`, slices, rotations) and color output on the command line.
 
 use std::process::Command;
 
@@ -86,7 +86,7 @@ fn the_nested_slice_and_rotation_expression_converts_on_a_7x7() {
 }
 
 #[test]
-fn convert_writes_colours_in_the_chosen_scheme() {
+fn convert_writes_colors_in_the_chosen_scheme() {
     let token = "A4ib8aejxj4Y";
     let (ok, western, _) = cubacle(&["convert", token, "--to", "color"]);
     assert!(ok);
@@ -94,7 +94,7 @@ fn convert_writes_colours_in_the_chosen_scheme() {
         western,
         "GWGWWGGGGWWWWRRWRWRRRGGRRGRBYBBYYBBBYOYYOOYYYOBOBBOOOO"
     );
-    let (ok, named, _) = cubacle(&["convert", token, "--to", "colour", "--scheme", "western"]);
+    let (ok, named, _) = cubacle(&["convert", token, "--to", "color", "--scheme", "western"]);
     assert!(ok);
     assert_eq!(named, western);
     let (ok, japanese, _) = cubacle(&["convert", token, "--to", "color", "--scheme", "jp"]);
@@ -110,19 +110,19 @@ fn convert_writes_colours_in_the_chosen_scheme() {
 }
 
 #[test]
-fn colours_cover_the_expression_on_a_7x7_and_survive_a_round_trip() {
+fn colors_cover_the_expression_on_a_7x7_and_survive_a_round_trip() {
     let expression = "((M' U)*4 y' z')*3";
     let args = ["convert", "--size", "7", expression];
-    let (ok, colours, error) = cubacle(&[
+    let (ok, colors, error) = cubacle(&[
         "convert", "--size", "7", expression, "--to", "color", "--scheme", "western",
     ]);
     assert!(ok, "{error}");
-    assert_eq!(colours.len(), 6 * 49);
-    assert_eq!(colours, GOLDEN_7X7);
-    assert!(colours.chars().all(|c| "WRGYOB".contains(c)));
+    assert_eq!(colors.len(), 6 * 49);
+    assert_eq!(colors, GOLDEN_7X7);
+    assert!(colors.chars().all(|c| "WRGYOB".contains(c)));
     let (ok, facelets, _) = cubacle(&args);
     assert!(ok);
-    let (ok, back, error) = cubacle(&["convert", "--scheme", "western", &colours]);
+    let (ok, back, error) = cubacle(&["convert", "--scheme", "western", &colors]);
     assert!(ok, "{error}");
     assert_eq!(back, facelets);
 }
@@ -162,7 +162,7 @@ fn cube_text_wins_over_an_expression_and_scramble_is_the_unambiguous_form() {
 }
 
 #[test]
-fn colours_default_to_the_scheme_they_were_read_in() {
+fn colors_default_to_the_scheme_they_were_read_in() {
     let japanese = "WWWWWWWWWRRRRRRRRRGGGGGGGGGBBBBBBBBBOOOOOOOOOYYYYYYYYY";
     let (ok, out, _) = cubacle(&["convert", japanese, "--to", "color"]);
     assert!(ok);

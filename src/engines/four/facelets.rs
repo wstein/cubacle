@@ -22,8 +22,8 @@ const D: usize = 3;
 const L: usize = 4;
 const B: usize = 5;
 
-/// The sticker of each of the 24 centres.
-const CENTRE_FACELET: [usize; 24] = [
+/// The sticker of each of the 24 centers.
+const CENTER_FACELET: [usize; 24] = [
     at(U, 5),
     at(U, 6),
     at(U, 10),
@@ -51,7 +51,7 @@ const CENTRE_FACELET: [usize; 24] = [
 ];
 
 /// The two stickers of each of the 24 wings, in the order that defines the
-/// wing's colours.
+/// wing's colors.
 const EDGE_FACELET: [[usize; 2]; 24] = [
     [at(U, 13), at(F, 1)],
     [at(U, 4), at(L, 1)],
@@ -91,12 +91,12 @@ const CORNER_FACELET: [[usize; 3]; 8] = [
     [at(D, 15), at(R, 15), at(B, 12)],
 ];
 
-/// Colour (0 to 5) of a sticker of the home cube.
+/// Color (0 to 5) of a sticker of the home cube.
 const fn home(sticker: usize) -> u8 {
     (sticker / 16) as u8
 }
 
-/// Reads the pieces of a cube in the standard colour scheme (`U` opposite
+/// Reads the pieces of a cube in the standard color scheme (`U` opposite
 /// `D`, `R` opposite `L`, `F` opposite `B`, as in a solved cube).
 pub(super) fn read(facelets: &Facelets) -> Result<Cube, &'static str> {
     if facelets.kind() != PuzzleKind::Cube4 {
@@ -110,11 +110,11 @@ pub(super) fn read(facelets: &Facelets) -> Result<Cube, &'static str> {
     let mut cube = Cube::solved();
     let mut count = [0u8; 6];
     for i in 0..24 {
-        cube.ct[i] = f[CENTRE_FACELET[i]];
+        cube.ct[i] = f[CENTER_FACELET[i]];
         count[usize::from(cube.ct[i])] += 1;
     }
     if count != [4; 6] {
-        return Err("each colour must appear four times among the centres");
+        return Err("each color must appear four times among the centers");
     }
 
     let mut wing_of = [[None; 6]; 6];
@@ -126,7 +126,7 @@ pub(super) fn read(facelets: &Facelets) -> Result<Cube, &'static str> {
         let a = usize::from(f[EDGE_FACELET[i][0]]);
         let b = usize::from(f[EDGE_FACELET[i][1]]);
         let Some(j) = wing_of[a][b] else {
-            return Err("an edge piece shows colours that no edge piece has");
+            return Err("an edge piece shows colors that no edge piece has");
         };
         if std::mem::replace(&mut used[usize::from(j)], true) {
             return Err("an edge piece appears twice");
@@ -145,15 +145,15 @@ pub(super) fn read(facelets: &Facelets) -> Result<Cube, &'static str> {
         let is_ud = |ori: usize| matches!(f[CORNER_FACELET[i][ori]], 0 | 3);
         let uds: Vec<usize> = (0..3).filter(|&o| is_ud(o)).collect();
         let [ori] = uds[..] else {
-            return Err("a corner piece does not show exactly one U or D colour");
+            return Err("a corner piece does not show exactly one U or D color");
         };
         let col1 = usize::from(f[CORNER_FACELET[i][(ori + 1) % 3]]);
         let col2 = usize::from(f[CORNER_FACELET[i][(ori + 2) % 3]]);
         let Some(j) = corner_of[col1][col2] else {
-            return Err("a corner piece shows colours that no corner piece has");
+            return Err("a corner piece shows colors that no corner piece has");
         };
         if f[CORNER_FACELET[i][ori]] != home(CORNER_FACELET[usize::from(j)][0]) {
-            return Err("a corner piece shows its colours in the wrong order");
+            return Err("a corner piece shows its colors in the wrong order");
         }
         if std::mem::replace(&mut used[usize::from(j)], true) {
             return Err("a corner piece appears twice");
@@ -169,11 +169,11 @@ pub(super) fn read(facelets: &Facelets) -> Result<Cube, &'static str> {
     Ok(cube)
 }
 
-/// The 96 stickers (colours 0 to 5) of a cube.
+/// The 96 stickers (colors 0 to 5) of a cube.
 pub(super) fn stickers(cube: &Cube) -> [u8; 96] {
     let mut f = [0u8; 96];
     for i in 0..24 {
-        f[CENTRE_FACELET[i]] = cube.ct[i];
+        f[CENTER_FACELET[i]] = cube.ct[i];
     }
     for i in 0..24 {
         let w = usize::from(cube.ep[i]);
@@ -197,15 +197,15 @@ pub(super) fn to_facelets(cube: &Cube) -> Facelets {
         .iter()
         .map(|&c| Face::ALL[usize::from(c)])
         .collect();
-    Facelets::from_stickers(faces).expect("sixteen stickers of each colour")
+    Facelets::from_stickers(faces).expect("sixteen stickers of each color")
 }
 
-/// The 3x3x3 hidden in a cube whose wings are paired, in the colours of its
-/// own centres (so that the cube it describes is in the standard scheme).
-/// `None` if the centres are not solved or do not make a rotation.
+/// The 3x3x3 hidden in a cube whose wings are paired, in the colors of its
+/// own centers (so that the cube it describes is in the standard scheme).
+/// `None` if the centers are not solved or do not make a rotation.
 pub(super) fn three_by_three(cube: &Cube) -> Option<Facelets> {
     let f = stickers(cube);
-    // Which face each colour is the centre of.
+    // Which face each color is the center of.
     let mut face_of = [usize::MAX; 6];
     for face in 0..6 {
         let c = usize::from(f[at(face, 5)]);
@@ -297,19 +297,19 @@ mod tests {
             s[c] = t;
         });
         assert_eq!(twisted, Err("one corner is twisted on its own"));
-        // the two stickers of one wing exchanged: that colour pair is now present twice
+        // the two stickers of one wing exchanged: that color pair is now present twice
         let swapped = with(&|s| s.swap(at(U, 13), at(F, 1)));
         assert!(swapped.is_err());
-        // centres of the wrong count
-        let centres = with(&|s| s.swap(at(U, 5), at(F, 1)));
-        assert!(centres.is_err());
+        // centers of the wrong count
+        let centers = with(&|s| s.swap(at(U, 5), at(F, 1)));
+        assert!(centers.is_err());
         // not a 4x4x4
         assert!(read(&Facelets::solved(PuzzleKind::Cube3)).is_err());
     }
 
     #[test]
-    fn a_mirrored_colour_scheme_is_refused() {
-        // Swap the colours R and L everywhere: a valid cube in another scheme.
+    fn a_mirrored_color_scheme_is_refused() {
+        // Swap the colors R and L everywhere: a valid cube in another scheme.
         let solved = Facelets::solved(PuzzleKind::Cube4);
         let mirrored: Vec<Face> = solved
             .stickers()
@@ -325,14 +325,14 @@ mod tests {
 
     #[test]
     fn the_hidden_3x3x3_of_a_turned_reduced_cube_is_a_cube() {
-        // Face turns keep the wings paired and the centres solved.
+        // Face turns keep the wings paired and the centers solved.
         let cube = model("R U2 F' D L2 B R' U'");
         let three = three_by_three(&cube).expect("a 3x3x3");
         let want = Facelets::solved(PuzzleKind::Cube3)
             .apply(&"R U2 F' D L2 B R' U'".parse().unwrap())
             .unwrap();
         assert_eq!(three, want);
-        // Wide turns move the centres: not a reduced cube.
+        // Wide turns move the centers: not a reduced cube.
         assert!(three_by_three(&model("Rw U")).is_none());
     }
 }

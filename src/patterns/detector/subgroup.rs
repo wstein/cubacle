@@ -61,17 +61,17 @@ fn wing_stickers(cube: &Cube) -> impl Iterator<Item = usize> + '_ {
     cube.layout.wings.iter().flat_map(|w| w.stickers)
 }
 
-fn centre_stickers(cube: &Cube) -> impl Iterator<Item = usize> + '_ {
-    cube.layout.centres.iter().flatten().copied()
+fn center_stickers(cube: &Cube) -> impl Iterator<Item = usize> + '_ {
+    cube.layout.centers.iter().flatten().copied()
 }
 
 fn only(cube: &Cube, free: &str) -> Answer {
     let corners = at_home(cube, corner_stickers(cube));
     let wings = at_home(cube, wing_stickers(cube));
-    let centres = at_home(cube, centre_stickers(cube));
+    let centers = at_home(cube, center_stickers(cube));
     let (ok, bad) = match free {
-        "corners" => (wings && centres, "an edge or centre piece is moved"),
-        "edges" => (corners && centres, "a corner or centre piece is moved"),
+        "corners" => (wings && centers, "an edge or center piece is moved"),
+        "edges" => (corners && centers, "a corner or center piece is moved"),
         _ => (corners && wings, "a corner or edge piece is moved"),
     };
     if ok {
@@ -103,10 +103,10 @@ fn untouched_home(cube: &Cube, turned: &[usize]) -> Answer {
             ));
         }
     }
-    if at_home(cube, centre_stickers(cube)) {
+    if at_home(cube, center_stickers(cube)) {
         Ok(())
     } else {
-        Err("a centre is moved".to_owned())
+        Err("a center is moved".to_owned())
     }
 }
 
@@ -137,10 +137,10 @@ fn domino(cube: &Cube, order: [usize; 3]) -> Answer {
             return Err("a middle-layer edge is out of the middle layer".to_owned());
         }
     }
-    if at_home(cube, centre_stickers(cube)) {
+    if at_home(cube, center_stickers(cube)) {
         Ok(())
     } else {
-        Err("a centre is moved".to_owned())
+        Err("a center is moved".to_owned())
     }
 }
 
@@ -184,7 +184,7 @@ pub(crate) fn memberships(kind: PuzzleKind, state: &[u8]) -> Vec<Membership> {
         add("edges only", run(&|c| only(c, "edges"), true));
     }
     if n >= 4 {
-        add("centres only", run(&|c| only(c, "centres"), true));
+        add("centers only", run(&|c| only(c, "centers"), true));
     }
     if n == 3 {
         let g1 = |axis: usize| {

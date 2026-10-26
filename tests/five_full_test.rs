@@ -7,7 +7,7 @@
 //! `tests/fixtures/five_transfer.txt` holds the reduction the Java solver
 //! cs0x7f/cube555 made of 24 cubes. The solution of `FiveSolver` must start
 //! with those moves (its last move may merge with the 3x3x3 tail). The answer
-//! is normalised per axis (`src/puzzle/axis.rs`), which may merge and reorder
+//! is normalized per axis (`src/puzzle/axis.rs`), which may merge and reorder
 //! moves of one axis, so the head is compared by the cube it leads to: some
 //! prefix of the solution must reach the state the Java head reaches.
 

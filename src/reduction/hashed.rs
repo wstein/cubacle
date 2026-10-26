@@ -38,7 +38,7 @@ pub(crate) trait Hashed: Sync {
 
     /// Calls `f` with every key one move away from `key`, and with the keys
     /// that a symmetry makes equivalent to those.
-    fn neighbours<F: FnMut(u64)>(&self, key: u64, f: &mut F);
+    fn neighbors<F: FnMut(u64)>(&self, key: u64, f: &mut F);
 }
 
 fn put_min(words: &[AtomicU32], index: usize, value: u32) {
@@ -82,7 +82,7 @@ pub(crate) fn build<S: Hashed>(space: &S, depth: u32, bits: u32, threads: usize)
         par::for_chunks(threads, frontier.len(), chunk, |range| {
             let mut fresh = Vec::new();
             for &key in &frontier[range] {
-                space.neighbours(key, &mut |n| {
+                space.neighbors(key, &mut |n| {
                     if seen_ref.contains(&n) {
                         return;
                     }
@@ -118,7 +118,7 @@ mod tests {
         fn solved(&self) -> Vec<u64> {
             vec![0]
         }
-        fn neighbours<F: FnMut(u64)>(&self, key: u64, f: &mut F) {
+        fn neighbors<F: FnMut(u64)>(&self, key: u64, f: &mut F) {
             f((key + 1) % 1000);
             f((key + 999) % 1000);
         }

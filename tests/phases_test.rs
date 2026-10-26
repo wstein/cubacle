@@ -29,16 +29,16 @@ fn covered(found: &[Phase], total: usize) {
     assert_eq!(at, total, "{found:?}");
 }
 
-/// Every centre sticker of every face shows one colour (the cube is `n` wide).
-fn centres_uniform(cube: &Facelets) -> bool {
+/// Every center sticker of every face shows one color (the cube is `n` wide).
+fn centers_uniform(cube: &Facelets) -> bool {
     let n = cube.kind().size();
     let stickers = cube.stickers();
     (0..6).all(|face| {
-        let colours: Vec<Face> = (1..n - 1)
+        let colors: Vec<Face> = (1..n - 1)
             .flat_map(|row| (1..n - 1).map(move |col| (row, col)))
             .map(|(row, col)| stickers[face * n * n + row * n + col])
             .collect();
-        colours.windows(2).all(|w| w[0] == w[1])
+        colors.windows(2).all(|w| w[0] == w[1])
     })
 }
 
@@ -86,15 +86,15 @@ fn a_4x4_solution_has_its_reduction_then_a_3x3_stage() {
         let solution = result.solution().expect("solved");
         let found = phases(&cube, solution).expect("replays");
         covered(&found, solution.len());
-        // this engine makes the centres and the edges true at the same move,
+        // this engine makes the centers and the edges true at the same move,
         // so the edges phase is empty
         let names: Vec<&str> = found.iter().map(|p| p.name).collect();
-        assert_eq!(names, ["centres", "edges", "3x3 stage"], "{found:?}");
+        assert_eq!(names, ["centers", "edges", "3x3 stage"], "{found:?}");
         assert!(found[1].moves.is_empty(), "{found:?}");
         let moves = solution.moves();
         let cut = found[0].moves.end;
-        assert!(centres_uniform(&state_after(&cube, moves, cut)));
-        assert!(!centres_uniform(&state_after(&cube, moves, cut - 1)));
+        assert!(centers_uniform(&state_after(&cube, moves, cut)));
+        assert!(!centers_uniform(&state_after(&cube, moves, cut - 1)));
         // the 3x3x3 stage turns outer layers only
         for mv in &moves[cut..] {
             assert!(
@@ -118,11 +118,11 @@ fn a_5x5_solution_is_cut_by_the_state() {
     let found = phases(&cube, solution).expect("replays");
     covered(&found, solution.len());
     let names: Vec<&str> = found.iter().map(|p| p.name).collect();
-    assert_eq!(names, ["centres", "edges", "3x3 stage"], "{found:?}");
+    assert_eq!(names, ["centers", "edges", "3x3 stage"], "{found:?}");
     let moves = solution.moves();
     let cut = found[0].moves.end;
-    assert!(centres_uniform(&state_after(&cube, moves, cut)));
-    assert!(!centres_uniform(&state_after(&cube, moves, cut - 1)));
+    assert!(centers_uniform(&state_after(&cube, moves, cut)));
+    assert!(!centers_uniform(&state_after(&cube, moves, cut - 1)));
     let stage = found.iter().find(|p| p.name == "3x3 stage");
     for mv in stage.map_or(&[][..], |p| &moves[p.moves.clone()]) {
         assert!(

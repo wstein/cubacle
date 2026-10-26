@@ -253,7 +253,7 @@ fn the_printing_options_work() {
         "--size",
         "4",
         "--within=2",
-        "--optimise",
+        "--optimize",
         "ranges",
         "--group",
         "axis",
@@ -263,7 +263,7 @@ fn the_printing_options_work() {
 
 #[test]
 fn an_impossible_goal_is_no_route() {
-    // The centres of the 3x3x3 never move with face turns: a start with a
+    // The centers of the 3x3x3 never move with face turns: a start with a
     // turned middle layer cannot reach the solved cube in that alphabet at all.
     let run = cubacle(&["solve", "-s", "M", "--within=7"]);
     assert_eq!(run.code, 2, "{}", run.err);

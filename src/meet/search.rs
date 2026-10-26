@@ -31,8 +31,8 @@ pub(crate) fn sums_of(state: &[u8], keys: &[u64]) -> Sums {
     sums
 }
 
-/// The hash of per-colour sums. Colour-blind, it ignores which colour has
-/// which sum; exact, a state and the same state with colours renamed differ.
+/// The hash of per-color sums. Color-blind, it ignores which color has
+/// which sum; exact, a state and the same state with colors renamed differ.
 pub(crate) fn hash_of(sums: &Sums, exact: bool) -> u64 {
     sums.iter().enumerate().fold(0u64, |h, (c, &s)| {
         let salt = if exact {
@@ -66,7 +66,7 @@ pub(crate) struct Walker<'a> {
 type Visit<'v> = &'v mut dyn FnMut(u64, &[u8]);
 
 impl<'a> Walker<'a> {
-    /// Hashes by exact colours instead of ignoring their names.
+    /// Hashes by exact colors instead of ignoring their names.
     pub(crate) fn exact(mut self) -> Walker<'a> {
         self.exact = true;
         self

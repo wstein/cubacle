@@ -1,7 +1,7 @@
 //! The fallback for terminals without graphics: the three visible faces as letters.
 //!
 //! Moving stickers are upper case, the others lower case. With `ansi` the
-//! stickers also get background colours and the resting ones are darkened.
+//! stickers also get background colors and the resting ones are darkened.
 
 use super::style::{face_light, Rgb, Style, DIM};
 use crate::puzzle::{locate, Face, Facelets};
@@ -14,7 +14,7 @@ use super::geometry::Camera;
 pub(crate) struct Cell {
     pub letter: char,
     pub moving: bool,
-    pub colour: Rgb,
+    pub color: Rgb,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -41,7 +41,7 @@ pub(crate) fn grid(state: &Facelets, action: &Action, style: &Style, direction: 
                 Cell {
                     letter: style.palette.letter(sticker),
                     moving: action.moves(kind, locate(kind, index).0),
-                    colour: style.palette.colour(sticker),
+                    color: style.palette.color(sticker),
                 }
             })
             .collect()
@@ -58,7 +58,7 @@ pub(crate) fn grid(state: &Facelets, action: &Action, style: &Style, direction: 
 }
 
 /// A picture of the state with nothing marked: every cell is "moving", so
-/// the letters are upper case and the colours are not darkened.
+/// the letters are upper case and the colors are not darkened.
 pub(crate) fn state_grid(state: &Facelets, style: &Style, camera: Camera) -> Grid {
     let kind = state.kind();
     let faces = [camera.cap(), Face::F, Face::R].map(|face| {
@@ -69,7 +69,7 @@ pub(crate) fn state_grid(state: &Facelets, style: &Style, camera: Camera) -> Gri
                 Cell {
                     letter: style.palette.letter(sticker),
                     moving: true,
-                    colour: style.palette.colour(sticker),
+                    color: style.palette.color(sticker),
                 }
             })
             .collect()
@@ -94,7 +94,7 @@ fn cell(c: &Cell, face: Face, ansi: bool) -> String {
         return format!("{letter} ");
     }
     let dim = if c.moving { 1.0 } else { DIM };
-    let Rgb(r, g, b) = c.colour.scale(face_light(face) * dim);
+    let Rgb(r, g, b) = c.color.scale(face_light(face) * dim);
     format!(
         "\x1b[48;2;{r};{g};{b}m\x1b[38;2;0;0;0m {} \x1b[0m",
         c.letter.to_ascii_uppercase()
@@ -235,7 +235,7 @@ mod tests {
     }
 
     #[test]
-    fn ansi_text_uses_background_colours() {
+    fn ansi_text_uses_background_colors() {
         let state = Facelets::solved(crate::puzzle::PuzzleKind::Cube2);
         let action: Action = "U2".parse().unwrap();
         let direction = plan(&action, 2).direction;

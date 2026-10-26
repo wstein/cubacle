@@ -1,7 +1,7 @@
 use std::fmt;
 
 use super::orbit64::{self, Orbit64Error};
-use super::{ColourScheme, SchemeError};
+use super::{ColorScheme, SchemeError};
 use crate::puzzle::{Face, Facelets, FaceletsError, PuzzleKind};
 
 /// Why a cube description could not be read.
@@ -14,11 +14,11 @@ pub enum InputError {
     },
     /// The stickers are not those of a supported cube.
     Facelets(FaceletsError),
-    /// The colours could not be assigned to faces.
+    /// The colors could not be assigned to faces.
     Scheme(SchemeError),
-    /// An odd cube's centres disagree with the colour scheme that was named.
-    CentresDisagree {
-        scheme: ColourScheme,
+    /// An odd cube's centers disagree with the color scheme that was named.
+    CentersDisagree {
+        scheme: ColorScheme,
     },
     Orbit64(Orbit64Error),
     /// A partial target that no state can meet.
@@ -30,12 +30,12 @@ impl fmt::Display for InputError {
         match self {
             InputError::BadCharacter { position, found } => write!(
                 f,
-                "character {found:?} at {position} is neither a face (URFDLB), a colour (WRGYOB) nor orbit64"
+                "character {found:?} at {position} is neither a face (URFDLB), a color (WRGYOB) nor orbit64"
             ),
             InputError::Facelets(error) => error.fmt(f),
             InputError::Scheme(error) => error.fmt(f),
-            InputError::CentresDisagree { scheme } => {
-                write!(f, "the centres do not match the colour scheme {scheme}")
+            InputError::CentersDisagree { scheme } => {
+                write!(f, "the centers do not match the color scheme {scheme}")
             }
             InputError::Orbit64(error) => error.fmt(f),
             InputError::Target(reason) => f.write_str(reason),
@@ -64,28 +64,28 @@ impl From<Orbit64Error> for InputError {
 }
 
 const FACE_LETTERS: &str = "URFDLB";
-const COLOUR_LETTERS: &str = "WRGYOB";
+const COLOR_LETTERS: &str = "WRGYOB";
 
 /// Reads a cube from any of the supported notations.
 ///
 /// - an Orbit64 state token, such as `A4ib8aejxj4Y`;
 /// - facelets in `URFDLB` order, compact or spaced (`UUUUUUUUU RRRRRRRRR ...`);
-/// - sticker colours `W R G Y O B`, compact or spaced.
+/// - sticker colors `W R G Y O B`, compact or spaced.
 ///
-/// Whitespace is ignored anywhere. Colours are read through `scheme` when one is
-/// given; otherwise an odd cube's fixed centres decide, and a cube without
-/// centres (the 2x2x2) falls back to [`ColourScheme::WESTERN_BOY`].
-pub fn parse_cube(text: &str, scheme: Option<ColourScheme>) -> Result<Facelets, InputError> {
+/// Whitespace is ignored anywhere. Colors are read through `scheme` when one is
+/// given; otherwise an odd cube's fixed centers decide, and a cube without
+/// centers (the 2x2x2) falls back to [`ColorScheme::WESTERN_BOY`].
+pub fn parse_cube(text: &str, scheme: Option<ColorScheme>) -> Result<Facelets, InputError> {
     let compact: String = text.split_whitespace().collect();
 
     if orbit64::looks_like_token(&compact) {
         return Ok(orbit64::decode(&compact)?);
     }
-    // Face letters and colour letters share R and B; whichever alphabet covers
+    // Face letters and color letters share R and B; whichever alphabet covers
     // more of the text is the one the writer meant, and names the bad character.
     let upper = compact.to_ascii_uppercase();
     let hits = |alphabet: &str| upper.chars().filter(|c| alphabet.contains(*c)).count();
-    if hits(FACE_LETTERS) >= hits(COLOUR_LETTERS) {
+    if hits(FACE_LETTERS) >= hits(COLOR_LETTERS) {
         if let Some((position, found)) = upper
             .chars()
             .enumerate()
@@ -95,12 +95,12 @@ pub fn parse_cube(text: &str, scheme: Option<ColourScheme>) -> Result<Facelets, 
         }
         return Ok(Facelets::parse(&upper)?);
     }
-    parse_colours(&upper, scheme)
+    parse_colors(&upper, scheme)
 }
 
-/// The colour scheme a cube written as colours shows in its fixed centres, or
-/// `None` for other notations and for cubes without readable centres.
-pub fn colour_scheme_of(text: &str) -> Option<ColourScheme> {
+/// The color scheme a cube written as colors shows in its fixed centers, or
+/// `None` for other notations and for cubes without readable centers.
+pub fn color_scheme_of(text: &str) -> Option<ColorScheme> {
     let upper: String = text
         .split_whitespace()
         .collect::<String>()
@@ -109,51 +109,51 @@ pub fn colour_scheme_of(text: &str) -> Option<ColourScheme> {
         return None;
     }
     let hits = |alphabet: &str| upper.chars().filter(|c| alphabet.contains(*c)).count();
-    if hits(FACE_LETTERS) >= hits(COLOUR_LETTERS)
-        || !upper.chars().all(|c| COLOUR_LETTERS.contains(c))
+    if hits(FACE_LETTERS) >= hits(COLOR_LETTERS)
+        || !upper.chars().all(|c| COLOR_LETTERS.contains(c))
     {
         return None;
     }
-    let colours: Vec<char> = upper.chars().collect();
-    let kind = PuzzleKind::of_facelet_count(colours.len())?;
-    ColourScheme::from_centres(&colours, kind.size()).ok()
+    let colors: Vec<char> = upper.chars().collect();
+    let kind = PuzzleKind::of_facelet_count(colors.len())?;
+    ColorScheme::from_centers(&colors, kind.size()).ok()
 }
 
-fn parse_colours(compact: &str, scheme: Option<ColourScheme>) -> Result<Facelets, InputError> {
-    let colours: Vec<char> = compact.chars().map(|c| c.to_ascii_uppercase()).collect();
-    if let Some((position, &found)) = colours
+fn parse_colors(compact: &str, scheme: Option<ColorScheme>) -> Result<Facelets, InputError> {
+    let colors: Vec<char> = compact.chars().map(|c| c.to_ascii_uppercase()).collect();
+    if let Some((position, &found)) = colors
         .iter()
         .enumerate()
-        .find(|(_, c)| !COLOUR_LETTERS.contains(**c))
+        .find(|(_, c)| !COLOR_LETTERS.contains(**c))
     {
         return Err(InputError::BadCharacter { position, found });
     }
-    let kind = PuzzleKind::of_facelet_count(colours.len())
-        .ok_or(FaceletsError::BadLength(colours.len()))?;
+    let kind =
+        PuzzleKind::of_facelet_count(colors.len()).ok_or(FaceletsError::BadLength(colors.len()))?;
 
-    let from_centres = ColourScheme::from_centres(&colours, kind.size()).ok();
-    let scheme = match (scheme, from_centres) {
+    let from_centers = ColorScheme::from_centers(&colors, kind.size()).ok();
+    let scheme = match (scheme, from_centers) {
         (Some(named), Some(seen)) if named != seen => {
-            return Err(InputError::CentresDisagree { scheme: named })
+            return Err(InputError::CentersDisagree { scheme: named })
         }
         (Some(named), _) => named,
         (None, Some(seen)) => seen,
         (None, None) if kind.size() % 2 == 1 => {
-            // Odd cube whose centres repeat a colour: report that, not a default.
-            return Err(ColourScheme::from_centres(&colours, kind.size())
-                .expect_err("centres are not a scheme")
+            // Odd cube whose centers repeat a color: report that, not a default.
+            return Err(ColorScheme::from_centers(&colors, kind.size())
+                .expect_err("centers are not a scheme")
                 .into());
         }
-        (None, None) => ColourScheme::WESTERN_BOY,
+        (None, None) => ColorScheme::WESTERN_BOY,
     };
 
-    let stickers = colours
+    let stickers = colors
         .iter()
         .enumerate()
-        .map(|(position, &colour)| {
-            scheme.face_of(colour).ok_or(InputError::BadCharacter {
+        .map(|(position, &color)| {
+            scheme.face_of(color).ok_or(InputError::BadCharacter {
                 position,
-                found: colour,
+                found: color,
             })
         })
         .collect::<Result<Vec<Face>, _>>()?;
@@ -165,8 +165,8 @@ mod tests {
     use super::*;
 
     const SOLVED_3X3: &str = "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB";
-    /// The cube from the user's western-colours example.
-    const SCRAMBLED_COLOURS: &str = "GWGWWGGGGWWWWRRWRWRRRGGRRGRBYBBYYBBBYOYYOOYYYOBOBBOOOO";
+    /// The cube from the user's western-colors example.
+    const SCRAMBLED_COLORS: &str = "GWGWWGGGGWWWWRRWRWRRRGGRRGRBYBBYYBBBYOYYOOYYYOBOBBOOOO";
     const SCRAMBLED_FACES: &str = "FUFUUFFFFUUUURRURURRRFFRRFRBDBBDDBBBDLDDLLDDDLBLBBLLLL";
 
     #[test]
@@ -179,10 +179,10 @@ mod tests {
     }
 
     #[test]
-    fn western_colours_are_read_from_the_centres() {
-        let cube = parse_cube(SCRAMBLED_COLOURS, None).unwrap();
+    fn western_colors_are_read_from_the_centers() {
+        let cube = parse_cube(SCRAMBLED_COLORS, None).unwrap();
         assert_eq!(cube.to_string(), SCRAMBLED_FACES);
-        let spaced: String = SCRAMBLED_COLOURS
+        let spaced: String = SCRAMBLED_COLORS
             .as_bytes()
             .chunks(9)
             .map(|chunk| std::str::from_utf8(chunk).unwrap())
@@ -192,28 +192,28 @@ mod tests {
     }
 
     #[test]
-    fn the_japanese_scheme_is_read_from_its_centres() {
+    fn the_japanese_scheme_is_read_from_its_centers() {
         let jap = "WWWWWWWWWRRRRRRRRRGGGGGGGGGBBBBBBBBBOOOOOOOOOYYYYYYYYY";
         assert_eq!(parse_cube(jap, None).unwrap().to_string(), SOLVED_3X3);
         assert_eq!(
-            parse_cube(jap, Some(ColourScheme::JAPANESE_BL_WT))
+            parse_cube(jap, Some(ColorScheme::JAPANESE_BL_WT))
                 .unwrap()
                 .to_string(),
             SOLVED_3X3
         );
         // The same letters mean something else under the western scheme.
         assert_eq!(
-            parse_cube(jap, Some(ColourScheme::WESTERN_BOY)),
-            Err(InputError::CentresDisagree {
-                scheme: ColourScheme::WESTERN_BOY
+            parse_cube(jap, Some(ColorScheme::WESTERN_BOY)),
+            Err(InputError::CentersDisagree {
+                scheme: ColorScheme::WESTERN_BOY
             })
         );
     }
 
     #[test]
-    fn colours_are_case_insensitive() {
+    fn colors_are_case_insensitive() {
         assert_eq!(
-            parse_cube(&SCRAMBLED_COLOURS.to_lowercase(), None)
+            parse_cube(&SCRAMBLED_COLORS.to_lowercase(), None)
                 .unwrap()
                 .to_string(),
             SCRAMBLED_FACES
@@ -221,18 +221,18 @@ mod tests {
     }
 
     #[test]
-    fn a_2x2_without_centres_needs_a_scheme_or_takes_the_western_one() {
+    fn a_2x2_without_centers_needs_a_scheme_or_takes_the_western_one() {
         let solved = "WWWW RRRR GGGG YYYY OOOO BBBB";
         assert!(parse_cube(solved, None).unwrap().is_solved());
         let japanese = "WWWW RRRR GGGG BBBB OOOO YYYY";
-        assert!(parse_cube(japanese, Some(ColourScheme::JAPANESE_BL_WT))
+        assert!(parse_cube(japanese, Some(ColorScheme::JAPANESE_BL_WT))
             .unwrap()
             .is_solved());
         assert!(!parse_cube(japanese, None).unwrap().is_solved());
     }
 
     #[test]
-    fn orbit64_tokens_are_recognised() {
+    fn orbit64_tokens_are_recognized() {
         assert_eq!(
             parse_cube("A4ib8aejxj4Y", None).unwrap().to_string(),
             SCRAMBLED_FACES

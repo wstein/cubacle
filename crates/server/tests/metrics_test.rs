@@ -91,7 +91,7 @@ async fn ranges_get_their_own_counts() {
         PuzzleKind::Cube4,
         "R U 2R 2U' f 2L' B2 D 2D' R' U2 2F u r' F2 l",
     );
-    let (answer, _) = solve(json!({"cube": cube, "optimise": "ranges"})).await;
+    let (answer, _) = solve(json!({"cube": cube, "optimize": "ranges"})).await;
     check(&answer, PuzzleKind::Cube4);
     let text = answer["compressed"].as_str().unwrap();
     for metric in Metric::ALL {

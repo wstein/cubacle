@@ -1,5 +1,5 @@
-//! `solve --to` with a target whose centres show different colours on one
-//! face (slice moves, wide turns with slices): the centre fix-up, and every
+//! `solve --to` with a target whose centers show different colors on one
+//! face (slice moves, wide turns with slices): the center fix-up, and every
 //! option that goes with a target.
 
 use cubacle::notation::parse_expression;
@@ -56,8 +56,8 @@ fn moves_reach_the_target_and_the_fix_up_is_the_last_phase() {
         .lines()
         .rfind(|line| line.starts_with("phase "))
         .expect("phase lines");
-    assert!(phase.contains("centre fix-up"), "{error}");
-    assert!(error.contains("centre fix-up: "), "{error}");
+    assert!(phase.contains("center fix-up"), "{error}");
+    assert!(error.contains("center fix-up: "), "{error}");
     assert!(error.contains("metrics: "), "{error}");
 }
 
@@ -91,7 +91,7 @@ fn groups_ranges_and_metrics_work_with_the_fix_up() {
     let (ok, answer, error) = solve4(&["--group", "phases,axis"]);
     assert!(ok, "{error}");
     assert!(answer.contains(" · "), "{answer}");
-    let (ok, answer, error) = solve4(&["--optimise", "ranges"]);
+    let (ok, answer, error) = solve4(&["--optimize", "ranges"]);
     assert!(ok, "{error}");
     assert!(error.contains("compressed moves"), "{error}");
     let moves = parse_expression(&answer, PuzzleKind::Cube4).expect("ranges");
@@ -168,7 +168,7 @@ fn a_5x5_reaches_a_slice_target() {
 
 #[test]
 fn a_target_with_the_wrong_center_colors_is_still_refused() {
-    // two centre stickers of different orbits swapped: no cube looks so
+    // two center stickers of different orbits swapped: no cube looks so
     let mut stickers = cube(5, "").stickers().to_vec();
     stickers.swap(6, 32);
     let facelets = Facelets::from_stickers(stickers).unwrap().to_string();
@@ -179,7 +179,7 @@ fn a_target_with_the_wrong_center_colors_is_still_refused() {
 
 #[test]
 fn a_5x5_target_built_with_the_middle_slice_is_reached_from_moves_and_from_facelets() {
-    // the middle slice turns the face centres; the engine keeps them, so the
+    // the middle slice turns the face centers; the engine keeps them, so the
     // fix-up turns the middle slice too
     let target = "2R 2U' 3F";
     let (ok, facelets, _) = cubacle(&["facelets", "--size", "5", target]);

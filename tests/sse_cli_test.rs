@@ -108,9 +108,9 @@ fn a_4x4_solution_in_sse_replays() {
 }
 
 #[test]
-fn optimise_ranges_writes_sse_ranges() {
+fn optimize_ranges_writes_sse_ranges() {
     let scramble = "R U 2R 2U' Fw 2L' B2 D 2D' R' U2 2F Uw Rw' F2 Lw";
-    let args = ["solve", "--size", "4", "--optimise", "ranges"];
+    let args = ["solve", "--size", "4", "--optimize", "ranges"];
     let (ok, text, error) = cubacle(&[&args[..], &["--notation", "sse", scramble]].concat());
     assert!(ok, "{error}");
     let kind = PuzzleKind::Cube4;

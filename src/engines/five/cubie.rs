@@ -1,11 +1,11 @@
-//! The 5x5x5 as pieces: centres, wings and middle edges (the corners are
+//! The 5x5x5 as pieces: centers, wings and middle edges (the corners are
 //! checked on input and left to the 3x3x3 solver afterwards).
 //!
 //! Ported from cs0x7f/cube555 src/CubieCube.java, MIT, Copyright (c) 2023
 //! Chen Shuang; this file is AGPL-3.0-or-later, see NOTICE.md.
 //!
 //! Sticker numbering is that of `Facelets`: faces U R F D L B, 25 stickers
-//! each, row by row. The 24 x-centres and 24 t-centres, the 24 wings and the
+//! each, row by row. The 24 x-centers and 24 t-centers, the 24 wings and the
 //! 12 middle edges are numbered as in the Java solver.
 
 use crate::reduction::comb::{parity, swap4};
@@ -29,7 +29,7 @@ const fn b(k: usize) -> usize {
     124 + k
 }
 
-/// Sticker of each t-centre slot.
+/// Sticker of each t-center slot.
 const TCENTER: [usize; 24] = [
     u(8),
     u(14),
@@ -57,7 +57,7 @@ const TCENTER: [usize; 24] = [
     l(12),
 ];
 
-/// Sticker of each x-centre slot.
+/// Sticker of each x-center slot.
 const XCENTER: [usize; 24] = [
     u(7),
     u(9),
@@ -141,9 +141,9 @@ const CORNER: [[usize; 3]; 8] = [
 /// Why a cube is not a 5x5x5 state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Invalid {
-    Colours,
-    TCentres,
-    XCentres,
+    Colors,
+    TCenters,
+    XCenters,
     MiddleEdges,
     Wings,
     Corners,
@@ -155,9 +155,9 @@ pub(crate) enum Invalid {
 impl Invalid {
     pub(crate) fn describe(self) -> &'static str {
         match self {
-            Invalid::Colours => "a colour does not appear 25 times, or a centre repeats a colour",
-            Invalid::TCentres => "the t-centres do not hold four stickers of each colour",
-            Invalid::XCentres => "the x-centres do not hold four stickers of each colour",
+            Invalid::Colors => "a color does not appear 25 times, or a center repeats a color",
+            Invalid::TCenters => "the t-centers do not hold four stickers of each color",
+            Invalid::XCenters => "the x-centers do not hold four stickers of each color",
             Invalid::MiddleEdges => "the middle edges are not the twelve edges of a cube",
             Invalid::Wings => "the wings are not the twenty-four wings of a cube",
             Invalid::Corners => "the corners are not the eight corners of a cube",
@@ -168,7 +168,7 @@ impl Invalid {
     }
 }
 
-/// Centres, wings and middle edges. A middle edge is `piece << 1 | flip`.
+/// Centers, wings and middle edges. A middle edge is `piece << 1 | flip`.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct Cubie {
     pub tcenter: [i32; 24],
@@ -177,9 +177,9 @@ pub(crate) struct Cubie {
     pub wedge: [i32; 24],
 }
 
-/// Colour index (0 to 5, as the face of the sticker's own centre) of the
-/// centre slot `i` on a solved cube.
-pub(crate) const fn solved_colour(sticker: usize) -> i32 {
+/// Color index (0 to 5, as the face of the sticker's own center) of the
+/// center slot `i` on a solved cube.
+pub(crate) const fn solved_color(sticker: usize) -> i32 {
     (sticker / 25) as i32
 }
 
@@ -192,8 +192,8 @@ impl Cubie {
             wedge: [0; 24],
         };
         for i in 0..24 {
-            cube.tcenter[i] = solved_colour(TCENTER[i]);
-            cube.xcenter[i] = solved_colour(XCENTER[i]);
+            cube.tcenter[i] = solved_color(TCENTER[i]);
+            cube.xcenter[i] = solved_color(XCENTER[i]);
             cube.wedge[i] = i as i32;
         }
         for i in 0..12 {
@@ -202,17 +202,17 @@ impl Cubie {
         cube
     }
 
-    /// Reads the pieces from sticker colours (indices of the face whose
-    /// centre shows that colour). The corners are only validated.
+    /// Reads the pieces from sticker colors (indices of the face whose
+    /// center shows that color). The corners are only validated.
     #[allow(clippy::needless_range_loop)] // index pairs mirror the reference
-    pub(crate) fn from_colours(face: &[u8; 150]) -> Result<Cubie, Invalid> {
+    pub(crate) fn from_colors(face: &[u8; 150]) -> Result<Cubie, Invalid> {
         let mut cube = Cubie::solved();
-        let mut colour_count = [0usize; 6];
+        let mut color_count = [0usize; 6];
         for &c in face {
-            colour_count[usize::from(c)] += 1;
+            color_count[usize::from(c)] += 1;
         }
-        if colour_count.iter().any(|&n| n != 25) {
-            return Err(Invalid::Colours);
+        if color_count.iter().any(|&n| n != 25) {
+            return Err(Invalid::Colors);
         }
         let at = |i: usize| i32::from(face[i]);
         let (mut tcount, mut xcount) = (0u32, 0u32);
@@ -226,7 +226,7 @@ impl Cubie {
         for i in 0..12 {
             for j in 0..12 {
                 let (a, bb) = (at(MEDGE[i][0]), at(MEDGE[i][1]));
-                let (ja, jb) = (solved_colour(MEDGE[j][0]), solved_colour(MEDGE[j][1]));
+                let (ja, jb) = (solved_color(MEDGE[j][0]), solved_color(MEDGE[j][1]));
                 if a == ja && bb == jb || a == jb && bb == ja {
                     let flip = i32::from(a != ja);
                     cube.medge[i] = (j as i32) << 1 | flip;
@@ -239,8 +239,8 @@ impl Cubie {
         let mut wing_seen = 0u32;
         for i in 0..24 {
             for j in 0..24 {
-                if at(WEDGE[i][0]) == solved_colour(WEDGE[j][0])
-                    && at(WEDGE[i][1]) == solved_colour(WEDGE[j][1])
+                if at(WEDGE[i][0]) == solved_color(WEDGE[j][0])
+                    && at(WEDGE[i][1]) == solved_color(WEDGE[j][1])
                 {
                     cube.wedge[i] = j as i32;
                     wing_seen |= 1 << j;
@@ -261,11 +261,11 @@ impl Cubie {
             let c1 = at(CORNER[i][(ori + 1) % 3]);
             let c2 = at(CORNER[i][(ori + 2) % 3]);
             for j in 0..8 {
-                // All three colours, in turning order: the side pair alone also
-                // fits the mirror image of the piece (U/D colour exchanged).
-                if c0 == solved_colour(CORNER[j][0])
-                    && c1 == solved_colour(CORNER[j][1])
-                    && c2 == solved_colour(CORNER[j][2])
+                // All three colors, in turning order: the side pair alone also
+                // fits the mirror image of the piece (U/D color exchanged).
+                if c0 == solved_color(CORNER[j][0])
+                    && c1 == solved_color(CORNER[j][1])
+                    && c2 == solved_color(CORNER[j][2])
                 {
                     cp[i] = j as i32;
                     twist += ori;
@@ -275,9 +275,9 @@ impl Cubie {
             }
         }
         if tcount != 0x44_4444 {
-            return Err(Invalid::TCentres);
+            return Err(Invalid::TCenters);
         } else if xcount != 0x44_4444 {
-            return Err(Invalid::XCentres);
+            return Err(Invalid::XCenters);
         } else if medge_seen != 0xfff {
             return Err(Invalid::MiddleEdges);
         } else if wing_seen != 0xff_ffff {
@@ -298,7 +298,7 @@ impl Cubie {
 
     /// Performs a move (0 to 35, see `mv`) on the pieces; corners excluded.
     pub(crate) fn do_move(&mut self, mv: u8) {
-        move_centres(&mut self.xcenter, &mut self.tcenter, mv);
+        move_centers(&mut self.xcenter, &mut self.tcenter, mv);
         move_edges(&mut self.medge, &mut self.wedge, mv);
     }
 
@@ -317,8 +317,8 @@ impl Cubie {
     }
 }
 
-/// The effect of a move on the x-centres and t-centres.
-pub(super) fn move_centres(x: &mut [i32], t: &mut [i32], mv: u8) {
+/// The effect of a move on the x-centers and t-centers.
+pub(super) fn move_centers(x: &mut [i32], t: &mut [i32], mv: u8) {
     let pow = i32::from(mv % 3);
     let wide = mv >= 18;
     match (mv % 18) / 3 {
@@ -445,12 +445,12 @@ mod tests {
         for (i, c) in face.iter_mut().enumerate() {
             *c = (i / 25) as u8;
         }
-        assert_eq!(Cubie::from_colours(&face), Ok(Cubie::solved()));
+        assert_eq!(Cubie::from_colors(&face), Ok(Cubie::solved()));
     }
 
     #[test]
     fn mirrored_corners_are_not_a_cube() {
-        // Every corner shows its two side colours exchanged: the corner set is
+        // Every corner shows its two side colors exchanged: the corner set is
         // the mirror image of the solved one, which no sequence of turns makes.
         let mut face = [0u8; 150];
         for (i, c) in face.iter_mut().enumerate() {
@@ -459,7 +459,7 @@ mod tests {
         for corner in CORNER {
             face.swap(corner[1], corner[2]);
         }
-        assert_eq!(Cubie::from_colours(&face), Err(Invalid::Corners));
+        assert_eq!(Cubie::from_colors(&face), Err(Invalid::Corners));
     }
 
     #[test]

@@ -25,8 +25,8 @@ pub(crate) fn warn(cube: &Facelets) {
     }
 }
 
-/// Which colour has too many stickers and which too few, for a cube written
-/// as face letters whose colour counts are wrong.
+/// Which color has too many stickers and which too few, for a cube written
+/// as face letters whose color counts are wrong.
 pub(crate) fn count_hint(text: &str) -> Option<String> {
     let letters: Vec<Face> = text
         .chars()
@@ -42,14 +42,14 @@ pub(crate) fn count_hint(text: &str) -> Option<String> {
         if found > each {
             let extra = found - each;
             parts.push(format!(
-                "colour {} has {extra} {} too many",
+                "color {} has {extra} {} too many",
                 face.letter(),
                 plural(extra)
             ));
         } else if found < each {
             let missing = each - found;
             parts.push(format!(
-                "colour {} has {missing} {} too few",
+                "color {} has {missing} {} too few",
                 face.letter(),
                 plural(missing)
             ));

@@ -1,17 +1,17 @@
-//! Phase 5: complete the centres and the pairing, leaving a 3x3x3.
+//! Phase 5: complete the centers and the pairing, leaving a 3x3x3.
 //!
 //! Ported from cs0x7f/cube555 src/Phase5Search.java, MIT, Copyright (c) 2023
 //! Chen Shuang; this file is AGPL-3.0-or-later, see NOTICE.md.
 //!
 //! Coordinates: the low wings (a permutation of eight, 40,320, in 5,288
-//! classes under 8 symmetries), the centres (36 x 70 x 70) and the high wings
+//! classes under 8 symmetries), the centers (36 x 70 x 70) and the high wings
 //! seen in a mirror, so that one table serves both.
 
 use super::build::Build;
 use super::cubie::Cubie;
 use super::cubie_sym::Syms;
 use super::mv;
-use super::p5_model::{Centre, Edge, MOVES};
+use super::p5_model::{Center, Edge, MOVES};
 use super::spaces::{ClassTable, Plain};
 use crate::reduction::ida::Stage;
 use crate::reduction::nibbles::Prun;
@@ -20,7 +20,7 @@ const COUNT: usize = 14;
 const PERMS: usize = 40_320;
 const CLASSES: usize = 5_288;
 const UD: usize = 4900;
-const CENTRES: usize = 70 * 70 * 36;
+const CENTERS: usize = 70 * 70 * 36;
 
 pub(super) struct P5 {
     l_move: Vec<u32>,
@@ -86,8 +86,8 @@ impl P5 {
                 l_move[i * COUNT + m] = e.get_l() as u32;
             }
         }
-        // Centres.
-        let mut c = Centre::new();
+        // Centers.
+        let mut c = Center::new();
         let mut t_move = vec![0usize; 70 * COUNT];
         let mut x_move = vec![0usize; 70 * COUNT];
         let mut t_conj = vec![0usize; 70 * 8];
@@ -120,8 +120,8 @@ impl P5 {
                 rflb_move[i * COUNT + m] = c.get_rflb();
             }
         }
-        let mut center_move = vec![0u32; CENTRES * COUNT];
-        for i in 0..CENTRES {
+        let mut center_move = vec![0u32; CENTERS * COUNT];
+        for i in 0..CENTERS {
             let (t, x, r) = (i % 70, i / 70 % 70, i / 70 / 70);
             for m in 0..COUNT {
                 center_move[i * COUNT + m] =
@@ -184,7 +184,7 @@ impl P5 {
 
     pub(super) fn start(&self, cube: &Cubie) -> Node5 {
         let mut e = Edge::new();
-        let mut c = Centre::new();
+        let mut c = Center::new();
         let mut mask = 0u32;
         for i in 0..8 {
             mask |= 1 << (cube.medge[i] >> 1);

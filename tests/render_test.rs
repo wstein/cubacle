@@ -102,7 +102,7 @@ fn the_icon_uses_the_state_and_the_palette() {
 }
 
 #[test]
-fn the_backdrop_decides_dimming_and_the_notation_colour() {
+fn the_backdrop_decides_dimming_and_the_notation_color() {
     let state = Facelets::solved(PuzzleKind::Cube3);
     let action: Action = "R".parse().unwrap();
     let draw = |backdrop| {

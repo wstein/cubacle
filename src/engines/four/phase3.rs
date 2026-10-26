@@ -1,4 +1,4 @@
-//! Phase 3: from a result of phase 2, the last moves that solve the centres and
+//! Phase 3: from a result of phase 2, the last moves that solve the centers and
 //! pair the wings, so that a 3x3x3 is left.
 //!
 //! Ported from cs0x7f/TPR-4x4x4-Solver src/Search.java (`doSearch`'s third

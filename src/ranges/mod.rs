@@ -1,7 +1,7 @@
 //! Post-solve compression: adjacent turns of one axis written as layer ranges.
 //!
 //! All turns about one axis commute, so a run of them is described by the net
-//! quarter turns of each layer. Neighbouring layers with the same net turn are
+//! quarter turns of each layer. Neighboring layers with the same net turn are
 //! one [`LayerMove`] (`3Rw Rw'` is layer 3 alone; `2R 3R` is `2-3r` in SiGN,
 //! `2-3Rw` in WCA). No search is involved, and a run is only replaced when the
 //! replacement is shorter. The result is exactly the same state, never a
@@ -155,20 +155,20 @@ pub fn write(notation: Notation, kind: PuzzleKind, moves: &[LayerMove]) -> Strin
     words.join(" ")
 }
 
-/// The opt-in post-solve optimisations (`--optimise`, the `optimise` request field).
+/// The opt-in post-solve optimizations (`--optimize`, the `optimize` request field).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Optimise {
+pub enum Optimize {
     /// Write adjacent same-axis turns as layer ranges.
     Ranges,
 }
 
-impl std::str::FromStr for Optimise {
+impl std::str::FromStr for Optimize {
     type Err = String;
 
-    fn from_str(text: &str) -> Result<Optimise, String> {
+    fn from_str(text: &str) -> Result<Optimize, String> {
         match text {
-            "ranges" => Ok(Optimise::Ranges),
-            _ => Err(format!("optimise must be ranges, not {text:?}")),
+            "ranges" => Ok(Optimize::Ranges),
+            _ => Err(format!("optimize must be ranges, not {text:?}")),
         }
     }
 }

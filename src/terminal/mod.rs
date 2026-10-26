@@ -1,4 +1,4 @@
-//! What the terminal can tell: its size in pixels and its background colour.
+//! What the terminal can tell: its size in pixels and its background color.
 //!
 //! The answers come from `TIOCGWINSZ` and, when that has no pixel size, from
 //! the replies to `CSI 14 t` and `CSI 16 t`; the background comes from `OSC 11`.
@@ -14,7 +14,7 @@
 mod kitty;
 mod parse;
 
-pub use parse::Colour;
+pub use parse::Color;
 use parse::{usable_width, ASSUMED_CELL};
 
 /// Everything that is known about the terminal.
@@ -24,8 +24,8 @@ pub struct Terminal {
     pub width_px: u32,
     /// Size of one cell in pixels.
     pub cell: (u32, u32),
-    /// The background colour, when the terminal reported one.
-    pub background: Option<Colour>,
+    /// The background color, when the terminal reported one.
+    pub background: Option<Color>,
 }
 
 impl Default for Terminal {
@@ -53,7 +53,7 @@ fn columns_from(env: &dyn Fn(&str) -> Option<String>) -> u32 {
 }
 
 /// Asks the terminal; falls back to defaults where it cannot or must not.
-/// `want_background` is false when the colour is not needed (`--background`).
+/// `want_background` is false when the color is not needed (`--background`).
 pub fn probe(want_background: bool) -> Terminal {
     use std::io::IsTerminal;
     let env = |name: &str| std::env::var(name).ok().filter(|v| !v.is_empty());
@@ -230,7 +230,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn multiplexers_are_recognised() {
+    fn multiplexers_are_recognized() {
         let with = |name: &'static str, value: &'static str| {
             move |n: &str| (n == name).then(|| value.to_owned())
         };

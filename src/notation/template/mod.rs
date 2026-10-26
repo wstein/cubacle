@@ -23,7 +23,7 @@ mod matching;
 mod resolve;
 mod schema;
 
-use crate::notation::ColourScheme;
+use crate::notation::ColorScheme;
 use crate::puzzle::PuzzleKind;
 
 use guard::Guard;
@@ -48,7 +48,7 @@ impl Template {
         schema: &str,
         guard: &str,
         kind: PuzzleKind,
-        scheme: &ColourScheme,
+        scheme: &ColorScheme,
     ) -> Result<Template, TemplateError> {
         let schema = schema::parse(schema, kind, scheme)?;
         let guard = Guard::parse(guard, &schema.names)?;

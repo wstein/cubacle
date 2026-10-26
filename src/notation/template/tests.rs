@@ -1,7 +1,7 @@
 use super::*;
 use crate::puzzle::{Face, Facelets};
 
-fn identity() -> ColourScheme {
+fn identity() -> ColorScheme {
     "URFDLB".parse().unwrap()
 }
 
@@ -85,7 +85,7 @@ fn fixed_colors_and_dont_cares() {
     assert!(template.matches(&Facelets::solved(kind)));
     assert!(template.matches(&cube(kind, "R U F2 L' D B2")));
     // A different scheme reads the same letters as different faces.
-    let western: ColourScheme = "western".parse().unwrap();
+    let western: ColorScheme = "western".parse().unwrap();
     assert!(Template::parse(&centers, "", kind, &western).is_err());
     let mixed = centers.replace("U", "R");
     assert!(!parse(&mixed, "", kind).matches(&Facelets::solved(kind)));

@@ -32,7 +32,7 @@ use cubacle::patterns;
 use cubacle::puzzle::{Facelets, LayerMove, MoveSequence, PuzzleKind};
 use cubacle::ranges::write_move;
 
-fn colours(state: &Facelets) -> Vec<u8> {
+fn colors(state: &Facelets) -> Vec<u8> {
     state.stickers().iter().map(|f| *f as u8).collect()
 }
 
@@ -48,8 +48,8 @@ fn lift(id: &str, moves: &str, status: &str) {
             continue;
         };
         let built = Facelets::solved(kind).apply(&sequence).expect("moves fit");
-        let targets = geometry::seeds(size, &colours(&target));
-        if targets.contains(&colours(&built)) {
+        let targets = geometry::seeds(size, &colors(&target));
+        if targets.contains(&colors(&built)) {
             println!(
                 "{id} | {size} | outer | {status} | {} | {moves}",
                 sequence.len()
@@ -80,7 +80,7 @@ fn main() {
             .map_or(5_000_000, |s| s.parse().expect("states")),
     };
     let half_only = turns == "half";
-    let target = colours(
+    let target = colors(
         &patterns::find(id)
             .expect("pattern id")
             .state(kind)
@@ -94,7 +94,7 @@ fn main() {
     } else {
         steps::plain(n, range, half_only, mode == "face")
     };
-    let solved = colours(&Facelets::solved(kind));
+    let solved = colors(&Facelets::solved(kind));
     let targets = geometry::seeds(n, &target);
     let outcome = bidir::search(&set.steps, vec![solved.clone()], targets.clone(), &limits);
     let Outcome::Found(path, cost) = outcome else {
@@ -115,7 +115,7 @@ fn main() {
         .apply(&MoveSequence::new(plain))
         .expect("moves fit");
     assert!(
-        targets.contains(&colours(&built)),
+        targets.contains(&colors(&built)),
         "replay does not give the pattern: {}",
         text.join(" ")
     );

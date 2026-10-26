@@ -15,7 +15,7 @@ use crate::puzzle::{locate, Face, Facelets, Move, MoveSequence, PuzzleKind, Turn
 
 /// A random scramble of `length` turns: outer-face turns, plus the second
 /// layer on a 4x4x4 or 5x5x5 and the second and third on a 6x6x6 or 7x7x7 (the
-/// layers that leave the face centres in place).
+/// layers that leave the face centers in place).
 ///
 /// No two consecutive turns act on the same face, and turns of opposite faces
 /// always come in the same order, so the sequence has no redundant pairs such
@@ -49,9 +49,9 @@ pub fn scramble(kind: PuzzleKind, length: usize) -> MoveSequence {
 /// The 2x2x2 is a uniformly random arrangement of the eight corners with
 /// twists summing to zero. The 3x3x3 adds the edges, with a flip sum of zero
 /// and the permutation parities of corners and edges tied together. The
-/// 5x5x5 (centres fixed) is a uniform 3x3x3 core with shuffled centres and
+/// 5x5x5 (centers fixed) is a uniform 3x3x3 core with shuffled centers and
 /// wings; see `five.rs` for why every such state is reachable. The 6x6x6 and
-/// 7x7x7 draw every orbit of wings and centres the same way (`big.rs`).
+/// 7x7x7 draw every orbit of wings and centers the same way (`big.rs`).
 pub fn random_state(kind: PuzzleKind) -> Option<Facelets> {
     let mut rng = rand::rng();
     if kind == PuzzleKind::Cube4 {
@@ -82,7 +82,7 @@ pub fn random_state(kind: PuzzleKind) -> Option<Facelets> {
         place(kind, &mut stickers, &edges, &edge_perm, &edge_flip);
         place(kind, &mut stickers, &corners, &corner_perm, &corner_twist);
     }
-    Some(Facelets::from_stickers(stickers).expect("a permutation of the solved colours"))
+    Some(Facelets::from_stickers(stickers).expect("a permutation of the solved colors"))
 }
 
 /// The sticker indices of every corner and every edge, each in the cyclic
@@ -178,7 +178,7 @@ mod tests {
     }
 
     #[test]
-    fn a_5x5_scramble_turns_the_first_two_layers_and_keeps_the_centres() {
+    fn a_5x5_scramble_turns_the_first_two_layers_and_keeps_the_centers() {
         let moves = scramble(PuzzleKind::Cube5, 200);
         assert!(moves.moves().iter().all(|m| m.fits(PuzzleKind::Cube5)));
         assert!(moves.moves().iter().any(|m| m.depth == 2));
@@ -190,7 +190,7 @@ mod tests {
     }
 
     #[test]
-    fn a_7x7_scramble_keeps_the_face_centres_and_turns_three_layers() {
+    fn a_7x7_scramble_keeps_the_face_centers_and_turns_three_layers() {
         let moves = scramble(PuzzleKind::Cube7, 300);
         assert!(moves.moves().iter().all(|m| m.fits(PuzzleKind::Cube7)));
         assert!(moves.moves().iter().any(|m| m.depth == 3));

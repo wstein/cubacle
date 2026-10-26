@@ -1,7 +1,7 @@
-//! Cube states as plain colour arrays, and the move and rotation permutations
+//! Cube states as plain color arrays, and the move and rotation permutations
 //! that act on them.
 //!
-//! A state is the colour of every sticker (0..6, the [`Face`] it shows). Each
+//! A state is the color of every sticker (0..6, the [`Face`] it shows). Each
 //! move is a sticker permutation, so one step is a table walk and works the
 //! same for every cube size.
 

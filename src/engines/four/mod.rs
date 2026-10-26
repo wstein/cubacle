@@ -1,7 +1,7 @@
 //! The 4x4x4 reduction engine: a port of Tsai's three-phase solver
 //! cs0x7f/TPR-4x4x4-Solver.
 //!
-//! Three table-driven searches bring the centres and wings into place,
+//! Three table-driven searches bring the centers and wings into place,
 //! leaving a 3x3x3 that an injected solver finishes. Files, from the bottom
 //! up: `moves` (move numbers and the rules for sequences), `cube` (pieces and
 //! their moves), `facelets` (reading and writing stickers), `sym` (the 48

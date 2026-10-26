@@ -106,11 +106,11 @@ fn a_state_the_invariants_cannot_tell_is_found_out_by_the_table() {
 }
 
 #[test]
-fn an_impossible_colouring_is_invalid_input() {
+fn an_impossible_coloring_is_invalid_input() {
     let mut text = cube("").to_string();
     text.replace_range(0..1, "R");
     let facelets = Facelets::parse(&text);
-    // Colour counts are wrong, so it does not even parse as a cube.
+    // Color counts are wrong, so it does not even parse as a cube.
     assert!(facelets.is_err());
     let mut stickers = cube("").stickers().to_vec();
     stickers.swap(0, 9);

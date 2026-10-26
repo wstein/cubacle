@@ -64,7 +64,7 @@ fn lookup_ignores_case_and_punctuation() {
     assert!(find("no such pattern").is_none());
 }
 
-/// Even cubes have no fixed centres, so a pattern is a pattern in any orientation.
+/// Even cubes have no fixed centers, so a pattern is a pattern in any orientation.
 fn same_up_to_rotation(kind: PuzzleKind, built: &Facelets, target: &Facelets) -> bool {
     if built == target {
         return true;

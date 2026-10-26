@@ -3,10 +3,10 @@
 //!
 //! The orbit structure follows from the cube size `n` alone. Corners and
 //! midges use the standard 3x3x3 slots; wings use the 4x4x4 reference slots at
-//! each depth; centres are ordered by facelet index, orbit by orbit. A slot is
+//! each depth; centers are ordered by facelet index, orbit by orbit. A slot is
 //! the list of facelets a piece shows there, the first being the one its
 //! orientation counts from. A piece is named by the slot it occupies when the
-//! cube is solved, so its colours are the faces of that slot's facelets.
+//! cube is solved, so its colors are the faces of that slot's facelets.
 
 /// Facelet indices of each corner slot on the 3x3x3: URF UFL ULB UBR DFR DLF DBL DRB.
 pub(crate) const CORNER_FACELETS: [[usize; 3]; 8] = [
@@ -20,8 +20,8 @@ pub(crate) const CORNER_FACELETS: [[usize; 3]; 8] = [
     [35, 17, 51],
 ];
 
-/// Face colours (indices into `URFDLB`) of each corner piece, clockwise.
-pub(crate) const CORNER_COLOURS: [[usize; 3]; 8] = [
+/// Face colors (indices into `URFDLB`) of each corner piece, clockwise.
+pub(crate) const CORNER_COLORS: [[usize; 3]; 8] = [
     [0, 1, 2],
     [0, 2, 4],
     [0, 4, 5],
@@ -85,9 +85,9 @@ pub(super) struct Layout {
     pub(super) midges: Vec<Vec<usize>>,
     /// One table of 24 slots per wing orbit, depth 1 first.
     pub(super) wings: Vec<Vec<Vec<usize>>>,
-    /// One table of 24 facelets per centre orbit.
-    pub(super) centres: Vec<Vec<usize>>,
-    /// The six facelets of the fixed centres on an odd cube, else empty.
+    /// One table of 24 facelets per center orbit.
+    pub(super) centers: Vec<Vec<usize>>,
+    /// The six facelets of the fixed centers on an odd cube, else empty.
     pub(super) fixed: Vec<usize>,
 }
 
@@ -117,7 +117,7 @@ impl Layout {
             corners,
             midges,
             wings,
-            centres: centre_orbits(n),
+            centers: center_orbits(n),
             fixed,
         }
     }
@@ -131,15 +131,15 @@ impl Layout {
         facelet / self.face_len()
     }
 
-    /// The colours of the piece that belongs in `slot` of `table`, in slot order.
-    pub(super) fn piece_colours(&self, table: &[Vec<usize>], piece: usize) -> Vec<usize> {
+    /// The colors of the piece that belongs in `slot` of `table`, in slot order.
+    pub(super) fn piece_colors(&self, table: &[Vec<usize>], piece: usize) -> Vec<usize> {
         table[piece]
             .iter()
             .map(|&facelet| self.solved_face(facelet))
             .collect()
     }
 
-    pub(super) fn has_fixed_centres(&self) -> bool {
+    pub(super) fn has_fixed_centers(&self) -> bool {
         !self.fixed.is_empty()
     }
 }
@@ -164,10 +164,10 @@ fn from_grid<const K: usize>(
         .collect()
 }
 
-/// The centre orbits: interior cells that turn into each other under a quarter
+/// The center orbits: interior cells that turn into each other under a quarter
 /// turn of their face, ordered by lowest facelet index. The middle cell of an
 /// odd face is fixed and belongs to none.
-fn centre_orbits(n: usize) -> Vec<Vec<usize>> {
+fn center_orbits(n: usize) -> Vec<Vec<usize>> {
     let last = n - 1;
     let mut orbits = Vec::new();
     for row in 1..last {
@@ -201,7 +201,7 @@ mod tests {
         let mut all: Vec<usize> = layout.corners.iter().flatten().copied().collect();
         all.extend(layout.midges.iter().flatten());
         all.extend(layout.wings.iter().flatten().flatten());
-        all.extend(layout.centres.iter().flatten());
+        all.extend(layout.centers.iter().flatten());
         all.extend(&layout.fixed);
         all.sort_unstable();
         all
@@ -221,30 +221,30 @@ mod tests {
         for n in 2..=7usize {
             let layout = Layout::new(n);
             assert_eq!(layout.wings.len(), (n - 2) / 2, "{n}");
-            assert_eq!(layout.centres.len(), (n - 2) * (n - 2) / 4, "{n}");
+            assert_eq!(layout.centers.len(), (n - 2) * (n - 2) / 4, "{n}");
             assert_eq!(layout.midges.len(), if n % 2 == 1 { 12 } else { 0 }, "{n}");
         }
     }
 
     #[test]
-    fn the_corner_constants_are_the_standard_slots_and_colours() {
+    fn the_corner_constants_are_the_standard_slots_and_colors() {
         let layout = Layout::new(3);
         for piece in 0..8 {
             assert_eq!(layout.corners[piece], CORNER_FACELETS[piece]);
             assert_eq!(
-                layout.piece_colours(&layout.corners, piece),
-                CORNER_COLOURS[piece]
+                layout.piece_colors(&layout.corners, piece),
+                CORNER_COLORS[piece]
             );
         }
     }
 
     #[test]
-    fn the_five_by_five_wings_and_centres_match_the_reference_tables() {
+    fn the_five_by_five_wings_and_centers_match_the_reference_tables() {
         let layout = Layout::new(5);
         assert_eq!(layout.wings[0][0], [1, 128]);
         assert_eq!(layout.wings[0][23], [148, 96]);
-        assert_eq!(layout.centres[0][..4], [6, 8, 16, 18]);
-        assert_eq!(layout.centres[1][..4], [7, 11, 13, 17]);
+        assert_eq!(layout.centers[0][..4], [6, 8, 16, 18]);
+        assert_eq!(layout.centers[1][..4], [7, 11, 13, 17]);
         assert_eq!(layout.fixed, [12, 37, 62, 87, 112, 137]);
         assert_eq!(layout.midges[0], [14, 27]);
     }

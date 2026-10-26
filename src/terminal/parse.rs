@@ -1,14 +1,14 @@
 //! Parsing of terminal replies and the choices made from them. Pure: no tty.
 
-/// A colour as the terminal reports it, each channel scaled to 0.0..=1.0.
+/// A color as the terminal reports it, each channel scaled to 0.0..=1.0.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Colour {
+pub struct Color {
     pub r: f64,
     pub g: f64,
     pub b: f64,
 }
 
-impl Colour {
+impl Color {
     /// Perceived brightness (Rec. 709 weights on the encoded values), 0.0..=1.0.
     pub fn luminance(self) -> f64 {
         0.2126 * self.r + 0.7152 * self.g + 0.0722 * self.b
@@ -23,8 +23,8 @@ impl Colour {
 /// What the terminal answered, in any order.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Replies {
-    /// OSC 11: the background colour.
-    pub background: Option<Colour>,
+    /// OSC 11: the background color.
+    pub background: Option<Color>,
     /// CSI 14 t: width and height of the text area in pixels.
     pub area: Option<(u32, u32)>,
     /// CSI 16 t: width and height of one cell in pixels.
@@ -34,7 +34,7 @@ pub struct Replies {
 }
 
 /// `rgb:RRRR/GGGG/BBBB` with one to four hex digits per channel.
-fn parse_colour(text: &str) -> Option<Colour> {
+fn parse_color(text: &str) -> Option<Color> {
     let body = text.strip_prefix("rgb:")?;
     let mut channels = body.split('/').map(|digits| {
         if digits.is_empty() || digits.len() > 4 || !digits.bytes().all(|b| b.is_ascii_hexdigit()) {
@@ -44,12 +44,12 @@ fn parse_colour(text: &str) -> Option<Colour> {
         let max = 16u32.pow(digits.len() as u32) - 1;
         Some(f64::from(value) / f64::from(max))
     });
-    let colour = Colour {
+    let color = Color {
         r: channels.next()??,
         g: channels.next()??,
         b: channels.next()??,
     };
-    channels.next().is_none().then_some(colour)
+    channels.next().is_none().then_some(color)
 }
 
 fn pair(params: &str, first: &str) -> Option<(u32, u32)> {
@@ -77,8 +77,8 @@ pub fn parse_replies(bytes: &[u8]) -> Replies {
                     .position(|&b| b == 0x07 || b == 0x1b)
                     .unwrap_or(rest.len());
                 if let Ok(text) = std::str::from_utf8(&rest[..end]) {
-                    if let Some(colour) = text.strip_prefix("11;").and_then(parse_colour) {
-                        replies.background = Some(colour);
+                    if let Some(color) = text.strip_prefix("11;").and_then(parse_color) {
+                        replies.background = Some(color);
                     }
                 }
                 i += 2 + end;
@@ -145,7 +145,7 @@ mod tests {
     }
 
     #[test]
-    fn malformed_colours_are_ignored() {
+    fn malformed_colors_are_ignored() {
         for bad in [
             &b"\x1b]11;rgb:zz/00/00\x07"[..],
             b"\x1b]11;rgb:00/00\x07",
@@ -159,9 +159,9 @@ mod tests {
 
     #[test]
     fn the_threshold_splits_light_from_dark() {
-        let grey = |v: f64| Colour { r: v, g: v, b: v };
+        let grey = |v: f64| Color { r: v, g: v, b: v };
         assert!(grey(0.6).is_light() && !grey(0.4).is_light());
-        let blue = Colour {
+        let blue = Color {
             r: 0.0,
             g: 0.0,
             b: 1.0,

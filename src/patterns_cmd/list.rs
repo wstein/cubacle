@@ -200,7 +200,7 @@ fn print_tree(items: &[(&Pattern, Option<u8>)], depth: usize, size: Option<usize
         let score = score.map_or(String::new(), |s| format!("\t{s} %"));
         println!(
             "{pad}{}\t{}\t{count} {}\t{}{score}",
-            pattern.catalogue,
+            pattern.catalog,
             pattern.name,
             if count == 1 {
                 "generator"

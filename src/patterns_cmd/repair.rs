@@ -64,7 +64,7 @@ pub(super) fn search(
 pub(super) fn mark_closest(found: &Option<Found>, report: &mut patterns::Report) {
     if let Some(Found { fix: Some(fix), .. }) = found {
         for entry in &mut report.closest {
-            if entry.id == fix.id || entry.id == fix.catalogue {
+            if entry.id == fix.id || entry.id == fix.catalog {
                 entry.blocks_away = Some(fix.blocks);
             }
         }
@@ -76,7 +76,7 @@ pub(super) fn print(args: &RepairArgs, verbose: bool, state: &Facelets, found: &
     match &found.fix {
         Some(fix) => {
             let moves = args.notation.write(state.kind(), &fix.moves);
-            let label = format!("{} ({})", fix.name, fix.catalogue);
+            let label = format!("{} ({})", fix.name, fix.catalog);
             let frame = if fix.frame.is_empty() {
                 String::new()
             } else {

@@ -8,7 +8,7 @@ use super::scene::{Part, Shape};
 use super::style::{face_light, Rgb, Shading, Style, BODY, GREY};
 use crate::puzzle::{locate, Face, Facelets};
 
-/// The colour that marks a differing sticker (amber, as the quarter-turn frame).
+/// The color that marks a differing sticker (amber, as the quarter-turn frame).
 pub(crate) const MARK: Rgb = Rgb(255, 176, 0);
 
 /// How far one unit of depth shifts a point right and up on screen: a deep
@@ -43,7 +43,7 @@ impl Camera {
 }
 
 impl Projection {
-    /// Fits the cube of size `n` into the box `x, y, w, h`, centred.
+    /// Fits the cube of size `n` into the box `x, y, w, h`, centered.
     pub(crate) fn new(n: usize, x: f64, y: f64, w: f64, h: f64) -> Projection {
         Projection::seen_from(Camera::Above, n, x, y, w, h)
     }
@@ -104,7 +104,7 @@ pub(crate) fn plane_coords(face: Face, p: [f64; 3]) -> [f64; 2] {
 }
 
 /// A square of half-width `h` with rounded corners, counter-clockwise.
-pub(crate) fn rounded_square(centre: [f64; 2], h: f64, radius: f64) -> Vec<[f64; 2]> {
+pub(crate) fn rounded_square(center: [f64; 2], h: f64, radius: f64) -> Vec<[f64; 2]> {
     let inner = h - radius;
     let mut points = Vec::with_capacity(12);
     for (corner, (sx, sy)) in [(1.0, 1.0), (-1.0, 1.0), (-1.0, -1.0), (1.0, -1.0)]
@@ -114,8 +114,8 @@ pub(crate) fn rounded_square(centre: [f64; 2], h: f64, radius: f64) -> Vec<[f64;
         for step in 0..3 {
             let angle = (corner as f64 * 90.0 + f64::from(step) * 45.0).to_radians();
             points.push([
-                centre[0] + inner * sx + radius * angle.cos(),
-                centre[1] + inner * sy + radius * angle.sin(),
+                center[0] + inner * sx + radius * angle.cos(),
+                center[1] + inner * sy + radius * angle.sin(),
             ]);
         }
     }
@@ -156,15 +156,15 @@ pub(crate) fn cube_shapes(
         }
         let (position, _) = locate(kind, index);
         let [u, v] = plane_coords(face, position.map(f64::from));
-        let colour = sticker_colour(state, action, style, index, face, position);
+        let color = sticker_color(state, action, style, index, face, position);
         let square = rounded_square([u, v], half, radius);
-        shapes.push(Shape::new(Part::Sticker, flat(face, square), colour));
+        shapes.push(Shape::new(Part::Sticker, flat(face, square), color));
     }
     shapes
 }
 
 /// A small amber square in the middle of every visible sticker of `state`
-/// whose colour differs from the same place on `reference`.
+/// whose color differs from the same place on `reference`.
 pub(crate) fn difference_marks(
     state: &Facelets,
     reference: &Facelets,
@@ -191,7 +191,7 @@ pub(crate) fn difference_marks(
 }
 
 /// With no action nothing is dimmed and nothing is grey: a plain picture of the state.
-fn sticker_colour(
+fn sticker_color(
     state: &Facelets,
     action: Option<&Action>,
     style: &Style,
@@ -199,7 +199,7 @@ fn sticker_colour(
     face: Face,
     position: [i32; 3],
 ) -> Rgb {
-    let base = style.palette.colour(state.stickers()[index]);
+    let base = style.palette.color(state.stickers()[index]);
     let moving = action.is_none_or(|a| a.moves(state.kind(), position));
     let whole = matches!(action, Some(Action::Rotate { .. }));
     let shown = match style.shading {
@@ -326,7 +326,7 @@ mod tests {
             .into_iter()
             .map(|f| {
                 palette
-                    .colour(f)
+                    .color(f)
                     .scale(face_light(f) * Style::default().backdrop.dimming())
             })
             .collect();

@@ -60,7 +60,7 @@ fn solve_names_a_twisted_corner_alike_on_every_size() {
 }
 
 #[test]
-fn parity_and_colour_counts_are_named() {
+fn parity_and_color_counts_are_named() {
     let (ok, _, err) = cubacle(&["solve", &swapped_edges(3)]);
     assert!(!ok);
     assert_eq!(
@@ -74,7 +74,7 @@ fn parity_and_colour_counts_are_named() {
     let (ok, _, err) = cubacle(&["solve", &text]);
     assert!(!ok);
     assert!(
-        err.ends_with("\nhint: colour U has 1 sticker too few, colour R has 1 sticker too many"),
+        err.ends_with("\nhint: color U has 1 sticker too few, color R has 1 sticker too many"),
         "{err}"
     );
 }

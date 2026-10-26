@@ -1,24 +1,24 @@
-//! Targets with open stickers: facelets or colours where `X` (or `?`) marks a
-//! sticker that may show any colour.
+//! Targets with open stickers: facelets or colors where `X` (or `?`) marks a
+//! sticker that may show any color.
 
 use super::input::InputError;
-use super::{orbit64, ColourScheme};
+use super::{orbit64, ColorScheme};
 use crate::puzzle::{Face, FaceletsError, PuzzleKind, Target, TargetError};
 
 const FACE_LETTERS: &str = "URFDLB";
-const COLOUR_LETTERS: &str = "WRGYOB";
+const COLOR_LETTERS: &str = "WRGYOB";
 
 /// Reads `text` as a partial target, or returns `Ok(None)` when it is not one.
 ///
 /// A text is partial when, whitespace aside, it has the length of a cube string
 /// and has an uppercase `X` or a `?` as a sticker. Lowercase `x` is the cube
 /// rotation and never a sticker. The other stickers are face letters
-/// (`URFDLB`) or colour letters read through `scheme` (the centres of an odd
+/// (`URFDLB`) or color letters read through `scheme` (the centers of an odd
 /// cube decide when none is given, else the Western scheme). Orbit64 tokens
 /// cannot express open stickers and are not read here.
 pub fn parse_partial(
     text: &str,
-    scheme: Option<ColourScheme>,
+    scheme: Option<ColorScheme>,
 ) -> Result<Option<Target>, InputError> {
     let compact: String = text.split_whitespace().collect();
     let open = |c: char| c == 'X' || c == '?';
@@ -37,19 +37,19 @@ pub fn parse_partial(
             .filter(|(u, c)| !open(**c) && alphabet.contains(**u))
             .count()
     };
-    let faces = letters(FACE_LETTERS) >= letters(COLOUR_LETTERS);
+    let faces = letters(FACE_LETTERS) >= letters(COLOR_LETTERS);
     let scheme = if faces {
         None
     } else {
-        let seen = ColourScheme::from_centres(&upper, kind.size())
+        let seen = ColorScheme::from_centers(&upper, kind.size())
             .ok()
             .filter(|seen| !seen.letters().contains(&'X') && !seen.letters().contains(&'?'));
         match (scheme, seen) {
             (Some(named), Some(seen)) if named != seen => {
-                return Err(InputError::CentresDisagree { scheme: named })
+                return Err(InputError::CentersDisagree { scheme: named })
             }
             (Some(named), _) => Some(named),
-            (None, seen) => Some(seen.unwrap_or(ColourScheme::WESTERN_BOY)),
+            (None, seen) => Some(seen.unwrap_or(ColorScheme::WESTERN_BOY)),
         }
     };
     let mut sets = Vec::with_capacity(chars.len());
@@ -97,7 +97,7 @@ mod tests {
     }
 
     #[test]
-    fn colours_are_read_through_the_scheme() {
+    fn colors_are_read_through_the_scheme() {
         let text = "WWWWWWWWWXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
         let target = parse_partial(text, None).unwrap().unwrap();
         assert_eq!(target.to_text().as_deref(), Some(UP_ONLY));

@@ -18,7 +18,7 @@ fn strip(x0: f64, y0: f64, x1: f64, y1: f64, backdrop: Backdrop) -> Shape {
     shape
 }
 
-/// The frame in the ink colour of the backdrop.
+/// The frame in the ink color of the backdrop.
 pub(crate) fn frame(backdrop: Backdrop) -> Vec<Shape> {
     vec![
         strip(0.0, 0.0, WIDTH, LINE, backdrop),
@@ -46,10 +46,7 @@ mod tests {
         let moving = icon(&cube, &"R".parse::<Action>().unwrap(), &Style::default()).unwrap();
         // the resting stickers of a move icon are darker than in the state icon
         assert_ne!(svg, moving.to_svg());
-        assert!(
-            svg.contains("#ffffff"),
-            "the white centre keeps full colour"
-        );
+        assert!(svg.contains("#ffffff"), "the white center keeps full color");
         // white on the Up face, dimmed to 25 percent in the move icon only
         assert!(moving.to_svg().contains("#404040"));
         assert!(!svg.contains("#404040"));

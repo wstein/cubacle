@@ -100,7 +100,7 @@ fn a_changed_formula_version_recomputes_the_stored_values() {
 }
 
 #[test]
-fn catalogue_ids_groups_and_code_limit() {
+fn catalog_ids_groups_and_code_limit() {
     let text = [
         row("Z1.01", 7, "Pair", "R2 U2"),
         row("TOOLONG123", 1, "Long", "R2"),
@@ -109,7 +109,7 @@ fn catalogue_ids_groups_and_code_limit() {
     let got = import_tab(&text, &options(3), &read_plain);
     assert_eq!(got.report.problems.len(), 1);
     let p = &got.patterns[0];
-    assert_eq!(p.catalogue, "ct:Z1.01");
+    assert_eq!(p.catalog, "ct:Z1.01");
     assert_eq!(p.group.len(), 3);
     assert_eq!(p.group[0].en, "Group");
     assert_eq!(p.provenance, "nobody");
@@ -121,12 +121,12 @@ fn catalogue_ids_groups_and_code_limit() {
 }
 
 #[test]
-fn builtin_catalogue_ids_are_short_unique_and_grouped() {
+fn builtin_catalog_ids_are_short_unique_and_grouped() {
     let mut seen = std::collections::HashSet::new();
     for p in all() {
-        assert!(p.catalogue.len() <= 12, "{}", p.catalogue);
-        assert!(p.catalogue.starts_with("cu:"));
-        assert!(seen.insert(p.catalogue.clone()), "{}", p.catalogue);
+        assert!(p.catalog.len() <= 12, "{}", p.catalog);
+        assert!(p.catalog.starts_with("cu:"));
+        assert!(seen.insert(p.catalog.clone()), "{}", p.catalog);
         assert_eq!(p.group.len(), 1);
         assert_ne!(p.group[0].en, "Other patterns", "{}", p.id);
         let numbers: Vec<usize> = p.generators().iter().map(|g| g.number).collect();
@@ -181,7 +181,7 @@ fn utf8_and_a_byte_order_mark_are_read_as_utf8() {
     assert_eq!(how, Encoding::Utf8);
     let got = import_tab(&decoded, &options(3), &read_expression);
     assert_eq!(got.report.accepted, 1, "{:?}", got.report.problems);
-    assert_eq!(got.patterns[0].catalogue, "ct:Z5.01");
+    assert_eq!(got.patterns[0].catalog, "ct:Z5.01");
 }
 
 #[test]

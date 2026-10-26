@@ -71,7 +71,7 @@ impl Sym {
                 }
             }
             (1, _) => "third turn about a corner axis",
-            (_, -3) => "inversion through the centre",
+            (_, -3) => "inversion through the center",
             (_, 1) => {
                 if self.m.iter().enumerate().all(|(i, row)| row[i] != 0) {
                     "mirror parallel to a face"
@@ -158,8 +158,8 @@ fn build(kind: PuzzleKind) -> Tables {
 /// The image of `state` under symmetry `g`: the sticker at `i` goes to `perm[i]`.
 pub(crate) fn image(kind: PuzzleKind, state: &[u8], g: usize) -> Vec<u8> {
     let mut out = vec![0; state.len()];
-    for (&to, &colour) in tables(kind).perm[g].iter().zip(state) {
-        out[to as usize] = colour;
+    for (&to, &color) in tables(kind).perm[g].iter().zip(state) {
+        out[to as usize] = color;
     }
     out
 }
@@ -257,7 +257,7 @@ mod tests {
         assert_eq!(counts["half turn about a face axis"], 3);
         assert_eq!(counts["half turn about an edge axis"], 6);
         assert_eq!(counts["third turn about a corner axis"], 8);
-        assert_eq!(counts["inversion through the centre"], 1);
+        assert_eq!(counts["inversion through the center"], 1);
         assert_eq!(counts["mirror parallel to a face"], 3);
         assert_eq!(counts["mirror through opposite edges"], 6);
         assert_eq!(counts["quarter turn and mirror"], 6);

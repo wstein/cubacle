@@ -53,7 +53,7 @@ fn a_twisted_corner_is_named_alike_on_every_size() {
 }
 
 #[test]
-fn a_mirrored_corner_names_its_place_and_colours() {
+fn a_mirrored_corner_names_its_place_and_colors() {
     for kind in PuzzleKind::ALL {
         let cube = edited(kind, |s, n| {
             let [a, b, _] = urf(n);
@@ -100,7 +100,7 @@ fn a_flipped_edge_and_swapped_edges_on_odd_cubes() {
 }
 
 #[test]
-fn wings_and_centres_of_the_larger_cubes() {
+fn wings_and_centers_of_the_larger_cubes() {
     for kind in [
         PuzzleKind::Cube4,
         PuzzleKind::Cube5,
@@ -112,14 +112,14 @@ fn wings_and_centres_of_the_larger_cubes() {
         let text = check(&wing).unwrap_err().to_string();
         assert!(text.starts_with("the wings are invalid"), "{kind:?} {text}");
 
-        // A centre sticker exchanged with a sticker of another colour.
-        // (The 4x4x4 has one centre orbit, so no such exchange breaks only it.)
+        // A center sticker exchanged with a sticker of another color.
+        // (The 4x4x4 has one center orbit, so no such exchange breaks only it.)
         if kind != PuzzleKind::Cube4 {
-            let centre = edited(kind, |s, n| s.swap(n + 1, 2 * n * n + n + 2));
-            assert_eq!(check(&centre), Err(Impossible::CentreColours), "{kind:?}");
+            let center = edited(kind, |s, n| s.swap(n + 1, 2 * n * n + n + 2));
+            assert_eq!(check(&center), Err(Impossible::CenterColors), "{kind:?}");
         }
     }
-    // Fixed centres that are not a rotation.
+    // Fixed centers that are not a rotation.
     let moved = edited(PuzzleKind::Cube5, |s, _| s.swap(12, 37));
-    assert_eq!(check(&moved), Err(Impossible::FixedCentres));
+    assert_eq!(check(&moved), Err(Impossible::FixedCenters));
 }

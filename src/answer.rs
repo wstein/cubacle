@@ -2,7 +2,7 @@
 //! error and the text or pictures on standard output.
 
 use cubacle::puzzle::{reaches, solves_by_color, Facelets, MoveSequence, PuzzleKind, SolveStage};
-use cubacle::ranges::Optimise;
+use cubacle::ranges::Optimize;
 
 use crate::{metrics_out, phase_dots, stage_phases, steps, SolveArgs};
 
@@ -76,7 +76,7 @@ pub(crate) fn print(solved: &Solved<'_>) -> Result<(), String> {
     }
     let grouping = phase_dots::Grouping::of(&args.group);
     let dots = grouping.dots();
-    let ranges = args.optimise == Some(Optimise::Ranges);
+    let ranges = args.optimize == Some(Optimize::Ranges);
     let (text, count) = phase_dots::write(
         args.notation,
         facelets.kind(),

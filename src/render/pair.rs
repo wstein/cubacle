@@ -150,7 +150,7 @@ mod tests {
         assert!(plain[0].to_text(false).starts_with("state, seen from URF"));
     }
 
-    /// The centres of the stickers of `cube` that are drawn differently from the
+    /// The centers of the stickers of `cube` that are drawn differently from the
     /// solved cube in `view` of the pair: each given sticker is swapped with one that is out of sight there.
     fn painted(kind: PuzzleKind, view: usize, indices: &[usize]) -> Vec<[f64; 2]> {
         let style = Style::default();
@@ -182,11 +182,11 @@ mod tests {
             .iter()
             .zip(&after)
             .filter(|(a, b)| a.1 != b.1)
-            .map(|(_, b)| centre(&b.0))
+            .map(|(_, b)| center(&b.0))
             .collect()
     }
 
-    fn centre(points: &[[f64; 2]]) -> [f64; 2] {
+    fn center(points: &[[f64; 2]]) -> [f64; 2] {
         let n = points.len() as f64;
         [
             points.iter().map(|p| p[0]).sum::<f64>() / n,
@@ -207,7 +207,7 @@ mod tests {
         for kind in [PuzzleKind::Cube3, PuzzleKind::Cube5, PuzzleKind::Cube7] {
             let n = kind.size() as i32 - 1;
             let whole = |face: Face, view: usize| {
-                centre(&painted(kind, view, &face_indices(kind, face, |_| true)))
+                center(&painted(kind, view, &face_indices(kind, face, |_| true)))
             };
             // left to right: F R in the first picture, B L in the second
             assert!(whole(Face::F, 0)[0] < whole(Face::R, 0)[0], "{kind:?}");
@@ -220,14 +220,14 @@ mod tests {
             // B and L are upright: the row next to U is above the row next to D
             for face in [Face::B, Face::L] {
                 let row =
-                    |y: i32| centre(&painted(kind, 1, &face_indices(kind, face, |p| p[1] == y)));
+                    |y: i32| center(&painted(kind, 1, &face_indices(kind, face, |p| p[1] == y)));
                 let (u_row, d_row) = (row(n), row(-n));
                 // locate has y up, so y = n is the row next to U
                 assert!(u_row[1] < d_row[1], "{kind:?} {face:?} is upside down");
             }
             // B meets L along x = -n, z = -n: B's column at x = -n is its right edge
             let column = |x: i32| {
-                centre(&painted(
+                center(&painted(
                     kind,
                     1,
                     &face_indices(kind, Face::B, |p| p[0] == x),
@@ -236,7 +236,7 @@ mod tests {
             assert!(column(-n)[0] > column(n)[0], "{kind:?} B is mirrored");
             // L's column nearest B (z = -n) is its left edge
             let column = |z: i32| {
-                centre(&painted(
+                center(&painted(
                     kind,
                     1,
                     &face_indices(kind, Face::L, |p| p[2] == z),
@@ -268,13 +268,13 @@ mod tests {
                     .iter()
                     .zip(&then)
                     .filter(|(a, b)| a.fill != b.fill)
-                    .map(|(a, _)| centre(&a.points))
+                    .map(|(a, _)| center(&a.points))
                     .collect();
                 let marks: Vec<[f64; 2]> = marked
                     .shapes
                     .iter()
                     .filter(|s| s.part == Part::Mark)
-                    .map(|s| centre(&s.points))
+                    .map(|s| center(&s.points))
                     .collect();
                 assert_eq!(marks.len(), changed.len(), "{kind:?} view {view}");
                 for m in &marks {

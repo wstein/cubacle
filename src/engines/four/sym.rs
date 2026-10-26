@@ -1,4 +1,4 @@
-//! The 48 symmetries of the cube as seen by the centres, and the tables that
+//! The 48 symmetries of the cube as seen by the centers, and the tables that
 //! relate them to the 36 moves.
 //!
 //! Ported from cs0x7f/TPR-4x4x4-Solver src/Center1.java (`rot`, `rotate`,
@@ -8,19 +8,19 @@
 //! Symmetry `j` is what `step(j)` adds to symmetry `j - 1`; the numbering is
 //! the reference's, so that the tables agree with its solutions.
 
-use super::cube::{move_centres, turn};
+use super::cube::{move_centers, turn};
 use super::moves::{BX3, DX2, DX3, FX1, LX3, RX1, UX1, UX2};
 
-/// One generator of the symmetries, on any labelling of the 24 centres.
+/// One generator of the symmetries, on any labeling of the 24 centers.
 pub(super) fn rot<T: Copy>(ct: &mut [T; 24], r: usize) {
     match r {
         0 => {
-            move_centres(ct, UX2);
-            move_centres(ct, DX2);
+            move_centers(ct, UX2);
+            move_centers(ct, DX2);
         }
         1 => {
-            move_centres(ct, RX1);
-            move_centres(ct, LX3);
+            move_centers(ct, RX1);
+            move_centers(ct, LX3);
         }
         2 => {
             turn(ct, [0, 3, 1, 2], 1);
@@ -31,10 +31,10 @@ pub(super) fn rot<T: Copy>(ct: &mut [T; 24], r: usize) {
             turn(ct, [17, 18, 20, 23], 1);
         }
         _ => {
-            move_centres(ct, UX1);
-            move_centres(ct, DX3);
-            move_centres(ct, FX1);
-            move_centres(ct, BX3);
+            move_centers(ct, UX1);
+            move_centers(ct, DX3);
+            move_centers(ct, FX1);
+            move_centers(ct, BX3);
         }
     }
 }
@@ -67,7 +67,7 @@ pub(super) struct Syms {
     pub inv: [u8; 48],
     /// `mv[sym][m]`: the move `m` seen through `sym`.
     pub mv: [[u8; 36]; 48],
-    /// `finish[sym]`: the flagged-centre number the solved state has seen
+    /// `finish[sym]`: the flagged-center number the solved state has seen
     /// through the symmetry (0, 12869 or 735470).
     pub finish: [u32; 48],
 }
@@ -110,11 +110,11 @@ impl Syms {
             rotate(&mut c, usize::from(inv[i]));
             for j in 0..36 {
                 let mut d = c;
-                move_centres(&mut d, j);
+                move_centers(&mut d, j);
                 rotate(&mut d, i);
                 for k in 0..36 {
                     let mut f = e;
-                    move_centres(&mut f, k);
+                    move_centers(&mut f, k);
                     if f == d {
                         mv[i][j] = k as u8;
                         break;

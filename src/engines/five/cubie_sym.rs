@@ -9,7 +9,7 @@ use super::cubie::Cubie;
 use super::mv::{DW2, DW3, LW3, RW1, UW1, UW2};
 use crate::reduction::comb::{swap2, swap4};
 
-/// Slot of the centre piece that carries each colour.
+/// Slot of the center piece that carries each color.
 const COLOR_TO_CENTER: [usize; 6] = [0, 16, 8, 4, 20, 12];
 
 pub(crate) struct Syms {

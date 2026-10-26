@@ -17,7 +17,7 @@ use cubacle::puzzle::{
 /// A route that was adopted.
 pub struct Adopted {
     pub name: String,
-    pub catalogue: String,
+    pub catalog: String,
     pub shorter: Option<usize>,
 }
 
@@ -27,13 +27,13 @@ impl Adopted {
         match self.shorter {
             Some(n) => format!(
                 "pattern: {} {} (library route, {n} {} shorter)",
-                self.catalogue,
+                self.catalog,
                 self.name,
                 if n == 1 { "move" } else { "moves" }
             ),
             None => format!(
                 "pattern: {} {} (library route, no other answer)",
-                self.catalogue, self.name
+                self.catalog, self.name
             ),
         }
     }
@@ -138,7 +138,7 @@ pub fn apply(request: &Request, result: SolveResult) -> (SolveResult, Option<Ado
     }
     let adopted = Adopted {
         name: hit.name,
-        catalogue: hit.catalogue,
+        catalog: hit.catalog,
         shorter: own.map(|own| own - route),
     };
     let result = SolveResult {

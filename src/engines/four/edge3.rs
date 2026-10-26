@@ -110,7 +110,7 @@ impl Edge {
         parity
     }
 
-    fn standardise(&mut self) {
+    fn standardize(&mut self) {
         let mut temp = [0i32; 12];
         for i in 0..12 {
             temp[self.edgeo[i] as usize] = i as i32;
@@ -125,7 +125,7 @@ impl Edge {
     /// The number of the first `end` places (4 or 10).
     pub(super) fn get(&mut self, end: usize) -> i32 {
         if !self.std {
-            self.standardise();
+            self.standardize();
         }
         let mut idx = 0;
         let mut val = ALL;
@@ -333,7 +333,7 @@ impl Edge3 {
                 e.apply(m);
                 e.rotate(r);
                 mvrot[m << 3 | r] = e.edge;
-                // `standardise` leaves the inverse of `edgeo` in a temporary:
+                // `standardize` leaves the inverse of `edgeo` in a temporary:
                 // that is what the lookups need.
                 let mut temp = [0i32; 12];
                 for i in 0..12 {

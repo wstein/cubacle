@@ -51,13 +51,13 @@ pub(crate) fn cubies(kind: PuzzleKind) -> Vec<Cubie> {
 
 /// The movable pieces of a 5x5x5 by kind, as sticker indices.
 ///
-/// With the six face centres fixed (only turns of depth 1 and 2), these are
+/// With the six face centers fixed (only turns of depth 1 and 2), these are
 /// the orbits the pieces stay in.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct FiveOrbits {
-    /// The corners of each face's 3x3 centre block.
+    /// The corners of each face's 3x3 center block.
     pub x: Vec<usize>,
-    /// The edge cells of each face's 3x3 centre block.
+    /// The edge cells of each face's 3x3 center block.
     pub t: Vec<usize>,
     /// The two wings on each edge, with stickers in the handedness of [`Cubie`].
     pub wings: Vec<[usize; 2]>,

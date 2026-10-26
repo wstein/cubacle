@@ -30,7 +30,7 @@ fn scramble(rng: &mut Lcg, length: usize) -> Facelets {
         .unwrap()
 }
 
-/// The cross on the down face: its four edges and the centres.
+/// The cross on the down face: its four edges and the centers.
 fn cross() -> Target {
     let solved = Facelets::solved(PuzzleKind::Cube3);
     let mut keep = [false; 54];
@@ -137,7 +137,7 @@ fn a_single_edge_is_reached_in_few_moves() {
 }
 
 #[test]
-fn a_wrong_centre_is_unreachable() {
+fn a_wrong_center_is_unreachable() {
     let solved = Facelets::solved(PuzzleKind::Cube3);
     let mut sets = vec![ANY; 54];
     sets[4] = 1 << Face::R.index();
@@ -151,7 +151,7 @@ fn a_wrong_centre_is_unreachable() {
 fn an_edge_that_does_not_exist_is_contradictory() {
     let solved = Facelets::solved(PuzzleKind::Cube3);
     let mut sets = vec![ANY; 54];
-    // the UR edge shows U and D: no edge has opposite colours
+    // the UR edge shows U and D: no edge has opposite colors
     sets[5] = 1 << Face::U.index();
     sets[10] = 1 << Face::D.index();
     let target = Target::from_sets(sets).unwrap();

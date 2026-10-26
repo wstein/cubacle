@@ -10,9 +10,9 @@
 //! may still be out of reach), which is why this is the quick check and the
 //! table and the search remain the proof.
 //!
-//! Pieces are read from the sticker colours: a cubie is the set of colours at
-//! a place, its twist the place of its reference colour (the U or D colour,
-//! else the F or B colour) among the stickers read in turn around the cubie.
+//! Pieces are read from the sticker colors: a cubie is the set of colors at
+//! a place, its twist the place of its reference color (the U or D color,
+//! else the F or B color) among the stickers read in turn around the cubie.
 
 use std::collections::HashMap;
 
@@ -27,13 +27,13 @@ struct Place {
     stickers: Vec<usize>,
 }
 
-/// The places of a 3x3x3: 8 corners, 12 edges, 6 centres.
+/// The places of a 3x3x3: 8 corners, 12 edges, 6 centers.
 struct Places {
     corners: Vec<Place>,
     edges: Vec<Place>,
-    centres: Vec<Place>,
-    /// The solved colours of each place, in sticker order.
-    colours: Vec<Vec<u8>>,
+    centers: Vec<Place>,
+    /// The solved colors of each place, in sticker order.
+    colors: Vec<Vec<u8>>,
 }
 
 fn cross(a: Vec3, b: Vec3) -> Vec3 {
@@ -61,7 +61,7 @@ impl Places {
         }
         let mut positions: Vec<Vec3> = by_position.keys().copied().collect();
         positions.sort_unstable();
-        let (mut corners, mut edges, mut centres) = (Vec::new(), Vec::new(), Vec::new());
+        let (mut corners, mut edges, mut centers) = (Vec::new(), Vec::new(), Vec::new());
         for position in positions {
             let mut group = by_position[&position].clone();
             // The reference sticker first: on U or D, else on F or B.
@@ -88,20 +88,20 @@ impl Places {
             match place.stickers.len() {
                 3 => corners.push(place),
                 2 => edges.push(place),
-                _ => centres.push(place),
+                _ => centers.push(place),
             }
         }
-        let colours = corners
+        let colors = corners
             .iter()
             .chain(edges.iter())
-            .chain(centres.iter())
+            .chain(centers.iter())
             .map(|place| place.stickers.iter().map(|&i| (i / 9) as u8).collect())
             .collect();
         Places {
             corners,
             edges,
-            centres,
-            colours,
+            centers,
+            colors,
         }
     }
 
@@ -109,11 +109,11 @@ impl Places {
         self.corners
             .iter()
             .chain(self.edges.iter())
-            .chain(self.centres.iter())
+            .chain(self.centers.iter())
     }
 }
 
-/// A cube read as pieces: at each place (corners, then edges, then centres)
+/// A cube read as pieces: at each place (corners, then edges, then centers)
 /// the place the piece started at, and its turn about its reference sticker.
 #[derive(Clone, PartialEq, Eq)]
 struct Pieces {
@@ -128,13 +128,13 @@ fn decode(places: &Places, state: &State) -> Result<Pieces, String> {
         let here: Vec<u8> = place.stickers.iter().map(|&i| state[i]).collect();
         let mut sorted = here.clone();
         sorted.sort_unstable();
-        let found = places.colours.iter().position(|home| {
+        let found = places.colors.iter().position(|home| {
             let mut other = home.clone();
             other.sort_unstable();
             other == sorted
         });
         let Some(home) = found else {
-            return Err("a piece shows colours no piece has".to_owned());
+            return Err("a piece shows colors no piece has".to_owned());
         };
         // Pieces only change place within their kind.
         let kind_of = |i: usize| match i {
@@ -145,15 +145,15 @@ fn decode(places: &Places, state: &State) -> Result<Pieces, String> {
         if kind_of(home) != kind_of(place_index) {
             return Err("a piece is of another kind than its place".to_owned());
         }
-        let reference = places.colours[home][0];
+        let reference = places.colors[home][0];
         let shift = here
             .iter()
             .position(|&c| c == reference)
-            .ok_or_else(|| "a piece lacks its reference colour".to_owned())?;
+            .ok_or_else(|| "a piece lacks its reference color".to_owned())?;
         let k = here.len();
         for j in 0..k {
-            if here[(shift + j) % k] != places.colours[home][j] {
-                return Err("a corner is mirrored: its colours turn the wrong way".to_owned());
+            if here[(shift + j) % k] != places.colors[home][j] {
+                return Err("a corner is mirrored: its colors turn the wrong way".to_owned());
             }
         }
         at.push(home as u8);
@@ -164,7 +164,7 @@ fn decode(places: &Places, state: &State) -> Result<Pieces, String> {
 
 /// Why a cube is out of reach.
 pub(super) enum Reach {
-    /// The text of the colours is no cube.
+    /// The text of the colors is no cube.
     NoCube(String),
     /// A cube, but not one these moves can solve.
     Outside(String),
@@ -173,7 +173,7 @@ pub(super) enum Reach {
 /// An orbit of places under the letters.
 struct Orbit {
     members: Vec<usize>,
-    /// 0 corner, 1 edge, 2 centre
+    /// 0 corner, 1 edge, 2 center
     kind: u8,
 }
 
@@ -216,7 +216,7 @@ fn parity(members: &[usize], at: &[u8]) -> u8 {
 impl Invariants {
     pub(super) fn new(letters: &Letters, solved: &State) -> Invariants {
         let places = Places::new();
-        let count = places.colours.len();
+        let count = places.colors.len();
         // Orbits: places joined by what a single letter does to the solved cube.
         let mut parent: Vec<usize> = (0..count).collect();
         let mut moved: Vec<Pieces> = Vec::new();
@@ -416,7 +416,7 @@ mod tests {
             all.basis2.iter().all(|b| b & !parities == 0),
             "flip sums are always even"
         );
-        assert_eq!(all.orbits.len(), 8, "corners, edges and six fixed centres");
+        assert_eq!(all.orbits.len(), 8, "corners, edges and six fixed centers");
     }
 
     #[test]
@@ -465,7 +465,7 @@ mod tests {
     }
 
     #[test]
-    fn the_slice_group_moves_centres_and_edges_only() {
+    fn the_slice_group_moves_centers_and_edges_only() {
         let slices = invariants("quarter-slices");
         assert!(slices.check(&state_of("2R 2U 2F'")).is_ok());
         assert!(matches!(
@@ -475,7 +475,7 @@ mod tests {
     }
 
     #[test]
-    fn colours_that_are_no_cube_are_named() {
+    fn colors_that_are_no_cube_are_named() {
         let all = invariants("<R,U>");
         let mut state = state_of("");
         state.swap(0, 9);

@@ -28,13 +28,13 @@ The server logs method, path, status and latency of every request (never bodies)
 | `POST /v1/convert` | `{"cube","scheme"?}` | `{"kind","facelets","token"?}` |
 | `POST /v1/solve` | `{"cube","scheme"?,"maxMoves"? (1..=25; 1..=255 for a 4x4x4 or 5x5x5),"budgetMs"? (1..=600000),"minProbes"? (3x3x3 only),"improve"? (3x3x3 only, needs budgetMs)}` | `{"kind","solution","length","elapsedMicros"}` |
 
-`cube` accepts Orbit64 tokens (every size, 2x2x2 to 7x7x7; `convert` answers the token too), URFDLB facelets (spaced or compact) or W/R/G/Y/O/B colours; `scheme` is `boy`, `jp` or six letters.
+`cube` accepts Orbit64 tokens (every size, 2x2x2 to 7x7x7; `convert` answers the token too), URFDLB facelets (spaced or compact) or W/R/G/Y/O/B colors; `scheme` is `boy`, `jp` or six letters.
 
 Errors are `{"error":{"code","message"}}`:
 
 | Status | code | Cause |
 |---|---|---|
-| 400 | `bad_input` | unparseable cube, bad JSON, unknown field or query parameter, out-of-range value (`size` outside 2..=7, `maxMoves`, `budgetMs`) |
+| 400 | `bad_input` | unparsable cube, bad JSON, unknown field or query parameter, out-of-range value (`size` outside 2..=7, `maxMoves`, `budgetMs`) |
 | 405 | `method_not_allowed` | wrong method (with an `Allow` header) |
 | 404 | `not_found` | unknown path |
 | 415 | `unsupported_media_type` | POST without `Content-Type: application/json` |

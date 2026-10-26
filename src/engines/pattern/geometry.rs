@@ -78,8 +78,8 @@ pub fn source_table(n: usize, mv: &LayerMove) -> Vec<usize> {
     src
 }
 
-/// The colour of every sticker of a state, as the search stores it.
-pub fn colours(state: &crate::puzzle::Facelets) -> Vec<u8> {
+/// The color of every sticker of a state, as the search stores it.
+pub fn colors(state: &crate::puzzle::Facelets) -> Vec<u8> {
     state.stickers().iter().map(|f| *f as u8).collect()
 }
 
@@ -115,7 +115,7 @@ pub fn hash(state: &[u8]) -> u64 {
     h | 1
 }
 
-/// The target in every orientation (even cubes, which have no fixed centres),
+/// The target in every orientation (even cubes, which have no fixed centers),
 /// else the target alone.
 pub fn seeds(n: usize, target: &[u8]) -> Vec<Vec<u8>> {
     if n % 2 == 1 {

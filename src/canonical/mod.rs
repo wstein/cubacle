@@ -115,7 +115,7 @@ fn standard(kind: PuzzleKind, state: &[u8]) -> Result<Vec<u8>, CanonError> {
         by_corner(n, state)
     };
     let names = names.ok_or(CanonError::State(Orbit64Error::Impossible(if n % 2 == 1 {
-        Impossible::FixedCentres
+        Impossible::FixedCenters
     } else {
         Impossible::NotDistinct(PieceKind::Corner)
     })))?;

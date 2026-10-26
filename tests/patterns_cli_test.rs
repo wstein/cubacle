@@ -25,7 +25,7 @@ fn lists_patterns_of_a_size() {
     assert!(ok);
     assert!(text.contains("checkerboard"), "{text}");
     assert!(text.contains("3:6/3"), "{text}");
-    assert!(!text.contains("six-centre-spots"), "{text}");
+    assert!(!text.contains("six-center-spots"), "{text}");
 }
 
 #[test]

@@ -7,7 +7,7 @@
 
 use std::io::Write;
 
-use cubacle::notation::{orbit64, ColourScheme, Notation};
+use cubacle::notation::{orbit64, ColorScheme, Notation};
 use cubacle::phases::Phase;
 use cubacle::puzzle::{Facelets, Move, MoveSequence, Turn};
 use cubacle::render::{icon, Action, Icon, Raster, Style};
@@ -27,7 +27,7 @@ pub use groups::Layout;
 
 /// What `solve --icons` was asked for.
 pub struct SolutionIcons {
-    pub scheme: Option<ColourScheme>,
+    pub scheme: Option<ColorScheme>,
     /// Icon height in pixels.
     pub height: Option<u32>,
     /// `None`: ask the terminal.
@@ -155,7 +155,7 @@ pub(crate) fn token_line(phase: &Phase, state: &Facelets) -> Result<String, Stri
 /// easiest one to do as a half turn.
 const QUARTER_NOTE: &str = "   <-- quarter turn, not a half turn";
 
-/// The frame colour of a lone quarter turn in the Kitty rows (amber).
+/// The frame color of a lone quarter turn in the Kitty rows (amber).
 #[cfg(feature = "quarter-frame")]
 const QUARTER_FRAME: cubacle::render::Rgb = cubacle::render::Rgb(255, 176, 0);
 
@@ -203,7 +203,7 @@ pub struct PictureArgs {
     /// Icon height in pixels for --icons (default: 32 per cube layer, at least 96)
     #[arg(long, global = true, requires = "icons", value_name = "PIXELS")]
     pub icon_size: Option<u32>,
-    /// What the --icons pictures are seen on: sets the notation colour and the
+    /// What the --icons pictures are seen on: sets the notation color and the
     /// dimming (default: ask the terminal, dark when it does not answer)
     #[arg(long, global = true, requires = "icons", value_enum)]
     pub background: Option<Background>,
@@ -232,7 +232,7 @@ pub struct PictureArgs {
 }
 
 impl PictureArgs {
-    pub fn options(&self, scheme: Option<ColourScheme>, notation: Notation) -> SolutionIcons {
+    pub fn options(&self, scheme: Option<ColorScheme>, notation: Notation) -> SolutionIcons {
         SolutionIcons {
             scheme,
             height: self.icon_size,
@@ -267,7 +267,7 @@ impl<'a> Pictures<'a> {
             Terminal::default()
         };
         let background = options.background.unwrap_or(match terminal.background {
-            Some(colour) if colour.is_light() => Background::Light,
+            Some(color) if color.is_light() => Background::Light,
             _ => Background::Dark,
         });
         let height = options.height.unwrap_or_else(|| default_height(cube_size));

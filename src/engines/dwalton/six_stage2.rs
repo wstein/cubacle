@@ -1,6 +1,6 @@
-//! 6x6x6 stages 2 to 4: stage the L/R centres (a 5x5x5 stage on the paired
-//! obliques and the outer x-centres), stage and pair the U/D inner x-centres
-//! and obliques, stage the U/D centres.
+//! 6x6x6 stages 2 to 4: stage the L/R centers (a 5x5x5 stage on the paired
+//! obliques and the outer x-centers), stage and pair the U/D inner x-centers
+//! and obliques, stage the U/D centers.
 //!
 //! Ported from dwalton76/rubiks-cube-NxNxN-solver
 //! rubikscubennnsolver/RubiksCube666.py (`LookupTable666UDInnerXCentersStage`,
@@ -26,8 +26,8 @@ fn on(list: &[usize], faces: &[usize]) -> Vec<usize> {
         .collect()
 }
 
-/// Stage 2: t-centres (left obliques as representatives) and x-centres, both
-/// by colour L/R.
+/// Stage 2: t-centers (left obliques as representatives) and x-centers, both
+/// by color L/R.
 pub(super) fn lr_groups() -> Vec<GroupSpec> {
     vec![
         GroupSpec {
@@ -73,8 +73,8 @@ pub(super) fn lr_tables(used: &[&MoveDef], cache: &Cache, threads: usize) -> Vec
 /// Faces U F B D of the cubacle order, for stages 3 and 4.
 const UFBD: [usize; 4] = [U, F, D, B];
 
-/// Stage 3: UFBD inner x-centres (0), left obliques (1), right obliques (2),
-/// by colour U/D.
+/// Stage 3: UFBD inner x-centers (0), left obliques (1), right obliques (2),
+/// by color U/D.
 pub(super) fn ud_groups() -> Vec<GroupSpec> {
     [&INNER_X_666, &LEFT_OBLIQUE_666, &RIGHT_OBLIQUE_666]
         .iter()
@@ -86,7 +86,7 @@ pub(super) fn ud_groups() -> Vec<GroupSpec> {
 }
 
 /// In the 16-sticker sets of faces U F B D (the order of the reference) the
-/// U/D colours belong on the first and last four.
+/// U/D colors belong on the first and last four.
 fn ud_goal() -> u32 {
     (0..4).chain(12..16).map(|i| 1u32 << i).sum()
 }
@@ -121,7 +121,7 @@ pub(super) fn ud_inner_table(used: &[&MoveDef], cache: &Cache, threads: usize) -
     )
 }
 
-/// Stage 4: UFBD left obliques (0) and outer x-centres (1) by colour U/D.
+/// Stage 4: UFBD left obliques (0) and outer x-centers (1) by color U/D.
 pub(super) fn ud_stage_groups() -> Vec<GroupSpec> {
     [&LEFT_OBLIQUE_666, &OUTER_X_666]
         .iter()

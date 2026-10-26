@@ -248,13 +248,13 @@ pub fn report_identify(tables: &[Table], scramble: &mut dyn FnMut(PuzzleKind, us
         let library: Vec<Pattern> = table
             .patterns
             .iter()
-            .filter(|p| in_library(&p.catalogue))
+            .filter(|p| in_library(&p.catalog))
             .cloned()
             .collect();
         let held: Vec<&Pattern> = table
             .patterns
             .iter()
-            .filter(|p| !in_library(&p.catalogue))
+            .filter(|p| !in_library(&p.catalog))
             .collect();
         let mut exact = 0;
         let mut best = Spread(Vec::new());

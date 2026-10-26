@@ -218,17 +218,17 @@ fn impossible_facelets_are_refused_with_a_sentence() {
     let parity = Facelets::from_stickers(stickers).unwrap();
     assert!(encode(&parity).unwrap_err().to_string().contains("parity"));
 
-    // Fixed centres that are not a rotation.
+    // Fixed centers that are not a rotation.
     let mut stickers: Vec<Face> = Facelets::solved(PuzzleKind::Cube5).stickers().to_vec();
     stickers.swap(12, 37);
     let moved = Facelets::from_stickers(stickers).unwrap();
-    assert!(encode(&moved).unwrap_err().to_string().contains("centres"));
+    assert!(encode(&moved).unwrap_err().to_string().contains("centers"));
 }
 
 #[test]
-fn centres_with_the_wrong_colours_are_refused_on_even_cubes() {
+fn centers_with_the_wrong_colors_are_refused_on_even_cubes() {
     let mut stickers: Vec<Face> = Facelets::solved(PuzzleKind::Cube4).stickers().to_vec();
-    // Swap a centre sticker with a corner sticker of another colour.
+    // Swap a center sticker with a corner sticker of another color.
     stickers.swap(5, 16);
     let broken = Facelets::from_stickers(stickers).unwrap();
     assert!(matches!(encode(&broken), Err(Orbit64Error::Impossible(_))));
@@ -271,7 +271,7 @@ fn official_coords(fields: &[&str]) -> Coords {
                 coords.midge_flip = second.unwrap();
             }
             "W" => coords.wings.push(first),
-            "Z" => coords.centres.push(first),
+            "Z" => coords.centers.push(first),
             other => panic!("unknown orbit {other}"),
         }
     }

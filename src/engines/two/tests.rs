@@ -24,14 +24,14 @@ fn sticker_perms() -> Perms {
             let moved: Vec<char> = cube3(&name).chars().collect();
             let mut perm: [usize; 24] = std::array::from_fn(|i| i);
             for dest_slot in CORNER_FACELETS {
-                let mut colours: Vec<char> = dest_slot.iter().map(|&f| moved[f]).collect();
-                colours.sort();
+                let mut colors: Vec<char> = dest_slot.iter().map(|&f| moved[f]).collect();
+                colors.sort();
                 let home = CORNER_FACELETS
                     .iter()
                     .find(|home| {
                         let mut c: Vec<char> = home.iter().map(|&f| solved[f]).collect();
                         c.sort();
-                        c == colours
+                        c == colors
                     })
                     .unwrap();
                 for &dest in &dest_slot {
@@ -143,10 +143,10 @@ fn random_states_replay_to_solved_with_table_length() {
         let result = solver.solve(&facelets, &SolveOptions::default());
         let solution = result.solution().expect("solvable");
         assert!(is_solved(&replay(&perms, &state, solution)), "{state}");
-        let normalised = normalise(&facelets).unwrap();
+        let normalized = normalize(&facelets).unwrap();
         assert_eq!(
             solution.len(),
-            usize::from(tables().depth(normalised.state)),
+            usize::from(tables().depth(normalized.state)),
             "{state}"
         );
         assert!(solution.len() <= 11);
@@ -219,7 +219,7 @@ fn near_states_are_solved_optimally_in_every_orientation() {
 }
 
 #[test]
-fn move_limit_and_budget_are_honoured() {
+fn move_limit_and_budget_are_honored() {
     let perms = sticker_perms();
     let solver = PocketSolver::new();
     let state = apply(&perms, &apply(&perms, &solved_2x2(), "R"), "U");

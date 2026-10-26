@@ -78,11 +78,11 @@ fn a_move_outside_the_group_is_refuted() {
 #[test]
 fn piece_class_tests_on_big_cubes() {
     let kind = PuzzleKind::Cube5;
-    // Two centre stickers of different faces swapped: only centres are out of place.
+    // Two center stickers of different faces swapped: only centers are out of place.
     let mut stickers = Facelets::solved(kind).stickers().to_vec();
     stickers.swap(6, 25 + 6);
-    let centres = Facelets::from_stickers(stickers).unwrap();
-    let report = detect(&centres);
+    let centers = Facelets::from_stickers(stickers).unwrap();
+    let report = detect(&centers);
     let find = |name: &str| {
         report
             .subgroups
@@ -92,5 +92,5 @@ fn piece_class_tests_on_big_cubes() {
     };
     assert_eq!(find("corners only"), Some(Verdict::NotMember));
     assert_eq!(find("edges only"), Some(Verdict::NotMember));
-    assert_eq!(find("centres only"), Some(Verdict::Member));
+    assert_eq!(find("centers only"), Some(Verdict::Member));
 }

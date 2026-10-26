@@ -1,5 +1,5 @@
-//! 6x6x6 stages 5 and 6: solve the L/R inner x-centres and obliques so that
-//! the L/R centres are reducible to a 5x5x5, then the same for U/D and F/B.
+//! 6x6x6 stages 5 and 6: solve the L/R inner x-centers and obliques so that
+//! the L/R centers are reducible to a 5x5x5, then the same for U/D and F/B.
 //!
 //! Ported from dwalton76/rubiks-cube-NxNxN-solver
 //! rubikscubennnsolver/RubiksCube666.py (`LookupTable666Step50LRCenters`,
@@ -15,7 +15,7 @@ use super::pattern::{Group, Table};
 use super::stage::GroupSpec;
 use crate::reduction::cache::Cache;
 
-/// Targets of step 50 over `STEP50_CELLS`, `L` for the L colour.
+/// Targets of step 50 over `STEP50_CELLS`, `L` for the L color.
 const STEP50_TARGETS: [&str; 36] = [
     "LLLLLLLLLLLLxxxxxxxxxxxx",
     "LLLLLLLLLLxxLLxxxxxxxxxx",
@@ -65,7 +65,7 @@ fn within(list: &[usize], of: &[usize]) -> Vec<usize> {
     list.iter().copied().filter(|i| of.contains(i)).collect()
 }
 
-/// Splits a list of reference stickers into inner x-centres, left and right
+/// Splits a list of reference stickers into inner x-centers, left and right
 /// obliques (cubacle indices each).
 fn split3(list: &[usize]) -> [Vec<usize>; 3] {
     [
@@ -161,7 +161,7 @@ const LR_OBL_TARGETS: [&str; 2] = [
 ];
 
 /// Step 60 groups: 0..3 U/D (mark U), 3..6 F/B (mark F), 6 and 7 the L/R
-/// left and right obliques (mark L), 8 to 10 the inner x-centres of U F B D
+/// left and right obliques (mark L), 8 to 10 the inner x-centers of U F B D
 /// (marks U, F, B).
 pub(super) fn step60_groups() -> Vec<GroupSpec> {
     let mut out = specs(&UD_CELLS, bit(U));
@@ -204,7 +204,7 @@ pub(super) fn step60_tables(used: &[&MoveDef]) -> Vec<Table> {
         .iter()
         .map(|t| masks_of(&FB_CELLS, t, 'F'))
         .collect();
-    // Third table: the LR obliques (left, right) and the inner x-centres.
+    // Third table: the LR obliques (left, right) and the inner x-centers.
     let lr: Vec<Vec<u32>> = LR_OBL_TARGETS
         .iter()
         .map(|t| {
@@ -242,10 +242,10 @@ pub(super) fn step60_moves(name: &str) -> bool {
         )
 }
 
-/// The inner x-centres show the colour of their face and the obliques are
-/// paired (the reference's `reduced_to_555`, centre part).
+/// The inner x-centers show the color of their face and the obliques are
+/// paired (the reference's `reduced_to_555`, center part).
 #[cfg(test)]
-pub(super) fn centres_reduced(cube: &crate::puzzle::Facelets) -> bool {
+pub(super) fn centers_reduced(cube: &crate::puzzle::Facelets) -> bool {
     let st = cube.stickers();
     let face_of = |i: usize| st[from_ref(6, i)] as usize;
     let inner_ok = INNER_X_666

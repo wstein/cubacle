@@ -44,7 +44,7 @@ pub enum FaceletsError {
     BadLength(usize),
     /// A character is not one of `U R F D L B`.
     BadSticker { position: usize, found: char },
-    /// A colour does not appear exactly `n * n` times.
+    /// A color does not appear exactly `n * n` times.
     BadStickerCount {
         face: Face,
         expected: usize,
@@ -67,7 +67,7 @@ impl fmt::Display for FaceletsError {
                 found,
             } => write!(
                 f,
-                "colour {} appears {found} times, expected {expected}",
+                "color {} appears {found} times, expected {expected}",
                 face.letter()
             ),
         }
@@ -76,15 +76,15 @@ impl fmt::Display for FaceletsError {
 
 impl std::error::Error for FaceletsError {}
 
-/// A cube state given as its sticker colours.
+/// A cube state given as its sticker colors.
 ///
 /// Stickers are ordered face by face in `URFDLB` order, and row-major within
-/// each face. A sticker's value is the [`Face`] whose colour it shows, so the
+/// each face. A sticker's value is the [`Face`] whose color it shows, so the
 /// solved state has every face showing its own letter. The string has
 /// `6 * n * n` characters: 24, 54, 96, 150, 216 or 294.
 ///
 /// Construction checks only that the string is well-formed (length and
-/// characters) and that each colour occurs `n * n` times. Whether the state is
+/// characters) and that each color occurs `n * n` times. Whether the state is
 /// reachable is the engine's concern, and is reported as invalid input.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Facelets {
@@ -132,7 +132,7 @@ impl Facelets {
         &self.stickers
     }
 
-    /// Checks that every colour occurs exactly `n * n` times.
+    /// Checks that every color occurs exactly `n * n` times.
     pub fn validate_sticker_counts(&self) -> Result<(), FaceletsError> {
         let mut counts = [0usize; 6];
         for face in &self.stickers {
@@ -211,7 +211,7 @@ mod tests {
     }
 
     #[test]
-    fn rejects_wrong_colour_counts() {
+    fn rejects_wrong_color_counts() {
         let text = SOLVED_3X3.replacen('U', "R", 1);
         assert_eq!(
             Facelets::parse(&text),

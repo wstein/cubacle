@@ -47,7 +47,7 @@ fn a_scrambled_cube_has_only_the_identity() {
 }
 
 #[test]
-fn a_checkerboard_keeps_all_symmetries_up_to_colours() {
+fn a_checkerboard_keeps_all_symmetries_up_to_colors() {
     let (ok, text) = identify(&["--size", "4", "-s", "R2 L2 U2 D2 F2 B2"]);
     assert!(ok);
     assert!(text.contains("symmetry: 48 of 48"), "{text}");
@@ -104,11 +104,11 @@ fn cycles_of_moves_give_the_order() {
     assert!(text.contains("order: 105"), "{text}");
     let (ok, text) = cycles(&["--size", "4", "R U 2R' Fw"]);
     assert!(ok);
-    assert!(text.contains("order without the centres: 60"), "{text}");
+    assert!(text.contains("order without the centers: 60"), "{text}");
 }
 
 #[test]
-fn cycles_of_colours_need_the_moves_for_an_order_on_big_cubes() {
+fn cycles_of_colors_need_the_moves_for_an_order_on_big_cubes() {
     let (ok, text) = cycles(&["UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB"]);
     assert!(ok);
     assert!(text.contains("order: 1"), "{text}");
@@ -142,15 +142,15 @@ fn subgroups_are_reported_for_a_3x3x3() {
 }
 
 #[test]
-fn centre_orbits_are_named_by_their_position() {
+fn center_orbits_are_named_by_their_position() {
     let (ok, text) = identify(&["--size", "5", "-s", "R U 2R' 3Fw"]);
     assert!(ok);
     assert!(
-        text.contains("  x-centres (corner side): 24 centre stickers"),
+        text.contains("  x-centers (corner side): 24 center stickers"),
         "{text}"
     );
     assert!(
-        text.contains("  +-centres (edge side): 24 centre stickers"),
+        text.contains("  +-centers (edge side): 24 center stickers"),
         "{text}"
     );
     let code = text
@@ -160,8 +160,8 @@ fn centre_orbits_are_named_by_their_position() {
     assert!(code.contains(" X") && code.contains(" +"), "{code}");
     let (ok, text) = cycles(&["--size", "5", "R U 2R' 3Fw"]);
     assert!(ok);
-    assert!(text.contains("x-centres (corner side):"), "{text}");
-    assert!(text.contains("+-centres (edge side):"), "{text}");
+    assert!(text.contains("x-centers (corner side):"), "{text}");
+    assert!(text.contains("+-centers (edge side):"), "{text}");
 }
 
 #[test]
@@ -195,7 +195,7 @@ fn the_closest_patterns_and_the_partial_match_are_named() {
         .find(|l| l.starts_with("partial: "))
         .expect(&text);
     assert!(
-        line.contains("corners, edges, x-centres (corner side) match Solved cube exactly"),
+        line.contains("corners, edges, x-centers (corner side) match Solved cube exactly"),
         "{line}"
     );
     assert!(

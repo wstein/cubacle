@@ -169,8 +169,8 @@ pub fn find_generator_with(
         time: remaining.unwrap_or(Duration::from_secs(3600)),
         max_states,
     };
-    let target = geometry::colours(state);
-    let solved = geometry::colours(&Facelets::solved(kind));
+    let target = geometry::colors(state);
+    let solved = geometry::colors(&Facelets::solved(kind));
     let outcome = bidir::search(&set.steps, vec![solved], vec![target], &limits);
     let mut proven = false;
     let mut exact_note = None;

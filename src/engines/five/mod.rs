@@ -1,6 +1,6 @@
 //! The 5x5x5 reduction engine: a port of the five-phase solver cs0x7f/cube555.
 //!
-//! Five table-driven searches bring the centres and wings into place, leaving
+//! Five table-driven searches bring the centers and wings into place, leaving
 //! a 3x3x3 that an injected solver finishes. Files, from the bottom up:
 //! `mv` (move numbers), `cubie` and `cubie_sym` (the pieces and the 48
 //! symmetries), `p1` to `p5` (one phase each: coordinates, tables, search

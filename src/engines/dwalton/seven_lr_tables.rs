@@ -1,4 +1,4 @@
-//! Step 41 to 44 tables of the 7x7x7: the L/R centres to vertical bars.
+//! Step 41 to 44 tables of the 7x7x7: the L/R centers to vertical bars.
 //!
 //! Ported from dwalton76/rubiks-cube-NxNxN-solver
 //! rubikscubennnsolver/RubiksCube777.py (the `state_targets` and sticker

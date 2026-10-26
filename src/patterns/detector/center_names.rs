@@ -1,11 +1,11 @@
-//! Names for the centre orbits, derived from where their stickers sit on a
-//! face, never from colours.
+//! Names for the center orbits, derived from where their stickers sit on a
+//! face, never from colors.
 //!
-//! A centre sticker is `e1` and `e2` cells in from the two nearest edges of
+//! A center sticker is `e1` and `e2` cells in from the two nearest edges of
 //! its face (1 is the ring just inside the outer layer), `e1 <= e2`.
 //!
-//! - `e1 == e2`: on a diagonal of the face, an `x-centre`.
-//! - `e2` the middle line of an odd face: on a mid-line, a `+-centre`.
+//! - `e1 == e2`: on a diagonal of the face, an `x-center`.
+//! - `e2` the middle line of an odd face: on a mid-line, a `+-center`.
 //! - otherwise `oblique`; the two mirror images of such an orbit have the same
 //!   name and are told apart by a trailing `a` and `b`.
 //!
@@ -13,19 +13,19 @@
 //! is the outermost one, on the `middle side` when it is the innermost one, and
 //! otherwise it is named by its ring.
 
-use crate::puzzle::{centre_orbits, locate, PuzzleKind};
+use crate::puzzle::{center_orbits, locate, PuzzleKind};
 
-/// The name and the fingerprint tag of one centre orbit.
+/// The name and the fingerprint tag of one center orbit.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct CentreClass {
-    /// `x-centres (corner side)`; mirror images share it until [`pair_up`].
+pub(crate) struct CenterClass {
+    /// `x-centers (corner side)`; mirror images share it until [`pair_up`].
     pub(crate) name: String,
     /// The fingerprint token prefix: `X`, `+` or `O1-2:`, with a ring number
     /// (`X2:`) where a shape has more than one ring.
     pub(crate) tag: String,
 }
 
-fn class_of(n: usize, e1: usize, e2: usize) -> CentreClass {
+fn class_of(n: usize, e1: usize, e2: usize) -> CenterClass {
     let inner = (n - 2) / 2;
     let ring = |outer: &str| match e1 {
         1 => format!("{outer} side"),
@@ -40,27 +40,27 @@ fn class_of(n: usize, e1: usize, e2: usize) -> CentreClass {
         }
     };
     if e1 == e2 {
-        CentreClass {
-            name: format!("x-centres ({})", ring("corner")),
+        CenterClass {
+            name: format!("x-centers ({})", ring("corner")),
             tag: numbered("X"),
         }
     } else if n % 2 == 1 && e2 == (n - 1) / 2 {
-        CentreClass {
-            name: format!("+-centres ({})", ring("edge")),
+        CenterClass {
+            name: format!("+-centers ({})", ring("edge")),
             tag: numbered("+"),
         }
     } else {
-        CentreClass {
-            name: format!("oblique centres ({e1} and {e2} cells in)"),
+        CenterClass {
+            name: format!("oblique centers ({e1} and {e2} cells in)"),
             tag: format!("O{e1}-{e2}:"),
         }
     }
 }
 
-/// The class of every orbit of [`centre_orbits`], in the same order.
-pub(crate) fn centre_classes(kind: PuzzleKind) -> Vec<CentreClass> {
+/// The class of every orbit of [`center_orbits`], in the same order.
+pub(crate) fn center_classes(kind: PuzzleKind) -> Vec<CenterClass> {
     let n = kind.size();
-    centre_orbits(kind)
+    center_orbits(kind)
         .iter()
         .map(|orbit| {
             let (position, normal) = locate(kind, orbit[0]);
@@ -96,7 +96,7 @@ mod tests {
 
     fn names(size: usize) -> Vec<String> {
         let kind = PuzzleKind::of_size(size).unwrap();
-        let mut names: Vec<String> = centre_classes(kind).into_iter().map(|c| c.name).collect();
+        let mut names: Vec<String> = center_classes(kind).into_iter().map(|c| c.name).collect();
         pair_up(names.iter_mut());
         names
     }
@@ -105,7 +105,7 @@ mod tests {
     fn the_five_has_an_x_and_a_plus_orbit() {
         assert_eq!(
             names(5),
-            ["x-centres (corner side)", "+-centres (edge side)"]
+            ["x-centers (corner side)", "+-centers (edge side)"]
         );
     }
 

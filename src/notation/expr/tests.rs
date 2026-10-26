@@ -201,7 +201,7 @@ const ALL_KINDS: [PuzzleKind; 6] = [
 ];
 
 #[test]
-fn a_rotation_leaves_every_face_one_colour() {
+fn a_rotation_leaves_every_face_one_color() {
     for kind in ALL_KINDS {
         let face_len = kind.face_len();
         for word in ["x", "y", "z'", "x2", "y'", "z"] {

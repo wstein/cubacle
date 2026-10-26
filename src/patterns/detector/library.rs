@@ -8,9 +8,9 @@
 use std::sync::OnceLock;
 
 use super::canon::canonical;
-use super::colours;
+use super::colors;
 use super::geometry::{symmetries, tables};
-use super::symmetry::colour_map;
+use super::symmetry::color_map;
 use crate::patterns::{self, Pattern};
 use crate::puzzle::{Facelets, PuzzleKind};
 
@@ -20,8 +20,8 @@ pub struct Match {
     /// The id in the pattern library, `solved` for the solved cube.
     pub id: String,
     pub name: String,
-    /// How the state differs from the library's colouring: `exactly`,
-    /// `turned`, `mirrored`, or `with colours renamed` (and turned or mirrored).
+    /// How the state differs from the library's coloring: `exactly`,
+    /// `turned`, `mirrored`, or `with colors renamed` (and turned or mirrored).
     pub relation: String,
 }
 
@@ -35,7 +35,7 @@ pub(super) struct Entry {
 fn build(kind: PuzzleKind, list: Vec<(String, String, Facelets)>) -> Vec<Entry> {
     list.into_iter()
         .map(|(id, name, cube)| {
-            let state = colours(&cube);
+            let state = colors(&cube);
             Entry {
                 id,
                 name,
@@ -72,13 +72,13 @@ pub(super) fn entries(kind: PuzzleKind) -> &'static [Entry] {
 }
 
 /// The entries of imported patterns that are defined for a size; the id is
-/// the catalogue id.
+/// the catalog id.
 pub(super) fn extra_entries(kind: PuzzleKind, extra: &[Pattern]) -> Vec<Entry> {
     let list = extra
         .iter()
         .filter_map(|p| {
             p.state(kind)
-                .map(|state| (p.catalogue.clone(), p.name.clone(), state))
+                .map(|state| (p.catalog.clone(), p.name.clone(), state))
         })
         .collect();
     build(kind, list)
@@ -88,7 +88,7 @@ pub(super) fn extra_entries(kind: PuzzleKind, extra: &[Pattern]) -> Vec<Entry> {
 fn relation(kind: PuzzleKind, state: &[u8], pattern: &[u8]) -> String {
     let tables = tables(kind);
     let best = (0..symmetries().len())
-        .filter_map(|g| colour_map(state, pattern, &tables.perm[g]).map(|map| (g, map)))
+        .filter_map(|g| color_map(state, pattern, &tables.perm[g]).map(|map| (g, map)))
         .min_by_key(|(g, map)| {
             let renamed = map.iter().enumerate().any(|(c, &to)| c != to as usize);
             (renamed, *g != 0, symmetries()[*g].is_mirror())
@@ -105,8 +105,8 @@ fn relation(kind: PuzzleKind, state: &[u8], pattern: &[u8]) -> String {
     match (renamed, how) {
         (false, "") => "exactly".to_owned(),
         (false, how) => how.to_owned(),
-        (true, "") => "with colours renamed".to_owned(),
-        (true, how) => format!("{how}, with colours renamed"),
+        (true, "") => "with colors renamed".to_owned(),
+        (true, how) => format!("{how}, with colors renamed"),
     }
 }
 

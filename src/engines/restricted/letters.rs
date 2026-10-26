@@ -1,7 +1,7 @@
 //! The letters of the alphabet as sticker permutations, and the relations
 //! between them that the search prunes with.
 //!
-//! The 3x3x3 is searched as 54 sticker colours. A move is the permutation
+//! The 3x3x3 is searched as 54 sticker colors. A move is the permutation
 //! `src` (`new[i] = old[src[i]]`), so the engine needs no model of cubies and
 //! any move the cube has (turns of faces, wide turns, slices) is a letter.
 //! The relations are computed from the permutations, not assumed from the 18

@@ -1,12 +1,12 @@
-//! Phase 3, centres: every face gets its own colour, the parity of wings and
+//! Phase 3, centers: every face gets its own color, the parity of wings and
 //! corners tracked.
 //!
 //! Ported from cs0x7f/TPR-4x4x4-Solver src/Center3.java, MIT, Copyright (c)
 //! 2023 Chen Shuang; this file is AGPL-3.0-or-later, see NOTICE.md.
 //!
 //! The state is `2 * ((ud * 35 + fb) * 12 + rl) + parity`: 29,400 states.
-//! `ud` and `fb` (35 each) place 4 of 7 centres of a pair of faces, `rl` is
-//! one of the 12 placements of the R and L centres that fit.
+//! `ud` and `fb` (35 each) place 4 of 7 centers of a pair of faces, `rl` is
+//! one of the 12 placements of the R and L centers that fit.
 
 use super::center2::{comb_get, comb_set};
 use super::cube::turn;
@@ -17,7 +17,7 @@ pub(super) const N_STATES: usize = 35 * 35 * 12 * 2;
 pub(super) const N_MOVES: usize = 20;
 const N_SEARCH_MOVES: usize = 17;
 
-/// The 12 placements of 4 of 8 centres of R and L that occur, as numbers of
+/// The 12 placements of 4 of 8 centers of R and L that occur, as numbers of
 /// the combinations of the 8 slots.
 const RL2STD: [i32; 12] = [0, 9, 14, 23, 27, 28, 41, 42, 46, 55, 60, 69];
 
@@ -25,7 +25,7 @@ fn std2rl(idx: i32) -> Option<usize> {
     RL2STD.iter().position(|&v| v == idx)
 }
 
-/// The centres of the three pairs of faces and the parity.
+/// The centers of the three pairs of faces and the parity.
 #[derive(Clone, Copy)]
 pub(super) struct State {
     ud: [u8; 8],
@@ -44,23 +44,23 @@ impl State {
         }
     }
 
-    /// The state of the centres `centres`, with `extra` the parity of wings
+    /// The state of the centers `centers`, with `extra` the parity of wings
     /// and corners together.
-    pub(super) fn of(centres: &[u8; 24], extra: u8) -> State {
-        let kind = |i: usize| centres[i] % 3;
+    pub(super) fn of(centers: &[u8; 24], extra: u8) -> State {
+        let kind = |i: usize| centers[i] % 3;
         let parity =
             u8::from(!(((kind(0) > kind(8)) ^ (kind(8) > kind(16))) ^ (kind(0) > kind(16))));
         let mut s = State::blank();
         for i in 0..8 {
-            s.ud[i] = (centres[i] / 3) ^ 1;
-            s.fb[i] = (centres[i + 8] / 3) ^ 1;
-            s.rl[i] = (centres[i + 16] / 3) ^ 1 ^ parity;
+            s.ud[i] = (centers[i] / 3) ^ 1;
+            s.fb[i] = (centers[i + 8] / 3) ^ 1;
+            s.rl[i] = (centers[i + 16] / 3) ^ 1 ^ parity;
         }
         s.parity = parity ^ extra;
         s
     }
 
-    /// The state number, or `None` if the centres do not fit the phase.
+    /// The state number, or `None` if the centers do not fit the phase.
     pub(super) fn number(&self) -> Option<usize> {
         let ud = comb_get(|i| self.ud[i] != self.ud[7], 7, 4)?;
         let fb = comb_get(|i| self.fb[i] != self.fb[7], 7, 4)?;
@@ -125,7 +125,7 @@ impl State {
     }
 }
 
-/// The tables of phase 3's centres.
+/// The tables of phase 3's centers.
 pub(super) struct Center3 {
     /// `ctmove[state * 20 + m]`.
     pub ctmove: Vec<u16>,

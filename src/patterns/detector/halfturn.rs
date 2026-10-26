@@ -170,7 +170,7 @@ fn group() -> &'static Group {
     })
 }
 
-/// Whether the cube (a 3x3x3 in its centre frame) is in the half-turn group,
+/// Whether the cube (a 3x3x3 in its center frame) is in the half-turn group,
 /// or why not.
 pub(crate) fn in_half_turn_group(cube: &Cube) -> Result<(), String> {
     let g = group();

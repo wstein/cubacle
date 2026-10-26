@@ -1,7 +1,7 @@
 //! The pattern detector: reads the structure of a cube state and says what
 //! it is, without searching.
 //!
-//! [`detect`] reports the symmetries that fix the state (with colour swaps),
+//! [`detect`] reports the symmetries that fix the state (with color swaps),
 //! its canonical form, the library pattern it is (if any) and a fingerprint of
 //! its piece orbits.
 //! It explains a state and never replaces the search for a solution.
@@ -60,7 +60,7 @@ use crate::puzzle::{Facelets, MoveSequence, PuzzleKind};
 /// What the detector found.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Report {
-    /// The symmetries that fix the state, up to a colour swap.
+    /// The symmetries that fix the state, up to a color swap.
     pub symmetry: Symmetry,
     /// The conjugacy class of the symmetry group in the cube's 48 symmetries
     /// (`D4h`, `C2v#1`, ...); `None` when only the identity fixes the state.
@@ -70,11 +70,11 @@ pub struct Report {
     /// antisymmetry. Told on the 3x3x3 only (it has fixed centers).
     pub antisymmetry: Option<Antisymmetry>,
     /// The smallest sticker string in the state's orbit under the 48
-    /// symmetries and every renaming of the colours, as a cube: equal for
-    /// states that differ only by turning, mirroring or recolouring.
+    /// symmetries and every renaming of the colors, as a cube: equal for
+    /// states that differ only by turning, mirroring or recoloring.
     pub canonical: Facelets,
     /// The library patterns the state is (up to turning, mirroring and
-    /// recolouring); empty if it is none of them.
+    /// recoloring); empty if it is none of them.
     pub matches: Vec<Match>,
     /// Per piece orbit: how many pieces are displaced, twisted or flipped,
     /// and the cycle type where pieces can be told apart.
@@ -91,8 +91,8 @@ pub struct Report {
     pub partial: Option<Partial>,
 }
 
-/// The sticker colours of a cube as numbers 0 to 5 in `URFDLB` order.
-pub(crate) fn colours(cube: &Facelets) -> Vec<u8> {
+/// The sticker colors of a cube as numbers 0 to 5 in `URFDLB` order.
+pub(crate) fn colors(cube: &Facelets) -> Vec<u8> {
     cube.stickers().iter().map(|f| *f as u8).collect()
 }
 
@@ -103,11 +103,11 @@ pub fn detect(cube: &Facelets) -> Report {
 }
 
 /// Like [`detect`], against the built-in library and `extra` (imported
-/// patterns, named by their catalogue id), and with the `closest` nearest
+/// patterns, named by their catalog id), and with the `closest` nearest
 /// patterns listed.
 pub fn detect_with(cube: &Facelets, extra: &[Pattern], closest: usize) -> Report {
     let kind = cube.kind();
-    let state = colours(cube);
+    let state = colors(cube);
     let canon = canon::canonical(kind, &state);
     let symmetry = symmetry::symmetry_of(kind, &state);
     let inverse = stabilizer::inverse_colors(cube);
@@ -134,7 +134,7 @@ pub fn detect_with(cube: &Facelets, extra: &[Pattern], closest: usize) -> Report
 /// cube). A measure of symmetry and uniformity, not a probability.
 pub fn patternness(cube: &Facelets) -> u8 {
     let kind = cube.kind();
-    let state = colours(cube);
+    let state = colors(cube);
     let symmetry = symmetry::symmetry_of(kind, &state);
     patternness::patternness(&symmetry, &fingerprint::fingerprint(kind, &state).orbits)
 }
@@ -145,14 +145,14 @@ pub fn patternness(cube: &Facelets) -> u8 {
 pub fn cycles_of_moves(kind: PuzzleKind, moves: &MoveSequence) -> Result<Cycles, String> {
     let pi = matching::of_moves(kind, moves)
         .ok_or_else(|| "a move does not exist on this cube".to_owned())?;
-    Ok(cycles::analyse(kind, &pi, true))
+    Ok(cycles::analyze(kind, &pi, true))
 }
 
-/// The cycles of a cube given by its colours. On the 2x2x2 and 3x3x3 every
+/// The cycles of a cube given by its colors. On the 2x2x2 and 3x3x3 every
 /// piece is told apart and the order is given; on bigger cubes equal pieces
-/// are matched in index order, which reproduces the colours but defines no
+/// are matched in index order, which reproduces the colors but defines no
 /// order.
 pub fn cycles_of_state(cube: &Facelets) -> Result<Cycles, String> {
     let pi = matching::of_state(cube)?;
-    Ok(cycles::analyse(cube.kind(), &pi, cube.kind().size() <= 3))
+    Ok(cycles::analyze(cube.kind(), &pi, cube.kind().size() <= 3))
 }

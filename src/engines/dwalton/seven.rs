@@ -1,16 +1,16 @@
-//! The 7x7x7 centre stages in a row.
+//! The 7x7x7 center stages in a row.
 //!
 //! Ported from dwalton76/rubiks-cube-NxNxN-solver
 //! rubikscubennnsolver/RubiksCube777.py (`reduce_555` and the stages it
 //! calls), MIT, Copyright (c) 2019 Daniel Walton; this file is
 //! AGPL-3.0-or-later, see NOTICE.md. The stages that the reference hands to
-//! its 5x5x5 centre stages are searched here over the same tables; the moves
+//! its 5x5x5 center stages are searched here over the same tables; the moves
 //! of the fake 5x5x5 are the 7x7x7 turns of its first, third (inner) or
 //! second (outer) layer.
 
 use std::time::Instant;
 
-use super::geometry::{bit, catalogue, from_ref_all, MoveDef, D, L, R, U};
+use super::geometry::{bit, catalog, from_ref_all, MoveDef, D, L, R, U};
 use super::pattern::{Group, Table};
 use super::seven_final_tables as fin;
 use super::seven_lr_tables as lr;
@@ -71,18 +71,18 @@ fn node_of(stage: &PatStage, cube: &Facelets) -> super::stage::Node {
 impl Seven {
     pub(super) fn new(threads: usize) -> Seven {
         Seven {
-            defs: catalogue(PuzzleKind::Cube7),
+            defs: catalog(PuzzleKind::Cube7),
             cache: Cache::new(crate::reduction::cache::default_dir(), FORMAT),
             threads,
         }
     }
 
     fn apply(cube: &Facelets, moves: &[String]) -> Facelets {
-        let seq: MoveSequence = moves.join(" ").parse().expect("moves of the catalogue");
+        let seq: MoveSequence = moves.join(" ").parse().expect("moves of the catalog");
         cube.apply(&seq).expect("moves fit the cube")
     }
 
-    /// A 5x5x5 centre stage: t-centres and x-centres, 8 of 24 marked each.
+    /// A 5x5x5 center stage: t-centers and x-centers, 8 of 24 marked each.
     #[allow(clippy::too_many_arguments)]
     fn five_stage(
         &self,
@@ -124,7 +124,7 @@ impl Seven {
         solve(&stage, node_of(&stage, cube), self.threads, deadline)
     }
 
-    /// Pairs the oblique centres of `sides` for the colours `marks`.
+    /// Pairs the oblique centers of `sides` for the colors `marks`.
     fn pair_stage(
         &self,
         cube: &Facelets,
@@ -162,7 +162,7 @@ impl Seven {
         solve(&stage, node_of(&stage, cube), self.threads, deadline)
     }
 
-    /// All centre stages. Returns the cube after them and the moves of each.
+    /// All center stages. Returns the cube after them and the moves of each.
     pub(super) fn centers(
         &self,
         cube: &Facelets,
@@ -187,7 +187,7 @@ impl Seven {
             ss::inner_moves,
             deadline,
         );
-        run(&mut cube, "LR inner centres staged", m)?;
+        run(&mut cube, "LR inner centers staged", m)?;
         let m = self.pair_stage(&cube, &ALL, LR, ss::lr_cost, ss::lr_pair_moves, deadline);
         run(&mut cube, "LR obliques paired", m)?;
         let m = self.five_stage(
@@ -200,7 +200,7 @@ impl Seven {
             |n| !n.starts_with('3'),
             deadline,
         );
-        run(&mut cube, "LR centres staged", m)?;
+        run(&mut cube, "LR centers staged", m)?;
 
         let m = self.five_stage(
             &cube,
@@ -212,7 +212,7 @@ impl Seven {
             ss::inner_ud_moves,
             deadline,
         );
-        run(&mut cube, "UD inner centres staged", m)?;
+        run(&mut cube, "UD inner centers staged", m)?;
         let m = self.pair_stage(&cube, &UFBD, UD, ss::ud_cost, ss::ud_pair_moves, deadline);
         run(&mut cube, "UD obliques paired", m)?;
         let m = self.five_stage(
@@ -225,7 +225,7 @@ impl Seven {
             ud_stage_moves,
             deadline,
         );
-        run(&mut cube, "UD centres staged", m)?;
+        run(&mut cube, "UD centers staged", m)?;
 
         let refs = |cells, targets, mark| RefTable {
             cells,
@@ -243,7 +243,7 @@ impl Seven {
             ss::step40_moves,
             deadline,
         );
-        run(&mut cube, "LR centres vertical bars", m)?;
+        run(&mut cube, "LR centers vertical bars", m)?;
         let m = self.table_stage(
             &cube,
             &[
@@ -268,7 +268,7 @@ impl Seven {
             ss::step60_moves,
             deadline,
         );
-        run(&mut cube, "centres daisy solved", m)?;
+        run(&mut cube, "centers daisy solved", m)?;
         Some((cube, done))
     }
 }
@@ -279,7 +279,7 @@ mod tests {
     use crate::generate::scramble;
 
     #[test]
-    fn the_centre_stages_run() {
+    fn the_center_stages_run() {
         let seven = Seven::new(crate::reduction::par::threads());
         for _ in 0..2 {
             let cube = Facelets::solved(PuzzleKind::Cube7)
@@ -314,7 +314,7 @@ mod block_tests {
     #[test]
     fn lifted_moves_keep_blocks_together() {
         for orbit in 0..2usize {
-            let defs = catalogue(PuzzleKind::Cube7);
+            let defs = catalog(PuzzleKind::Cube7);
             let allowed = |n: &str| {
                 if orbit == 0 {
                     !n.starts_with('3')

@@ -124,7 +124,7 @@ fn errors_name_line_column_and_expectation() {
     );
     assert_eq!(
         error("unique(a1) == 1"),
-        "line 1, column 12: unique(...), equal(...) and parenthesised conditions cannot be compared"
+        "line 1, column 12: unique(...), equal(...) and parenthesized conditions cannot be compared"
     );
     assert_eq!(
         error("unique()"),

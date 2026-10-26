@@ -1,4 +1,4 @@
-//! Step 61 to 66 tables of the 7x7x7: the centres daisy solve.
+//! Step 61 to 66 tables of the 7x7x7: the centers daisy solve.
 //!
 //! Ported from dwalton76/rubiks-cube-NxNxN-solver
 //! rubikscubennnsolver/RubiksCube777.py (the `state_targets` and sticker

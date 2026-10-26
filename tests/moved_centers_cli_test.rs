@@ -10,7 +10,7 @@ fn solve(size: &str, scramble: &str) -> (Option<i32>, String, String) {
         .env("HOME", std::env::temp_dir().join("cubacle-test-home"))
         .env(
             "CUBACLE_CACHE_DIR",
-            concat!(env!("CARGO_TARGET_TMPDIR"), "/moved-centres-tables"),
+            concat!(env!("CARGO_TARGET_TMPDIR"), "/moved-centers-tables"),
         )
         .output()
         .expect("cubacle runs");
@@ -39,17 +39,17 @@ fn assert_refused(size: &str, scramble: &str) {
 }
 
 #[test]
-fn moved_centres_of_the_3x3x3_are_an_error() {
+fn moved_centers_of_the_3x3x3_are_an_error() {
     assert_refused("3", "M");
 }
 
 #[test]
-fn moved_centres_of_the_5x5x5_are_an_error() {
-    // the generator of the pattern centres-cycled
+fn moved_centers_of_the_5x5x5_are_an_error() {
+    // the generator of the pattern centers-cycled
     assert_refused("5", "2-4Uw 2-4Rw' 2-4Uw' 2-4Rw");
 }
 
 #[test]
-fn moved_centres_of_the_7x7x7_are_an_error() {
+fn moved_centers_of_the_7x7x7_are_an_error() {
     assert_refused("7", "2-6Rw");
 }

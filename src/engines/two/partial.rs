@@ -9,11 +9,11 @@
 use std::time::Instant;
 
 use super::{
-    get_depth, normalise, set_depth, tables, Cubie, Face, Facelets, Failure, Move, MoveSequence,
+    get_depth, normalize, set_depth, tables, Cubie, Face, Facelets, Failure, Move, MoveSequence,
     PocketSolver, PuzzleKind, SolveMetrics, SolveOptions, SolveResult, Turn, PERMS, SOLVED, STATES,
     TWISTS, UNSEEN,
 };
-use crate::notation::orbit64::{CORNER_COLOURS, CORNER_FACELETS};
+use crate::notation::orbit64::{CORNER_COLORS, CORNER_FACELETS};
 use crate::puzzle::{destinations, Target};
 
 /// Sticker positions (2x2 index) of the three stickers of every corner slot.
@@ -49,8 +49,8 @@ fn rotation_maps() -> Vec<Vec<usize>> {
 }
 
 /// For every rotation, the constrained stickers as (position in the unrotated
-/// state, allowed colour set): a state `T` rotated by `map` shows an allowed
-/// colour at `map[i]` exactly when `T[i]` is allowed there.
+/// state, allowed color set): a state `T` rotated by `map` shows an allowed
+/// color at `map[i]` exactly when `T[i]` is allowed there.
 fn cared_lists(target: &Target) -> Vec<Vec<(usize, u8)>> {
     rotation_maps()
         .iter()
@@ -72,7 +72,7 @@ fn stickers(cube: &Cubie, positions: &[[usize; 3]; 8]) -> [u8; 24] {
         let piece = usize::from(cube.piece[slot]);
         let twist = usize::from(cube.twist[slot]);
         for k in 0..3 {
-            out[positions[slot][k]] = CORNER_COLOURS[piece][(k + 3 - twist) % 3] as u8;
+            out[positions[slot][k]] = CORNER_COLORS[piece][(k + 3 - twist) % 3] as u8;
         }
     }
     out
@@ -147,8 +147,8 @@ pub(super) fn solve_to(
             Some("expected a 2x2x2 start and target".into()),
         );
     }
-    let normalised = match normalise(facelets) {
-        Ok(normalised) => normalised,
+    let normalized = match normalize(facelets) {
+        Ok(normalized) => normalized,
         Err(message) => return finish(Err(Failure::InvalidInput), Some(message)),
     };
     let Some((dist, goal_states)) = goal_distances(target) else {
@@ -161,7 +161,7 @@ pub(super) fn solve_to(
         );
     };
     let t = tables();
-    let length = usize::from(get_depth(&dist, normalised.state));
+    let length = usize::from(get_depth(&dist, normalized.state));
     if options
         .max_moves
         .is_some_and(|max| length > usize::from(max))
@@ -173,16 +173,16 @@ pub(super) fn solve_to(
             )),
         );
     }
-    let mut state = normalised.state;
+    let mut state = normalized.state;
     let mut solution = Vec::with_capacity(length);
     while get_depth(&dist, state) > 0 {
         let want = get_depth(&dist, state) - 1;
         let m = (0..9)
             .find(|&m| get_depth(&dist, t.step(state, m)) == want)
-            .expect("every state off the goal set has a neighbour one closer");
+            .expect("every state off the goal set has a neighbor one closer");
         let (face, turn) = super::search_move(m);
         solution.push(Move::new(
-            Face::ALL[normalised.origin[face]],
+            Face::ALL[normalized.origin[face]],
             1,
             false,
             turn,
@@ -327,7 +327,7 @@ mod tests {
     }
 
     #[test]
-    fn the_move_limit_is_honoured() {
+    fn the_move_limit_is_honored() {
         let start = Facelets::solved(PuzzleKind::Cube2)
             .apply(&"R U F".parse().unwrap())
             .unwrap();

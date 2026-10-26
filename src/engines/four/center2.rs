@@ -1,12 +1,12 @@
-//! Phase 2: the centres of the four faces other than R and L sorted by kind,
-//! the R and L centres by colour, and the parity of the wings tracked.
+//! Phase 2: the centers of the four faces other than R and L sorted by kind,
+//! the R and L centers by color, and the parity of the wings tracked.
 //!
 //! Ported from cs0x7f/TPR-4x4x4-Solver src/Center2.java, MIT, Copyright (c)
 //! 2023 Chen Shuang; this file is AGPL-3.0-or-later, see NOTICE.md.
 //!
-//! The state is `ct * 70 + rl`: `ct` (6,435) says which 8 of the 15 centres of
+//! The state is `ct * 70 + rl`: `ct` (6,435) says which 8 of the 15 centers of
 //! the faces U, D, F, B differ from the last one, `rl` (70) which 4 of the 7
-//! centres of R and L differ from the last one, times two for the parity.
+//! centers of R and L differ from the last one, times two for the parity.
 
 use super::cube::turn;
 use super::moves::{MOVE2STD, SET2};
@@ -48,7 +48,7 @@ pub(super) fn comb_set(out: &mut [u8], mut idx: i32, mut r: usize) {
     }
 }
 
-/// The centres of phase 2 and the wing parity.
+/// The centers of phase 2 and the wing parity.
 #[derive(Clone, Copy)]
 pub(super) struct State {
     rl: [u8; 8],
@@ -65,19 +65,19 @@ impl State {
         }
     }
 
-    /// The state of the centres `centres` of a cube with wing parity `parity`.
+    /// The state of the centers `centers` of a cube with wing parity `parity`.
     #[allow(clippy::needless_range_loop)] // index loops as in the reference
-    pub(super) fn of(centres: &[u8; 24], parity: u8) -> State {
+    pub(super) fn of(centers: &[u8; 24], parity: u8) -> State {
         let mut s = State::blank();
         for i in 0..16 {
-            s.ct[i] = centres[i] % 3;
+            s.ct[i] = centers[i] % 3;
         }
-        s.rl.copy_from_slice(&centres[16..]);
+        s.rl.copy_from_slice(&centers[16..]);
         s.parity = parity;
         s
     }
 
-    /// `(ct, rl)`, or `None` if the centres are not in the right classes.
+    /// `(ct, rl)`, or `None` if the centers are not in the right classes.
     pub(super) fn numbers(&self) -> Option<(usize, usize)> {
         Some((self.ct_number()?, self.rl_number()?))
     }

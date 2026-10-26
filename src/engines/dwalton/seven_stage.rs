@@ -1,4 +1,4 @@
-//! Building blocks of the 7x7x7 centre stages: pruning tables read off the
+//! Building blocks of the 7x7x7 center stages: pruning tables read off the
 //! reference's sticker lists and targets, the oblique pairing heuristics,
 //! and the move filters of the steps.
 //!
@@ -26,7 +26,7 @@ pub(super) struct Built {
     pub tables: Vec<Table>,
 }
 
-fn colour_of(mark: char) -> usize {
+fn color_of(mark: char) -> usize {
     match mark {
         'U' => U,
         'R' => R,
@@ -90,7 +90,7 @@ pub(super) fn build(defs: &[RefTable], dest: &[&[usize]]) -> Built {
     let mut tables = Vec::new();
     for def in defs {
         let cells = from_ref_all(7, def.cells);
-        let marks = bit(colour_of(def.mark));
+        let marks = bit(color_of(def.mark));
         let mut groups = Vec::new();
         let mut parts = Vec::new();
         for part in groups_of(&cells, dest) {
@@ -134,7 +134,7 @@ pub(super) fn build(defs: &[RefTable], dest: &[&[usize]]) -> Built {
 }
 
 /// The oblique pairs: groups 0, 1, 2 are the left, middle and right
-/// obliques; every marked middle oblique needs both neighbours marked.
+/// obliques; every marked middle oblique needs both neighbors marked.
 pub(super) struct Obliques {
     /// Estimated moves for a number of unpaired obliques.
     pub cost: fn(i32) -> i32,
@@ -185,12 +185,12 @@ fn parts(name: &str) -> (char, bool, bool) {
     )
 }
 
-/// Inner centres, LR: the 5x5x5 turns with two layers made three.
+/// Inner centers, LR: the 5x5x5 turns with two layers made three.
 pub(super) fn inner_moves(name: &str) -> bool {
     !name.contains('w') || name.starts_with('3')
 }
 
-/// Inner centres, UD: the same without quarter turns of U D F B wide moves.
+/// Inner centers, UD: the same without quarter turns of U D F B wide moves.
 pub(super) fn inner_ud_moves(name: &str) -> bool {
     let (face, wide, quarter) = parts(name);
     inner_moves(name) && !(wide && quarter && matches!(face, 'U' | 'F' | 'B' | 'D'))

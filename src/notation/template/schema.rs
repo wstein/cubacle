@@ -14,7 +14,7 @@
 
 use std::collections::HashMap;
 
-use crate::notation::ColourScheme;
+use crate::notation::ColorScheme;
 use crate::puzzle::{Face, PuzzleKind};
 
 use super::error::{Source, TemplateError};
@@ -39,7 +39,7 @@ pub(crate) struct Schema {
 pub(crate) fn parse(
     text: &str,
     kind: PuzzleKind,
-    scheme: &ColourScheme,
+    scheme: &ColorScheme,
 ) -> Result<Schema, TemplateError> {
     let source = Source::new(text);
     let chars = source.chars();

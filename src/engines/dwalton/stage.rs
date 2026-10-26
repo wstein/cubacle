@@ -1,7 +1,7 @@
 //! One stage: iterative-deepening search over pattern tables.
 //!
 //! New code on top of the generic search of `crate::reduction::ida`. A node
-//! is a mask per sticker group (bit set: the sticker shows a marked colour);
+//! is a mask per sticker group (bit set: the sticker shows a marked color);
 //! a move permutes the bits through byte lookup tables.
 
 use std::time::Instant;
@@ -16,7 +16,7 @@ pub(super) const MAXG: usize = 16;
 #[derive(Clone, Copy)]
 pub(super) struct Node(pub [u32; MAXG]);
 
-/// A set of stickers and the colours that count as marked on it.
+/// A set of stickers and the colors that count as marked on it.
 pub(super) struct GroupSpec {
     pub cells: Vec<usize>,
     pub marks: u8,
@@ -117,12 +117,12 @@ impl<'a> PatStage<'a> {
         }
     }
 
-    /// The node of a cube given as colour indices per sticker.
-    pub(super) fn node_of(&self, colours: impl Fn(usize) -> u8) -> Node {
+    /// The node of a cube given as color indices per sticker.
+    pub(super) fn node_of(&self, colors: impl Fn(usize) -> u8) -> Node {
         let mut node = Node([0; MAXG]);
         for (g, spec) in self.groups.iter().enumerate() {
             for (i, &s) in spec.cells.iter().enumerate() {
-                node.0[g] |= u32::from((spec.marks >> colours(s)) & 1) << i;
+                node.0[g] |= u32::from((spec.marks >> colors(s)) & 1) << i;
             }
         }
         node

@@ -84,8 +84,8 @@ impl Folded {
         matches!(face, Face::U | Face::F | Face::R)
     }
 
-    /// Model coordinates of the centre of a sticker of a flat face.
-    fn flat_centre(&self, face: Face, position: [i32; 3]) -> [f64; 2] {
+    /// Model coordinates of the center of a sticker of a flat face.
+    fn flat_center(&self, face: Face, position: [i32; 3]) -> [f64; 2] {
         let (r, c) = row_col(face, position, self.n as usize);
         let [x0, y0] = self.origin(face);
         [x0 + 2.0 * c as f64 + 1.0, y0 - 2.0 * r as f64 - 1.0]
@@ -100,7 +100,7 @@ impl Folded {
                 .map(|[a, b]| self.project(plane_point(face, self.n, a, b)))
                 .collect()
         } else {
-            rounded_square(self.flat_centre(face, position), half, radius)
+            rounded_square(self.flat_center(face, position), half, radius)
                 .into_iter()
                 .map(|[x, y]| self.at(x, y))
                 .collect()
@@ -139,8 +139,8 @@ fn shapes(state: &Facelets, reference: Option<&Facelets>, style: &Style) -> (Vec
     for index in 0..kind.facelet_count() {
         let face = Face::ALL[index / kind.face_len()];
         let (position, _) = locate(kind, index);
-        let base = style.palette.colour(state.stickers()[index]);
-        let colour = if Folded::corner(face) {
+        let base = style.palette.color(state.stickers()[index]);
+        let color = if Folded::corner(face) {
             base.scale(face_light(face))
         } else {
             base
@@ -148,7 +148,7 @@ fn shapes(state: &Facelets, reference: Option<&Facelets>, style: &Style) -> (Vec
         out.push(Shape::new(
             Part::Sticker,
             layout.square(face, position, half, radius),
-            colour,
+            color,
         ));
         if reference.is_some_and(|r| r.stickers()[index] != state.stickers()[index]) {
             marks.push(Shape::new(
@@ -172,7 +172,7 @@ fn grid(state: &Facelets, style: &Style) -> Grid {
                 Cell {
                     letter: style.palette.letter(sticker),
                     moving: true,
-                    colour: style.palette.colour(sticker),
+                    color: style.palette.color(sticker),
                 }
             })
             .collect()
@@ -238,7 +238,7 @@ mod tests {
         Facelets::solved(kind).apply(&moves).unwrap()
     }
 
-    fn centre(points: &[[f64; 2]]) -> [f64; 2] {
+    fn center(points: &[[f64; 2]]) -> [f64; 2] {
         let n = points.len() as f64;
         [
             points.iter().map(|p| p[0]).sum::<f64>() / n,
@@ -259,7 +259,7 @@ mod tests {
     }
 
     #[test]
-    fn every_sticker_is_drawn_once_in_its_colour_and_place() {
+    fn every_sticker_is_drawn_once_in_its_color_and_place() {
         let style = Style::default();
         for kind in SIZES {
             let cube = scrambled(kind);
@@ -277,12 +277,12 @@ mod tests {
                 } else {
                     1.0
                 };
-                let want = style.palette.colour(cube.stickers()[i]).scale(light);
+                let want = style.palette.color(cube.stickers()[i]).scale(light);
                 assert_eq!(shape.fill, want, "{kind:?} {i}");
                 let (position, _) = locate(kind, i);
-                let got = centre(&shape.points);
+                let got = center(&shape.points);
                 if !Folded::corner(face) {
-                    let [x, y] = layout.flat_centre(face, position);
+                    let [x, y] = layout.flat_center(face, position);
                     assert!(near(got, layout.at(x, y)), "{kind:?} flat sticker {i}");
                 }
                 assert!(seen.iter().all(|s| !near(*s, got)), "{kind:?} {i} twice");
@@ -339,7 +339,7 @@ mod tests {
             let layout = Folded::new(n);
             let icon = state_icon_folded(&Facelets::solved(kind), &style);
             let shapes = parts(&icon, Part::Sticker);
-            let at = |i: usize| centre(&shapes[i].points);
+            let at = |i: usize| center(&shapes[i].points);
             let flat = (2.0 + GAP) * layout.scale;
             for (a, b) in [(Face::F, Face::L), (Face::F, Face::D)] {
                 let mut pairs = 0;
@@ -383,12 +383,12 @@ mod tests {
             let plain = state_icon_folded(&cube, &style);
             let marks: Vec<[f64; 2]> = parts(&icon, Part::Mark)
                 .iter()
-                .map(|s| centre(&s.points))
+                .map(|s| center(&s.points))
                 .collect();
             let differ = crate::render::differing_stickers(&cube, &solved);
             assert_eq!(marks.len(), differ);
             for (i, shape) in parts(&plain, Part::Sticker).iter().enumerate() {
-                let on = marks.iter().filter(|m| near(**m, centre(&shape.points)));
+                let on = marks.iter().filter(|m| near(**m, center(&shape.points)));
                 let differs = cube.stickers()[i] != solved.stickers()[i];
                 assert_eq!(on.count(), usize::from(differs), "{kind:?} sticker {i}");
             }

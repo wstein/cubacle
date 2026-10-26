@@ -1,6 +1,6 @@
 //! The orbits of the movable pieces of the larger cubes.
 //!
-//! A turn of a layer keeps a centre sticker among the stickers that the
+//! A turn of a layer keeps a center sticker among the stickers that the
 //! rotations of the whole cube map it to (24 of them, four on each face), and
 //! a wing among the 24 wings of the same depth along its edge. These sets are
 //! the orbits; a piece never leaves its orbit, so each one can be shuffled on
@@ -21,7 +21,7 @@ fn quarter(axis: usize, v: Vec3) -> Vec3 {
     out
 }
 
-/// The 24 centre-sticker orbits are found by turning a sticker through the 24
+/// The 24 center-sticker orbits are found by turning a sticker through the 24
 /// rotations of the cube: apply the quarter turns about two axes in every
 /// combination that reaches a new orientation.
 fn rotations(position: Vec3, normal: Vec3) -> Vec<(Vec3, Vec3)> {
@@ -40,26 +40,26 @@ fn rotations(position: Vec3, normal: Vec3) -> Vec<(Vec3, Vec3)> {
     seen
 }
 
-/// The orbits of the centre stickers, each of 24 sticker indices in
+/// The orbits of the center stickers, each of 24 sticker indices in
 /// increasing order, the orbits ordered by their first sticker. The sticker in
 /// the middle of each face of an odd cube is fixed and belongs to none. A cube
 /// of size `n` has `(n - 2)^2 / 4` of them, rounded down.
-pub(crate) fn centre_orbits(kind: PuzzleKind) -> Vec<Vec<usize>> {
+pub(crate) fn center_orbits(kind: PuzzleKind) -> Vec<Vec<usize>> {
     let n = kind.size();
     let mut at: HashMap<(Vec3, Vec3), usize> = HashMap::new();
-    let mut centres = Vec::new();
+    let mut centers = Vec::new();
     for index in 0..kind.facelet_count() {
         let (position, normal) = locate(kind, index);
         if position.iter().filter(|c| c.abs() == n as i32 - 1).count() == 1
             && position.iter().filter(|&&c| c == 0).count() < 2
         {
             at.insert((position, normal), index);
-            centres.push(index);
+            centers.push(index);
         }
     }
     let mut orbits: Vec<Vec<usize>> = Vec::new();
     let mut done = vec![false; kind.facelet_count()];
-    for &index in &centres {
+    for &index in &centers {
         if done[index] {
             continue;
         }
@@ -109,14 +109,14 @@ mod tests {
 
     #[test]
     fn the_orbits_of_the_large_cubes_have_the_known_sizes() {
-        for (kind, centres, wings) in [
+        for (kind, centers, wings) in [
             (PuzzleKind::Cube4, 1, 1),
             (PuzzleKind::Cube5, 2, 1),
             (PuzzleKind::Cube6, 4, 2),
             (PuzzleKind::Cube7, 6, 2),
         ] {
-            let c = centre_orbits(kind);
-            assert_eq!(c.len(), centres, "{kind:?}");
+            let c = center_orbits(kind);
+            assert_eq!(c.len(), centers, "{kind:?}");
             assert!(c.iter().all(|o| o.len() == 24));
             let w = wing_orbits(kind);
             assert_eq!(w.len(), wings, "{kind:?}");
@@ -125,14 +125,14 @@ mod tests {
     }
 
     #[test]
-    fn every_centre_sticker_is_in_one_orbit_with_four_per_face() {
+    fn every_center_sticker_is_in_one_orbit_with_four_per_face() {
         for kind in [PuzzleKind::Cube6, PuzzleKind::Cube7] {
-            let mut all: Vec<usize> = centre_orbits(kind).concat();
+            let mut all: Vec<usize> = center_orbits(kind).concat();
             all.sort_unstable();
             all.dedup();
             let per_face = (kind.size() - 2).pow(2) - kind.size() % 2;
             assert_eq!(all.len(), 6 * per_face);
-            for orbit in centre_orbits(kind) {
+            for orbit in center_orbits(kind) {
                 for face in 0..6 {
                     let on = orbit
                         .iter()

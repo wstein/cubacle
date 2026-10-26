@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 
 use super::reduction::Reduction;
 use super::solver::{join, move_of, three_by_three, FiveSolver};
-use crate::puzzle::{normalise, stage_ends};
+use crate::puzzle::{normalize, stage_ends};
 use crate::puzzle::{Facelets, Failure, Move, MoveSequence, SolveOptions, SolveStage};
 use crate::reduction::improve::Plan;
 
@@ -25,12 +25,12 @@ const HAND_OFF_PROBES: u64 = 500;
 
 /// The stages of the answer as a learner sees them, each with the last of the
 /// five phases it ends with. Phases 1 and 2 bring each pair of opposite
-/// colours onto its own axis, phase 3 puts the wings into slots, phases 4 and
-/// 5 pair them and finish the centres. The 3x3x3 stage follows.
+/// colors onto its own axis, phase 3 puts the wings into slots, phases 4 and
+/// 5 pair them and finish the centers. The 3x3x3 stage follows.
 const GROUPS: [(&str, usize); 3] = [
-    ("centres staged", 2),
+    ("centers staged", 2),
     ("wings staged", 3),
-    ("centres and wings paired", 5),
+    ("centers and wings paired", 5),
 ];
 
 /// The name of the stage that the 3x3x3 solver makes.
@@ -46,7 +46,7 @@ pub(super) struct Finished {
 /// The stages of an answer: the learner-level groups of the five phases and,
 /// if the 3x3x3 stage ran, that one. `raw` is the reduction followed by the
 /// 3x3x3 tail, unmerged, so that the phase ends in it are exact; `fin` is the
-/// answer after normalising.
+/// answer after normalizing.
 fn stages(
     start: &Facelets,
     raw: &[Move],
@@ -101,7 +101,7 @@ impl FiveSolver {
     ) -> Result<Finished, Miss> {
         let head: Vec<Move> = reduction.moves.iter().map(|&c| move_of(c)).collect();
         if options.reduce_only {
-            let fin = normalise(5, &head, false);
+            let fin = normalize(5, &head, false);
             let stages = stages(facelets, &head, &reduction.ends, &fin, false);
             return Ok(Finished {
                 solution: MoveSequence::new(fin),
@@ -172,7 +172,7 @@ impl FiveSolver {
                 "the 3x3x3 stage returned a move this cube cannot make as a 3x3x3 turn",
             ));
         }
-        let fin = normalise(5, &join(head.clone(), tail.moves()), options.slices);
+        let fin = normalize(5, &join(head.clone(), tail.moves()), options.slices);
         let mut raw = head;
         raw.extend_from_slice(tail.moves());
         let stages = stages(facelets, &raw, &reduction.ends, &fin, true);

@@ -4,7 +4,7 @@
 //! MIT, Copyright (c) 2023 Chen Shuang; this file is AGPL-3.0-or-later, see
 //! NOTICE.md. The layers are the same: while less than half of the states are
 //! known, the states of the last layer are expanded; after that, every unknown
-//! state looks for a neighbour in the last layer. Distances are exact, so the
+//! state looks for a neighbor in the last layer. Distances are exact, so the
 //! result does not depend on the order of work or on the thread count.
 
 use std::sync::atomic::{AtomicU32, AtomicUsize, Ordering};

@@ -3,14 +3,14 @@
 //! New code. The reduction has three phases (see `phase1` to `phase3`) and the
 //! 3x3x3 solver follows. Their ends are known on the model cube's moves; here
 //! they are moved to the real moves (the two extra turns after phase 1 are
-//! not part of the solution) and then carried through the normalising and the
+//! not part of the solution) and then carried through the normalizing and the
 //! final rotation to the answer.
 //!
 //! | Stage | What it does |
 //! | --- | --- |
-//! | `centres staged` | phase 1: every pair of opposite colours has its centres on one axis |
-//! | `centres sorted and wings split` | phase 2: the centres sorted far enough and every wing pair split for the last phase |
-//! | `centres and wings paired` | phase 3: the centres solved and the wings paired |
+//! | `centers staged` | phase 1: every pair of opposite colors has its centers on one axis |
+//! | `centers sorted and wings split` | phase 2: the centers sorted far enough and every wing pair split for the last phase |
+//! | `centers and wings paired` | phase 3: the centers solved and the wings paired |
 //! | `3x3 stage` | the 3x3x3 solver |
 
 use super::reduce::Reduction;
@@ -19,9 +19,9 @@ use crate::puzzle::{stage_ends, Facelets, Move, SolveStage};
 
 /// The names of the stages, in order.
 const NAMES: [&str; 4] = [
-    "centres staged",
-    "centres sorted and wings split",
-    "centres and wings paired",
+    "centers staged",
+    "centers sorted and wings split",
+    "centers and wings paired",
     "3x3 stage",
 ];
 

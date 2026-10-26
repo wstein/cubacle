@@ -145,7 +145,7 @@ pub(super) fn edges_only(
         let (face, turn, mv) = moves
             .iter()
             .find(|(_, _, mv)| dist[step(state, k, mv)] == want)
-            .expect("every state off the goal has a neighbour one closer");
+            .expect("every state off the goal has a neighbor one closer");
         solution.push(Move::new(*face, 1, false, *turn));
         state = step(state, k, mv);
     }

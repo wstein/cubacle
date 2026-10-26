@@ -1,7 +1,7 @@
 //! Well-known cube patterns ("pretty patterns") for the 3x3x3 to 7x7x7, each
 //! defined by its structure and paired with a generator found by our own search.
 //!
-//! A pattern is a colour for every sticker as a function of the cube size
+//! A pattern is a color for every sticker as a function of the cube size
 //! (see `model.rs`); a generator is a move sequence that, applied to the
 //! solved cube, produces that state. The data lives in two plain text files
 //! next to this module (`patterns.txt`, `generators.txt`), format in
@@ -173,9 +173,9 @@ pub struct Pattern {
     pub name: String,
     pub aliases: Vec<String>,
     pub description: String,
-    /// Catalogue id, at most 12 characters: `cu:<code>` for the built-in library, `<source>:<code>`
+    /// Catalog id, at most 12 characters: `cu:<code>` for the built-in library, `<source>:<code>`
     /// for imported tables (for example `ct:A200.01`).
-    pub catalogue: String,
+    pub catalog: String,
     /// The place in the tree of categories, outermost first (up to three levels).
     pub group: Vec<Group>,
     /// Author and year, as the source gives them.
@@ -195,7 +195,7 @@ impl Pattern {
             name: id.to_owned(),
             aliases: Vec::new(),
             description: String::new(),
-            catalogue: format!("cu:{id}"),
+            catalog: format!("cu:{id}"),
             group: Vec::new(),
             provenance: String::new(),
             origin: None,
@@ -253,7 +253,7 @@ impl Pattern {
     fn matches(&self, key: &str) -> bool {
         let key = squash(key);
         squash(&self.id) == key
-            || squash(&self.catalogue) == key
+            || squash(&self.catalog) == key
             || squash(&self.name) == key
             || self.aliases.iter().any(|a| squash(a) == key)
     }
@@ -286,7 +286,7 @@ pub fn all() -> &'static [Pattern] {
         }
         for pattern in &mut list {
             pattern.group = groups::builtin_group(&pattern.id);
-            pattern.catalogue = format!("cu:{}", groups::builtin_code(&pattern.id));
+            pattern.catalog = format!("cu:{}", groups::builtin_code(&pattern.id));
         }
         list
     })

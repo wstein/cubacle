@@ -8,7 +8,7 @@ use cubacle::render::{icon, Action, Icon, Raster, Style};
 use super::{
     end_line, heading_at, lone_quarters, row_icon, token_line, Block, Pictures, SolutionIcons,
 };
-use crate::icons::labelled;
+use crate::icons::labeled;
 use crate::rows;
 use crate::terminal::Terminal;
 use crate::views::{kitty_block, kitty_state, soft_panel};
@@ -79,7 +79,7 @@ pub(super) fn kitty_steps(
             let at = global - block.base;
             let action = Action::Layer(moves[at]);
             let drawn = icon(&state, &action, style).map_err(|error| error.to_string())?;
-            let drawn = labelled(drawn, &block.label(at), options.numbers, style.backdrop);
+            let drawn = labeled(drawn, &block.label(at), options.numbers, style.backdrop);
             let raster = row_icon(drawn.to_rgba(style.size), lone[at]);
             items.push(Item::cell(raster, 1));
             state = action.apply(&state).map_err(|error| error.to_string())?;

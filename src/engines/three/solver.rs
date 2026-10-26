@@ -204,7 +204,7 @@ fn max_moves(options: &SolveOptions) -> u8 {
 
 /// Why this engine cannot take `cube`, if it cannot.
 ///
-/// Besides the size, the centres must be in their standard places: wide and
+/// Besides the size, the centers must be in their standard places: wide and
 /// inner-layer moves can move them, and the engine neither solves such a cube
 /// nor would its solution (layer turns only) put them back.
 fn wrong_size(cube: &Facelets, started: Instant) -> Option<SolveResult> {
@@ -216,10 +216,10 @@ fn wrong_size(cube: &Facelets, started: Instant) -> Option<SolveResult> {
             None,
         ));
     }
-    let centres_home = Face::ALL
+    let centers_home = Face::ALL
         .into_iter()
         .all(|face| cube.stickers()[face as usize * 9 + 4] == face);
-    (!centres_home).then(|| {
+    (!centers_home).then(|| {
         let (failure, why) = crate::puzzle::centers_off_face(cube);
         failed(failure, why, started, None)
     })
@@ -256,13 +256,13 @@ fn into_result(stats: SolveStats, started: Instant) -> SolveResult {
 ///
 /// The codes come from `Cubie::set_from_facelet` / `Cubie::verify` (1 to 6)
 /// and from the search (8). Code 7 is not produced by the engine; anything
-/// unrecognised is passed through unchanged.
+/// unrecognized is passed through unchanged.
 fn describe_error(error: &str) -> String {
     let code = error
         .strip_prefix("Error ")
         .and_then(|code| code.trim().parse::<u8>().ok());
     let text = match code {
-        Some(1) => "the facelets are malformed: each colour must appear exactly nine times",
+        Some(1) => "the facelets are malformed: each color must appear exactly nine times",
         Some(2) => "the edges are invalid: not every edge piece appears exactly once",
         Some(3) => "the edges are invalid: one edge is flipped on its own",
         Some(4) => "the corners are invalid: not every corner piece appears exactly once",
@@ -364,7 +364,7 @@ mod ownership_tests {
 }
 
 #[cfg(test)]
-mod centre_tests {
+mod center_tests {
     use super::*;
 
     fn scrambled(moves: &str) -> Facelets {
@@ -374,7 +374,7 @@ mod centre_tests {
     }
 
     #[test]
-    fn a_wide_move_moves_the_centres_and_is_rejected() {
+    fn a_wide_move_moves_the_centers_and_is_rejected() {
         let solver = Min2PhaseSolver::new();
         for moves in ["Rw U", "2R", "2Rw' F"] {
             let result = solver.solve(&scrambled(moves), &SolveOptions::default());

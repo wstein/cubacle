@@ -2,7 +2,7 @@
 //!
 //! The solution may use only the moves of an [`Alphabet`]: the half turns, the
 //! generators of a subgroup such as `<R,U>`, quarter turns, or any list. The
-//! engine searches the cube as 54 sticker colours, so it needs no model of
+//! engine searches the cube as 54 sticker colors, so it needs no model of
 //! pieces and takes any move the cube has, slices and wide turns included.
 //!
 //! * `table`: the exact table of the alphabet, a breadth first search from the

@@ -9,7 +9,7 @@ use super::seven::Seven;
 use super::six::Six;
 use super::wings;
 use crate::puzzle::{
-    normalise, Face, Facelets, Failure, Move, MoveSequence, PuzzleKind, SolveMetrics, SolveOptions,
+    normalize, Face, Facelets, Failure, Move, MoveSequence, PuzzleKind, SolveMetrics, SolveOptions,
     SolveResult, Solver,
 };
 use crate::reduction::par;
@@ -109,8 +109,8 @@ impl DwaltonSolver {
                 &tally,
             );
         }
-        // The 7x7x7 keeps its six face centres fixed; with a middle-slice turn
-        // in the scramble the centre stages would search for ever.
+        // The 7x7x7 keeps its six face centers fixed; with a middle-slice turn
+        // in the scramble the center stages would search for ever.
         if self.kind == PuzzleKind::Cube7 {
             let stickers = cube.stickers();
             if (0..6).any(|face| stickers[face * 49 + 24] != Face::ALL[face]) {
@@ -130,7 +130,7 @@ impl DwaltonSolver {
         let note = |tally: &mut StageTally, name: &str, moves: &[Move]| {
             tally.stages.push((name.to_owned(), moves.len()));
         };
-        let centres = if self.kind == PuzzleKind::Cube6 {
+        let centers = if self.kind == PuzzleKind::Cube6 {
             self.six().centers(&cur, 40, deadline)
         } else {
             self.seven()
@@ -141,10 +141,10 @@ impl DwaltonSolver {
         if expired() {
             return fail(Failure::BudgetExhausted, timed_out.into(), &tally);
         }
-        let Some((after, done, ok)) = centres else {
+        let Some((after, done, ok)) = centers else {
             return fail(
                 Failure::Internal,
-                "the centre stages found nothing".into(),
+                "the center stages found nothing".into(),
                 &tally,
             );
         };
@@ -152,7 +152,7 @@ impl DwaltonSolver {
             return fail(Failure::Internal, "step 60 found nothing".into(), &tally);
         }
         for (name, names) in &done {
-            let seq: MoveSequence = names.join(" ").parse().expect("catalogue moves");
+            let seq: MoveSequence = names.join(" ").parse().expect("catalog moves");
             note(&mut tally, name, seq.moves());
             all.extend_from_slice(seq.moves());
             marks.push((name, all.len()));
@@ -212,7 +212,7 @@ impl DwaltonSolver {
                 }
             }
         }
-        let solution = normalise(self.kind.size(), &all, false);
+        let solution = normalize(self.kind.size(), &all, false);
         let ok = cube
             .apply(&MoveSequence::new(solution.clone()))
             .is_ok_and(|c| c.is_solved());
@@ -229,9 +229,9 @@ impl DwaltonSolver {
                         .filter(|&(f, r, c)| st[f * n * n + r * n + c] as usize != f)
                         .map(|(f, r, c)| (f, r, c, st[f * n * n + r * n + c] as usize))
                         .collect();
-                    let bad_centres = format!("{bad:?}");
+                    let bad_centers = format!("{bad:?}");
                     format!(
-                        "the answer does not solve the cube (stages leave it {}solved, {bad_centres} centre stickers off)",
+                        "the answer does not solve the cube (stages leave it {}solved, {bad_centers} center stickers off)",
                         if cur.is_solved() { "" } else { "un" }
                     )
                 },
@@ -279,7 +279,7 @@ mod tests {
     use crate::generate::scramble;
 
     #[test]
-    fn inner_wings_keep_the_centres() {
+    fn inner_wings_keep_the_centers() {
         let three = Arc::new(Min2PhaseSolver::new());
         let four: Engine = Arc::new(FourSolver::new(three));
         let six = Six::new(par::threads());
@@ -288,12 +288,12 @@ mod tests {
                 .apply(&scramble(PuzzleKind::Cube6, 80))
                 .unwrap();
             let (cube, done, _) = six.centers(&cube, 40, None).unwrap();
-            assert!(super::super::six_stage5::centres_reduced(&cube));
+            assert!(super::super::six_stage5::centers_reduced(&cube));
             let moves = wings::inner_wings(&four, &cube, None).unwrap();
             let after = cube.apply(&MoveSequence::new(moves.clone())).unwrap();
             assert!(
-                super::super::six_stage5::centres_reduced(&after),
-                "the inner wings moved the centres; stage {:?}",
+                super::super::six_stage5::centers_reduced(&after),
+                "the inner wings moved the centers; stage {:?}",
                 done.last()
             );
         }

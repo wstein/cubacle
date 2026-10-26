@@ -146,7 +146,7 @@ fn ranges_never_merge_across_an_axial_dot() {
         "4",
         "--group",
         "axis",
-        "--optimise",
+        "--optimize",
         "ranges",
         SCRAMBLE,
     ]);

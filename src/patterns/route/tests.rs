@@ -20,9 +20,9 @@ fn every_image_of_every_builtin_pattern_is_found_and_solved() {
             for g in pattern.generators().iter().filter(|g| g.size == size) {
                 let sequence = g.sequence().unwrap();
                 let state = solved.apply(&sequence).unwrap();
-                let colours: Vec<u8> = state.stickers().iter().map(|f| *f as u8).collect();
+                let colors: Vec<u8> = state.stickers().iter().map(|f| *f as u8).collect();
                 for (n, &sym) in symmetries().iter().enumerate() {
-                    let key = turned_key(kind, &colours, n, sym);
+                    let key = turned_key(kind, &colors, n, sym);
                     let image = Facelets::from_stickers(
                         key.iter().map(|&c| Face::ALL[c as usize]).collect(),
                     )

@@ -144,7 +144,7 @@ async fn a_random_4x4_is_solved_and_the_answer_solves_it() {
 }
 
 #[tokio::test]
-async fn convert_token_and_colours() {
+async fn convert_token_and_colors() {
     let (status, _, body) = call(
         app(),
         post_json("/v1/convert", json!({"cube": "A4ib8aejxj4Y"})),
@@ -154,12 +154,12 @@ async fn convert_token_and_colours() {
     assert_eq!(body["kind"], "3x3x3");
     assert_eq!(body["facelets"].as_str().unwrap().len(), 54);
 
-    let colours = "WWWWWWWWWRRRRRRRRRGGGGGGGGGYYYYYYYYYOOOOOOOOOBBBBBBBBB";
+    let colors = "WWWWWWWWWRRRRRRRRRGGGGGGGGGYYYYYYYYYOOOOOOOOOBBBBBBBBB";
     let (status, _, body) = call(
         app(),
         post_json(
             "/v1/convert",
-            json!({"cube": colours, "scheme": "western-boy"}),
+            json!({"cube": colors, "scheme": "western-boy"}),
         ),
     )
     .await;
@@ -168,10 +168,7 @@ async fn convert_token_and_colours() {
 
     let (status, _, body) = call(
         app(),
-        post_json(
-            "/v1/convert",
-            json!({"cube": colours, "scheme": "nonsense"}),
-        ),
+        post_json("/v1/convert", json!({"cube": colors, "scheme": "nonsense"})),
     )
     .await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
@@ -215,8 +212,8 @@ async fn solves_a_2x2_token() {
     assert_eq!(body["kind"], "2x2x2");
     assert!(body["length"].as_u64().unwrap() <= 11);
 
-    // Replay on a 3x3 whose edges and centres are solved: afterwards every
-    // face must show one colour on its four corner stickers.
+    // Replay on a 3x3 whose edges and centers are solved: afterwards every
+    // face must show one color on its four corner stickers.
     let (_, _, converted) = call(app(), post_json("/v1/convert", json!({"cube": "CFJnI"}))).await;
     let two: Vec<char> = converted["facelets"].as_str().unwrap().chars().collect();
     let mut three: Vec<char> = SOLVED3.chars().collect();
@@ -693,7 +690,7 @@ async fn a_5x5_move_limit_and_bad_cubes_are_reported() {
     .await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
 
-    // Face centres that have moved are an impossible 5x5, not a wrong answer.
+    // Face centers that have moved are an impossible 5x5, not a wrong answer.
     let mut moved: Vec<char> = cube.chars().collect();
     moved.swap(12, 25 + 12);
     let moved: String = moved.into_iter().collect();
@@ -750,7 +747,7 @@ async fn a_5x5_orbit64_token_converts() {
 
 #[tokio::test]
 async fn sticker_swapped_cube_with_unmatched_pieces_is_422() {
-    // Not a cube at all, yet every colour appears nine times.
+    // Not a cube at all, yet every color appears nine times.
     let cube = "ULUDUULRLDFRFRLUBLFBBDFRDBFFLRFDUBUFLRDULBBDRDDBFBLURR";
     let (status, _, body) = call(app(), post_json("/v1/solve", json!({"cube": cube}))).await;
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{body}");

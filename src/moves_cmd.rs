@@ -6,10 +6,10 @@ use std::path::PathBuf;
 
 use clap::Args;
 use cubacle::notation::{
-    axis_units, parse_expression, parse_grouped, to_wca_token, ColourScheme, Item, Notation,
+    axis_units, parse_expression, parse_grouped, to_wca_token, ColorScheme, Item, Notation,
 };
 use cubacle::puzzle::{Facelets, Move, MoveSequence, PuzzleKind, Turn};
-use cubacle::ranges::{compress, compressed_text, Optimise};
+use cubacle::ranges::{compress, compressed_text, Optimize};
 use cubacle::render::{icon, Action};
 
 use crate::icons::{
@@ -36,12 +36,12 @@ pub struct MovesArgs {
     metrics: bool,
     /// Rewrite the moves for a metric: quarter writes every half turn as two
     /// quarter turns (R2 becomes R R), the form to count in QTM
-    #[arg(long, value_enum, conflicts_with_all = ["icons", "optimise"])]
+    #[arg(long, value_enum, conflicts_with_all = ["icons", "optimize"])]
     expand: Option<Expand>,
     /// Write adjacent turns of one axis as layer ranges where that is shorter
     /// (`ranges`, as in `solve`)
     #[arg(long, value_name = "WHAT", conflicts_with = "icons")]
-    optimise: Option<Optimise>,
+    optimize: Option<Optimize>,
     #[command(flatten)]
     pictures: PictureArgs,
     /// Hand units: dots (default) draws the groups marked by "·" and "( )",
@@ -56,16 +56,16 @@ pub struct MovesArgs {
     /// With --icons, write to this file instead of standard output
     #[arg(long, requires = "icons")]
     out: Option<PathBuf>,
-    /// With --icons, the colour scheme: boy, jp or six letters in URFDLB order
+    /// With --icons, the color scheme: boy, jp or six letters in URFDLB order
     #[arg(long, requires = "icons")]
-    scheme: Option<ColourScheme>,
+    scheme: Option<ColorScheme>,
     /// With --icons, start from the cube this scramble produces
     #[arg(long, requires = "icons")]
     from: Option<String>,
     /// With --icons, show the moving layer grey instead of darkening the rest
     #[arg(long, requires = "icons")]
     grey: bool,
-    /// With --icons, paint a solid background of the --background colour behind
+    /// With --icons, paint a solid background of the --background color behind
     /// SVG, RGBA and Kitty graphics (default: transparent)
     #[arg(long, requires = "icons")]
     opaque: bool,
@@ -145,8 +145,8 @@ pub fn run(args: MovesArgs) -> Result<(), String> {
         );
     }
     if args.group == GroupMode::Axis && !args.pictures.icons {
-        if args.expand.is_some() || args.optimise.is_some() {
-            return Err("--group axis cannot be combined with --expand or --optimise".into());
+        if args.expand.is_some() || args.optimize.is_some() {
+            return Err("--group axis cannot be combined with --expand or --optimize".into());
         }
         let tree = axis_units(moves.moves(), kind, &[]);
         let units: Vec<String> = tree
@@ -173,7 +173,7 @@ pub fn run(args: MovesArgs) -> Result<(), String> {
         }
         return draw(&args, kind, &text, &moves);
     }
-    if args.optimise == Some(Optimise::Ranges) {
+    if args.optimize == Some(Optimize::Ranges) {
         let (written, _) = compressed_text(args.notation, kind, &moves);
         println!("{written}");
         let packed = compress(kind, &moves);

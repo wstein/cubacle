@@ -1,4 +1,4 @@
-//! Phase 5 pieces: the centres and the low and high wings of the last phase.
+//! Phase 5 pieces: the centers and the low and high wings of the last phase.
 //!
 //! Ported from cs0x7f/cube555 src/Phase5Center.java and src/Phase5Edge.java,
 //! MIT, Copyright (c) 2023 Chen Shuang; this file is AGPL-3.0-or-later, see
@@ -10,16 +10,16 @@ use crate::reduction::comb::{get_comb, get_perm, set_comb, set_perm, swap2, swap
 /// The fourteen moves of the phase.
 pub(super) const MOVES: [u8; 14] = [U1, U2, U3, R2, F2, D1, D2, D3, L2, B2, RW2, FW2, LW2, BW2];
 
-/// Centres: t and x kind on U and D, and the four-and-four of R F L B.
-pub(super) struct Centre {
+/// Centers: t and x kind on U and D, and the four-and-four of R F L B.
+pub(super) struct Center {
     pub t: [i32; 8],
     pub x: [i32; 8],
     pub rflb: [i32; 8],
 }
 
-impl Centre {
-    pub(super) fn new() -> Centre {
-        let mut c = Centre {
+impl Center {
+    pub(super) fn new() -> Center {
+        let mut c = Center {
             t: [0; 8],
             x: [0; 8],
             rflb: [0; 8],
@@ -58,7 +58,7 @@ impl Centre {
     pub(super) fn do_move(&mut self, m: usize) {
         let code = MOVES[m];
         let pow = i32::from(code % 3);
-        let Centre { t, x, rflb } = self;
+        let Center { t, x, rflb } = self;
         match code {
             U1 | U2 | U3 => {
                 swap4(t, [0, 1, 2, 3], pow, false);
@@ -105,7 +105,7 @@ impl Centre {
     }
 
     pub(super) fn do_conj(&mut self, conj: u8) {
-        let Centre { t, x, rflb } = self;
+        let Center { t, x, rflb } = self;
         match conj {
             0 => {
                 swap4(t, [0, 1, 2, 3], 0, false);
@@ -170,7 +170,7 @@ impl Edge {
         }
     }
 
-    pub(super) fn standardise(&mut self) {
+    pub(super) fn standardize(&mut self) {
         if self.standard {
             return;
         }
@@ -187,15 +187,15 @@ impl Edge {
     }
 
     pub(super) fn set_l(&mut self, idx: usize) {
-        self.standardise();
+        self.standardize();
         set_perm(&mut self.e[1], idx as i32, 8, false);
     }
     pub(super) fn get_l(&mut self) -> usize {
-        self.standardise();
+        self.standardize();
         get_perm(&self.e[1], 8, false) as usize
     }
     pub(super) fn get_h(&mut self) -> usize {
-        self.standardise();
+        self.standardize();
         get_perm(&self.e[2], 8, false) as usize
     }
 

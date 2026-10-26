@@ -152,15 +152,15 @@ impl Alphabet {
         }
     }
 
-    /// A lower bound on the moves between two states (colour per sticker), or
+    /// A lower bound on the moves between two states (color per sticker), or
     /// `None` when no sequence of the alphabet connects them.
     ///
-    /// Proof. A move changes the colour only of stickers it displaces, so after
+    /// Proof. A move changes the color only of stickers it displaces, so after
     /// `k` moves at most `k * m` stickers of an orbit differ from the start,
     /// where `m` is the most stickers of that orbit one move displaces. The
     /// states differ at `d` stickers of the orbit, so `d <= k * m` and
     /// `k >= ceil(d / m)`; the bound is the largest over the orbits. If `m`
-    /// is 0 (the moves never touch the orbit, such as the centres of a 3x3x3)
+    /// is 0 (the moves never touch the orbit, such as the centers of a 3x3x3)
     /// and `d > 0` no number of moves helps.
     pub(crate) fn lower_bound(&self, a: &[u8], b: &[u8]) -> Option<usize> {
         let mut differing = vec![0usize; self.orbit_moved.len()];

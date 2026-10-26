@@ -1,8 +1,8 @@
-//! Colours and the options that change how an icon looks.
+//! Colors and the options that change how an icon looks.
 
 use crate::puzzle::Face;
 
-/// An opaque sRGB colour.
+/// An opaque sRGB color.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Rgb(pub u8, pub u8, pub u8);
 
@@ -17,21 +17,21 @@ impl Rgb {
     }
 }
 
-/// The colour and the letter shown for each face, in `URFDLB` order.
+/// The color and the letter shown for each face, in `URFDLB` order.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Palette {
-    colours: [Rgb; 6],
+    colors: [Rgb; 6],
     letters: [char; 6],
 }
 
 impl Palette {
-    pub fn new(colours: [Rgb; 6], letters: [char; 6]) -> Palette {
-        Palette { colours, letters }
+    pub fn new(colors: [Rgb; 6], letters: [char; 6]) -> Palette {
+        Palette { colors, letters }
     }
 
-    /// Bright, saturated tile colours for sticker letters `W R G Y O B`; other letters become grey.
+    /// Bright, saturated tile colors for sticker letters `W R G Y O B`; other letters become grey.
     pub fn from_letters(letters: [char; 6]) -> Palette {
-        let colour = |letter: char| match letter.to_ascii_uppercase() {
+        let color = |letter: char| match letter.to_ascii_uppercase() {
             'W' => Rgb(0xff, 0xff, 0xff),
             'R' => Rgb(0xe8, 0x12, 0x1e),
             'G' => Rgb(0x00, 0xc2, 0x4a),
@@ -40,11 +40,11 @@ impl Palette {
             'B' => Rgb(0x00, 0x5c, 0xff),
             _ => Rgb(0x96, 0x96, 0x96),
         };
-        Palette::new(letters.map(colour), letters)
+        Palette::new(letters.map(color), letters)
     }
 
-    pub(crate) fn colour(&self, face: Face) -> Rgb {
-        self.colours[face as usize]
+    pub(crate) fn color(&self, face: Face) -> Rgb {
+        self.colors[face as usize]
     }
 
     pub(crate) fn letter(&self, face: Face) -> char {
@@ -62,15 +62,15 @@ impl Default for Palette {
 /// How the moving layer is set apart.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Shading {
-    /// Real colours on the moving layer, everything else darkened (see [`Backdrop`]).
+    /// Real colors on the moving layer, everything else darkened (see [`Backdrop`]).
     #[default]
     DimRest,
-    /// The moving layer turns grey, the rest keeps its colours.
+    /// The moving layer turns grey, the rest keeps its colors.
     GreyMoving,
 }
 
 /// The backdrop the icon will be seen on. It decides how strongly the resting
-/// pieces are dimmed and the colour of the notation: light glyphs on a dark
+/// pieces are dimmed and the color of the notation: light glyphs on a dark
 /// backdrop, dark glyphs on a light one.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Backdrop {
@@ -104,7 +104,7 @@ pub struct Style {
     /// The height in pixels this icon is meant for. It only sets minimum
     /// widths (gaps, arrows) so small icons stay crisp; vector output scales.
     pub size: u32,
-    /// A solid backdrop colour; `None` leaves it transparent.
+    /// A solid backdrop color; `None` leaves it transparent.
     pub background: Option<Rgb>,
     /// What the icon will be seen on; see [`Backdrop`].
     pub backdrop: Backdrop,
@@ -150,12 +150,12 @@ mod tests {
     }
 
     #[test]
-    fn letters_pick_colours() {
+    fn letters_pick_colors() {
         let palette = Palette::default();
-        assert_eq!(palette.colour(Face::U), Rgb(0xff, 0xff, 0xff));
+        assert_eq!(palette.color(Face::U), Rgb(0xff, 0xff, 0xff));
         assert_eq!(palette.letter(Face::F), 'G');
         assert_eq!(
-            Palette::from_letters(['?'; 6]).colour(Face::R),
+            Palette::from_letters(['?'; 6]).color(Face::R),
             Rgb(0x96, 0x96, 0x96)
         );
     }

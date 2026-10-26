@@ -1,15 +1,15 @@
 //! A cube read as pieces: the corners, the edge pieces (wings) and the
-//! centre stickers of any size, with the colour frame that makes "home"
+//! center stickers of any size, with the color frame that makes "home"
 //! mean something.
 //!
-//! The pieces are read from sticker colours alone, as the restricted engine
-//! does: a cubie is the set of colours at a place and its orientation is the
-//! place of its reference colour among its stickers.
+//! The pieces are read from sticker colors alone, as the restricted engine
+//! does: a cubie is the set of colors at a place and its orientation is the
+//! place of its reference color among its stickers.
 
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
 
-use crate::puzzle::{centre_orbits, locate, PuzzleKind};
+use crate::puzzle::{center_orbits, locate, PuzzleKind};
 
 /// An edge piece place: two stickers.
 pub(crate) struct Wing {
@@ -28,8 +28,8 @@ pub(crate) struct Layout {
     pub(crate) face_len: usize,
     pub(crate) corners: Vec<[usize; 3]>,
     pub(crate) wings: Vec<Wing>,
-    /// The orbits of the movable centre stickers.
-    pub(crate) centres: Vec<Vec<usize>>,
+    /// The orbits of the movable center stickers.
+    pub(crate) centers: Vec<Vec<usize>>,
 }
 
 pub(crate) fn layout(kind: PuzzleKind) -> &'static Layout {
@@ -74,16 +74,16 @@ fn build(kind: PuzzleKind) -> Layout {
         face_len: kind.face_len(),
         corners,
         wings,
-        centres: centre_orbits(kind),
+        centers: center_orbits(kind),
     }
 }
 
-/// The face colours a frame gives to the six colours of a state:
-/// `frame[c]` is the face whose home colour is `c`.
+/// The face colors a frame gives to the six colors of a state:
+/// `frame[c]` is the face whose home color is `c`.
 pub(crate) type Frame = [u8; 6];
 
-/// The frames in which to read a state: the one the centres fix on an odd
-/// cube; otherwise every assignment of colours to faces that matches the
+/// The frames in which to read a state: the one the centers fix on an odd
+/// cube; otherwise every assignment of colors to faces that matches the
 /// most stickers (a tie gives several).
 pub(crate) fn frames(kind: PuzzleKind, state: &[u8]) -> Vec<Frame> {
     let n = kind.size();
@@ -130,20 +130,20 @@ fn assign(
         }
         return;
     }
-    for colour in 0..6 {
-        if !used[colour] {
-            used[colour] = true;
-            frame[colour] = face as u8;
+    for color in 0..6 {
+        if !used[color] {
+            used[color] = true;
+            frame[color] = face as u8;
             assign(
                 counts,
                 face + 1,
-                score + counts[face][colour],
+                score + counts[face][color],
                 used,
                 frame,
                 best,
                 found,
             );
-            used[colour] = false;
+            used[color] = false;
         }
     }
 }
@@ -171,21 +171,21 @@ fn rank(order: [usize; 3], axis: usize) -> usize {
 /// What a place holds, for one piece.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) struct Reading {
-    /// The piece's colours are those of a cubie of the cube.
+    /// The piece's colors are those of a cubie of the cube.
     pub(crate) valid: bool,
     /// The set of faces the piece belongs to, as bits (the place whose
     /// faces they are is its home place).
     pub(crate) home: u8,
     /// Whether the piece sits in a place with the same faces.
     pub(crate) placed: bool,
-    /// Whether its reference colour is on the reference axis of the place.
+    /// Whether its reference color is on the reference axis of the place.
     pub(crate) oriented: bool,
 }
 
-/// A state in a colour frame, ready to be read piece by piece.
+/// A state in a color frame, ready to be read piece by piece.
 pub(crate) struct Cube {
     pub(crate) layout: &'static Layout,
-    /// The face each sticker's colour belongs to.
+    /// The face each sticker's color belongs to.
     pub(crate) lab: Vec<u8>,
 }
 
@@ -203,11 +203,11 @@ impl Cube {
 
     /// Reads the piece at the place with these stickers.
     pub(crate) fn read(&self, stickers: &[usize], order: [usize; 3]) -> Reading {
-        let colours: Vec<usize> = stickers.iter().map(|&s| self.lab[s] as usize).collect();
+        let colors: Vec<usize> = stickers.iter().map(|&s| self.lab[s] as usize).collect();
         let faces: Vec<usize> = stickers.iter().map(|&s| self.face_of(s)).collect();
         let bits = |list: &[usize]| list.iter().fold(0u8, |acc, &f| acc | 1 << f);
-        let (home, here) = (bits(&colours), bits(&faces));
-        let mut axes: Vec<usize> = colours.iter().map(|&c| axis(c)).collect();
+        let (home, here) = (bits(&colors), bits(&faces));
+        let mut axes: Vec<usize> = colors.iter().map(|&c| axis(c)).collect();
         axes.sort_unstable();
         axes.dedup();
         let valid = axes.len() == stickers.len();
@@ -220,9 +220,9 @@ impl Cube {
                 .unwrap_or(0)
         };
         let oriented = valid && {
-            // The sticker holding the reference colour is on the place's
+            // The sticker holding the reference color is on the place's
             // reference axis.
-            let holder = by_rank(&colours);
+            let holder = by_rank(&colors);
             let reference_axis = axis(faces[by_rank(&faces)]);
             axis(faces[holder]) == reference_axis
         };

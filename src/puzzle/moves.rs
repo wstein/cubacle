@@ -207,7 +207,7 @@ mod tests {
     }
 
     #[test]
-    fn whole_token_aliases_normalise() {
+    fn whole_token_aliases_normalize() {
         for (alias, canonical) in [
             ("R1", "R"),
             ("R3", "R'"),

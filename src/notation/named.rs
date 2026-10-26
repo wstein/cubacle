@@ -15,7 +15,7 @@ const CUBE_IN_CUBE: &str = "F L F U' R U F2 L2 U' L' B D' B' L2 U";
 /// only taken when nothing else could be meant); `Some(Err(..))` when the
 /// pattern does not exist on that size. All three are 3x3x3 patterns: on the
 /// larger cubes a chessboard needs turns of the inner layers, which move the
-/// centres, and the solvers cannot aim for a target with moved centres.
+/// centers, and the solvers cannot aim for a target with moved centers.
 pub fn named_target(text: &str, kind: PuzzleKind) -> Option<Result<Facelets, String>> {
     let moves = match text {
         "superflip" => SUPERFLIP,
@@ -51,7 +51,7 @@ mod tests {
         let flip = named_target("superflip", PuzzleKind::Cube3)
             .unwrap()
             .unwrap();
-        // every edge flipped in place: corners and centres stay home
+        // every edge flipped in place: corners and centers stay home
         for face in 0..6 {
             for at in 0..9 {
                 let home = Face::ALL[face];

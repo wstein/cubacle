@@ -39,7 +39,7 @@ fn random_move(rng: &mut Rng, kind: PuzzleKind) -> Move {
     Move::new(face, depth, rng.next(2) == 0, turn)
 }
 
-/// A cube and a solution for it, with neighbours that do not commute.
+/// A cube and a solution for it, with neighbors that do not commute.
 fn setup(size: usize, len: usize, seed: u64) -> (Facelets, Vec<Move>) {
     let kind = PuzzleKind::of_size(size).unwrap();
     let mut rng = Rng(seed);
@@ -118,7 +118,7 @@ fn go_wrong(solution: &[Move], at: usize, stop: usize, how: &str) -> Vec<Move> {
 }
 
 #[test]
-fn a_cube_on_the_path_is_recognised() {
+fn a_cube_on_the_path_is_recognized() {
     for size in [2, 3, 5] {
         let (original, solution) = setup(size, 12, 7 + size as u64);
         for j in [0, 1, 6, 12] {
@@ -193,7 +193,7 @@ fn two_mistakes_are_found_when_asked_for() {
 }
 
 #[test]
-fn a_turned_cube_is_recognised_after_the_normal_search_fails() {
+fn a_turned_cube_is_recognized_after_the_normal_search_fails() {
     let (original, solution) = setup(3, 16, 11);
     let current = run(&original, &solution[..6]);
     // Turn the whole cube like R: Rw L'.

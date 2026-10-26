@@ -3,29 +3,29 @@
 //! told apart) the cycle type of their permutation.
 //!
 //! Orientation depends on which axis is looked at first, and "home" on the
-//! colour frame, so the numbers are read in every frame and axis order that
+//! color frame, so the numbers are read in every frame and axis order that
 //! fits and the least result is kept. That makes the fingerprint the same for
-//! a cube, its turned or mirrored image and any renaming of its colours.
+//! a cube, its turned or mirrored image and any renaming of its colors.
 
-use super::center_names::{centre_classes, pair_up};
+use super::center_names::{center_classes, pair_up};
 use super::pieces::{frames, Cube, Frame, ORDERS};
 use crate::puzzle::PuzzleKind;
 
 /// The counts of one piece orbit.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct OrbitStat {
-    /// `corners`, `edges`, `wings` (with their depth) or `centres`.
+    /// `corners`, `edges`, `wings` (with their depth) or `centers`.
     pub name: String,
-    /// How many pieces (centre stickers for `centres`).
+    /// How many pieces (center stickers for `centers`).
     pub pieces: usize,
     /// How many are not in a place with their own faces.
     pub displaced: usize,
-    /// How many are twisted (corners) or flipped (edges); 0 for centres.
+    /// How many are twisted (corners) or flipped (edges); 0 for centers.
     pub oriented_wrong: usize,
     /// The lengths of the cycles longer than one, longest first, when the
     /// pieces of the orbit are all different and all found; `None` otherwise.
     pub cycles: Option<Vec<usize>>,
-    /// The token prefix of a centre orbit (`X`, `+`, `O1-2:`); `None` for
+    /// The token prefix of a center orbit (`X`, `+`, `O1-2:`); `None` for
     /// corners, edges and wings.
     pub tag: Option<String>,
 }
@@ -170,9 +170,9 @@ fn read(kind: PuzzleKind, cube: &Cube, order: [usize; 3], odd: bool) -> Vec<Orbi
         });
     }
 
-    let classes = centre_classes(kind);
-    let mut centres: Vec<(usize, OrbitStat)> = layout
-        .centres
+    let classes = center_classes(kind);
+    let mut centers: Vec<(usize, OrbitStat)> = layout
+        .centers
         .iter()
         .zip(&classes)
         .map(|(orbit, class)| {
@@ -192,14 +192,14 @@ fn read(kind: PuzzleKind, cube: &Cube, order: [usize; 3], odd: bool) -> Vec<Orbi
         })
         .collect();
     // Mirrors swap the two chiral orbits of a class, so only the multiset counts.
-    centres.sort();
-    let mut centres: Vec<OrbitStat> = centres.into_iter().map(|(_, s)| s).collect();
-    pair_up(centres.iter_mut().map(|s| &mut s.name));
-    out.extend(centres);
+    centers.sort();
+    let mut centers: Vec<OrbitStat> = centers.into_iter().map(|(_, s)| s).collect();
+    pair_up(centers.iter_mut().map(|s| &mut s.name));
+    out.extend(centers);
     out
 }
 
-/// The fingerprint of a state (colours 0 to 5 in `URFDLB` order).
+/// The fingerprint of a state (colors 0 to 5 in `URFDLB` order).
 pub(crate) fn fingerprint(kind: PuzzleKind, state: &[u8]) -> Fingerprint {
     let odd = kind.size() % 2 == 1;
     let frames: Vec<Frame> = frames(kind, state);

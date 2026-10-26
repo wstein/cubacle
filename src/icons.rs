@@ -7,7 +7,7 @@ use std::io::IsTerminal;
 
 use crate::terminal;
 use clap::ValueEnum;
-use cubacle::notation::ColourScheme;
+use cubacle::notation::ColorScheme;
 use cubacle::render::{Backdrop, Icon, KittyPlacement, Palette, Rgb, Shading, Style};
 
 #[derive(Clone, Copy, PartialEq, Eq, ValueEnum)]
@@ -20,7 +20,7 @@ pub enum Format {
     Rgba,
     /// Kitty graphics protocol escapes (terminal or --out only)
     Kitty,
-    /// Letters; coloured when the terminal supports it
+    /// Letters; colored when the terminal supports it
     Text,
 }
 
@@ -41,7 +41,7 @@ impl Background {
         }
     }
 
-    /// The solid colour `--opaque` paints behind the icon.
+    /// The solid color `--opaque` paints behind the icon.
     pub(crate) fn opaque(self) -> Rgb {
         match self {
             Background::Dark => Rgb(0x20, 0x24, 0x2b),
@@ -72,7 +72,7 @@ pub(crate) fn numbered(icon: Icon, number: usize, numbers: Numbers, backdrop: Ba
 }
 
 /// The icon of a move with a text label in the corner (`R1`), when numbers are on.
-pub(crate) fn labelled(icon: Icon, label: &str, numbers: Numbers, backdrop: Backdrop) -> Icon {
+pub(crate) fn labeled(icon: Icon, label: &str, numbers: Numbers, backdrop: Backdrop) -> Icon {
     match numbers {
         Numbers::Auto | Numbers::On => icon.numbered_as(label, backdrop),
         Numbers::Off => icon,
@@ -115,7 +115,7 @@ pub enum GraphicsMode {
     Auto,
     /// Kitty graphics protocol images
     Kitty,
-    /// Coloured text pictures
+    /// Colored text pictures
     Ansi,
     /// Letters only
     Plain,
@@ -152,13 +152,13 @@ pub(crate) fn default_height(cube: usize) -> u32 {
 }
 
 pub(crate) fn style(
-    scheme: Option<ColourScheme>,
+    scheme: Option<ColorScheme>,
     size: u32,
     grey: bool,
     background: Background,
 ) -> Style {
     Style {
-        palette: Palette::from_letters(scheme.unwrap_or(ColourScheme::WESTERN_BOY).letters()),
+        palette: Palette::from_letters(scheme.unwrap_or(ColorScheme::WESTERN_BOY).letters()),
         shading: if grey {
             Shading::GreyMoving
         } else {
@@ -219,7 +219,7 @@ mod tests {
     }
 
     #[test]
-    fn a_pipe_never_gets_graphics_or_colour() {
+    fn a_pipe_never_gets_graphics_or_color() {
         let kitty = env(&[("KITTY_WINDOW_ID", "1"), ("TERM", "xterm-kitty")]);
         assert_eq!(detect(false, &kitty), Graphics::Plain);
     }

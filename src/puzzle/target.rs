@@ -1,17 +1,17 @@
 //! A target that may leave stickers open: for every sticker position, the set
-//! of colours allowed there.
+//! of colors allowed there.
 //!
-//! A complete target (one colour everywhere) is a [`Facelets`] state and keeps
+//! A complete target (one color everywhere) is a [`Facelets`] state and keeps
 //! the relative-state method. A partial one is a goal set: a state reaches it
-//! when every sticker shows an allowed colour. The model carries sets of any
-//! size; the text form only writes a full set (`X`) or a single colour.
+//! when every sticker shows an allowed color. The model carries sets of any
+//! size; the text form only writes a full set (`X`) or a single color.
 
 use std::fmt;
 
 use super::relative::rotations;
 use super::{Face, Facelets, MoveSequence, PuzzleKind};
 
-/// All six colours allowed: the sticker does not matter.
+/// All six colors allowed: the sticker does not matter.
 const ANY: u8 = 0b11_1111;
 
 /// Why a target could not be made.
@@ -19,9 +19,9 @@ const ANY: u8 = 0b11_1111;
 pub enum TargetError {
     /// The length is not `6 * n * n` for any supported size.
     BadLength(usize),
-    /// A sticker has no colour allowed, so no state reaches it.
+    /// A sticker has no color allowed, so no state reaches it.
     EmptySet { position: usize },
-    /// A colour is required on more stickers than the cube has of it.
+    /// A color is required on more stickers than the cube has of it.
     TooMany {
         face: Face,
         wanted: usize,
@@ -37,11 +37,11 @@ impl fmt::Display for TargetError {
             }
             TargetError::EmptySet { position } => write!(
                 f,
-                "sticker {position} allows no colour, so the target is contradictory"
+                "sticker {position} allows no color, so the target is contradictory"
             ),
             TargetError::TooMany { face, wanted, have } => write!(
                 f,
-                "the target needs colour {} on {wanted} stickers but a cube has only {have} of it; the target is contradictory",
+                "the target needs color {} on {wanted} stickers but a cube has only {have} of it; the target is contradictory",
                 face.letter()
             ),
         }
@@ -50,7 +50,7 @@ impl fmt::Display for TargetError {
 
 impl std::error::Error for TargetError {}
 
-/// A map from sticker position to the set of colours allowed there.
+/// A map from sticker position to the set of colors allowed there.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Target {
     kind: PuzzleKind,
@@ -58,7 +58,7 @@ pub struct Target {
 }
 
 impl Target {
-    /// A target from one colour set per sticker, bit `i` standing for
+    /// A target from one color set per sticker, bit `i` standing for
     /// `Face::ALL[i]`.
     pub fn from_sets(allowed: Vec<u8>) -> Result<Target, TargetError> {
         let kind = PuzzleKind::of_facelet_count(allowed.len())
@@ -103,12 +103,12 @@ impl Target {
         self.kind
     }
 
-    /// The allowed colours of every sticker as bit sets (bit `i` is `Face::ALL[i]`).
+    /// The allowed colors of every sticker as bit sets (bit `i` is `Face::ALL[i]`).
     pub fn sets(&self) -> &[u8] {
         &self.allowed
     }
 
-    /// Whether a sticker may show any colour.
+    /// Whether a sticker may show any color.
     pub fn is_open(&self, position: usize) -> bool {
         self.allowed[position] == ANY
     }
@@ -119,7 +119,7 @@ impl Target {
     }
 
     /// The state this target is, when every sticker has exactly one allowed
-    /// colour and the colours form a cube: then the old code path applies.
+    /// color and the colors form a cube: then the old code path applies.
     pub fn as_state(&self) -> Option<Facelets> {
         let stickers: Option<Vec<Face>> = self
             .allowed
@@ -129,7 +129,7 @@ impl Target {
         Facelets::from_stickers(stickers?).ok()
     }
 
-    /// Whether `state` shows an allowed colour on every sticker.
+    /// Whether `state` shows an allowed color on every sticker.
     pub fn matches(&self, state: &Facelets) -> bool {
         state.kind() == self.kind
             && state
@@ -140,7 +140,7 @@ impl Target {
     }
 
     /// Whether `moves` take `start` to a state of this target. A 2x2x2 has no
-    /// centres to fix its frame, so (as for complete targets) a whole-cube
+    /// centers to fix its frame, so (as for complete targets) a whole-cube
     /// rotation of the end state also counts.
     pub fn reached_by(&self, start: &Facelets, moves: &MoveSequence) -> bool {
         let Ok(end) = start.apply(moves) else {
@@ -156,7 +156,7 @@ impl Target {
     }
 
     /// The text form with `X` for an open sticker, or `None` when a sticker
-    /// has a set of two to five colours (no syntax for it yet).
+    /// has a set of two to five colors (no syntax for it yet).
     pub fn to_text(&self) -> Option<String> {
         self.allowed
             .iter()

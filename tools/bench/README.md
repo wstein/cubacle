@@ -14,7 +14,7 @@ turns); the tool finishes each reduced cube with our 3x3x3 solver, so both
 solvers share the same final stage, and replays the whole solution.
 
 Our side reads or builds its tables in the cache directory (`CUBACLE_CACHE_DIR`,
-else `$XDG_CACHE_HOME/cubacle`, else `~/.cache/cubacle`) and honours `CUBACLE_THREADS`; the `ours` mode prints
+else `$XDG_CACHE_HOME/cubacle`, else `~/.cache/cubacle`) and honors `CUBACLE_THREADS`; the `ours` mode prints
 `prepare_ms` (table load or build) and then the solve times and total moves.
 Run it once with the cache directory empty for the cold start, again for the
 warm one, and with `CUBACLE_THREADS=1` for the single-thread numbers.
@@ -58,6 +58,6 @@ read from a name such as `4xRevenge`):
 
 It prints only aggregates: the patternness bands, the share of each kind, how
 many patterns reach 90 in patternness or have a kind, and how well `identify`
-recognises the held-out 30 % of the patterns (the library is the built-in set
+recognizes the held-out 30 % of the patterns (the library is the built-in set
 and the other 70 %, split by a hash of the id) against random scrambles. No
 table belongs to this repository.

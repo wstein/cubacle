@@ -160,7 +160,7 @@ impl Action {
     }
 
     /// The signed position, along the axis, of the middle of the turning layers.
-    pub(crate) fn band_centre(&self, n: usize) -> f64 {
+    pub(crate) fn band_center(&self, n: usize) -> f64 {
         let Action::Layer(mv) = self else {
             return 0.0;
         };
@@ -285,7 +285,7 @@ mod tests {
 
     #[test]
     fn quarter_turns_agree_with_apply() {
-        // Where does the colour of a side sticker go? Predicted by `quarter`
+        // Where does the color of a side sticker go? Predicted by `quarter`
         // and the sense, checked on the face that receives it.
         let kind = PuzzleKind::Cube4;
         let solved = Facelets::solved(kind);

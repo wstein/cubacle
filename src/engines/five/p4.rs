@@ -1,17 +1,17 @@
-//! Phase 4: pair the high and low wings, finish the up and down centres.
+//! Phase 4: pair the high and low wings, finish the up and down centers.
 //!
 //! Ported from cs0x7f/cube555 src/Phase4Search.java, MIT, Copyright (c) 2023
 //! Chen Shuang; this file is AGPL-3.0-or-later, see NOTICE.md.
 //!
 //! Coordinates: the middle, low and high wing of four slots (70 x 1680 x
-//! 1680), the up/down centres (4900) and the right/left centres (216 of the
+//! 1680), the up/down centers (4900) and the right/left centers (216 of the
 //! 2450 reachable). The middle and low wings together have 29,616 classes
 //! under 4 symmetries (`class << 2 | symmetry`).
 
 use super::build::Build;
 use super::cubie::Cubie;
 use super::mv;
-use super::p4_model::{Centre, Edge, MOVES};
+use super::p4_model::{Center, Edge, MOVES};
 use super::spaces::{ClassTable, Pair};
 use crate::reduction::bfs::Space;
 use crate::reduction::ida::Stage;
@@ -94,7 +94,7 @@ pub(super) struct P4 {
     next_axis: u64,
 }
 
-struct Centres {
+struct Centers {
     rl_to_half: Vec<i32>,
     ud_move: Vec<u32>,
     ud_conj: Vec<u32>,
@@ -102,8 +102,8 @@ struct Centres {
     rl_conj: Vec<u32>,
 }
 
-fn centres() -> Centres {
-    let mut c = Centre::new();
+fn centers() -> Centers {
+    let mut c = Center::new();
     let mut to_half = vec![-1i32; 2450];
     let mut from_half = [0usize; RL];
     let mut tail = 1;
@@ -165,7 +165,7 @@ fn centres() -> Centres {
             }
         }
     }
-    Centres {
+    Centers {
         rl_to_half: to_half,
         ud_move,
         ud_conj,
@@ -176,7 +176,7 @@ fn centres() -> Centres {
 
 impl P4 {
     pub(super) fn build(b: &Build) -> P4 {
-        let ct = centres();
+        let ct = centers();
         // Wing move tables, one row per (middle, wing) pair.
         let mut e = Edge::new();
         let mut m_move = vec![0u32; M * COUNT];
@@ -255,7 +255,7 @@ impl P4 {
             .iter()
             .map(|&u| ct.rl_to_half[u] as usize)
             .collect();
-        let centre_pair = Pair {
+        let center_pair = Pair {
             a_move: &ct.rl_move,
             b_move: &ct.ud_move,
             moves: COUNT,
@@ -264,7 +264,7 @@ impl P4 {
             a_solved: &rl_solved,
             b_solved: &UD_SOLVED,
         };
-        let prun_center = b.dense("p4_center", &centre_pair);
+        let prun_center = b.dense("p4_center", &center_pair);
         let edge_space = ClassBy {
             ml_move: &ml_move,
             ml_self: &ml_self,
@@ -331,7 +331,7 @@ impl P4 {
     /// One node per way to choose the four wing slots of the layer.
     pub(super) fn starts(&self, cube: &Cubie) -> Vec<Node4> {
         let mut e = Edge::new();
-        let mut c = Centre::new();
+        let mut c = Center::new();
         for i in 0..8 {
             let slot = 16 + (i & 4) + (i + 1) % 4;
             c.udx[i] = if cube.xcenter[i] == 0 { 0 } else { -1 };
@@ -474,7 +474,7 @@ mod tests {
     }
 
     #[test]
-    fn centre_numbering_has_216_right_left_states() {
+    fn center_numbering_has_216_right_left_states() {
         let p = build(1);
         assert_eq!(p.rl_to_half.iter().filter(|&&h| h >= 0).count(), RL);
     }

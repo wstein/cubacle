@@ -5,13 +5,13 @@
 //! question:
 //!
 //! - **defect mask**: turn the whole cube so that as many stickers as possible
-//!   have the colour of the solved cube; the stickers that do not are the
+//!   have the color of the solved cube; the stickers that do not are the
 //!   *defect*. `fixed` is the share outside it, `mask_symmetry` how many of the
 //!   48 symmetries map the defect onto itself (as `ln count / ln 48`), and
 //!   `moved` the number of pieces it touches.
 //! - **faces**: the share of the six faces that show the same arrangement as
-//!   the best-represented one (up to turning, mirroring and renaming colours),
-//!   and the share of *simple* faces (one colour, stripes, a chequer, a cross,
+//!   the best-represented one (up to turning, mirroring and renaming colors),
+//!   and the share of *simple* faces (one color, stripes, a checker, a cross,
 //!   rings, ...).
 //! - **symmetry** and **orbit** uniformity, the two parts of patternness.
 //!
@@ -21,7 +21,7 @@
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-use super::colours;
+use super::colors;
 use super::fingerprint::{fingerprint, OrbitStat};
 use super::geometry::{symmetries, tables};
 use super::patternness::{symmetry_score, uniformity_score};
@@ -37,7 +37,7 @@ pub struct Measures {
     pub patternness: u8,
     /// Symmetry part of patternness, 0 to 1.
     pub symmetry: f64,
-    /// How many of the 48 symmetries fix the state (up to renaming colours).
+    /// How many of the 48 symmetries fix the state (up to renaming colors).
     pub symmetry_order: usize,
     /// Orbit uniformity part of patternness, 0 to 1.
     pub orbit: f64,
@@ -47,7 +47,7 @@ pub struct Measures {
     pub mask_symmetry: f64,
     /// Pieces the defect touches.
     pub moved: usize,
-    /// All pieces of the cube (corners, edge pieces and centre stickers).
+    /// All pieces of the cube (corners, edge pieces and center stickers).
     pub pieces: usize,
     /// Share of faces with the most common arrangement, 0 to 1.
     pub faces: f64,
@@ -100,7 +100,7 @@ fn geometry(kind: PuzzleKind) -> &'static Geometry {
 /// The measures of a cube.
 pub fn measures(cube: &Facelets) -> Measures {
     let kind = cube.kind();
-    let state = colours(cube);
+    let state = colors(cube);
     let symmetry = symmetry_of(kind, &state);
     let orbits = fingerprint(kind, &state).orbits;
     measures_of(kind, &state, &symmetry, &orbits)
@@ -141,16 +141,16 @@ pub(crate) fn measures_of(
     }
 }
 
-/// The stickers whose colour differs from the solved cube under the whole-cube
+/// The stickers whose color differs from the solved cube under the whole-cube
 /// turn that matches the most stickers.
 fn defect(kind: PuzzleKind, geo: &Geometry, state: &[u8]) -> Vec<bool> {
     let face_len = kind.face_len();
     let perm = &tables(kind).perm;
-    let colour_of_face = |g: usize| -> [u8; 6] {
+    let color_of_face = |g: usize| -> [u8; 6] {
         std::array::from_fn(|f| (perm[g][f * face_len] as usize / face_len) as u8)
     };
     let matching = |g: usize| {
-        let to = colour_of_face(g);
+        let to = color_of_face(g);
         (0..state.len())
             .filter(|&p| state[p] == to[p / face_len])
             .count()
@@ -161,7 +161,7 @@ fn defect(kind: PuzzleKind, geo: &Geometry, state: &[u8]) -> Vec<bool> {
         .copied()
         .max_by_key(|&g| (matching(g), std::cmp::Reverse(g)))
         .unwrap_or(0);
-    let to = colour_of_face(best);
+    let to = color_of_face(best);
     (0..state.len())
         .map(|p| state[p] != to[p / face_len])
         .collect()
@@ -175,8 +175,8 @@ fn square_image(n: usize, t: usize, r: usize, c: usize) -> (usize, usize) {
     (r, c)
 }
 
-/// Colours renamed 0, 1, 2, ... in order of first appearance.
-fn normalised(face: &[u8]) -> Vec<u8> {
+/// Colors renamed 0, 1, 2, ... in order of first appearance.
+fn normalized(face: &[u8]) -> Vec<u8> {
     let mut seen = [u8::MAX; 6];
     let mut next = 0;
     face.iter()
@@ -211,14 +211,14 @@ const PARTITIONS: [Partition; 8] = [
     },
 ];
 
-/// Whether a face is one colour per class of a partition with at most half as
+/// Whether a face is one color per class of a partition with at most half as
 /// many classes as cells.
 fn is_simple(n: usize, face: &[u8]) -> bool {
     PARTITIONS.iter().any(|part| {
-        let mut colour_of: HashMap<i32, u8> = HashMap::new();
+        let mut color_of: HashMap<i32, u8> = HashMap::new();
         let consistent = (0..n * n)
-            .all(|i| *colour_of.entry(part(n, i / n, i % n)).or_insert(face[i]) == face[i]);
-        consistent && (colour_of.len() <= n * n / 2 || colour_of.len() == 1)
+            .all(|i| *color_of.entry(part(n, i / n, i % n)).or_insert(face[i]) == face[i]);
+        consistent && (color_of.len() <= n * n / 2 || color_of.len() == 1)
     })
 }
 
@@ -240,7 +240,7 @@ fn face_measures(kind: PuzzleKind, state: &[u8]) -> (f64, f64) {
                             turned[r2 * n + c2] = face[r * n + c];
                         }
                     }
-                    normalised(&turned)
+                    normalized(&turned)
                 })
                 .collect()
         })

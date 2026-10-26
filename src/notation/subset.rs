@@ -28,7 +28,7 @@ const EDGE_FACELETS: [[usize; 2]; 12] = [
 /// `None` when `text` is not exactly one of the names (a name is only taken when
 /// it is the whole text); `Some(Err(..))` when the subset does not exist on that
 /// size. `cross` is `cross-d`: the four edges of the down face, both stickers
-/// each, and the centres, over the solved cube.
+/// each, and the centers, over the solved cube.
 pub fn named_subset(text: &str, kind: PuzzleKind) -> Option<Result<Target, String>> {
     let face = match text {
         "cross" => Face::D,
@@ -56,8 +56,8 @@ pub fn named_subset(text: &str, kind: PuzzleKind) -> Option<Result<Target, Strin
             }
         }
     }
-    for centre in 0..6 {
-        keep[centre * 9 + 4] = true;
+    for center in 0..6 {
+        keep[center * 9 + 4] = true;
     }
     Some(Ok(Target::masked(&Facelets::solved(kind), |i| keep[i])))
 }
@@ -67,7 +67,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn the_down_cross_has_eight_edge_stickers_and_the_centres() {
+    fn the_down_cross_has_eight_edge_stickers_and_the_centers() {
         let target = named_subset("cross", PuzzleKind::Cube3).unwrap().unwrap();
         assert_eq!(target.constrained(), 8 + 6);
         assert_eq!(
@@ -82,7 +82,7 @@ mod tests {
             let name = format!("cross-{}", face.letter().to_ascii_lowercase());
             let target = named_subset(&name, PuzzleKind::Cube3).unwrap().unwrap();
             assert_eq!(target.constrained(), 14, "{name}");
-            // the edge stickers on the face itself are the face colour
+            // the edge stickers on the face itself are the face color
             let on_face = (0..9)
                 .filter(|&i| i % 2 == 1)
                 .all(|i| target.sets()[face.index() * 9 + i] == 1 << face.index());

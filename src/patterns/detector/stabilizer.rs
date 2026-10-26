@@ -9,7 +9,7 @@
 
 use super::geometry::{symmetries, tables};
 use super::group::{closure, members, Set};
-use super::symmetry::colour_map;
+use super::symmetry::color_map;
 use super::typename::name_of;
 use crate::puzzle::{Facelets, PuzzleKind};
 
@@ -51,11 +51,11 @@ pub(crate) fn inverse_colors(cube: &Facelets) -> Option<Vec<u8>> {
 pub(crate) fn stabilizer(kind: PuzzleKind, state: &[u8], inverse: Option<&[u8]>) -> Set {
     let mut set: Set = 0;
     for (g, perm) in tables(kind).perm.iter().enumerate() {
-        if colour_map(state, state, perm).is_some() {
+        if color_map(state, state, perm).is_some() {
             set |= 1 << g;
         }
         if let Some(inv) = inverse {
-            if colour_map(state, inv, perm).is_some() {
+            if color_map(state, inv, perm).is_some() {
                 set |= 1 << (g + symmetries().len());
             }
         }
@@ -88,7 +88,7 @@ pub(crate) fn types(set: Set) -> (Option<SymmetryType>, Option<Antisymmetry>) {
 mod tests {
     use super::super::geometry::image;
     use super::*;
-    use crate::patterns::detector::colours;
+    use crate::patterns::detector::colors;
 
     fn cube(kind: PuzzleKind, moves: &str) -> Facelets {
         Facelets::solved(kind)
@@ -97,7 +97,7 @@ mod tests {
     }
 
     fn of(cube: &Facelets) -> (Option<SymmetryType>, Option<Antisymmetry>) {
-        let state = colours(cube);
+        let state = colors(cube);
         let inverse = inverse_colors(cube);
         types(stabilizer(cube.kind(), &state, inverse.as_deref()))
     }
@@ -115,7 +115,7 @@ mod tests {
     fn a_random_looking_cube_has_a_trivial_stabilizer() {
         for kind in [PuzzleKind::Cube2, PuzzleKind::Cube3] {
             let c = cube(kind, "R U2 F' L D R' B U F2 L'");
-            let state = colours(&c);
+            let state = colors(&c);
             let set = stabilizer(kind, &state, inverse_colors(&c).as_deref());
             // Only the identity can fix such a state.
             assert_eq!(types(set), (None, None), "{kind:?}");
@@ -161,7 +161,7 @@ mod tests {
                 "R L'",
             ] {
                 let c = cube(kind, moves);
-                let state = colours(&c);
+                let state = colors(&c);
                 let inverse = inverse_colors(&c).unwrap();
                 let set = stabilizer(kind, &state, Some(&inverse));
                 assert!(is_subgroup(set), "{moves}");
@@ -187,7 +187,7 @@ mod tests {
             PuzzleKind::Cube7,
         ] {
             let c = cube(kind, "R2 L2");
-            let state = colours(&c);
+            let state = colors(&c);
             let (s, a) = types(stabilizer(kind, &state, None));
             assert_eq!(a, None);
             let s = s.expect("R2 L2 is symmetric");

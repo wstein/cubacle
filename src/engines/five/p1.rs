@@ -1,16 +1,16 @@
-//! Phase 1: the two opposite colours of both centre kinds onto two faces.
+//! Phase 1: the two opposite colors of both center kinds onto two faces.
 //!
 //! Ported from cs0x7f/cube555 src/Phase1Center.java and src/Phase1Search.java,
 //! MIT, Copyright (c) 2023 Chen Shuang; this file is AGPL-3.0-or-later, see
 //! NOTICE.md.
 //!
-//! The x-centres and the t-centres each give C(24,8) = 735,471 states, taken
+//! The x-centers and the t-centers each give C(24,8) = 735,471 states, taken
 //! by 16 symmetries to 46,935 (t) and 46,371 (x) classes. A state is
 //! `class << 4 | symmetry`. Three pruning tables: t classes, x classes, and
 //! x classes by raw t state, a hash of 2^26 entries of depth up to 7.
 
 use super::build::Build;
-use super::cubie::move_centres;
+use super::cubie::move_centers;
 use super::cubie_sym::Syms;
 use super::mv;
 use crate::reduction::bfs::Space;
@@ -34,15 +34,15 @@ const X_CLASSES: usize = 46_371;
 const HASH_BITS: u32 = 26;
 const HASH_DEPTH: u32 = 7;
 
-/// Centres of one phase-1 state, as slot arrays (`0` marked, `-1` not).
-struct Centre {
+/// Centers of one phase-1 state, as slot arrays (`0` marked, `-1` not).
+struct Center {
     t: [i32; 24],
     x: [i32; 24],
 }
 
-impl Centre {
-    fn new() -> Centre {
-        let mut c = Centre {
+impl Center {
+    fn new() -> Center {
+        let mut c = Center {
             t: [0; 24],
             x: [0; 24],
         };
@@ -67,14 +67,14 @@ impl Centre {
     fn do_conj(&mut self, conj: u8) {
         match conj {
             0 => {
-                move_centres(&mut self.x, &mut self.t, mv::RW1);
-                move_centres(&mut self.x, &mut self.t, mv::LW3);
+                move_centers(&mut self.x, &mut self.t, mv::RW1);
+                move_centers(&mut self.x, &mut self.t, mv::LW3);
                 swap4(&mut self.t, [0, 14, 4, 8], 0, false);
                 swap4(&mut self.t, [2, 12, 6, 10], 0, false);
             }
             1 => {
-                move_centres(&mut self.x, &mut self.t, mv::UW2);
-                move_centres(&mut self.x, &mut self.t, mv::DW2);
+                move_centers(&mut self.x, &mut self.t, mv::UW2);
+                move_centers(&mut self.x, &mut self.t, mv::DW2);
                 swap4(&mut self.t, [9, 21, 13, 17], 1, false);
                 swap4(&mut self.t, [11, 23, 15, 19], 1, false);
             }
@@ -123,7 +123,7 @@ impl Centre {
     }
 }
 
-/// Symmetry classes of one centre kind.
+/// Symmetry classes of one center kind.
 struct Classes {
     raw2sym: Vec<u32>,
     sym2raw: Vec<u32>,
@@ -132,10 +132,10 @@ struct Classes {
 
 fn classes(
     expected: usize,
-    set: impl Fn(&mut Centre, usize),
-    get: impl Fn(&Centre) -> usize,
+    set: impl Fn(&mut Center, usize),
+    get: impl Fn(&Center) -> usize,
 ) -> Classes {
-    let mut c = Centre::new();
+    let mut c = Center::new();
     let mut raw2sym = vec![0u32; RAW];
     let mut sym2raw = vec![0u32; expected * 16];
     let mut self_sym = Vec::with_capacity(expected);
@@ -168,22 +168,22 @@ fn classes(
 /// `table[class * 36 + move]`: the state after the move, `class << 4 | sym`.
 fn move_table(
     cls: &Classes,
-    set: impl Fn(&mut Centre, usize),
-    get: impl Fn(&Centre) -> usize,
+    set: impl Fn(&mut Center, usize),
+    get: impl Fn(&Center) -> usize,
 ) -> Vec<u32> {
-    let mut c = Centre::new();
+    let mut c = Center::new();
     let mut table = Vec::with_capacity(cls.self_sym.len() * 36);
     for class in 0..cls.self_sym.len() {
         for m in 0..36u8 {
             set(&mut c, cls.sym2raw[class << 4] as usize);
-            move_centres(&mut c.x, &mut c.t, m);
+            move_centers(&mut c.x, &mut c.t, m);
             table.push(cls.raw2sym[get(&c)]);
         }
     }
     table
 }
 
-/// The classes of one centre kind, with plain moves, as a search space.
+/// The classes of one center kind, with plain moves, as a search space.
 struct Sym<'a> {
     table: &'a [u32],
 }
@@ -232,7 +232,7 @@ impl Hashed for Joint<'_> {
         vec![0]
     }
 
-    fn neighbours<F: FnMut(u64)>(&self, key: u64, f: &mut F) {
+    fn neighbors<F: FnMut(u64)>(&self, key: u64, f: &mut F) {
         let class = key as usize / RAW;
         let raw = key as usize % RAW;
         for m in 0..36 {
@@ -276,16 +276,16 @@ pub(super) struct P1 {
     next_axis: u64,
 }
 
-fn set_t(c: &mut Centre, i: usize) {
+fn set_t(c: &mut Center, i: usize) {
     c.set_t(i);
 }
-fn get_t(c: &Centre) -> usize {
+fn get_t(c: &Center) -> usize {
     c.get_t()
 }
-fn set_x(c: &mut Centre, i: usize) {
+fn set_x(c: &mut Center, i: usize) {
     c.set_x(i);
 }
-fn get_x(c: &Centre) -> usize {
+fn get_x(c: &Center) -> usize {
     c.get_x()
 }
 
@@ -318,10 +318,10 @@ impl P1 {
         }
     }
 
-    /// The start node for a cube: the two colours `1` and `4` (R and L) of
-    /// each centre kind are the ones to bring onto two faces.
+    /// The start node for a cube: the two colors `1` and `4` (R and L) of
+    /// each center kind are the ones to bring onto two faces.
     pub(super) fn start(&self, cube: &super::cubie::Cubie) -> Node1 {
-        let mut c = Centre::new();
+        let mut c = Center::new();
         for i in 0..24 {
             c.x[i] = if cube.xcenter[i] == 1 || cube.xcenter[i] == 4 {
                 0
@@ -432,7 +432,7 @@ mod tests {
     fn the_start_node_of_a_solved_cube_is_a_goal() {
         let (syms, p) = build(3);
         let node = p.start(&super::super::cubie::Cubie::solved());
-        // colours 1 and 4 sit on R and L: the goal of the phase
+        // colors 1 and 4 sit on R and L: the goal of the phase
         assert_eq!(Stage1 { p: &p, syms: &syms }.prun(&node), 0);
     }
 

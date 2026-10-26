@@ -1,10 +1,10 @@
-//! Structural definitions: a pattern is a colour for every sticker, computed
+//! Structural definitions: a pattern is a color for every sticker, computed
 //! from the cube size and the sticker's place, never from a move list.
 
 use crate::puzzle::{locate, Face, Facelets, PuzzleKind};
 
-/// A relabelling of the six colours. `Cw` sends U to F, F to R and R to U
-/// (and D to B, B to L, L to D); `Opp` sends a colour to its opposite.
+/// A relabelling of the six colors. `Cw` sends U to F, F to R and R to U
+/// (and D to B, B to L, L to D); `Opp` sends a color to its opposite.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Map {
     Id,
@@ -44,20 +44,20 @@ impl Map {
     }
 }
 
-/// How a pattern colours the stickers of one cube size.
+/// How a pattern colors the stickers of one cube size.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Def {
-    /// A sticker keeps its face colour on the cubies whose distances from
+    /// A sticker keeps its face color on the cubies whose distances from
     /// the nearest outside face sum to an even number, and shows the
-    /// opposite colour on the others (corners always keep theirs).
+    /// opposite color on the others (corners always keep theirs).
     Parity,
     /// Every edge piece flipped in place, everything else solved.
     Superflip,
-    /// The colour map depends on the ring of the sticker on its face (ring 0
+    /// The color map depends on the ring of the sticker on its face (ring 0
     /// is the border); the last map repeats for deeper rings. Faces outside
-    /// `faces` keep their own colour.
+    /// `faces` keep their own color.
     Rings { maps: Vec<Map>, faces: Vec<Face> },
-    /// Two opposite corners each carry a block of the face colour: on the
+    /// Two opposite corners each carry a block of the face color: on the
     /// faces U, R and F the stickers whose in-plane cubie coordinates are
     /// both at least `e` (and on D, L and B both at most `n - 1 - e`) use
     /// `maps[e]`, the last map repeating. The rest of the face uses the
@@ -76,12 +76,12 @@ impl Def {
     /// The state on a cube of `kind`.
     pub(crate) fn state(&self, kind: PuzzleKind) -> Facelets {
         let stickers = (0..kind.facelet_count())
-            .map(|index| self.colour(kind, index))
+            .map(|index| self.color(kind, index))
             .collect();
-        Facelets::from_stickers(stickers).expect("a definition keeps every colour count")
+        Facelets::from_stickers(stickers).expect("a definition keeps every color count")
     }
 
-    fn colour(&self, kind: PuzzleKind, index: usize) -> Face {
+    fn color(&self, kind: PuzzleKind, index: usize) -> Face {
         let n = kind.size();
         let face = Face::ALL[index / kind.face_len()];
         let (row, col) = ((index % kind.face_len()) / n, index % n);

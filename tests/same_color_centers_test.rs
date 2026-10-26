@@ -1,4 +1,4 @@
-//! Solving and patterns are colour based: centres of one colour that trade
+//! Solving and patterns are color based: centers of one color that trade
 //! places leave the cube, the answer of `solve` and the report of `patterns
 //! identify` unchanged. There is no strict mode.
 
@@ -34,10 +34,10 @@ fn cubacle(args: &[&str]) -> (bool, String) {
     )
 }
 
-/// `swap` only trades centres of one colour (checked on the pieces), so the
+/// `swap` only trades centers of one color (checked on the pieces), so the
 /// cube after `scramble` and the cube after `swap scramble` look the same and
-/// every colour-based answer about them agrees.
-fn same_colours_same_answers(kind: PuzzleKind, scramble: &str, swap: &str) {
+/// every color-based answer about them agrees.
+fn same_colors_same_answers(kind: PuzzleKind, scramble: &str, swap: &str) {
     let size = kind.size().to_string();
 
     // the swap really moves pieces ...
@@ -48,19 +48,19 @@ fn same_colours_same_answers(kind: PuzzleKind, scramble: &str, swap: &str) {
         "{swap} moves no piece"
     );
     // ... but leaves the cube looking the same
-    assert!(cube(kind, swap).is_solved(), "{swap} changes a colour");
+    assert!(cube(kind, swap).is_solved(), "{swap} changes a color");
 
     let plain = cube(kind, scramble);
     let traded = cube(kind, &format!("{swap} {scramble}"));
     assert_eq!(plain, traded);
 
-    // the solver sees colours only
+    // the solver sees colors only
     let (ok_a, solution_a) = cubacle(&["solve", "--size", &size, &plain.to_string()]);
     let (ok_b, solution_b) = cubacle(&["solve", "--size", &size, &traded.to_string()]);
     assert!(ok_a && ok_b, "{solution_a} / {solution_b}");
     assert_eq!(solution_a, solution_b);
 
-    // patterns see colours only: fingerprint, patternness and library match
+    // patterns see colors only: fingerprint, patternness and library match
     let (report_a, report_b) = (detect(&plain), detect(&traded));
     assert_eq!(report_a, report_b);
     assert_eq!(report_a.fingerprint.code(), report_b.fingerprint.code());
@@ -72,8 +72,8 @@ fn same_colours_same_answers(kind: PuzzleKind, scramble: &str, swap: &str) {
 }
 
 #[test]
-fn four_same_coloured_centres_are_equal() {
-    same_colours_same_answers(
+fn four_same_colored_centers_are_equal() {
+    same_colors_same_answers(
         PuzzleKind::Cube4,
         "R U F' 2R 2U' L2 D",
         "2R2 2U2 2R2 3R2 2U2 3R2",
@@ -81,8 +81,8 @@ fn four_same_coloured_centres_are_equal() {
 }
 
 #[test]
-fn five_same_coloured_centres_are_equal() {
-    same_colours_same_answers(
+fn five_same_colored_centers_are_equal() {
+    same_colors_same_answers(
         PuzzleKind::Cube5,
         "R U2 F' 2R 2U' L2 D",
         "2R 4R 2R2 2U2 4R' 2R' 2U2 2R2",
@@ -90,8 +90,8 @@ fn five_same_coloured_centres_are_equal() {
 }
 
 #[test]
-fn six_same_coloured_centres_are_equal() {
-    same_colours_same_answers(
+fn six_same_colored_centers_are_equal() {
+    same_colors_same_answers(
         PuzzleKind::Cube6,
         "R U F' 2R 3U' L2 D'",
         "3R2 2U2 3R2 4R2 2U2 4R2",

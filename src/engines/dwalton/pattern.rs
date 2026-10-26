@@ -1,7 +1,7 @@
-//! Pruning tables over colour patterns of sticker sets.
+//! Pruning tables over color patterns of sticker sets.
 //!
 //! New code. A table has groups of stickers; the pattern of a group says
-//! which of its stickers show a colour of a given set (`marks`), exactly `k`
+//! which of its stickers show a color of a given set (`marks`), exactly `k`
 //! of them. The state is the combination rank of each group, in mixed radix.
 //! Distances are exact, by breadth-first search from the goal patterns over
 //! the stage's moves, and are cached on disk like the 5x5x5 tables.

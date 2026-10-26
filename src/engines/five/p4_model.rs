@@ -1,4 +1,4 @@
-//! Phase 4 pieces: the up/down and right/left centres, and the middle, low
+//! Phase 4 pieces: the up/down and right/left centers, and the middle, low
 //! and high wings of the four slots in play.
 //!
 //! Ported from cs0x7f/cube555 src/Phase4Center.java and src/Phase4Edge.java,
@@ -15,17 +15,17 @@ pub(super) const MOVES: [u8; 16] = [
     U1, U2, U3, R2, F2, D1, D2, D3, L2, B2, UW2, RW2, FW2, DW2, LW2, BW2,
 ];
 
-/// Up/down and right/left centres: t and x kind of each, eight slots.
-pub(super) struct Centre {
+/// Up/down and right/left centers: t and x kind of each, eight slots.
+pub(super) struct Center {
     pub udt: [i32; 8],
     pub udx: [i32; 8],
     pub rlt: [i32; 8],
     pub rlx: [i32; 8],
 }
 
-impl Centre {
-    pub(super) fn new() -> Centre {
-        Centre {
+impl Center {
+    pub(super) fn new() -> Center {
+        Center {
             udt: [0; 8],
             udx: [0; 8],
             rlt: [0; 8],
@@ -64,7 +64,7 @@ impl Centre {
     pub(super) fn do_move(&mut self, m: usize) {
         let code = MOVES[m];
         let pow = i32::from(code % 3);
-        let Centre { udt, udx, rlt, rlx } = self;
+        let Center { udt, udx, rlt, rlx } = self;
         match code {
             UW2 | U1 | U2 | U3 => {
                 if code == UW2 {
@@ -123,7 +123,7 @@ impl Centre {
     }
 
     pub(super) fn do_conj(&mut self, conj: u8) {
-        let Centre { udt, udx, rlt, rlx } = self;
+        let Center { udt, udx, rlt, rlx } = self;
         match conj {
             0 => {
                 for a in [&mut *udt, &mut *udx] {
@@ -201,7 +201,7 @@ impl Edge {
     }
 
     /// Renames the pieces so that the middle edges are 0 to 3 in order.
-    pub(super) fn standardise(&mut self) {
+    pub(super) fn standardize(&mut self) {
         if self.standard {
             return;
         }
@@ -225,7 +225,7 @@ impl Edge {
     }
 
     fn set(&mut self, which: usize, idx: usize) {
-        self.standardise();
+        self.standardize();
         set_comb(&mut self.e[which], (69 - idx / 24) as i32, 4, 8);
         let mut tmp = [0, 1, 2, 3];
         set_perm(&mut tmp, (idx % 24) as i32, 4, false);
@@ -233,7 +233,7 @@ impl Edge {
     }
 
     fn get(&mut self, which: usize) -> usize {
-        self.standardise();
+        self.standardize();
         let comb = 69 - get_comb(&self.e[which], 4, 8) as usize;
         let mut tmp = [0i32; 4];
         copy_from_comb(&self.e[which], &mut tmp);

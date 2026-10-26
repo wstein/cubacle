@@ -1,5 +1,5 @@
 //! Phase 3: the wings into four slots per layer, the middle edges in place,
-//! the right and left centres in their halves.
+//! the right and left centers in their halves.
 //!
 //! Ported from cs0x7f/cube555 src/Phase3Center.java, src/Phase3Edge.java and
 //! src/Phase3Search.java, MIT, Copyright (c) 2023 Chen Shuang; this file is
@@ -7,7 +7,7 @@
 //!
 //! The 12 wings of one layer among 24 slots give 2,704,156 states, 86,048
 //! classes under 32 symmetries (`class << 5 | symmetry`); the 12 middle
-//! edges give 2048 flip states; the 8 right and left centres of each kind
+//! edges give 2048 flip states; the 8 right and left centers of each kind
 //! give 35 states, 1225 together.
 
 use super::build::Build;
@@ -28,20 +28,20 @@ const COUNT: usize = 24;
 const WINGS: usize = 2_704_156;
 const CLASSES: usize = 86_048;
 const MEDGES: usize = 2048;
-const CENTRES: usize = 1225;
+const CENTERS: usize = 1225;
 
 const SOLVED_X: [usize; 6] = [0, 9, 14, 23, 27, 28];
 const SOLVED_T: [usize; 18] = [
     0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 18, 23, 25, 27, 28, 30, 32, 34,
 ];
 
-/// The eight right and left centres of each kind.
-struct Centre {
+/// The eight right and left centers of each kind.
+struct Center {
     t: [i32; 8],
     x: [i32; 8],
 }
 
-impl Centre {
+impl Center {
     fn set(&mut self, idx: usize) {
         set_comb(&mut self.x, (idx / 35) as i32, 4, 8);
         set_comb(&mut self.t, (idx % 35) as i32, 4, 8);
@@ -321,13 +321,13 @@ impl P3 {
                 e.next_sym(sym);
             }
         }
-        // Centres.
-        let mut c = Centre {
+        // Centers.
+        let mut c = Center {
             t: [0; 8],
             x: [0; 8],
         };
-        let mut center_move = vec![0u32; CENTRES * COUNT];
-        for i in 0..CENTRES {
+        let mut center_move = vec![0u32; CENTERS * COUNT];
+        for i in 0..CENTERS {
             for m in 0..COUNT {
                 c.set(i);
                 c.do_move(m);
@@ -342,7 +342,7 @@ impl P3 {
             a_move: &center_move,
             b_move: &m_move,
             moves: COUNT,
-            n1: CENTRES,
+            n1: CENTERS,
             n2: MEDGES,
             a_solved: &solved_c,
             b_solved: &[0, 2047],
@@ -376,7 +376,7 @@ impl P3 {
     /// The start nodes for a cube: one per choice of which of the two
     /// layers' wings go to which half, as many as the pruning allows.
     pub(super) fn starts(&self, cube: &Cubie, syms: &Syms) -> Vec<Node3> {
-        let mut ct = Centre {
+        let mut ct = Center {
             t: [0; 8],
             x: [0; 8],
         };

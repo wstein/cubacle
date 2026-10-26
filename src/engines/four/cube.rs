@@ -1,13 +1,13 @@
-//! The cube as pieces: 8 corners, 24 wings, 24 centres, and the 36 moves.
+//! The cube as pieces: 8 corners, 24 wings, 24 centers, and the 36 moves.
 //!
 //! Ported from cs0x7f/TPR-4x4x4-Solver src/CornerCube.java, EdgeCube.java,
 //! CenterCube.java and Util.java (`swap`, `set8Perm`, `parity`), MIT,
 //! Copyright (c) 2023 Chen Shuang; this file is AGPL-3.0-or-later, see
 //! NOTICE.md.
 //!
-//! Numbering, as in the reference. Centres: positions 0-3 the U face, 4-7 D,
+//! Numbering, as in the reference. Centers: positions 0-3 the U face, 4-7 D,
 //! 8-11 F, 12-15 B, 16-19 R, 20-23 L, each clockwise from its top left;
-//! `ct[i]` is the colour (0 to 5 for `URFDLB`). Wings: positions 0-11 and 12-23
+//! `ct[i]` is the color (0 to 5 for `URFDLB`). Wings: positions 0-11 and 12-23
 //! are the two wings of each of the 12 edges. Corners: `cp`/`co` as in
 //! min2phase.
 
@@ -38,9 +38,9 @@ pub(super) fn turn<T: Copy>(arr: &mut [T], [a, b, c, d]: [usize; 4], key: usize)
     }
 }
 
-/// The four-cycles a face turn makes on the centres: the face itself, then
-/// for the wide turns the second layer of the four neighbours.
-const CENTRE_CYCLES: [&[[usize; 4]]; 12] = [
+/// The four-cycles a face turn makes on the centers: the face itself, then
+/// for the wide turns the second layer of the four neighbors.
+const CENTER_CYCLES: [&[[usize; 4]]; 12] = [
     &[[0, 1, 2, 3]],
     &[[16, 17, 18, 19]],
     &[[8, 9, 10, 11]],
@@ -71,9 +71,9 @@ const WING_CYCLES: [&[[usize; 4]]; 12] = [
     &[[2, 9, 4, 10], [14, 21, 16, 22], [7, 15, 1, 17]],
 ];
 
-/// Turns the centres by move `m` (0 to 35).
-pub(super) fn move_centres<T: Copy>(ct: &mut [T; 24], m: usize) {
-    for &cycle in CENTRE_CYCLES[m / 3] {
+/// Turns the centers by move `m` (0 to 35).
+pub(super) fn move_centers<T: Copy>(ct: &mut [T; 24], m: usize) {
+    for &cycle in CENTER_CYCLES[m / 3] {
         turn(ct, cycle, m % 3);
     }
 }
@@ -184,8 +184,8 @@ pub(super) struct Cube {
     pub corners: Corners,
 }
 
-/// The centre colours of the solved cube.
-pub(super) const CENTRE_HOME: [u8; 24] = [
+/// The center colors of the solved cube.
+pub(super) const CENTER_HOME: [u8; 24] = [
     0, 0, 0, 0, 3, 3, 3, 3, 2, 2, 2, 2, 5, 5, 5, 5, 1, 1, 1, 1, 4, 4, 4, 4,
 ];
 
@@ -197,14 +197,14 @@ impl Cube {
         }
         Cube {
             ep,
-            ct: CENTRE_HOME,
+            ct: CENTER_HOME,
             corners: Corners::SOLVED,
         }
     }
 
     pub(super) fn apply(&mut self, cm: &CornerMoves, m: usize) {
         move_wings(&mut self.ep, m);
-        move_centres(&mut self.ct, m);
+        move_centers(&mut self.ct, m);
         cm.apply(&mut self.corners, m);
     }
 

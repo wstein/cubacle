@@ -1,4 +1,4 @@
-//! Step 51 to 55 tables of the 7x7x7: the U/D centres to vertical bars.
+//! Step 51 to 55 tables of the 7x7x7: the U/D centers to vertical bars.
 //!
 //! Ported from dwalton76/rubiks-cube-NxNxN-solver
 //! rubikscubennnsolver/RubiksCube777.py (the `state_targets` and sticker

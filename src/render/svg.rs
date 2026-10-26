@@ -31,12 +31,12 @@ pub(crate) fn write(
         num(canvas_height),
         escape(label)
     );
-    if let Some(colour) = background {
+    if let Some(color) = background {
         out.push_str(&format!(
             "<rect width=\"{}\" height=\"{}\" fill=\"{}\"/>\n",
             num(canvas_width),
             num(canvas_height),
-            colour.hex()
+            color.hex()
         ));
     }
     for shape in shapes {

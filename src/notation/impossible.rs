@@ -31,16 +31,16 @@ impl PieceKind {
     }
 }
 
-/// The reason a state, whose colours each cover `n * n` stickers, cannot be
+/// The reason a state, whose colors each cover `n * n` stickers, cannot be
 /// reached.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Impossible {
-    /// The six fixed centres of an odd cube are not a rotation of the cube.
-    FixedCentres,
-    /// A centre orbit does not hold each colour exactly four times.
-    CentreColours,
+    /// The six fixed centers of an odd cube are not a rotation of the cube.
+    FixedCenters,
+    /// A center orbit does not hold each color exactly four times.
+    CenterColors,
     /// The stickers of one cubie, named by the faces of its place, are the
-    /// colours of no piece of a cube (a repeated, opposite or mirrored set).
+    /// colors of no piece of a cube (a repeated, opposite or mirrored set).
     Sticker {
         kind: PieceKind,
         place: String,
@@ -71,13 +71,13 @@ impl Impossible {
 impl fmt::Display for Impossible {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Impossible::FixedCentres => write!(
+            Impossible::FixedCenters => write!(
                 f,
-                "the centres are invalid: the six fixed centres are not a rotation of the cube"
+                "the centers are invalid: the six fixed centers are not a rotation of the cube"
             ),
-            Impossible::CentreColours => write!(
+            Impossible::CenterColors => write!(
                 f,
-                "the centres are invalid: each colour must appear exactly four times in a centre orbit"
+                "the centers are invalid: each color must appear exactly four times in a center orbit"
             ),
             Impossible::Sticker { kind, place, seen } => write!(
                 f,

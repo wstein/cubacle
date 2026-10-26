@@ -16,7 +16,7 @@ fn limits(k: usize) -> Limits {
 /// A scramble of `len` random alphabet moves from a fixed seed.
 fn random_scramble(kind: PuzzleKind, kit: Kit, seed: &mut u64, len: usize) -> Facelets {
     let al = Alphabet::new(kind, kit);
-    let mut state = colours(&Facelets::solved(kind));
+    let mut state = colors(&Facelets::solved(kind));
     let mut last = None;
     for _ in 0..len {
         *seed ^= *seed << 13;
@@ -78,7 +78,7 @@ fn a_slice_needs_the_slice_alphabet() {
 }
 
 #[test]
-fn a_target_with_mixed_centres_is_fine() {
+fn a_target_with_mixed_centers_is_fine() {
     for kind in [PuzzleKind::Cube4, PuzzleKind::Cube7] {
         let target = scrambled(kind, "2R 2U'");
         let start = target.apply(&"F R".parse().unwrap()).unwrap();
@@ -94,7 +94,7 @@ fn a_target_with_mixed_centres_is_fine() {
 #[test]
 fn a_rotated_solved_cube_is_not_solved() {
     // Rw Lw' is a whole-cube rotation: the stickers differ, so the route is
-    // not empty even though the cube looks solved up to colours.
+    // not empty even though the cube looks solved up to colors.
     let cube = scrambled(PuzzleKind::Cube4, "Rw Lw'");
     let report = search(
         &cube,

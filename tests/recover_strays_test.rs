@@ -7,7 +7,7 @@ use cubacle::recover::{
     diagnose_staged, Finding, Limits, MistakeKind, Plan, Scope, Staged, Widening,
 };
 
-/// A scramble of non-commuting neighbours, and the solution that undoes it.
+/// A scramble of non-commuting neighbors, and the solution that undoes it.
 fn setup(size: usize, len: usize, seed: u64) -> (Facelets, Vec<Move>) {
     let kind = PuzzleKind::of_size(size).unwrap();
     let mut state = seed;

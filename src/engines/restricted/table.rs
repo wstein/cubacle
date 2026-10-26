@@ -10,7 +10,7 @@
 //! in it cannot be solved with the alphabet at all, and every distance is
 //! exact.
 //!
-//! States are 54 sticker colours, kept by a 64-bit hash with the distance in
+//! States are 54 sticker colors, kept by a 64-bit hash with the distance in
 //! the low byte of the slot (about 14 bytes an entry). Two states with one
 //! hash would give a wrong distance; with a few million entries that chance
 //! is below one in a billion, and every answer is replayed before it is

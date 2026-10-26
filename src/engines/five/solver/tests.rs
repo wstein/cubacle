@@ -74,7 +74,7 @@ fn real() -> FiveSolver {
 
 #[test]
 fn the_3x3x3_hand_off_gets_the_reduced_cube_through_the_trait() {
-    // Outer turns leave the centres and wings paired: nothing to reduce.
+    // Outer turns leave the centers and wings paired: nothing to reduce.
     let cube = Facelets::solved(PuzzleKind::Cube5)
         .apply(&"R U".parse().unwrap())
         .unwrap();
@@ -141,8 +141,8 @@ fn scrambled_cubes_are_solved_and_replay() {
     }
 }
 
-/// Whether the centre stickers of every face show one colour.
-fn centres_uniform(cube: &Facelets) -> bool {
+/// Whether the center stickers of every face show one color.
+fn centers_uniform(cube: &Facelets) -> bool {
     let s = cube.stickers();
     (0..6).all(|f| (1..4).all(|r| (1..4).all(|c| s[f * 25 + r * 5 + c] == s[f * 25 + 12])))
 }
@@ -151,9 +151,9 @@ fn centres_uniform(cube: &Facelets) -> bool {
 fn the_stages_cover_the_answer_and_the_reduction_ends_reduced() {
     let solver = real();
     let names = [
-        "centres staged",
+        "centers staged",
         "wings staged",
-        "centres and wings paired",
+        "centers and wings paired",
         "3x3 stage",
     ];
     for seed in 0..12 {
@@ -168,7 +168,7 @@ fn the_stages_cover_the_answer_and_the_reduction_ends_reduced() {
         let reduced = cube
             .apply(&MoveSequence::new(solution.moves()[..ends[2]].to_vec()))
             .unwrap();
-        assert!(centres_uniform(&reduced), "seed {seed}: {ends:?}");
+        assert!(centers_uniform(&reduced), "seed {seed}: {ends:?}");
     }
 }
 
@@ -179,7 +179,7 @@ fn a_reduction_only_answer_has_the_three_reduction_stages() {
     let solution = result.solution().expect("a reduction");
     let got: Vec<(&str, usize)> = result.stages.iter().map(|s| (s.name, s.end)).collect();
     assert_eq!(got.len(), 3);
-    assert_eq!(got[2], ("centres and wings paired", solution.len()));
+    assert_eq!(got[2], ("centers and wings paired", solution.len()));
 }
 
 #[test]
@@ -227,7 +227,7 @@ fn wrong_size_and_impossible_cubes_fail_as_invalid_input() {
     let cube = Facelets::from_stickers(stickers).unwrap();
     let result = solver.solve(&cube, &SolveOptions::default());
     assert_eq!(result.outcome, Err(Failure::InvalidInput));
-    // Moved face centres.
+    // Moved face centers.
     let cube = Facelets::solved(PuzzleKind::Cube5)
         .apply(&"3R".parse().unwrap())
         .unwrap();
@@ -238,7 +238,7 @@ fn wrong_size_and_impossible_cubes_fail_as_invalid_input() {
 }
 
 #[test]
-fn limits_are_honoured() {
+fn limits_are_honored() {
     let solver = real();
     let cube = scrambled(3, 6);
     let tight = SolveOptions::default().with_max_moves(1);

@@ -17,7 +17,7 @@ mod partial;
 use std::sync::OnceLock;
 use std::time::Instant;
 
-use crate::notation::orbit64::{CORNER_COLOURS, CORNER_FACELETS};
+use crate::notation::orbit64::{CORNER_COLORS, CORNER_FACELETS};
 use crate::puzzle::{
     Face, Facelets, Failure, Move, MoveSequence, PuzzleKind, SolveMetrics, SolveOptions,
     SolveResult, Solver, Target, Turn,
@@ -230,7 +230,7 @@ impl Tables {
             let want = self.depth(state) - 1;
             let m = (0..9)
                 .find(|&m| self.depth(self.step(state, m)) == want)
-                .expect("every state but the solved one has a neighbour one closer");
+                .expect("every state but the solved one has a neighbor one closer");
             moves.push(search_move(m));
             state = self.step(state, m);
         }
@@ -330,8 +330,8 @@ fn thinned(facelet: usize) -> usize {
     face * 4 + row / 2 * 2 + col / 2
 }
 
-fn colour_letters(colours: &[usize]) -> String {
-    colours.iter().map(|&c| Face::ALL[c].letter()).collect()
+fn color_letters(colors: &[usize]) -> String {
+    colors.iter().map(|&c| Face::ALL[c].letter()).collect()
 }
 
 /// Reads the corners off a 2x2 facelet string.
@@ -340,30 +340,30 @@ fn read_corners(facelets: &Facelets) -> Result<Cubie, String> {
     let mut cube = SOLVED;
     let mut seen = [false; 8];
     for slot in 0..8 {
-        let colours = CORNER_FACELETS[slot].map(|f| stickers[thinned(f)].index());
-        let twist = colours
+        let colors = CORNER_FACELETS[slot].map(|f| stickers[thinned(f)].index());
+        let twist = colors
             .iter()
             .position(|&c| c == 0 || c == 3)
-            .ok_or_else(|| format!("corner {} has no U or D coloured sticker", SLOT_NAMES[slot]))?;
+            .ok_or_else(|| format!("corner {} has no U or D colored sticker", SLOT_NAMES[slot]))?;
         let ordered = [
-            colours[twist],
-            colours[(twist + 1) % 3],
-            colours[(twist + 2) % 3],
+            colors[twist],
+            colors[(twist + 1) % 3],
+            colors[(twist + 2) % 3],
         ];
-        let piece = CORNER_COLOURS
+        let piece = CORNER_COLORS
             .iter()
             .position(|c| *c == ordered)
             .ok_or_else(|| {
                 format!(
                     "the stickers {} at corner {} are not a corner of the cube",
-                    colour_letters(&colours),
+                    color_letters(&colors),
                     SLOT_NAMES[slot]
                 )
             })?;
         if std::mem::replace(&mut seen[piece], true) {
             return Err(format!(
-                "the corner with colours {} appears twice",
-                colour_letters(&CORNER_COLOURS[piece])
+                "the corner with colors {} appears twice",
+                color_letters(&CORNER_COLORS[piece])
             ));
         }
         cube.piece[slot] = piece as u8;
@@ -377,12 +377,12 @@ fn read_corners(facelets: &Facelets) -> Result<Cubie, String> {
 
 /// A cube rotated so that the fixed corner is home: its table index, and the
 /// face each position of the rotated cube held originally.
-struct Normalised {
+struct Normalized {
     state: u32,
     origin: [usize; 6],
 }
 
-fn normalise(facelets: &Facelets) -> Result<Normalised, String> {
+fn normalize(facelets: &Facelets) -> Result<Normalized, String> {
     let cube = read_corners(facelets)?;
     let rotation = rotations()
         .iter()
@@ -392,7 +392,7 @@ fn normalise(facelets: &Facelets) -> Result<Normalised, String> {
         })
         .expect("the 24 rotations bring any corner to any slot and orientation");
     let turned = rotation.apply(&cube);
-    Ok(Normalised {
+    Ok(Normalized {
         state: (perm_rank(&turned) * TWISTS + twist_rank(&turned)) as u32,
         origin: rotation.origin,
     })
@@ -435,8 +435,8 @@ impl Solver for PocketSolver {
         if let Err(reason) = crate::notation::check(facelets) {
             return finish(Err(Failure::InvalidInput), Some(reason.to_string()));
         }
-        let normalised = match normalise(facelets) {
-            Ok(normalised) => normalised,
+        let normalized = match normalize(facelets) {
+            Ok(normalized) => normalized,
             Err(message) => return finish(Err(Failure::InvalidInput), Some(message)),
         };
 
@@ -450,7 +450,7 @@ impl Solver for PocketSolver {
             return finish(Err(Failure::BudgetExhausted), Some(message.into()));
         }
 
-        let length = usize::from(tables.depth(normalised.state));
+        let length = usize::from(tables.depth(normalized.state));
         if options
             .max_moves
             .is_some_and(|max| length > usize::from(max))
@@ -463,9 +463,9 @@ impl Solver for PocketSolver {
             );
         }
         let solution = tables
-            .walk(normalised.state)
+            .walk(normalized.state)
             .into_iter()
-            .map(|(face, turn)| Move::new(Face::ALL[normalised.origin[face]], 1, false, turn))
+            .map(|(face, turn)| Move::new(Face::ALL[normalized.origin[face]], 1, false, turn))
             .collect();
         finish(Ok(solution), None)
     }

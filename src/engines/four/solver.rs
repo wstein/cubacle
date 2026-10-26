@@ -26,10 +26,10 @@ const HAND_OFF_PROBES: u64 = 500;
 /// The 4x4x4 reduction solver, a port of Tsai's three-phase solver
 /// cs0x7f/TPR-4x4x4-Solver.
 ///
-/// Three searches bring the centres and wings into place (about 25 moves),
+/// Three searches bring the centers and wings into place (about 25 moves),
 /// then the solver it was built with solves the 3x3x3 that is left (about
 /// 20). The 3x3x3 solver is injected through the [`Solver`] trait. Without
-/// fixed centres a cube can be solved in any of 24 orientations: the answer
+/// fixed centers a cube can be solved in any of 24 orientations: the answer
 /// ends with the whole-cube rotation to the standard one, written as at most
 /// four wide turns (`Rw Lw'` is `x`), so that it solves the cube exactly.
 ///

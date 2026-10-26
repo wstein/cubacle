@@ -1,5 +1,5 @@
-//! 6x6x6 stage 1: stage the L/R inner x-centres and pair the L/R oblique
-//! centres anywhere.
+//! 6x6x6 stage 1: stage the L/R inner x-centers and pair the L/R oblique
+//! centers anywhere.
 //!
 //! Ported from dwalton76/rubiks-cube-NxNxN-solver
 //! rubikscubennnsolver/RubiksCube666.py (`LookupTable666LRObliquEdgeStageInnerXStage`,
@@ -28,7 +28,7 @@ pub(super) fn groups() -> Vec<GroupSpec> {
         .collect()
 }
 
-/// Eight oblique pairs of L/R colours must be paired; counts unpaired ones.
+/// Eight oblique pairs of L/R colors must be paired; counts unpaired ones.
 pub(super) struct Unpaired;
 
 impl Extra for Unpaired {
@@ -69,7 +69,7 @@ mod tests {
 
     #[test]
     fn stage_one_solves_scrambles() {
-        let defs = catalogue(PuzzleKind::Cube6);
+        let defs = catalog(PuzzleKind::Cube6);
         let used = select(&defs, |_| true);
         let cache = Cache::new(None, 1);
         let threads = par::threads();

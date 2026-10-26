@@ -3,14 +3,14 @@
 //! Like the 4x4x4 and 5x5x5 generators, the pieces of each orbit are drawn
 //! independently and uniformly: the corners (and on an odd cube the middle
 //! edges, as a uniform 3x3x3 core), the 24 wings of every depth, and the
-//! colours of every centre orbit. The format Orbit64 counts the states of
-//! these cubes the same way (a permutation per wing orbit, a colour
-//! arrangement per centre orbit), so every such combination is reachable.
+//! colors of every center orbit. The format Orbit64 counts the states of
+//! these cubes the same way (a permutation per wing orbit, a color
+//! arrangement per center orbit), so every such combination is reachable.
 
 use rand::RngExt;
 
 use super::{orientations, pieces, place, random_state, shuffled};
-use crate::puzzle::{centre_orbits, wing_orbits, Face, Facelets, PuzzleKind};
+use crate::puzzle::{center_orbits, wing_orbits, Face, Facelets, PuzzleKind};
 
 pub(super) fn random(kind: PuzzleKind, rng: &mut impl RngExt) -> Facelets {
     let n = kind.size();
@@ -36,16 +36,16 @@ pub(super) fn random(kind: PuzzleKind, rng: &mut impl RngExt) -> Facelets {
         place(kind, &mut stickers, &slots, &perm, &vec![0; slots.len()]);
     }
 
-    for orbit in centre_orbits(kind) {
-        let colours: Vec<Face> = orbit
+    for orbit in center_orbits(kind) {
+        let colors: Vec<Face> = orbit
             .iter()
             .map(|&cell| Face::ALL[cell / kind.face_len()])
             .collect();
         for (&cell, source) in orbit.iter().zip(shuffled(rng, orbit.len())) {
-            stickers[cell] = colours[source];
+            stickers[cell] = colors[source];
         }
     }
-    Facelets::from_stickers(stickers).expect("a permutation of the solved colours")
+    Facelets::from_stickers(stickers).expect("a permutation of the solved colors")
 }
 
 #[cfg(test)]
@@ -53,7 +53,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn generated_states_keep_the_colour_counts_and_vary() {
+    fn generated_states_keep_the_color_counts_and_vary() {
         let mut rng = rand::rng();
         for kind in [PuzzleKind::Cube6, PuzzleKind::Cube7] {
             let states: Vec<_> = (0..10).map(|_| random(kind, &mut rng)).collect();

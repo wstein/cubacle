@@ -82,15 +82,15 @@ fn a_5x5_target_is_reached() {
 }
 
 #[test]
-fn token_facelets_and_colour_targets_agree_with_the_moves() {
+fn token_facelets_and_color_targets_agree_with_the_moves() {
     let moves = "L2 B' U F D2 R";
     let target = cube(PuzzleKind::Cube3, moves);
     let (_, token, _) = cubacle(&["convert", "--to", "token", "--scramble", moves]);
-    let (_, colours, _) = cubacle(&["convert", "--to", "color", "--scramble", moves]);
+    let (_, colors, _) = cubacle(&["convert", "--to", "color", "--scramble", moves]);
     let facelets = target.to_string();
     let plain = cubacle(&["solve", "R U R' U' F2 D", "--to", moves]);
     assert!(plain.0, "{}", plain.2);
-    for to in [&token, &facelets, &colours] {
+    for to in [&token, &facelets, &colors] {
         let got = cubacle(&["solve", "R U R' U' F2 D", "--to", to]);
         assert!(got.0, "{to}: {}", got.2);
         assert_eq!(got.1, plain.1, "{to}");
@@ -124,7 +124,7 @@ fn start_and_target_must_have_one_size() {
 
 #[test]
 fn an_impossible_target_is_rejected() {
-    // Two stickers of different faces swapped: every colour count is right,
+    // Two stickers of different faces swapped: every color count is right,
     // no cube looks like it.
     let mut stickers: Vec<char> = Facelets::solved(PuzzleKind::Cube3)
         .to_string()
@@ -139,8 +139,8 @@ fn an_impossible_target_is_rejected() {
 }
 
 #[test]
-fn a_target_with_the_centres_moved_is_reached_on_a_4x4() {
-    // refused before the centre fix-up; see centre_fixup_cli_test.rs
+fn a_target_with_the_centers_moved_is_reached_on_a_4x4() {
+    // refused before the center fix-up; see center_fixup_cli_test.rs
     let target = cube(PuzzleKind::Cube4, "Rw");
     let size = "4";
     solves_to(size, "R U", "Rw", &target);

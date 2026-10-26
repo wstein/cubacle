@@ -3,28 +3,28 @@
 //! The reference has many small steps; they are grouped here into six
 //! stages, the same for both sizes. All six are in every answer (a stage that
 //! needs no moves is empty, not left out). The cube at the end of a stage is
-//! in the state the engine reached there: the inner centres are done at the
-//! end of `inner wings and centres`, all centres and wings at the end of
-//! `outer wings and centres`.
+//! in the state the engine reached there: the inner centers are done at the
+//! end of `inner wings and centers`, all centers and wings at the end of
+//! `outer wings and centers`.
 //!
 //! | Stage | 6x6x6 steps | 7x7x7 steps |
 //! | --- | --- | --- |
-//! | `left/right centres staged` | inner x-centres staged and obliques paired, centres staged | inner centres staged, obliques paired, centres staged |
-//! | `up/down centres staged` | the same for up and down | the same for up and down |
-//! | `centres prepared` | steps 50 and 60 (centres reducible) | steps 40, 50 and 60 (bars, daisy) |
-//! | `inner wings and centres` | the inner wings and centres, by the 4x4x4 engine | the inner wings and centres, by the 5x5x5 engine |
-//! | `outer wings and centres` | the outer wings and centres, by the 5x5x5 engine | the outer wings and centres, by the 5x5x5 engine |
+//! | `left/right centers staged` | inner x-centers staged and obliques paired, centers staged | inner centers staged, obliques paired, centers staged |
+//! | `up/down centers staged` | the same for up and down | the same for up and down |
+//! | `centers prepared` | steps 50 and 60 (centers reducible) | steps 40, 50 and 60 (bars, daisy) |
+//! | `inner wings and centers` | the inner wings and centers, by the 4x4x4 engine | the inner wings and centers, by the 5x5x5 engine |
+//! | `outer wings and centers` | the outer wings and centers, by the 5x5x5 engine | the outer wings and centers, by the 5x5x5 engine |
 //! | `3x3 stage` | the 3x3x3 solver | the 3x3x3 solver |
 
 use crate::puzzle::{stage_ends, Facelets, Move, MoveSequence, SolveStage};
 
 /// The stages in order.
 pub(super) const GROUPS: [&str; 6] = [
-    "left/right centres staged",
-    "up/down centres staged",
-    "centres prepared",
-    "inner wings and centres",
-    "outer wings and centres",
+    "left/right centers staged",
+    "up/down centers staged",
+    "centers prepared",
+    "inner wings and centers",
+    "outer wings and centers",
     "3x3 stage",
 ];
 
@@ -32,13 +32,13 @@ pub(super) const GROUPS: [&str; 6] = [
 pub(super) fn group_of(step: &str) -> &'static str {
     match step {
         "LR inner-x staged, obliques paired"
-        | "LR inner centres staged"
+        | "LR inner centers staged"
         | "LR obliques paired"
-        | "LR centres staged" => GROUPS[0],
+        | "LR centers staged" => GROUPS[0],
         "UD inner-x staged, obliques paired"
-        | "UD inner centres staged"
+        | "UD inner centers staged"
         | "UD obliques paired"
-        | "UD centres staged" => GROUPS[1],
+        | "UD centers staged" => GROUPS[1],
         "inner wings (4x4x4)" | "inner wings (5x5x5)" => GROUPS[3],
         "outer wings (5x5x5)" => GROUPS[4],
         "3x3x3" => GROUPS[5],
@@ -47,7 +47,7 @@ pub(super) fn group_of(step: &str) -> &'static str {
 }
 
 /// The stages of an answer. `marks` holds each step of the engine in order,
-/// with the length of `raw` at its end; `fin` is `raw` after normalising.
+/// with the length of `raw` at its end; `fin` is `raw` after normalizing.
 pub(super) fn stages(
     start: &Facelets,
     raw: &[Move],
@@ -63,10 +63,10 @@ pub(super) fn stages(
         .collect()
 }
 
-/// Moves a stage end later where normalising merged moves across it, so the
+/// Moves a stage end later where normalizing merged moves across it, so the
 /// cube is never in the state the engine reached there. The stage end goes to
 /// the first position where every sticker that was in its solved place at the
-/// engine's end is in place again, so the facts of the stage (centres and
+/// engine's end is in place again, so the facts of the stage (centers and
 /// wings done, outer faces only in the 3x3 stage) hold at its end. The moves
 /// themselves are not changed.
 pub(super) fn repair(
@@ -136,18 +136,18 @@ mod tests {
     fn every_step_of_the_reference_has_its_stage() {
         let steps = [
             ("LR inner-x staged, obliques paired", 0),
-            ("LR centres staged", 0),
+            ("LR centers staged", 0),
             ("UD inner-x staged, obliques paired", 1),
-            ("UD centres staged", 1),
-            ("LR centres reducible", 2),
-            ("UD FB centres reducible", 2),
-            ("LR inner centres staged", 0),
+            ("UD centers staged", 1),
+            ("LR centers reducible", 2),
+            ("UD FB centers reducible", 2),
+            ("LR inner centers staged", 0),
             ("LR obliques paired", 0),
-            ("UD inner centres staged", 1),
+            ("UD inner centers staged", 1),
             ("UD obliques paired", 1),
-            ("LR centres vertical bars", 2),
+            ("LR centers vertical bars", 2),
             ("LR solved, UD vertical bars", 2),
-            ("centres daisy solved", 2),
+            ("centers daisy solved", 2),
             ("inner wings (4x4x4)", 3),
             ("inner wings (5x5x5)", 3),
             ("outer wings (5x5x5)", 4),
@@ -166,7 +166,7 @@ mod tests {
             .unwrap()
             .moves()
             .to_vec();
-        let marks = [("LR centres staged", 2), ("3x3x3", 4)];
+        let marks = [("LR centers staged", 2), ("3x3x3", 4)];
         let stages = stages(&start, &raw, &marks, &raw);
         let ends: Vec<usize> = stages.iter().map(|s| s.end).collect();
         assert_eq!(ends, [2, 2, 2, 2, 2, 4]);

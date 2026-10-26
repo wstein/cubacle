@@ -3,7 +3,7 @@
 //!
 //! The 4x4x4 to 7x7x7 engines report their stages with the answer
 //! ([`SolveResult::stages`](crate::puzzle::SolveResult::stages), the ends
-//! already carried through the engines' normalising); [`from_stages`] turns
+//! already carried through the engines' normalizing); [`from_stages`] turns
 //! them into phases. For an answer without stages (the 2x2x2 and 3x3x3, or a
 //! solution from any other source) [`phases`] replays the solution on the
 //! start cube and cuts it where a state predicate becomes true for good. The
@@ -13,28 +13,28 @@
 //! | --- | --- |
 //! | 2x2x2 | 1 `solve` |
 //! | 3x3x3 | 1 `to the G1 subgroup`, 2 `solve` |
-//! | 4x4x4, 5x5x5 | 1 `centres`, 2 `edges`, 3 `3x3 stage` |
-//! | 6x6x6, 7x7x7 | 1 `inner centres`, 2 `centres`, 3 `edges`, 4 `3x3 stage` |
+//! | 4x4x4, 5x5x5 | 1 `centers`, 2 `edges`, 3 `3x3 stage` |
+//! | 6x6x6, 7x7x7 | 1 `inner centers`, 2 `centers`, 3 `edges`, 4 `3x3 stage` |
 //!
 //! Each predicate includes the ones before it. A phase ends at the first move
 //! after which its predicate holds in every later state, including the final one;
 //! a phase that is already true at its start is empty, and still counted. The
-//! 4x4x4 engine, for one, makes the centres and the edges true at the same move;
+//! 4x4x4 engine, for one, makes the centers and the edges true at the same move;
 //! then `edges` is an empty phase 2.
 //!
 //! * **G1** (3x3x3): the state is reachable with `U D R2 L2 F2 B2`, the
 //!   Kociemba domino state: corners oriented, edges oriented and the four
-//!   middle-layer edges in the middle layer. By colours: the U and D faces show
-//!   only U or D colours (corners twisted right, up and down edges flipped
+//!   middle-layer edges in the middle layer. By colors: the U and D faces show
+//!   only U or D colors (corners twisted right, up and down edges flipped
 //!   right, no middle edge up or down), and the F or B sticker of each of the four
-//!   middle-layer edges has an F or B colour (those edges not flipped).
-//! * **Centres** (4x4x4 and larger): on every face all centre stickers show one
-//!   colour (the middle sticker of an odd cube included). The six colours are
-//!   then distinct, because each colour has exactly the centre stickers of one face.
-//! * **Inner centres** (6x6x6 and larger): the centre stickers that are not in the
-//!   outermost ring of a face show one colour per face.
+//!   middle-layer edges has an F or B color (those edges not flipped).
+//! * **Centers** (4x4x4 and larger): on every face all center stickers show one
+//!   color (the middle sticker of an odd cube included). The six colors are
+//!   then distinct, because each color has exactly the center stickers of one face.
+//! * **Inner centers** (6x6x6 and larger): the center stickers that are not in the
+//!   outermost ring of a face show one color per face.
 //! * **Edges**: on every edge, the stickers of all its pieces (wings and the
-//!   middle piece of an odd cube) show one colour on each of the two faces:
+//!   middle piece of an odd cube) show one color on each of the two faces:
 //!   the wings are paired.
 //! * **3x3 stage** and **solve**: whatever is left, to the solved cube.
 
@@ -84,8 +84,8 @@ type Predicate = fn(&Layout, &[Face]) -> bool;
 struct Layout {
     face_len: usize,
     /// The stickers of the face interior, per face.
-    centres: Vec<Vec<usize>>,
-    /// The centre stickers of each face that are not in its outermost ring
+    centers: Vec<Vec<usize>>,
+    /// The center stickers of each face that are not in its outermost ring
     /// (empty up to the 5x5x5).
     inner: Vec<Vec<usize>>,
     /// For each edge, its stickers on each of its two faces.
@@ -98,7 +98,7 @@ impl Layout {
     fn new(kind: PuzzleKind) -> Layout {
         let n = kind.size() as i32;
         let face_len = kind.face_len();
-        let mut centres = vec![Vec::new(); 6];
+        let mut centers = vec![Vec::new(); 6];
         let mut inner = vec![Vec::new(); 6];
         let mut edges: BTreeMap<[i32; 3], BTreeMap<usize, Vec<usize>>> = BTreeMap::new();
         for index in 0..kind.facelet_count() {
@@ -106,7 +106,7 @@ impl Layout {
             let outer = position.iter().filter(|c| c.abs() == n - 1).count();
             let face = index / face_len;
             if outer == 1 {
-                centres[face].push(index);
+                centers[face].push(index);
                 let (row, col) = (
                     (index % face_len) / n as usize,
                     (index % face_len) % n as usize,
@@ -150,7 +150,7 @@ impl Layout {
         }
         Layout {
             face_len,
-            centres,
+            centers,
             inner,
             edges: pairs,
             slice,
@@ -162,16 +162,16 @@ fn uniform(stickers: &[usize], state: &[Face]) -> bool {
     stickers.windows(2).all(|w| state[w[0]] == state[w[1]])
 }
 
-fn inner_centres_solved(layout: &Layout, state: &[Face]) -> bool {
+fn inner_centers_solved(layout: &Layout, state: &[Face]) -> bool {
     layout.inner.iter().all(|face| uniform(face, state))
 }
 
-fn centres_solved(layout: &Layout, state: &[Face]) -> bool {
-    layout.centres.iter().all(|face| uniform(face, state))
+fn centers_solved(layout: &Layout, state: &[Face]) -> bool {
+    layout.centers.iter().all(|face| uniform(face, state))
 }
 
 fn edges_paired(layout: &Layout, state: &[Face]) -> bool {
-    centres_solved(layout, state)
+    centers_solved(layout, state)
         && layout
             .edges
             .iter()
@@ -192,13 +192,13 @@ fn stages(kind: PuzzleKind) -> Vec<(&'static str, Option<Predicate>)> {
         PuzzleKind::Cube2 => vec![("solve", None)],
         PuzzleKind::Cube3 => vec![("to the G1 subgroup", Some(in_g1)), ("solve", None)],
         PuzzleKind::Cube4 | PuzzleKind::Cube5 => vec![
-            ("centres", Some(centres_solved)),
+            ("centers", Some(centers_solved)),
             ("edges", Some(edges_paired)),
             ("3x3 stage", None),
         ],
         _ => vec![
-            ("inner centres", Some(inner_centres_solved)),
-            ("centres", Some(centres_solved)),
+            ("inner centers", Some(inner_centers_solved)),
+            ("centers", Some(centers_solved)),
             ("edges", Some(edges_paired)),
             ("3x3 stage", None),
         ],

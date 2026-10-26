@@ -2,7 +2,7 @@
 //! the answer through post-processing.
 //!
 //! An engine knows where its own stages end in the raw moves it appended. The
-//! answer is then normalised (axis runs rewritten, turns merged), and some
+//! answer is then normalized (axis runs rewritten, turns merged), and some
 //! engines rotate it into the standard frame, so the raw indices no longer
 //! point at the same places. [`stage_ends`] finds, for each raw end, the
 //! position in the final moves where the cube is in the same state, or in
@@ -116,7 +116,7 @@ fn closest(states: &[Facelets], from: usize, targets: &[Facelets]) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::puzzle::{normalise, PuzzleKind};
+    use crate::puzzle::{normalize, PuzzleKind};
 
     fn seq(text: &str) -> Vec<Move> {
         text.parse::<MoveSequence>().unwrap().moves().to_vec()
@@ -127,7 +127,7 @@ mod tests {
         let start = Facelets::solved(PuzzleKind::Cube5);
         // "R R" merges into "R2"; the ends before and after it survive.
         let raw = seq("U R R U' F");
-        let fin = normalise(5, &raw, false);
+        let fin = normalize(5, &raw, false);
         assert_eq!(fin.len(), 4);
         let ends = stage_ends(&start, &raw, &[1, 3, 5], &fin, &[]);
         assert_eq!(ends, vec![1, 2, 4]);
@@ -137,7 +137,7 @@ mod tests {
     fn an_end_inside_a_merged_run_is_the_closest_position() {
         let start = Facelets::solved(PuzzleKind::Cube5);
         let raw = seq("U R R U'");
-        let fin = normalise(5, &raw, false);
+        let fin = normalize(5, &raw, false);
         let ends = stage_ends(&start, &raw, &[2, 4], &fin, &[]);
         assert!(ends[0] <= ends[1] && ends[1] == fin.len());
     }

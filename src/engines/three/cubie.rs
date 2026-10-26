@@ -379,7 +379,7 @@ impl Cubie {
                 }
             }
             if !found {
-                // No corner piece has these colours: not a cube.
+                // No corner piece has these colors: not a cube.
                 return -4;
             }
         }
@@ -402,7 +402,7 @@ impl Cubie {
                 }
             }
             if !found {
-                // No edge piece has these colours: not a cube.
+                // No edge piece has these colors: not a cube.
                 return -2;
             }
         }

@@ -1,4 +1,4 @@
-//! The notation: centred below the cube in one fixed glyph size, so `R` and
+//! The notation: centered below the cube in one fixed glyph size, so `R` and
 //! `3Lw2` look alike on one baseline for every icon, in solid ink that fits
 //! the backdrop.
 
@@ -8,13 +8,13 @@ use super::style::Backdrop;
 
 /// Glyph units to canvas units for the notation and for the `2x` mark.
 pub(crate) const LABEL_SCALE: f64 = 8.0;
-/// The cube is centred at this x; the label centres under it.
-const CUBE_CENTRE: f64 = 50.0;
+/// The cube is centered at this x; the label centers under it.
+const CUBE_CENTER: f64 = 50.0;
 /// Where the label starts below the cube.
 const TOP: f64 = 94.0;
 
 pub(crate) fn shapes(label: &str, backdrop: Backdrop) -> Vec<Shape> {
-    let x = CUBE_CENTRE - font::measure(label) * LABEL_SCALE / 2.0;
+    let x = CUBE_CENTER - font::measure(label) * LABEL_SCALE / 2.0;
     font::text(
         label,
         (x, TOP),

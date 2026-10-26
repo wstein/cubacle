@@ -1,4 +1,4 @@
-//! Ways of writing a cube down: Orbit64 tokens, colour schemes and input
+//! Ways of writing a cube down: Orbit64 tokens, color schemes and input
 //! detection. Everything here translates text into [`crate::puzzle`] types.
 
 mod alphabet;
@@ -23,10 +23,10 @@ pub use expr::{
     parse_expression, parse_grouped, ExprError, Group, Item, MAX_DEPTH, MAX_EXPANDED_MOVES,
 };
 pub use impossible::{check, Impossible, PieceKind};
-pub use input::{colour_scheme_of, parse_cube, InputError};
+pub use input::{color_scheme_of, parse_cube, InputError};
 pub use named::{named_target, NAMED_TARGETS};
 pub use partial::parse_partial;
-pub use scheme::{ColourScheme, SchemeError};
+pub use scheme::{ColorScheme, SchemeError};
 pub use sign::{parse_move, parse_moves, to_wca_token, MovesError, Notation};
 pub(crate) use sse_write::write_layer_move as write_sse_layer_move;
 pub use subset::{named_subset, NAMED_SUBSETS};

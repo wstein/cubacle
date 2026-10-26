@@ -40,12 +40,12 @@ use cubacle::engines::two::PocketSolver;
 use cubacle::generate;
 
 use cubacle::notation::orbit64;
-use cubacle::notation::{parse_cube, parse_expression, ColourScheme, Notation};
+use cubacle::notation::{parse_cube, parse_expression, ColorScheme, Notation};
 use cubacle::puzzle::{
     oriented_by_centers, reaches, relative_state, solves_by_color, Facelets, Failure, PuzzleKind,
     RelativeError, SolveOptions, Solver,
 };
-use cubacle::ranges::{compress, write as write_ranges, Optimise};
+use cubacle::ranges::{compress, write as write_ranges, Optimize};
 use serde::{Deserialize, Serialize};
 use tokio::sync::Semaphore;
 use tower_http::catch_panic::CatchPanicLayer;
@@ -62,7 +62,7 @@ pub const MAX_TIMEOUT_MS: u64 = 600_000;
 pub const MAX_CONCURRENCY: usize = 256;
 /// Largest `minProbes` (the budget bounds the time anyway).
 const MAX_MIN_PROBES: u64 = 100_000_000;
-/// Largest `maxMoves` the 3x3 engine honours (it silently clamps above this).
+/// Largest `maxMoves` the 3x3 engine honors (it silently clamps above this).
 pub const MAX_MOVES: u8 = 25;
 /// Largest `maxMoves` for the 5x5x5 (a byte; its solutions have about 73 moves).
 pub const MAX_MOVES_5X5: u8 = u8::MAX;
@@ -433,7 +433,7 @@ struct SolveRequest {
     notation: Option<String>,
     /// Post-solve compression: `ranges` also returns the solution with layer
     /// ranges (`2-3r`) as `compressed` and its move count as `compressedLength`.
-    optimise: Option<String>,
+    optimize: Option<String>,
     /// Solve to this state instead of to the solved cube: a cube in any
     /// notation `cube` takes, else a move expression applied to the solved
     /// cube of the start's size, or one of the names `superflip`,
@@ -482,7 +482,7 @@ fn read_body<T: serde::de::DeserializeOwned>(
 
 pub(crate) fn read_cube(cube: &str, scheme: Option<&str>) -> Result<Facelets, ApiError> {
     let scheme = scheme
-        .map(str::parse::<ColourScheme>)
+        .map(str::parse::<ColorScheme>)
         .transpose()
         .map_err(|e| ApiError::bad_input(e.to_string()))?;
     parse_cube(cube, scheme).map_err(|e| ApiError::bad_input(e.to_string()))
@@ -527,8 +527,8 @@ async fn solve(
 ) -> ApiResult<SolveBody> {
     let request: SolveRequest = read_body(&headers, body)?;
     let notation = read_notation(request.notation.as_deref())?;
-    let optimise: Option<Optimise> = request
-        .optimise
+    let optimize: Option<Optimize> = request
+        .optimize
         .as_deref()
         .map(str::parse)
         .transpose()
@@ -555,8 +555,8 @@ async fn solve(
     let has_target = target.is_some();
     // The cube to solve: the start itself, or what is left of it after the
     // target is taken out.
-    // A target whose centres differ in colour on one face is reached by a
-    // centre fix-up, planned with the engine inside the solve below.
+    // A target whose centers differ in color on one face is reached by a
+    // center fix-up, planned with the engine inside the solve below.
     let mixed = target.as_ref().is_some_and(|t| !centers::uniform(t));
     let facelets = match &target {
         Some(_) if mixed => start.clone(),
@@ -567,8 +567,8 @@ async fn solve(
                 "impossible_cube",
                 e.to_string(),
             ),
-            // targets with mixed centres take the centre fix-up and never get here
-            RelativeError::CentresMoved => {
+            // targets with mixed centers take the center fix-up and never get here
+            RelativeError::CentersMoved => {
                 ApiError::new(StatusCode::INTERNAL_SERVER_ERROR, "internal", e.to_string())
             }
         })?,
@@ -678,7 +678,7 @@ async fn solve(
             _ if improve => three.solve_with_minimum_time(&facelets, &options, budget),
             _ => three.solve(&facelets, &options),
         };
-        // Defence in depth, in release builds too: never serve a wrong answer.
+        // Defense in depth, in release builds too: never serve a wrong answer.
         let solves = result.solution().is_none_or(|s| {
             if oriented {
                 solves_by_color(&start, s)
@@ -714,7 +714,7 @@ async fn solve(
     };
     match &result.outcome {
         Ok(solution) => {
-            let packed = optimise.map(|_| compress(kind, solution));
+            let packed = optimize.map(|_| compress(kind, solution));
             Ok(Json(SolveBody {
                 kind: kind_name(kind),
                 solution: notation.write(kind, solution),

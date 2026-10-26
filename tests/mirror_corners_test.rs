@@ -8,8 +8,8 @@ use cubacle::notation::check;
 use cubacle::puzzle::{Facelets, PuzzleKind};
 
 /// Facelets of an `n`-cube whose eight corners all show their two side
-/// colours exchanged: every corner is the mirror image of a real corner, the
-/// edges and centres are solved.
+/// colors exchanged: every corner is the mirror image of a real corner, the
+/// edges and centers are solved.
 fn mirrored_corners(n: usize) -> String {
     let mut s: Vec<char> = "URFDLB"
         .chars()
@@ -101,7 +101,7 @@ fn every_engine_refuses_mirrored_corners() {
         let result = solver.solve(&cube, &options);
         assert_eq!(result.outcome, Err(Failure::InvalidInput), "{n}");
         if n == 5 {
-            // refused at once by the colour reading, not after a reduction
+            // refused at once by the color reading, not after a reduction
             let message = result.message.expect("a message");
             assert!(message.starts_with("the corners"), "{message}");
         }

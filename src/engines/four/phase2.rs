@@ -1,4 +1,4 @@
-//! Phase 2: from each candidate of phase 1, the centres sorted far enough and the wings split so that
+//! Phase 2: from each candidate of phase 1, the centers sorted far enough and the wings split so that
 //! the last phase can finish, until 100 results are found.
 //!
 //! Ported from cs0x7f/TPR-4x4x4-Solver src/Search.java (`doSearch`'s second
@@ -12,9 +12,9 @@
 //! their results joined in candidate order, so the first 100 are the same.
 
 use super::candidates::Cand;
-use super::center3::State as Centres3;
+use super::center3::State as Centers3;
 use super::control::{Control, Stop, TICK};
-use super::cube::{move_centres, move_wings, wings_pairable, CornerMoves, Cube};
+use super::cube::{move_centers, move_wings, wings_pairable, CornerMoves, Cube};
 use super::edge3::Edge;
 use super::moves::{MOVE2STD, SET2};
 use super::tables::Tables;
@@ -85,7 +85,7 @@ pub(super) fn one(
     let c2 = super::center2::State::of(&cube.ct, cube.wing_parity());
     let Some((ct, rl)) = c2.numbers() else {
         return Err(Stop::Internal(
-            "the centres after the first phase do not fit the second",
+            "the centers after the first phase do not fit the second",
         ));
     };
     s.search2(ct, rl, length2 as i32, 28, 0);
@@ -214,13 +214,13 @@ impl Search<'_> {
         let mut c2 = *self.cube;
         c2.ep = ep;
         for &m in &self.move2[..length2] {
-            move_centres(&mut c2.ct, m);
+            move_centers(&mut c2.ct, m);
             cm.apply(&mut c2.corners, m);
         }
         let eparity = self.e12.set_from(&c2);
-        let Some(ct) = Centres3::of(&c2.ct, eparity ^ c2.corners.parity()).number() else {
+        let Some(ct) = Centers3::of(&c2.ct, eparity ^ c2.corners.parity()).number() else {
             self.stop = Some(Stop::Internal(
-                "the centres after the second phase do not fit the third",
+                "the centers after the second phase do not fit the third",
             ));
             return true;
         };

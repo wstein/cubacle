@@ -16,7 +16,7 @@ fn place_of(layout: &Layout, facelets: &[usize]) -> String {
     facelets.iter().map(letter).collect()
 }
 
-/// The colours `seen` as face letters.
+/// The colors `seen` as face letters.
 fn letters(seen: &[usize]) -> String {
     seen.iter().map(|&c| Face::ALL[c].letter()).collect()
 }
@@ -43,15 +43,15 @@ pub(super) fn place(layout: &Layout, coords: &Coords) -> Vec<usize> {
     );
     for (table, wings) in layout.wings.iter().zip(&coords.wings) {
         for (slot, &piece) in wings.iter().enumerate() {
-            let colours = layout.piece_colours(table, piece);
-            for (&at, colour) in table[slot].iter().zip(colours) {
-                stickers[at] = colour;
+            let colors = layout.piece_colors(table, piece);
+            for (&at, color) in table[slot].iter().zip(colors) {
+                stickers[at] = color;
             }
         }
     }
-    for (table, colours) in layout.centres.iter().zip(&coords.centres) {
-        for (&at, &colour) in table.iter().zip(colours) {
-            stickers[at] = colour;
+    for (table, colors) in layout.centers.iter().zip(&coords.centers) {
+        for (&at, &color) in table.iter().zip(colors) {
+            stickers[at] = color;
         }
     }
     stickers
@@ -65,10 +65,10 @@ fn place_oriented(
     turn: &[usize],
 ) {
     for (slot, facelets) in table.iter().enumerate() {
-        let colours = layout.piece_colours(table, perm[slot]);
+        let colors = layout.piece_colors(table, perm[slot]);
         let m = facelets.len();
         for (k, &at) in facelets.iter().enumerate() {
-            stickers[at] = colours[(k + m - turn[slot]) % m];
+            stickers[at] = colors[(k + m - turn[slot]) % m];
         }
     }
 }
@@ -77,9 +77,9 @@ fn place_oriented(
 fn identify(layout: &Layout, table: &[Vec<usize>], seen: &[usize]) -> Option<(usize, usize)> {
     let m = seen.len();
     (0..table.len()).find_map(|piece| {
-        let colours = layout.piece_colours(table, piece);
+        let colors = layout.piece_colors(table, piece);
         (0..m)
-            .find(|&turn| (0..m).all(|k| seen[k] == colours[(k + m - turn) % m]))
+            .find(|&turn| (0..m).all(|k| seen[k] == colors[(k + m - turn) % m]))
             .map(|turn| (piece, turn))
     })
 }
@@ -121,7 +121,7 @@ pub(super) fn read(layout: &Layout, stickers: &[usize]) -> Result<Coords, Imposs
         for facelets in table {
             let seen: Vec<usize> = facelets.iter().map(|&at| stickers[at]).collect();
             let piece = (0..table.len())
-                .find(|&piece| layout.piece_colours(table, piece) == seen)
+                .find(|&piece| layout.piece_colors(table, piece) == seen)
                 .ok_or_else(|| Impossible::Sticker {
                     kind: PieceKind::Wing,
                     place: place_of(layout, facelets),
@@ -131,8 +131,8 @@ pub(super) fn read(layout: &Layout, stickers: &[usize]) -> Result<Coords, Imposs
         }
         wings.push(perm);
     }
-    let centres = layout
-        .centres
+    let centers = layout
+        .centers
         .iter()
         .map(|table| table.iter().map(|&at| stickers[at]).collect())
         .collect();
@@ -142,7 +142,7 @@ pub(super) fn read(layout: &Layout, stickers: &[usize]) -> Result<Coords, Imposs
         midge_perm,
         midge_flip,
         wings,
-        centres,
+        centers,
     })
 }
 

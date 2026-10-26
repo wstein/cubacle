@@ -116,7 +116,7 @@ mod tests {
     }
 
     #[test]
-    fn replies_are_recognised() {
+    fn replies_are_recognized() {
         assert!(graphics_reply(OK.as_bytes()));
         assert!(graphics_reply(KITTY_ERROR.as_bytes()));
         assert!(graphics_reply(HERDR_ERROR.as_bytes()));

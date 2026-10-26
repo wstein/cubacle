@@ -15,7 +15,7 @@ cp "$HERE/FourDriver.java" "$WORK/tpr/"
 cd "$WORK/tpr"
 java -cp .:threephase.jar FourDriver gen "$N" "$SEED" > "$WORK/cubes.txt"
 java -cp .:threephase.jar FourDriver < "$WORK/cubes.txt" > "$WORK/raw.out" 2> "$WORK/java.err"
-# the Java initialisation also prints "depth<TAB>count" lines: keep the answers
+# the Java initialization also prints "depth<TAB>count" lines: keep the answers
 awk -F'\t' 'NF >= 6' "$WORK/raw.out" > "$WORK/answers.tsv"
 grep -a "INIT_MS" "$WORK/java.err"
 echo "== Java"

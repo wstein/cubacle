@@ -10,7 +10,7 @@ impl fmt::Display for Report {
     }
 }
 
-/// The report with one line per symmetry operation and its colour renaming.
+/// The report with one line per symmetry operation and its color renaming.
 pub struct Detailed<'a>(pub(super) &'a Report);
 
 impl fmt::Display for Detailed<'_> {
@@ -44,7 +44,7 @@ fn short_class(class: &str) -> &'static str {
         "half turn about a face axis" => "face half turn",
         "half turn about an edge axis" => "edge half turn",
         "third turn about a corner axis" => "corner third turn",
-        "inversion through the centre" => "inversion",
+        "inversion through the center" => "inversion",
         "mirror parallel to a face" => "face mirror",
         "mirror through opposite edges" => "edge mirror",
         "quarter turn and mirror" => "quarter-turn mirror",
@@ -80,9 +80,9 @@ fn write_symmetry(f: &mut fmt::Formatter<'_>, symmetry: &Symmetry, verbose: bool
     )?;
     writeln!(
         f,
-        "  {} of them keep every colour, {} rename colours",
-        symmetry.colour_preserving(),
-        order - symmetry.colour_preserving()
+        "  {} of them keep every color, {} rename colors",
+        symmetry.color_preserving(),
+        order - symmetry.color_preserving()
     )?;
     let mut classes: Vec<(&str, Vec<&super::Operation>)> = Vec::new();
     for operation in &symmetry.operations {
@@ -108,7 +108,7 @@ fn write_symmetry(f: &mut fmt::Formatter<'_>, symmetry: &Symmetry, verbose: bool
     for (class, operations) in classes {
         let mut axes: Vec<(String, usize)> = Vec::new();
         for o in operations.iter().filter(|o| !o.axis.is_empty()) {
-            let text = match o.colour_swap.as_str() {
+            let text = match o.color_swap.as_str() {
                 "" => o.axis.clone(),
                 swap => format!("{} renaming {swap}", o.axis),
             };
@@ -117,12 +117,12 @@ fn write_symmetry(f: &mut fmt::Formatter<'_>, symmetry: &Symmetry, verbose: bool
                 None => axes.push((text, 1)),
             }
         }
-        let swapped = operations.iter().filter(|o| !o.keeps_colours()).count();
+        let swapped = operations.iter().filter(|o| !o.keeps_colors()).count();
         if axes.is_empty() || axes.len() > 8 {
             let note = if swapped == 0 {
                 String::new()
             } else {
-                format!(", {swapped} renaming colours")
+                format!(", {swapped} renaming colors")
             };
             writeln!(f, "  {} x {class}{note}", operations.len())?;
         } else {
@@ -142,9 +142,9 @@ fn write_symmetry(f: &mut fmt::Formatter<'_>, symmetry: &Symmetry, verbose: bool
     Ok(())
 }
 
-/// A pattern name, followed by its catalogue id when it is an imported one
+/// A pattern name, followed by its catalog id when it is an imported one
 /// (built-in ids have no colon).
-fn labelled(id: &str, name: &str) -> String {
+fn labeled(id: &str, name: &str) -> String {
     if id.contains(':') {
         format!("{name} ({id})")
     } else {
@@ -158,7 +158,7 @@ fn write_closest(f: &mut fmt::Formatter<'_>, report: &Report) -> fmt::Result {
             .closest
             .iter()
             .map(|s| {
-                let base = format!("{} {} %", labelled(&s.id, &s.name), s.percent);
+                let base = format!("{} {} %", labeled(&s.id, &s.name), s.percent);
                 match s.blocks_away {
                     Some(1) => format!("{base}, 1 block away"),
                     Some(n) => format!("{base}, {n} blocks away"),
@@ -184,7 +184,7 @@ fn write_closest(f: &mut fmt::Formatter<'_>, report: &Report) -> fmt::Result {
         writeln!(
             f,
             "partial: {same} {verb} {} exactly; {differ} {verb2}",
-            labelled(&p.id, &p.name)
+            labeled(&p.id, &p.name)
         )?;
     }
     Ok(())
@@ -208,7 +208,7 @@ fn write_fingerprint(f: &mut fmt::Formatter<'_>, fingerprint: &super::Fingerprin
             _ => orbit.name.clone(),
         };
         let unit = if orbit.tag.is_some() {
-            "centre stickers"
+            "center stickers"
         } else {
             "pieces"
         };

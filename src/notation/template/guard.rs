@@ -173,7 +173,7 @@ impl Parser<'_> {
     fn condition_compared(&self) -> TemplateError {
         self.resolver.source.error(
             self.peek().pos,
-            "unique(...), equal(...) and parenthesised conditions cannot be compared",
+            "unique(...), equal(...) and parenthesized conditions cannot be compared",
         )
     }
 

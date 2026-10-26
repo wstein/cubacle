@@ -96,8 +96,8 @@ impl Net {
         [MARGIN + x * self.scale, MARGIN + y * self.scale]
     }
 
-    /// Model coordinates of the centre of a sticker of `face`.
-    fn centre(&self, face: Face, position: [i32; 3]) -> [f64; 2] {
+    /// Model coordinates of the center of a sticker of `face`.
+    fn center(&self, face: Face, position: [i32; 3]) -> [f64; 2] {
         let (_, col, row) = LAYOUT.iter().copied().find(|l| l.0 == face).unwrap();
         let (r, c) = row_col(face, position, self.n);
         [
@@ -106,8 +106,8 @@ impl Net {
         ]
     }
 
-    fn square(&self, centre: [f64; 2], half: f64, radius: f64) -> Vec<[f64; 2]> {
-        rounded_square(centre, half, radius)
+    fn square(&self, center: [f64; 2], half: f64, radius: f64) -> Vec<[f64; 2]> {
+        rounded_square(center, half, radius)
             .into_iter()
             .map(|[x, y]| self.at(x, y))
             .collect()
@@ -140,12 +140,12 @@ fn shapes(state: &Facelets, reference: Option<&Facelets>, style: &Style) -> (Vec
     for index in 0..kind.facelet_count() {
         let face = Face::ALL[index / kind.face_len()];
         let (position, _) = locate(kind, index);
-        let centre = net.centre(face, position);
-        let colour = style.palette.colour(state.stickers()[index]);
-        let square = net.square(centre, half, radius);
-        out.push(Shape::new(Part::Sticker, square, colour));
+        let center = net.center(face, position);
+        let color = style.palette.color(state.stickers()[index]);
+        let square = net.square(center, half, radius);
+        out.push(Shape::new(Part::Sticker, square, color));
         if reference.is_some_and(|r| r.stickers()[index] != state.stickers()[index]) {
-            marks.push(Shape::new(Part::Mark, net.square(centre, 0.32, 0.08), MARK));
+            marks.push(Shape::new(Part::Mark, net.square(center, 0.32, 0.08), MARK));
         }
     }
     out.extend(marks);
@@ -178,7 +178,7 @@ fn grid(state: &Facelets, style: &Style) -> Grid {
                 Cell {
                     letter: style.palette.letter(sticker),
                     moving: true,
-                    colour: style.palette.colour(sticker),
+                    color: style.palette.color(sticker),
                 }
             })
             .collect()
@@ -243,7 +243,7 @@ mod tests {
         Facelets::solved(kind).apply(&moves).unwrap()
     }
 
-    fn centre(points: &[[f64; 2]]) -> [f64; 2] {
+    fn center(points: &[[f64; 2]]) -> [f64; 2] {
         let n = points.len() as f64;
         [
             points.iter().map(|p| p[0]).sum::<f64>() / n,
@@ -261,7 +261,7 @@ mod tests {
 
     /// The drawn stickers come in facelet order, so sticker `i` is shape `i`.
     #[test]
-    fn every_sticker_is_drawn_once_in_its_colour_and_place() {
+    fn every_sticker_is_drawn_once_in_its_color_and_place() {
         let style = Style::default();
         for kind in SIZES {
             let cube = scrambled(kind);
@@ -273,20 +273,20 @@ mod tests {
             let mut seen: Vec<[f64; 2]> = Vec::new();
             for (i, shape) in shapes.iter().enumerate() {
                 let face = Face::ALL[i / kind.face_len()];
-                assert_eq!(shape.fill, style.palette.colour(cube.stickers()[i]));
+                assert_eq!(shape.fill, style.palette.color(cube.stickers()[i]));
                 let (position, _) = locate(kind, i);
-                let [x, y] = net.centre(face, position);
-                let got = centre(&shape.points);
+                let [x, y] = net.center(face, position);
+                let got = center(&shape.points);
                 assert!(near(got, net.at(x, y)), "{kind:?} sticker {i}");
                 assert!(seen.iter().all(|s| !near(*s, got)), "{kind:?} {i} twice");
                 seen.push(got);
             }
             assert!(seen.iter().all(|p| p[0] < net.width && p[1] < HEIGHT));
-            // a solved cube: every face is one colour
+            // a solved cube: every face is one color
             let solved = state_icon_net(&Facelets::solved(kind), &style);
             for (i, shape) in stickers(&solved, Part::Sticker).iter().enumerate() {
                 let face = Face::ALL[i / kind.face_len()];
-                assert_eq!(shape.fill, style.palette.colour(face));
+                assert_eq!(shape.fill, style.palette.color(face));
             }
         }
     }
@@ -301,9 +301,9 @@ mod tests {
             let net = Net::new(n);
             let icon = state_icon_net(&Facelets::solved(kind), &style);
             let shapes = stickers(&icon, Part::Sticker);
-            let at = |i: usize| centre(&shapes[i].points);
+            let at = |i: usize| center(&shapes[i].points);
             let range = |f: Face| f as usize * kind.face_len()..(f as usize + 1) * kind.face_len();
-            let neighbours = [
+            let neighbors = [
                 (Face::U, Face::F),
                 (Face::F, Face::D),
                 (Face::L, Face::F),
@@ -311,7 +311,7 @@ mod tests {
                 (Face::R, Face::B),
             ];
             let apart = (2.0 + FACE_GAP) * net.scale;
-            for (a, b) in neighbours {
+            for (a, b) in neighbors {
                 let mut pairs = 0;
                 for i in range(a) {
                     for j in range(b) {
@@ -347,12 +347,12 @@ mod tests {
             let plain = state_icon_net(&cube, &style);
             let marks: Vec<[f64; 2]> = stickers(&icon, Part::Mark)
                 .iter()
-                .map(|s| centre(&s.points))
+                .map(|s| center(&s.points))
                 .collect();
             let differ = crate::render::differing_stickers(&cube, &solved);
             assert_eq!(marks.len(), differ);
             for (i, shape) in stickers(&plain, Part::Sticker).iter().enumerate() {
-                let on = marks.iter().filter(|m| near(**m, centre(&shape.points)));
+                let on = marks.iter().filter(|m| near(**m, center(&shape.points)));
                 let differs = cube.stickers()[i] != solved.stickers()[i];
                 assert_eq!(on.count(), usize::from(differs), "{kind:?} sticker {i}");
             }

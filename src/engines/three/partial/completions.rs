@@ -4,17 +4,17 @@ use std::time::Instant;
 
 use super::super::cubie::{Cubie, CORNER_FACELET, EDGE_FACELET};
 use super::super::solver::Min2PhaseSolver;
-use super::{colour, finish, MAX_COMPLETIONS, MAX_EDGES, MAX_NODES};
+use super::{color, finish, MAX_COMPLETIONS, MAX_EDGES, MAX_NODES};
 use crate::puzzle::{
     relative_state, Face, Facelets, Failure, MoveSequence, SolveOptions, SolveResult, Solver,
     Target,
 };
 
-/// One slot's candidates: the sticker colours it may show, as complete
+/// One slot's candidates: the sticker colors it may show, as complete
 /// readings of that slot's pieces.
 struct Slot {
     facelets: Vec<u8>,
-    /// (piece, colours per sticker) for every piece and orientation that fits.
+    /// (piece, colors per sticker) for every piece and orientation that fits.
     options: Vec<(usize, Vec<usize>)>,
     corner: bool,
 }
@@ -39,12 +39,12 @@ fn slots_of(sets: &[u8]) -> Vec<Slot> {
         let homes: Vec<Vec<usize>> = if slot.corner {
             CORNER_FACELET
                 .iter()
-                .map(|f| f.iter().map(|&x| colour(x)).collect())
+                .map(|f| f.iter().map(|&x| color(x)).collect())
                 .collect()
         } else {
             EDGE_FACELET
                 .iter()
-                .map(|f| f.iter().map(|&x| colour(x)).collect())
+                .map(|f| f.iter().map(|&x| color(x)).collect())
                 .collect()
         };
         let n = slot.facelets.len();
@@ -91,7 +91,7 @@ fn walk(
     let at = chosen.len();
     if at == slots.len() {
         let mut stickers: Vec<Face> = (0..54).map(|i| Face::ALL[i / 9]).collect();
-        // centres keep their own colour; the pieces fill the rest
+        // centers keep their own color; the pieces fill the rest
         for (slot, &pick) in slots.iter().zip(chosen.iter()) {
             for (&facelet, &c) in slot.facelets.iter().zip(&slot.options[pick].1) {
                 stickers[usize::from(facelet)] = Face::ALL[c];
@@ -149,7 +149,7 @@ pub(super) fn by_completions(
         return finish(
             started,
             Err(Failure::Exhausted),
-            "unreachable: no cube meets the target (the pieces cannot be arranged with these colours)".into(),
+            "unreachable: no cube meets the target (the pieces cannot be arranged with these colors)".into(),
         );
     }
     let mut best: Option<MoveSequence> = None;

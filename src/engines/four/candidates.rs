@@ -30,7 +30,7 @@ pub(super) struct Cand {
     pub add1: bool,
     /// The symmetry between the model cube and the real one.
     pub sym: u8,
-    /// Phase 3 start: centre state, wing state and its distance bound.
+    /// Phase 3 start: center state, wing state and its distance bound.
     pub ct3: u32,
     pub edge: i32,
     pub prun3: i32,

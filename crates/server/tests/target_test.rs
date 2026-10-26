@@ -86,8 +86,8 @@ async fn smaller_and_larger_cubes_have_targets_too() {
 }
 
 #[tokio::test]
-async fn a_target_with_mixed_centres_is_reached_by_a_centre_fix_up() {
-    // inner slices and wide turns leave centres of one colour mixed on a face
+async fn a_target_with_mixed_centers_is_reached_by_a_center_fix_up() {
+    // inner slices and wide turns leave centers of one color mixed on a face
     let end = cube(PuzzleKind::Cube4, "2R 2U' 2F");
     solved_to(4, "R U Rw Fw", json!("2R 2U' 2F"), &end).await;
     solved_to(4, "R U Rw Fw", json!(end.to_string()), &end).await;
@@ -113,7 +113,7 @@ async fn a_bad_target_is_refused() {
         .collect();
     stickers.swap(8, 10);
     let broken: String = stickers.into_iter().collect();
-    // two centre stickers of different orbits swapped: no 5x5 looks so
+    // two center stickers of different orbits swapped: no 5x5 looks so
     let mut stickers = cube(PuzzleKind::Cube5, "").stickers().to_vec();
     stickers.swap(6, 32);
     let swapped = Facelets::from_stickers(stickers).unwrap().to_string();
@@ -146,7 +146,7 @@ async fn a_bad_target_is_refused() {
         (
             json!({"scramble": "R U", "size": 5, "target": swapped}),
             StatusCode::UNPROCESSABLE_ENTITY,
-            "centre orbit",
+            "center orbit",
         ),
     ] {
         let (got, value) = post("/v1/solve", body.clone()).await;

@@ -1,4 +1,4 @@
-//! Axis normalisation: the shortest way to write what a run of moves does.
+//! Axis normalization: the shortest way to write what a run of moves does.
 //!
 //! All turns about one axis commute (`R`, `Rw`, `2R`, `L` and `Lw` turn
 //! layers of the same stack), so a run of them is described by the net
@@ -10,7 +10,7 @@
 //! the empty run; where the run is already as short, it is kept as it is.
 //!
 //! The result is exactly equivalent to the input: the same state, never a
-//! rotation of it. Runs that become empty let their neighbours on the same
+//! rotation of it. Runs that become empty let their neighbors on the same
 //! axis merge, so the pass repeats until nothing changes.
 
 use super::{Face, Move, Turn};
@@ -205,7 +205,7 @@ fn shortest(
 /// (outer layers, second layers on 5x5x5 and larger, two-layer turns); with
 /// `slices` true it may also turn any single layer (`2R`). Returned unchanged
 /// if some move does not fit a cube of edge `n`.
-pub(crate) fn normalise(n: usize, moves: &[Move], slices: bool) -> Vec<Move> {
+pub(crate) fn normalize(n: usize, moves: &[Move], slices: bool) -> Vec<Move> {
     if n < 2 || moves.iter().any(|m| layers_of(m, n).is_none()) {
         return moves.to_vec();
     }
@@ -255,24 +255,24 @@ mod tests {
 
     #[test]
     fn opposite_faces_cancel_and_merge() {
-        assert_eq!(show(&normalise(4, &seq("R L R' L'"), false)), "");
-        assert_eq!(show(&normalise(4, &seq("R U Rw Rw' U'"), false)), "R");
+        assert_eq!(show(&normalize(4, &seq("R L R' L'"), false)), "");
+        assert_eq!(show(&normalize(4, &seq("R U Rw Rw' U'"), false)), "R");
         // Lw turns two layers, L' takes one back: two moves are the least.
-        assert_eq!(normalise(4, &seq("R Lw L' R'"), false).len(), 2);
-        assert_eq!(show(&normalise(4, &seq("R Lw L' R'"), true)), "2L");
+        assert_eq!(normalize(4, &seq("R Lw L' R'"), false).len(), 2);
+        assert_eq!(show(&normalize(4, &seq("R Lw L' R'"), true)), "2L");
     }
 
     #[test]
     fn a_slice_needs_the_slices_option() {
         // R Rw' turns the second layer back: no outer or wide pair is shorter.
-        assert_eq!(normalise(4, &seq("R Rw'"), false), seq("R Rw'"));
-        assert_eq!(show(&normalise(4, &seq("R Rw'"), true)), "2R'");
+        assert_eq!(normalize(4, &seq("R Rw'"), false), seq("R Rw'"));
+        assert_eq!(show(&normalize(4, &seq("R Rw'"), true)), "2R'");
     }
 
     #[test]
     fn nothing_is_changed_when_nothing_is_shorter() {
         let s = seq("R U R' U' Rw Lw' F2");
-        assert_eq!(normalise(4, &s, false), s);
+        assert_eq!(normalize(4, &s, false), s);
     }
 
     #[test]
@@ -299,7 +299,7 @@ mod tests {
                 for _ in 0..300 {
                     let len = 2 + next(12) as usize;
                     let moves: Vec<Move> = (0..len).map(|_| move_at(&mut next, n, false)).collect();
-                    let result = normalise(n, &moves, slices);
+                    let result = normalize(n, &moves, slices);
                     assert!(result.len() <= moves.len());
                     shortened += usize::from(result.len() < moves.len());
                     let want = base.apply(&MoveSequence::new(moves.clone())).unwrap();

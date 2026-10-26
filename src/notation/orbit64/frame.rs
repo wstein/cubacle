@@ -1,7 +1,7 @@
 //! Origin: Rust re-implementation of `Orbit64.Frame` and the frame transforms
 //! of `Orbit64.Net` (flix-orbit64, Apache-2.0, Werner Stein).
 //!
-//! An odd cube's fixed centres do not move relative to each other, so a token
+//! An odd cube's fixed centers do not move relative to each other, so a token
 //! records the whole-cube pose as one of 24 frames. Rank `r` is `x` turns,
 //! then `z` turns, then `y` turns: 0..16 are `(r / 4, 0, r % 4)`, 16..20 add
 //! one `z` turn and 20..24 three.
@@ -129,15 +129,15 @@ mod tests {
     }
 
     #[test]
-    fn the_24_frames_place_the_centres_differently() {
+    fn the_24_frames_place_the_centers_differently() {
         let n = 3;
         let solved: Vec<usize> = (0..54).map(|i| i / 9).collect();
         let mut seen = std::collections::HashSet::new();
         for frame in 0..FRAME_COUNT {
-            let centres: Vec<usize> = (0..6)
+            let centers: Vec<usize> = (0..6)
                 .map(|f| apply(n, &solved, frame)[f * 9 + 4])
                 .collect();
-            assert!(seen.insert(centres), "frame {frame} repeats a pose");
+            assert!(seen.insert(centers), "frame {frame} repeats a pose");
         }
     }
 }

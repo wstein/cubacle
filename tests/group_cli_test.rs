@@ -64,7 +64,7 @@ fn ranges_never_merge_across_a_dot() {
         "solve",
         "--size",
         "4",
-        "--optimise",
+        "--optimize",
         "ranges",
         "--group",
         "phases",

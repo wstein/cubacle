@@ -14,7 +14,7 @@ fn cubacle(args: &[&str]) -> String {
 }
 
 #[test]
-fn the_way_back_is_labelled_moves_now() {
+fn the_way_back_is_labeled_moves_now() {
     let out = cubacle(&["solve", "-s", ORIGINAL, "--now", NOW]);
     assert!(out.contains("Recommended: recover"), "{out}");
     assert!(out.contains("Moves now: D2 B2 D'"), "{out}");
@@ -22,7 +22,7 @@ fn the_way_back_is_labelled_moves_now() {
 }
 
 #[test]
-fn a_fresh_route_is_labelled_fresh_solution() {
+fn a_fresh_route_is_labeled_fresh_solution() {
     let solution = "B L' U2 B2 D' U2 B2 D2 U' F2 D U' R2 U' R' B' L2 D' F U2 R'";
     let out = cubacle(&[
         "solve",

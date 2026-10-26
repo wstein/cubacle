@@ -3,7 +3,7 @@
 //! `tests/fixtures/golden.txt` holds, per line, a cube, the options it was
 //! solved with and the exact solution and probe count the engines produced.
 //! The solvers are deterministic without a time budget, so any structural
-//! change that alters search behaviour shows up here. Never edit the fixture
+//! change that alters search behavior shows up here. Never edit the fixture
 //! to make a refactor pass.
 
 use cubacle::engines::three::Min2PhaseSolver;

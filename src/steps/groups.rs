@@ -2,7 +2,7 @@
 //!
 //! The moves of a group stay separate icons, close together; groups are
 //! separated by a larger gap with a thin bracket and the group's number above.
-//! A parenthesised block of groups gets an outer, thicker bracket. Rows break
+//! A parenthesized block of groups gets an outer, thicker bracket. Rows break
 //! between groups; a group wider than a row is cut as the last resort.
 
 use std::ops::Range;

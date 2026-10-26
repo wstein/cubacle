@@ -1,16 +1,16 @@
-//! A shortest move sequence that makes the centres of a cube uniform: every
-//! face shows one colour in each centre orbit.
+//! A shortest move sequence that makes the centers of a cube uniform: every
+//! face shows one color in each center orbit.
 //!
-//! The centres of one orbit (24 stickers, four on each face) never mix with
-//! those of another, and a colour has four stickers in each orbit. So a state
-//! of one colour in one orbit is a set of four of the 24 places, and a table
+//! The centers of one orbit (24 stickers, four on each face) never mix with
+//! those of another, and a color has four stickers in each orbit. So a state
+//! of one color in one orbit is a set of four of the 24 places, and a table
 //! of its distance to "all four on one face" is tiny. An iterative deepening
 //! search over layer moves uses the largest such distance as its bound.
 
 use std::collections::VecDeque;
 
 use crate::puzzle::{
-    centre_orbits, destinations, Face, Facelets, Move, MoveSequence, PuzzleKind, Turn,
+    center_orbits, destinations, Face, Facelets, Move, MoveSequence, PuzzleKind, Turn,
 };
 
 /// Places in one orbit.
@@ -29,7 +29,7 @@ pub(crate) struct Model {
     /// For every move and orbit: the place a sticker of the orbit goes to.
     perms: Vec<Vec<[u8; CELLS]>>,
     /// Per orbit, the distance of a set of four places to the four places of
-    /// the face of colour `i` (tables 0 to 5) or to those of any face (6).
+    /// the face of color `i` (tables 0 to 5) or to those of any face (6).
     tables: Vec<Vec<Vec<u8>>>,
 }
 
@@ -66,8 +66,8 @@ fn turn_back(turn: Turn) -> Turn {
     }
 }
 
-/// Every layer move that can help to sort centres, each layer set once. The
-/// middle layer of an odd cube is left out: it would turn the face centres
+/// Every layer move that can help to sort centers, each layer set once. The
+/// middle layer of an odd cube is left out: it would turn the face centers
 /// (the frame of the cube) and the engines keep that frame.
 fn alphabet(kind: PuzzleKind) -> Vec<Move> {
     let n = kind.size();
@@ -97,7 +97,7 @@ fn alphabet(kind: PuzzleKind) -> Vec<Move> {
 
 impl Model {
     pub(crate) fn new(kind: PuzzleKind) -> Model {
-        let orbits = centre_orbits(kind);
+        let orbits = center_orbits(kind);
         let mut slot = vec![None; kind.facelet_count()];
         for (o, orbit) in orbits.iter().enumerate() {
             for (i, &sticker) in orbit.iter().enumerate() {
@@ -116,7 +116,7 @@ impl Model {
                         let mut perm = [0u8; CELLS];
                         for (i, &sticker) in orbit.iter().enumerate() {
                             let (_, place) = slot[to[sticker]]
-                                .expect("a layer turn keeps centres in their orbit");
+                                .expect("a layer turn keeps centers in their orbit");
                             perm[i] = place as u8;
                         }
                         perm
@@ -169,7 +169,7 @@ impl Model {
         }
     }
 
-    /// The colour sets of a state: per orbit and colour, the places it fills.
+    /// The color sets of a state: per orbit and color, the places it fills.
     fn masks(&self, state: &Facelets) -> Vec<[u32; 6]> {
         self.orbits
             .iter()
@@ -183,25 +183,25 @@ impl Model {
             .collect()
     }
 
-    /// Whether every colour fills four places of every orbit, as on a cube.
+    /// Whether every color fills four places of every orbit, as on a cube.
     pub(crate) fn balanced(&self, state: &Facelets) -> bool {
         self.masks(state)
             .iter()
-            .all(|colours| colours.iter().all(|mask| mask.count_ones() == 4))
+            .all(|colors| colors.iter().all(|mask| mask.count_ones() == 4))
     }
 
     fn bound(&self, binom: &Binomials, masks: &[[u32; 6]], own: bool) -> usize {
         let mut worst = 0;
-        for (o, colours) in masks.iter().enumerate() {
-            for (colour, &mask) in colours.iter().enumerate() {
-                let table = if own { colour } else { 6 };
+        for (o, colors) in masks.iter().enumerate() {
+            for (color, &mask) in colors.iter().enumerate() {
+                let table = if own { color } else { 6 };
                 worst = worst.max(self.tables[o][table][rank(binom, mask)]);
             }
         }
         usize::from(worst)
     }
 
-    /// The fewest moves that make the centres of `state` uniform, if there
+    /// The fewest moves that make the centers of `state` uniform, if there
     /// are at most `deepest` of them and the search needs at most `nodes`
     /// steps; `None` otherwise.
     pub(crate) fn shortest(
@@ -239,7 +239,7 @@ impl Model {
 
     /// A short, not proven shortest, sequence: a beam search that keeps the
     /// `width` best states of every length, ranked by the summed table
-    /// distances of the colours, and stops at `deepest` moves.
+    /// distances of the colors, and stops at `deepest` moves.
     pub(crate) fn beam(
         &self,
         state: &Facelets,
@@ -251,9 +251,9 @@ impl Model {
         let score = |masks: &[[u32; 6]]| -> (usize, usize) {
             let mut sum = 0;
             let mut worst = 0;
-            for (o, colours) in masks.iter().enumerate() {
-                for (colour, &mask) in colours.iter().enumerate() {
-                    let table = if own { colour } else { 6 };
+            for (o, colors) in masks.iter().enumerate() {
+                for (color, &mask) in colors.iter().enumerate() {
+                    let table = if own { color } else { 6 };
                     let d = usize::from(self.tables[o][table][rank(&binom, mask)]);
                     sum += d;
                     worst = worst.max(d);
@@ -275,7 +275,7 @@ impl Model {
                         .1
                         .iter()
                         .enumerate()
-                        .map(|(o, colours)| colours.map(|mask| permute(&self.perms[m][o], mask)))
+                        .map(|(o, colors)| colors.map(|mask| permute(&self.perms[m][o], mask)))
                         .collect();
                     next.push((score(&masks), masks, parent, m));
                 }
@@ -339,7 +339,7 @@ impl Model {
             let next: Vec<[u32; 6]> = masks
                 .iter()
                 .enumerate()
-                .map(|(o, colours)| colours.map(|mask| permute(&self.perms[m][o], mask)))
+                .map(|(o, colors)| colors.map(|mask| permute(&self.perms[m][o], mask)))
                 .collect();
             walk.path.push(m);
             match self.descend(walk, &next, left - 1, m) {

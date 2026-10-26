@@ -2,13 +2,13 @@
 //! equals one of them.
 //!
 //! The similarity to a pattern is the share of stickers that agree after the
-//! best of the 48 symmetries and the best renaming of the six colours, so it
+//! best of the 48 symmetries and the best renaming of the six colors, so it
 //! counts pieces that are equal in place and orientation. A cube that is
 //! nothing like the pattern still agrees on a large share of its stickers
 //! (a random cube about a third with the solved cube), so the number says
 //! "closer", not "nearly the same".
 
-use super::center_names::{centre_classes, pair_up};
+use super::center_names::{center_classes, pair_up};
 use super::geometry::tables;
 use super::library::{entries, Entry};
 use super::pieces::layout;
@@ -37,7 +37,7 @@ pub struct Partial {
     pub differ: Vec<String>,
 }
 
-fn colour_permutations() -> &'static [[u8; 6]] {
+fn color_permutations() -> &'static [[u8; 6]] {
     static ALL: std::sync::OnceLock<Vec<[u8; 6]>> = std::sync::OnceLock::new();
     ALL.get_or_init(|| {
         let mut out = Vec::new();
@@ -68,7 +68,7 @@ fn best_agreement(kind: PuzzleKind, state: &[u8], pattern: &[u8]) -> (usize, usi
         for (i, &to) in tables.perm[g].iter().enumerate() {
             count[pattern[i] as usize][state[to as usize] as usize] += 1;
         }
-        for map in colour_permutations() {
+        for map in color_permutations() {
             let score: usize = (0..6).map(|c| count[c][map[c] as usize]).sum();
             if score > best.0 {
                 best = (score, g, *map);
@@ -97,9 +97,9 @@ fn orbit_sets(kind: PuzzleKind) -> Vec<(String, Vec<usize>)> {
         };
         sets.push((name, wings.iter().flat_map(|w| w.stickers).collect()));
     }
-    let mut names: Vec<String> = centre_classes(kind).into_iter().map(|c| c.name).collect();
+    let mut names: Vec<String> = center_classes(kind).into_iter().map(|c| c.name).collect();
     pair_up(names.iter_mut());
-    for (name, orbit) in names.into_iter().zip(&layout.centres) {
+    for (name, orbit) in names.into_iter().zip(&layout.centers) {
         sets.push((name, orbit.clone()));
     }
     sets

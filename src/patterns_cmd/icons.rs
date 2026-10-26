@@ -1,7 +1,7 @@
 //! Pictures for the pattern commands: the drawing code of `solve --icons`
 //! and `moves --icons` with a label line above every state.
 
-use cubacle::notation::{ColourScheme, Notation};
+use cubacle::notation::{ColorScheme, Notation};
 use cubacle::patterns::Generator;
 use cubacle::puzzle::{Facelets, MoveSequence, PuzzleKind};
 
@@ -10,7 +10,7 @@ use crate::steps::{end_line, PictureArgs, Pictures, SolutionIcons};
 /// The picture options, when `--icons` was given.
 pub(super) fn options(
     args: &PictureArgs,
-    scheme: Option<ColourScheme>,
+    scheme: Option<ColorScheme>,
     notation: Notation,
 ) -> Option<SolutionIcons> {
     args.icons.then(|| args.options(scheme, notation))

@@ -1,22 +1,22 @@
 //! Which of the 48 cube symmetries leave a state unchanged, up to a
-//! permutation of the six colours.
+//! permutation of the six colors.
 //!
-//! Turning (or mirroring) the cube moves every sticker, and the colour of a
+//! Turning (or mirroring) the cube moves every sticker, and the color of a
 //! sticker may be renamed on the way. A symmetry `g` fixes a state `s` when
-//! some colour permutation `t` gives `s[g(i)] = t(s[i])` for every sticker
+//! some color permutation `t` gives `s[g(i)] = t(s[i])` for every sticker
 //! `i`. When `t` is the identity the state is fixed literally; otherwise it
-//! is fixed only after the colours are renamed (a superflip stays a superflip
-//! when the cube is turned, but the sticker that was F-coloured on U is
-//! R-coloured after a quarter turn about U/D).
+//! is fixed only after the colors are renamed (a superflip stays a superflip
+//! when the cube is turned, but the sticker that was F-colored on U is
+//! R-colored after a quarter turn about U/D).
 
 use super::geometry::{axis_name, face_letter, symmetries, tables};
 use crate::puzzle::PuzzleKind;
 
-/// A colour permutation: `t[c]` is the colour that `c` becomes.
-pub(crate) type Colours = [u8; 6];
+/// A color permutation: `t[c]` is the color that `c` becomes.
+pub(crate) type Colors = [u8; 6];
 
 /// `t` with `a[perm[i]] == t[b[i]]` for every sticker, if there is one.
-pub(crate) fn colour_map(a: &[u8], b: &[u8], perm: &[u16]) -> Option<Colours> {
+pub(crate) fn color_map(a: &[u8], b: &[u8], perm: &[u16]) -> Option<Colors> {
     let mut map = [u8::MAX; 6];
     for (i, &to) in perm.iter().enumerate() {
         let (from, into) = (b[i] as usize, a[to as usize]);
@@ -45,15 +45,15 @@ pub struct Operation {
     pub axis: String,
     /// Whether the operation is a mirror image.
     pub mirror: bool,
-    /// The renaming of colours that makes the operation fix the state, as
-    /// cycles such as `(U D)(R L)`; empty if no colour changes.
-    pub colour_swap: String,
+    /// The renaming of colors that makes the operation fix the state, as
+    /// cycles such as `(U D)(R L)`; empty if no color changes.
+    pub color_swap: String,
 }
 
 impl Operation {
-    /// Whether the state is fixed without renaming any colour.
-    pub fn keeps_colours(&self) -> bool {
-        self.colour_swap.is_empty()
+    /// Whether the state is fixed without renaming any color.
+    pub fn keeps_colors(&self) -> bool {
+        self.color_swap.is_empty()
     }
 }
 
@@ -74,14 +74,14 @@ impl Symmetry {
         self.operations.iter().filter(|o| !o.mirror).count()
     }
 
-    /// How many fix the state with no colour renamed.
-    pub fn colour_preserving(&self) -> usize {
-        self.operations.iter().filter(|o| o.keeps_colours()).count()
+    /// How many fix the state with no color renamed.
+    pub fn color_preserving(&self) -> usize {
+        self.operations.iter().filter(|o| o.keeps_colors()).count()
     }
 }
 
-/// The cycles of a colour permutation, `(U D)(R L)`; empty for the identity.
-fn cycles(map: &Colours) -> String {
+/// The cycles of a color permutation, `(U D)(R L)`; empty for the identity.
+fn cycles(map: &Colors) -> String {
     let mut seen = [false; 6];
     let mut text = String::new();
     for start in 0..6 {
@@ -103,19 +103,19 @@ fn cycles(map: &Colours) -> String {
     text
 }
 
-/// The symmetries of `state` (colours 0 to 5 in URFDLB order).
+/// The symmetries of `state` (colors 0 to 5 in URFDLB order).
 pub(crate) fn symmetry_of(kind: PuzzleKind, state: &[u8]) -> Symmetry {
     let tables = tables(kind);
     let mut operations = Vec::new();
     for (g, sym) in symmetries().iter().enumerate() {
-        let Some(map) = colour_map(state, state, &tables.perm[g]) else {
+        let Some(map) = color_map(state, state, &tables.perm[g]) else {
             continue;
         };
         operations.push(Operation {
             class: sym.class(),
             axis: axis_name(*sym),
             mirror: sym.is_mirror(),
-            colour_swap: cycles(&map),
+            color_swap: cycles(&map),
         });
     }
     Symmetry { operations }
@@ -126,16 +126,16 @@ mod tests {
     use super::*;
     use crate::puzzle::Facelets;
 
-    fn colours(cube: &Facelets) -> Vec<u8> {
+    fn colors(cube: &Facelets) -> Vec<u8> {
         cube.stickers().iter().map(|f| *f as u8).collect()
     }
 
     #[test]
-    fn the_solved_cube_has_all_48_symmetries_and_only_the_identity_keeps_colours() {
+    fn the_solved_cube_has_all_48_symmetries_and_only_the_identity_keeps_colors() {
         for kind in PuzzleKind::ALL {
-            let s = symmetry_of(kind, &colours(&Facelets::solved(kind)));
+            let s = symmetry_of(kind, &colors(&Facelets::solved(kind)));
             assert_eq!(s.order(), 48);
-            assert_eq!(s.colour_preserving(), 1);
+            assert_eq!(s.color_preserving(), 1);
             assert_eq!(s.rotations(), 24);
         }
     }
@@ -152,7 +152,7 @@ mod tests {
             let cube = Facelets::solved(kind)
                 .apply(&moves.parse().unwrap())
                 .unwrap();
-            let state = colours(&cube);
+            let state = colors(&cube);
             let order = symmetry_of(kind, &state).order();
             for g in 0..48 {
                 let turned = image(kind, &state, g);
@@ -168,7 +168,7 @@ mod tests {
         let cube = Facelets::solved(PuzzleKind::Cube3)
             .apply(&"R".parse().unwrap())
             .unwrap();
-        let s = symmetry_of(PuzzleKind::Cube3, &colours(&cube));
+        let s = symmetry_of(PuzzleKind::Cube3, &colors(&cube));
         assert!(s.order() < 48);
         assert!(48 % s.order() == 0);
     }

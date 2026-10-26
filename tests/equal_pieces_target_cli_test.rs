@@ -1,6 +1,6 @@
-//! `solve --to` on the 4x4x4 and larger: equal-coloured centres are paired
-//! fixed points first, so a target whose faces keep one colour per kind of
-//! centre is reached even when its centres sit on other faces.
+//! `solve --to` on the 4x4x4 and larger: equal-colored centers are paired
+//! fixed points first, so a target whose faces keep one color per kind of
+//! center is reached even when its centers sit on other faces.
 
 use cubacle::notation::parse_expression;
 use cubacle::puzzle::{reaches, Facelets, MoveSequence, PuzzleKind};
@@ -39,14 +39,14 @@ fn reaches_target(size: usize, start: &str, to: &str) -> usize {
 }
 
 #[test]
-fn a_4x4_target_with_centres_on_other_faces_is_reached() {
-    // refused with "the target has centres out of place" before the pairing
+fn a_4x4_target_with_centers_on_other_faces_is_reached() {
+    // refused with "the target has centers out of place" before the pairing
     reaches_target(4, "R U", "Rw2 Lw2");
     reaches_target(4, "R U", "Rw2 Lw2 Uw2 Dw2 Fw2 Bw2");
 }
 
 #[test]
-fn a_5x5_target_with_centres_on_other_faces_is_reached() {
+fn a_5x5_target_with_centers_on_other_faces_is_reached() {
     reaches_target(5, "R U F2", "Rw2 Lw2 Uw2 Dw2 Fw2 Bw2");
 }
 
@@ -58,8 +58,8 @@ fn outer_targets_are_reached_on_the_6x6_and_7x7() {
 }
 
 #[test]
-fn centres_of_one_kind_in_two_colours_on_a_face_are_reached_by_a_fix_up() {
-    // refused before the centre fix-up existed; see centre_fixup_cli_test.rs
+fn centers_of_one_kind_in_two_colors_on_a_face_are_reached_by_a_fix_up() {
+    // refused before the center fix-up existed; see center_fixup_cli_test.rs
     reaches_target(5, "R U", "Rw2 Lw2");
     reaches_target(4, "R U", "Rw");
 }

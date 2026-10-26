@@ -3,7 +3,7 @@
 
 use clap::{Args, Subcommand};
 use cubacle::engines::pattern::DEFAULT_MAX_MEMORY_MB;
-use cubacle::notation::{ColourScheme, Notation};
+use cubacle::notation::{ColorScheme, Notation};
 use cubacle::patterns::PatternKind;
 
 use crate::steps::PictureArgs;
@@ -84,7 +84,7 @@ enum Action {
     List,
     /// Describe one pattern and print its generators
     Show {
-        /// Pattern id, name, alias or catalogue id (`ct:A200.01`), with `#n` for one generator; spaces are allowed and need no quoting
+        /// Pattern id, name, alias or catalog id (`ct:A200.01`), with `#n` for one generator; spaces are allowed and need no quoting
         #[arg(num_args = 1.., required = true)]
         name: Vec<String>,
     },
@@ -94,7 +94,7 @@ enum Action {
     /// grows, the pattern it is, its pieces and the subgroups it lies in
     Identify(IdentifyCmd),
     /// Print a state as piece cycles with orientation marks and the order of
-    /// the permutation (moves give the exact order; colours only on 2x2x2 and 3x3x3)
+    /// the permutation (moves give the exact order; colors only on 2x2x2 and 3x3x3)
     Cycles(IdentifyArgs),
     /// Import a tab-separated pattern table (CubeTwister `PatternExportTab.txt` layout)
     Import(crate::patterns_import_cmd::ImportArgs),
@@ -119,7 +119,7 @@ pub struct IdentifyCmd {
 
 #[derive(Args)]
 pub struct IdentifyArgs {
-    /// An Orbit64 token, URFDLB facelets, W/R/G/Y/O/B colours or a move
+    /// An Orbit64 token, URFDLB facelets, W/R/G/Y/O/B colors or a move
     /// expression for a cube of --size (3 unless given); spaces are allowed and
     /// need no quoting
     #[arg(num_args = 1.., required_unless_present = "scramble", conflicts_with = "scramble")]
@@ -127,9 +127,9 @@ pub struct IdentifyArgs {
     /// Use the cube this scramble makes (on a cube of --size)
     #[arg(short, long)]
     scramble: Option<String>,
-    /// Colour scheme of colour input: boy, jp or six letters in URFDLB order
+    /// Color scheme of color input: boy, jp or six letters in URFDLB order
     #[arg(long)]
-    scheme: Option<ColourScheme>,
+    scheme: Option<ColorScheme>,
     /// How many of the closest patterns (built-in and imported) to list. The
     /// percentage counts equal stickers and is not a distance: a state a few
     /// block moves from a pattern can agree with it on far fewer stickers
@@ -139,7 +139,7 @@ pub struct IdentifyArgs {
 
 #[derive(Args)]
 pub struct FindArgs {
-    /// An Orbit64 token, URFDLB facelets, W/R/G/Y/O/B colours or a move
+    /// An Orbit64 token, URFDLB facelets, W/R/G/Y/O/B colors or a move
     /// expression for a cube of --size (3 unless given); spaces are allowed and
     /// need no quoting
     #[arg(num_args = 1.., required_unless_present = "scramble", conflicts_with = "scramble")]
@@ -147,9 +147,9 @@ pub struct FindArgs {
     /// Use the cube this scramble makes (on a cube of --size)
     #[arg(short, long)]
     scramble: Option<String>,
-    /// Colour scheme of colour input: boy, jp or six letters in URFDLB order
+    /// Color scheme of color input: boy, jp or six letters in URFDLB order
     #[arg(long)]
-    scheme: Option<ColourScheme>,
+    scheme: Option<ColorScheme>,
     /// Build the state with these moves only: a list, a named set or <R,U>
     /// generators (see `solve --moves`)
     #[arg(long, value_name = "SET")]

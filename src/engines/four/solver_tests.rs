@@ -106,19 +106,19 @@ fn scrambled_cubes_are_solved_and_the_answer_replays() {
     }
 }
 
-/// Whether the four centre stickers of every face show one colour.
-fn centres_uniform(cube: &Facelets) -> bool {
+/// Whether the four center stickers of every face show one color.
+fn centers_uniform(cube: &Facelets) -> bool {
     let s = cube.stickers();
     (0..6).all(|f| [6, 9, 10].iter().all(|&i| s[f * 16 + i] == s[f * 16 + 5]))
 }
 
 #[test]
-fn the_stages_cover_the_answer_and_the_reduction_ends_with_solved_centres() {
+fn the_stages_cover_the_answer_and_the_reduction_ends_with_solved_centers() {
     let four = solver(2);
     let names = [
-        "centres staged",
-        "centres sorted and wings split",
-        "centres and wings paired",
+        "centers staged",
+        "centers sorted and wings split",
+        "centers and wings paired",
         "3x3 stage",
     ];
     for seed in 1..=8 {
@@ -136,7 +136,7 @@ fn the_stages_cover_the_answer_and_the_reduction_ends_with_solved_centres() {
                 .apply(&MoveSequence::new(solution.moves()[..ends[2]].to_vec()))
                 .unwrap();
             assert!(
-                centres_uniform(&reduced),
+                centers_uniform(&reduced),
                 "seed {seed} slices {slices}: {ends:?}"
             );
             // the first stage is real work on a scrambled cube
@@ -152,7 +152,7 @@ fn a_reduction_only_answer_has_the_three_reduction_stages() {
     let solution = result.solution().expect("a reduction");
     let got: Vec<(&str, usize)> = result.stages.iter().map(|s| (s.name, s.end)).collect();
     assert_eq!(got.len(), 3);
-    assert_eq!(got[2], ("centres and wings paired", solution.len()));
+    assert_eq!(got[2], ("centers and wings paired", solution.len()));
 }
 
 #[test]

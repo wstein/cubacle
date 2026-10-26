@@ -28,7 +28,7 @@ mod cases {
     }
 
     #[test]
-    fn an_inner_slice_makes_centres_mixed() {
+    fn an_inner_slice_makes_centers_mixed() {
         for kind in [PuzzleKind::Cube4, PuzzleKind::Cube5, PuzzleKind::Cube7] {
             assert!(!uniform(&cube(kind, "2R")), "{kind:?}");
         }
@@ -117,7 +117,7 @@ mod cases {
         assert_eq!(usize::from(limited.max_moves.unwrap()), 30 - tail);
         let refused = plan.limit(&options.with_max_moves(tail as u8)).unwrap_err();
         assert_eq!(refused.outcome, Err(Failure::Exhausted));
-        assert!(refused.message.unwrap().contains("centre fix-up"));
+        assert!(refused.message.unwrap().contains("center fix-up"));
         let spent = options.with_time_budget(Duration::ZERO);
         assert_eq!(
             plan.limit(&spent).unwrap_err().outcome,
@@ -127,10 +127,10 @@ mod cases {
 
     #[test]
     fn a_target_no_cube_can_be_is_impossible() {
-        // swap a corner-of-centres sticker with an edge-of-centres sticker of a
-        // 5x5: the centre orbits then hold the wrong colours
+        // swap a corner-of-centers sticker with an edge-of-centers sticker of a
+        // 5x5: the center orbits then hold the wrong colors
         let mut stickers = cube(PuzzleKind::Cube5, "R U").stickers().to_vec();
-        let orbits = centre_orbits(PuzzleKind::Cube5);
+        let orbits = center_orbits(PuzzleKind::Cube5);
         let (x, t) = (orbits[0][0], orbits[1][8]);
         assert_ne!(stickers[x], stickers[t]);
         stickers.swap(x, t);

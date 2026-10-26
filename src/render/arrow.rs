@@ -45,7 +45,7 @@ impl Direction {
 
 pub(crate) struct Plan {
     pub face: Face,
-    /// The centre line in plane coordinates, tail first.
+    /// The center line in plane coordinates, tail first.
     pub path: Vec<[f64; 2]>,
     pub direction: Direction,
 }
@@ -64,7 +64,7 @@ pub(crate) fn plan(action: &Action, n: usize) -> Plan {
         return rotation_plan(axis, sense, nf);
     }
     let mut p0 = [0.0; 3];
-    p0[axis] = action.band_centre(n);
+    p0[axis] = action.band_center(n);
     let normal = if face == Face::R { 0 } else { 2 };
     p0[normal] = nf;
     let [cu, cv] = plane_coords(face, p0);
@@ -295,7 +295,7 @@ const HALO: f64 = 1.2;
 /// Distance kept between any drawing and the canvas edge.
 const EDGE: f64 = 2.0;
 
-/// An upright `2x`, not in perspective, in the arrow colour with a white
+/// An upright `2x`, not in perspective, in the arrow color with a white
 /// outline: right of a vertical arrow, above a horizontal one (right of it
 /// when above does not fit).
 fn half_text(plan: &Plan, nf: f64, projection: &Projection, width: f64) -> Vec<Shape> {
@@ -332,7 +332,7 @@ mod tests {
         text.parse().unwrap()
     }
 
-    fn centre(kind: PuzzleKind, index: usize) -> [f64; 3] {
+    fn center(kind: PuzzleKind, index: usize) -> [f64; 3] {
         let (p, nrm) = locate(kind, index);
         [0, 1, 2].map(|i| f64::from(p[i] + nrm[i]))
     }
@@ -435,7 +435,7 @@ mod tests {
                 let (mut old, mut new) = ([0.0; 3], [0.0; 3]);
                 let (mut n_old, mut n_new) = (0.0, 0.0);
                 for i in 0..kind.facelet_count() {
-                    let c = centre(kind, i);
+                    let c = center(kind, i);
                     let on_plane = Face::ALL[i / kind.face_len()] == plan.face;
                     if on_plane && action.moves(kind, locate(kind, i).0) {
                         (0..3).for_each(|k| old[k] += c[k]);
@@ -510,7 +510,7 @@ mod tests {
                 let hit = (0..kind.facelet_count())
                     .filter(|&i| Face::ALL[i / kind.face_len()] == plan.face)
                     .find(|&i| {
-                        let [u, v] = plane_coords(plan.face, centre(kind, i));
+                        let [u, v] = plane_coords(plan.face, center(kind, i));
                         (u - point[0]).abs() <= 1.0 && (v - point[1]).abs() <= 1.0
                     })
                     .expect("a sticker under the arrow");

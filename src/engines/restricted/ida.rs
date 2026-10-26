@@ -94,7 +94,7 @@ impl<'a> Ida<'a> {
                 apply(&letter.src, &here, &mut child);
                 self.table.get(&child) == Some(distance - 1)
             });
-            let index = next.expect("a state of the table has a neighbour one step nearer");
+            let index = next.expect("a state of the table has a neighbor one step nearer");
             self.path.push(index);
             apply(&self.letters.letters[index].src, &here.clone(), &mut here);
             distance -= 1;

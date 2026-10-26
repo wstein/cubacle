@@ -2,19 +2,19 @@
 
 use super::Group;
 
-/// The short catalogue code of a built-in pattern id (`cu:<code>`).
+/// The short catalog code of a built-in pattern id (`cu:<code>`).
 pub(super) fn builtin_code(id: &str) -> &str {
     match id {
         "checkerboard" => "checker",
         "six-spots" => "sixspot",
-        "six-centre-spots" => "sixcentre",
+        "six-center-spots" => "sixcentre",
         "four-spots" => "foursp",
-        "four-centre-spots" => "fourcen",
+        "four-center-spots" => "fourcen",
         "cube-in-cube" => "cubecube",
         "cube-in-cube-in-cube" => "ccc",
         "superflip" => "superflip",
-        "centres-opposite" => "cenopp",
-        "centres-cycled" => "cencyc",
+        "centers-opposite" => "cenopp",
+        "centers-cycled" => "cencyc",
         other => other,
     }
 }
@@ -35,12 +35,12 @@ pub(super) fn valid_source(source: &str) -> bool {
 /// The category of a built-in pattern id.
 pub(super) fn builtin_group(id: &str) -> Vec<Group> {
     let (de, en) = match id {
-        "checkerboard" | "six-spots" | "six-centre-spots" | "four-spots" | "four-centre-spots" => {
+        "checkerboard" | "six-spots" | "six-center-spots" | "four-spots" | "four-center-spots" => {
             ("Einfache Muster", "Simple patterns")
         }
         "cube-in-cube" | "cube-in-cube-in-cube" => ("Würfel im Würfel", "Cube in a cube"),
         "superflip" => ("Flips", "Flips"),
-        "centres-opposite" | "centres-cycled" => ("Zentren", "Centres"),
+        "centers-opposite" | "centers-cycled" => ("Zentren", "Centers"),
         _ => ("Weitere Muster", "Other patterns"),
     };
     vec![Group {
