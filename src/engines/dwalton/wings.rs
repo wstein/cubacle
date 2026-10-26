@@ -9,6 +9,15 @@ use std::time::Duration;
 use super::fake::{five_of, four_of, lift, three_of};
 use crate::puzzle::{Facelets, Failure, Move, MoveSequence, PuzzleKind, SolveOptions, Solver};
 
+/// Probes of the 3x3x3 stage for each probe asked: measured (see
+/// `tools/bench/probes_big.rs`), the 3x3x3 stage gains most of the shorter
+/// answers, and a thousand per probe is where the gain flattens.
+const TAIL_PROBES: u64 = 1000;
+
+/// What a stage may spend: a time budget and a probe count (the number of
+/// reductions a wing stage keeps, the probe minimum of the 3x3x3 stage).
+pub(super) type Stint = (Option<Duration>, Option<u64>);
+
 /// What went wrong when a stage handed to an engine.
 #[derive(Debug)]
 pub(super) struct Refused {
@@ -25,13 +34,24 @@ fn limited(options: SolveOptions, budget: Option<Duration>) -> SolveOptions {
     }
 }
 
+/// `options` asking for `probes` probes, if any.
+fn probing(options: SolveOptions, probes: Option<u64>) -> SolveOptions {
+    match probes {
+        Some(n) => options.with_min_probes(n),
+        None => options,
+    }
+}
+
 fn reduce_with(
     engine: &Arc<dyn Solver + Send + Sync>,
     fake: &Facelets,
     stage: &'static str,
-    budget: Option<Duration>,
+    (budget, probes): Stint,
 ) -> Result<Vec<Move>, Refused> {
-    let options = limited(SolveOptions::default().with_reduce_only(true), budget);
+    let options = probing(
+        limited(SolveOptions::default().with_reduce_only(true), budget),
+        probes,
+    );
     let result = engine.solve(fake, &options);
     match result.outcome {
         Ok(seq) => Ok(seq.moves().to_vec()),
@@ -52,10 +72,10 @@ fn apply(cube: &Facelets, moves: &[Move]) -> Facelets {
 pub(super) fn inner_wings(
     four: &Arc<dyn Solver + Send + Sync>,
     cube: &Facelets,
-    budget: Option<Duration>,
+    stint: Stint,
 ) -> Result<Vec<Move>, Refused> {
     let n = cube.kind().size();
-    let moves = reduce_with(four, &four_of(cube), "inner wings (4x4x4)", budget)?;
+    let moves = reduce_with(four, &four_of(cube), "inner wings (4x4x4)", stint)?;
     let depth = (n / 2) as u8;
     let lifted: Vec<Move> = moves.iter().flat_map(|m| lift(m, depth)).collect();
     // The 4x4x4 turns whole-cube-wide layers as 4Xw; none are expected.
@@ -68,9 +88,9 @@ pub(super) fn orbit_wings(
     five: &Arc<dyn Solver + Send + Sync>,
     cube: &Facelets,
     orbit: usize,
-    budget: Option<Duration>,
+    stint: Stint,
 ) -> Result<Vec<Move>, Refused> {
-    let moves = reduce_with(five, &five_of(cube, orbit), "outer wings (5x5x5)", budget)?;
+    let moves = reduce_with(five, &five_of(cube, orbit), "outer wings (5x5x5)", stint)?;
     Ok(moves
         .iter()
         .flat_map(|m| lift(m, (orbit + 2) as u8))
@@ -81,10 +101,14 @@ pub(super) fn orbit_wings(
 pub(super) fn finish(
     three: &Arc<dyn Solver + Send + Sync>,
     cube: &Facelets,
-    budget: Option<Duration>,
+    (budget, probes): Stint,
 ) -> Result<Vec<Move>, Refused> {
     debug_assert!(matches!(cube.kind(), PuzzleKind::Cube6 | PuzzleKind::Cube7));
-    let result = three.solve(&three_of(cube), &limited(SolveOptions::default(), budget));
+    let options = probing(
+        limited(SolveOptions::default(), budget),
+        probes.map(|n| n * TAIL_PROBES),
+    );
+    let result = three.solve(&three_of(cube), &options);
     match result.outcome {
         Ok(seq) => Ok(seq.moves().to_vec()),
         Err(failure) => Err(Refused {

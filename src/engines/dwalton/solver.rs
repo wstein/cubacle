@@ -12,7 +12,7 @@ use crate::puzzle::{
     normalize, Face, Facelets, Failure, Move, MoveSequence, PuzzleKind, SolveMetrics, SolveOptions,
     SolveResult, Solver,
 };
-use crate::reduction::par;
+use crate::reduction::{improve, par};
 
 type Engine = Arc<dyn Solver + Send + Sync>;
 
@@ -34,8 +34,20 @@ pub struct DwaltonSolver {
     seven: OnceLock<Seven>,
 }
 
-type WingStage<'a> =
-    Box<dyn Fn(&Facelets, Option<Duration>) -> Result<Vec<Move>, wings::Refused> + 'a>;
+type WingStage<'a> = Box<dyn Fn(&Facelets, wings::Stint) -> Result<Vec<Move>, wings::Refused> + 'a>;
+
+/// What a solve spends on a shorter answer: a probe count (see
+/// [`DwaltonSolver::tail`]) and, if the first solution had no limit, the time
+/// the improving tail may take.
+#[derive(Clone, Copy)]
+struct Improve {
+    probes: u64,
+    within: Option<Duration>,
+}
+
+/// The moves of each stage after the centers.
+type Tail = Vec<(&'static str, Vec<Move>)>;
+type TailResult = Result<Tail, (Failure, String)>;
 
 impl std::fmt::Debug for DwaltonSolver {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -76,14 +88,80 @@ impl DwaltonSolver {
 
     /// Solves and reports the moves of each stage.
     pub fn solve_tallied(&self, cube: &Facelets) -> (SolveResult, StageTally) {
-        self.tallied(cube, None)
+        self.tallied(cube, None, None)
+    }
+
+    /// The stages after the centers (wing pairing, the 3x3x3), each with its
+    /// moves. With `probes`, the wing stages keep that many reductions and
+    /// the 3x3x3 stage makes that many probes at least.
+    fn tail(&self, cur: &Facelets, deadline: Option<Instant>, probes: Option<u64>) -> TailResult {
+        let stages: Vec<(&'static str, WingStage<'_>)> = if self.kind == PuzzleKind::Cube6 {
+            vec![
+                (
+                    "inner wings (4x4x4)",
+                    Box::new(|c, s| wings::inner_wings(&self.four, c, s)),
+                ),
+                (
+                    "outer wings (5x5x5)",
+                    Box::new(|c, s| wings::orbit_wings(&self.five, c, 0, s)),
+                ),
+                ("3x3x3", Box::new(|c, s| wings::finish(&self.three, c, s))),
+            ]
+        } else {
+            vec![
+                (
+                    "inner wings (5x5x5)",
+                    Box::new(|c, s| wings::orbit_wings(&self.five, c, 1, s)),
+                ),
+                (
+                    "outer wings (5x5x5)",
+                    Box::new(|c, s| wings::orbit_wings(&self.five, c, 0, s)),
+                ),
+                ("3x3x3", Box::new(|c, s| wings::finish(&self.three, c, s))),
+            ]
+        };
+        let mut cur = cur.clone();
+        let mut parts: Tail = Vec::new();
+        for (name, run) in stages {
+            let left = match deadline {
+                Some(d) if Instant::now() >= d => {
+                    return Err((
+                        Failure::BudgetExhausted,
+                        format!("the time limit was reached before the stage {name}"),
+                    ))
+                }
+                Some(d) => Some(
+                    d.saturating_duration_since(Instant::now())
+                        .max(Duration::from_millis(1)),
+                ),
+                None => None,
+            };
+            match run(&cur, (left, probes)) {
+                Ok(moves) => {
+                    cur = cur.apply(&MoveSequence::new(moves.clone())).expect("fits");
+                    parts.push((name, moves));
+                }
+                Err(r) => {
+                    return Err((
+                        r.failure,
+                        format!("{}: {}", r.stage, r.message.unwrap_or_default()),
+                    ))
+                }
+            }
+        }
+        Ok(parts)
     }
 
     /// Solves within `budget`, if there is one, and reports the moves of each
     /// stage. The clock is looked at inside the center searches (every few
     /// thousand nodes) and between the stages; the engines of the wing
     /// stages get what is left.
-    fn tallied(&self, cube: &Facelets, budget: Option<Duration>) -> (SolveResult, StageTally) {
+    fn tallied(
+        &self,
+        cube: &Facelets,
+        budget: Option<Duration>,
+        better: Option<Improve>,
+    ) -> (SolveResult, StageTally) {
         let started = Instant::now();
         let deadline = budget.and_then(|budget| started.checked_add(budget));
         let expired = || deadline.is_some_and(|d| Instant::now() >= d);
@@ -159,58 +237,35 @@ impl DwaltonSolver {
         }
         cur = after;
 
-        let stages: Vec<(&'static str, WingStage<'_>)> = if self.kind == PuzzleKind::Cube6 {
-            vec![
-                (
-                    "inner wings (4x4x4)",
-                    Box::new(|c, b| wings::inner_wings(&self.four, c, b)),
-                ),
-                (
-                    "outer wings (5x5x5)",
-                    Box::new(|c, b| wings::orbit_wings(&self.five, c, 0, b)),
-                ),
-                ("3x3x3", Box::new(|c, b| wings::finish(&self.three, c, b))),
-            ]
-        } else {
-            vec![
-                (
-                    "inner wings (5x5x5)",
-                    Box::new(|c, b| wings::orbit_wings(&self.five, c, 1, b)),
-                ),
-                (
-                    "outer wings (5x5x5)",
-                    Box::new(|c, b| wings::orbit_wings(&self.five, c, 0, b)),
-                ),
-                ("3x3x3", Box::new(|c, b| wings::finish(&self.three, c, b))),
-            ]
+        // The first solution is probe 1; with a probe count, the same tail is
+        // done again with more reductions and a stronger 3x3x3 stage, and the
+        // shorter total wins (the first on a tie).
+        let first = match self.tail(&cur, deadline, None) {
+            Ok(parts) => parts,
+            Err((failure, message)) => return fail(failure, message, &tally),
         };
-        for (name, run) in stages {
-            if expired() {
-                return fail(
-                    Failure::BudgetExhausted,
-                    format!("the time limit was reached before the stage {name}"),
-                    &tally,
-                );
-            }
-            let left = deadline.map(|d| {
-                d.saturating_duration_since(Instant::now())
-                    .max(Duration::from_millis(1))
-            });
-            match run(&cur, left) {
-                Ok(moves) => {
-                    cur = cur.apply(&MoveSequence::new(moves.clone())).expect("fits");
-                    note(&mut tally, name, &moves);
-                    all.extend(moves);
-                    marks.push((name, all.len()));
-                }
-                Err(r) => {
-                    return fail(
-                        r.failure,
-                        format!("{}: {}", r.stage, r.message.unwrap_or_default()),
-                        &tally,
-                    )
+        let total = |parts: &Tail| {
+            let mut joined = all.clone();
+            joined.extend(parts.iter().flat_map(|(_, moves)| moves.iter().copied()));
+            normalize(self.kind.size(), &joined, false).len()
+        };
+        let mut chosen = first;
+        let mut improved = None;
+        if let Some(Improve { probes: n, within }) = better {
+            let before = total(&chosen);
+            let limit = within.map_or(deadline, |w| Instant::now().checked_add(w));
+            // A timeout here keeps the first solution.
+            if let Ok(better) = self.tail(&cur, limit, Some(n)) {
+                if total(&better) < before {
+                    chosen = better;
                 }
             }
+            improved = Some((before, total(&chosen)));
+        }
+        for (name, moves) in chosen {
+            note(&mut tally, name, &moves);
+            all.extend(moves);
+            marks.push((name, all.len()));
         }
         let solution = normalize(self.kind.size(), &all, false);
         let ok = cube
@@ -249,7 +304,8 @@ impl DwaltonSolver {
         (
             SolveResult {
                 outcome: Ok(MoveSequence::new(solution)),
-                message: None,
+                message: improved
+                    .map(|(first, last)| format!("improved from {first} to {last} moves")),
                 metrics: SolveMetrics {
                     elapsed: started.elapsed(),
                     probes: None,
@@ -267,7 +323,23 @@ impl Solver for DwaltonSolver {
     }
 
     fn solve(&self, facelets: &Facelets, options: &SolveOptions) -> SolveResult {
-        self.tallied(facelets, options.time_budget).0
+        let better = options.min_probes.map(|probes| Improve {
+            probes,
+            within: None,
+        });
+        self.tallied(facelets, options.time_budget, better).0
+    }
+
+    /// The first solution without a time limit, then the improving tail
+    /// within the budget (default one second). The work is a function of the
+    /// budget, as on the 4x4x4 and 5x5x5; only the clock can cut it short.
+    fn solve_improving(&self, facelets: &Facelets, options: &SolveOptions) -> SolveResult {
+        let budget = options.time_budget.unwrap_or(improve::DEFAULT_BUDGET);
+        let better = Improve {
+            probes: improve::plan(budget).candidates as u64,
+            within: Some(budget),
+        };
+        self.tallied(facelets, None, Some(better)).0
     }
 }
 
@@ -289,7 +361,7 @@ mod tests {
                 .unwrap();
             let (cube, done, _) = six.centers(&cube, 40, None).unwrap();
             assert!(super::super::six_stage5::centers_reduced(&cube));
-            let moves = wings::inner_wings(&four, &cube, None).unwrap();
+            let moves = wings::inner_wings(&four, &cube, (None, None)).unwrap();
             let after = cube.apply(&MoveSequence::new(moves.clone())).unwrap();
             assert!(
                 super::super::six_stage5::centers_reduced(&after),
