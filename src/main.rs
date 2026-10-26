@@ -15,6 +15,8 @@ mod patterns_config;
 mod patterns_import_cmd;
 mod patterns_update;
 mod phase_dots;
+mod photo_cmd;
+mod png_out;
 mod ram;
 mod recover_cmd;
 mod recover_icons;
@@ -73,6 +75,8 @@ enum Command {
     Order(order_cmd::OrderArgs),
     /// Print the canonical Orbit64 token of a cube: one identifier for the cube and its turned, mirrored and recolored images
     Canon(canon_cmd::CanonArgs),
+    /// Write synthetic photos of the six faces of a cube as PNG files (for testing color recognition)
+    Photo(photo_cmd::PhotoArgs),
     /// List the pretty patterns (checkerboard, cube in a cube, ...) or show one with its generator
     Patterns(patterns_cmd::PatternsArgs),
     /// Work with .cubacle template files: check that a schema and guard parse
@@ -327,6 +331,7 @@ fn run(cli: Cli) -> Result<(), String> {
         Command::Moves(args) => moves_cmd::run(args),
         Command::Order(args) => order_cmd::run(args),
         Command::Canon(args) => canon_cmd::run(args),
+        Command::Photo(args) => photo_cmd::run(args),
         Command::Patterns(args) => patterns_cmd::run(args),
         Command::Template(args) => template_cmd::run(args),
         Command::Convert(args) => {
