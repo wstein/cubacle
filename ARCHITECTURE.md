@@ -19,6 +19,8 @@ src/
   metrics/        move counts in HTM, QTM, STM, ETM, OBTM, BTM and ATM
   ranges/         post-solve compression of axis runs into layer ranges (2-3r)
   render/         move icons (SVG, RGBA, Kitty graphics, text) from puzzle types
+  synthetic/      byte-deterministic synthetic face photos (RGBA) from a grid of sticker letters;
+                  pure, depends on nothing
   recover/         where a cube went wrong in a printed solution, and the way back
                   (sticker permutations along the solution; the fresh solution is passed in)
   reduction/      crate-private parts shared by reduction engines (4x4x4,
