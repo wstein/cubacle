@@ -91,6 +91,7 @@ mod tests {
             columns: None,
             views: Views::default(),
             numbers: crate::icons::Numbers::default(),
+            show_empty: false,
             notation: Notation::default(),
             target: None,
         }

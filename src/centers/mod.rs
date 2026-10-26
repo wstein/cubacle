@@ -43,6 +43,50 @@ const BEAM_DEPTH: usize = 40;
 
 /// The name of the last stage of a route that ends in a fix-up.
 pub const STAGE_NAME: &str = "center fix-up";
+/// The most moves of one stage of the fix-up; a longer piece is cut into
+/// equal parts, so that a person can check the cube at every part.
+const STAGE_MOVES: usize = 20;
+
+/// A stage name made at run time, kept for the life of the process (the names
+/// are few: the engines have six stages at most).
+fn interned(name: String) -> &'static str {
+    use std::collections::HashSet;
+    use std::sync::{Mutex, OnceLock};
+    static NAMES: OnceLock<Mutex<HashSet<&'static str>>> = OnceLock::new();
+    let mut names = NAMES
+        .get_or_init(|| Mutex::new(HashSet::new()))
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    if let Some(&known) = names.get(name.as_str()) {
+        return known;
+    }
+    let leaked: &'static str = Box::leak(name.into_boxed_str());
+    names.insert(leaked);
+    leaked
+}
+
+/// The stages of a fix-up from its named pieces (name, moves): a piece over
+/// [`STAGE_MOVES`] moves is cut into equal parts `name (1/2)`. Each stage
+/// is given with the number of fix-up moves up to its end.
+fn tail_stages(pieces: &[(String, usize)]) -> Vec<(&'static str, usize)> {
+    let mut out = Vec::new();
+    let mut done = 0;
+    for (name, len) in pieces.iter().filter(|(_, len)| *len > 0) {
+        let parts = len.div_ceil(STAGE_MOVES);
+        for part in 0..parts {
+            // equal parts: the first ones take the rest
+            let size = len / parts + usize::from(part < len % parts);
+            done += size;
+            let shown = if parts == 1 {
+                interned(name.clone())
+            } else {
+                interned(format!("{name} ({}/{parts})", part + 1))
+            };
+            out.push((shown, done));
+        }
+    }
+    out
+}
 
 /// Whether every face of `state` shows one color in each of its center
 /// orbits. Cubes below 4x4x4 have nothing to sort and are uniform.
@@ -125,6 +169,8 @@ impl std::error::Error for PlanError {}
 pub struct Plan {
     goal: Facelets,
     tail: MoveSequence,
+    /// The stages of the tail: name and moves of the tail up to its end.
+    tail_stages: Vec<(&'static str, usize)>,
     method: Method,
     spent: Duration,
 }
@@ -133,6 +179,12 @@ impl Plan {
     /// The state with uniform centers to solve to first.
     pub fn goal(&self) -> &Facelets {
         &self.goal
+    }
+
+    /// The stages of the fix-up: name and the number of its moves up to the
+    /// end of the stage.
+    pub fn tail_stages(&self) -> &[(&'static str, usize)] {
+        &self.tail_stages
     }
 
     /// The center fix-up: the moves from the goal to the target.
@@ -205,10 +257,13 @@ impl Plan {
                 end: reached,
             });
         }
-        result.stages.push(SolveStage {
-            name: STAGE_NAME,
-            end: total,
-        });
+        for &(name, end) in &self.tail_stages {
+            result.stages.push(SolveStage {
+                name,
+                end: reached + end,
+            });
+        }
+        debug_assert_eq!(result.stages.last().map(|s| s.end), Some(total));
         result.outcome = Ok(MoveSequence::new(moves));
         result
     }
@@ -229,14 +284,15 @@ fn keeps_frame(goal: &Facelets, start: &Facelets) -> bool {
 }
 
 /// The shortest prefix of the engine's solution of `target` that leaves the
-/// centers uniform, and the state it leaves.
+/// centers uniform, and the pieces of its undoing: the stages of the solution,
+/// last first, each named after the stage it takes back.
 fn from_engine(
     solver: &dyn Solver,
     start: &Facelets,
     target: &Facelets,
     options: &SolveOptions,
     started: Instant,
-) -> Result<MoveSequence, PlanError> {
+) -> Result<(MoveSequence, Vec<(String, usize)>), PlanError> {
     let mut asked = SolveOptions::default().with_slices(options.slices);
     if let Some(budget) = options.time_budget {
         asked = asked.with_time_budget(
@@ -247,6 +303,7 @@ fn from_engine(
         );
     }
     let result = solver.solve(target, &asked);
+    let stages = result.stages;
     let solution = match result.outcome {
         Ok(solution) => solution,
         Err(Failure::InvalidInput) => {
@@ -272,12 +329,40 @@ fn from_engine(
             .apply(&MoveSequence::new(vec![*mv]))
             .map_err(|e| PlanError::Failed(e.to_string()))?;
         if uniform(&state) && keeps_frame(&state, start) {
-            return Ok(MoveSequence::new(solution.moves()[..=at].to_vec()));
+            return Ok((
+                MoveSequence::new(solution.moves()[..=at].to_vec()),
+                undo_pieces(&stages, at + 1),
+            ));
         }
     }
     Err(PlanError::Failed(
         "the engine's solution never leaves the centers uniform".into(),
     ))
+}
+
+/// The pieces of the undoing of the first `used` moves of a solution with
+/// `stages`: the part of each stage inside the prefix, last stage first.
+fn undo_pieces(stages: &[SolveStage], used: usize) -> Vec<(String, usize)> {
+    if stages.is_empty() {
+        return vec![(STAGE_NAME.to_string(), used)];
+    }
+    let mut pieces = Vec::new();
+    let mut from = 0;
+    for (number, stage) in stages.iter().enumerate() {
+        let end = stage.end.min(used);
+        if end > from {
+            pieces.push((
+                format!("undo phase {}: {}", number + 1, stage.name),
+                end - from,
+            ));
+        }
+        from = from.max(end);
+    }
+    if from < used {
+        pieces.push((STAGE_NAME.to_string(), used - from));
+    }
+    pieces.reverse();
+    pieces
 }
 
 /// The turns of the middle layers that bring the face centers of `target`
@@ -418,14 +503,21 @@ pub fn plan(
         (None, Some(known)) => Some((known, Method::Known)),
         (None, None) => None,
     };
-    let (sorting, method) = match found {
-        Some(found) => found,
+    let (sorting, method, undoing) = match found {
+        Some((w, method)) => (w, method, None),
         None => {
+            let (prefix, pieces) = from_engine(solver, start, &base, options, began)?;
             let mut moves = frame.moves().to_vec();
-            moves.extend_from_slice(from_engine(solver, start, &base, options, began)?.moves());
-            (MoveSequence::new(moves), Method::Engine)
+            moves.extend_from_slice(prefix.moves());
+            // the undoing of the frame moves comes last
+            let mut pieces = pieces;
+            if !frame.is_empty() {
+                pieces.push((STAGE_NAME.to_string(), frame.len()));
+            }
+            (MoveSequence::new(moves), Method::Engine, Some(pieces))
         }
     };
+    let pieces = undoing.unwrap_or_else(|| vec![(STAGE_NAME.to_string(), sorting.len())]);
     let goal = target
         .apply(&sorting)
         .map_err(|e| PlanError::Failed(e.to_string()))?;
@@ -433,6 +525,7 @@ pub fn plan(
     Ok(Some(Plan {
         goal,
         tail: search::inverse(&sorting),
+        tail_stages: tail_stages(&pieces),
         method,
         spent: began.elapsed(),
     }))

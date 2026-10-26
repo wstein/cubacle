@@ -140,4 +140,31 @@ mod cases {
         let error = plan(&engine, &start, &target, &SolveOptions::default(), None).unwrap_err();
         assert!(matches!(error, PlanError::Impossible(_)), "{error:?}");
     }
+
+    #[test]
+    fn a_long_piece_of_the_fix_up_is_cut_into_equal_parts() {
+        let pieces = [
+            ("a".to_string(), 7),
+            ("b".to_string(), 45),
+            ("c".to_string(), 0),
+        ];
+        let stages = tail_stages(&pieces);
+        let want = [("a", 7), ("b (1/3)", 22), ("b (2/3)", 37), ("b (3/3)", 52)];
+        assert_eq!(stages, want);
+        assert!(stages.windows(2).all(|w| w[1].1 - w[0].1 <= PHASE_MOVES));
+    }
+
+    #[test]
+    fn the_undoing_of_an_engine_prefix_keeps_its_stage_borders_reversed() {
+        let stage = |name, end| SolveStage { name, end };
+        let stages = [stage("one", 10), stage("two", 10), stage("three", 25)];
+        let pieces = undo_pieces(&stages, 18);
+        let want = [
+            ("undo phase 3: three".to_string(), 8),
+            ("undo phase 1: one".to_string(), 10),
+        ];
+        assert_eq!(pieces, want);
+        // no stages: one piece
+        assert_eq!(undo_pieces(&[], 5), [(STAGE_NAME.to_string(), 5)]);
+    }
 }

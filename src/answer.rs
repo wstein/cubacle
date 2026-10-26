@@ -72,6 +72,7 @@ pub(crate) fn print(solved: &Solved<'_>) -> Result<(), String> {
     if args.pictures.icons {
         let mut options = args.pictures.options(args.input.scheme, args.notation);
         options.target = target;
+        options.show_empty = args.verbose;
         let ranges = args.optimize == Some(Optimize::Ranges);
         if ranges {
             // the steps the pictures show, as the text answer reports its own

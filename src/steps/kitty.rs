@@ -22,7 +22,7 @@ pub(super) fn kitty_steps(
     block: Block<'_>,
 ) -> Result<String, String> {
     let (options, terminal, style) = (pictures.options, &pictures.terminal, &pictures.style);
-    let collapse_empty = pictures.collapse_empty;
+    let empty = pictures.empty;
     let total = block.total;
     let moves = &solution.actions;
     let mut state = start.clone();
@@ -56,7 +56,7 @@ pub(super) fn kitty_steps(
     }
     for (at, phase) in phases.iter().enumerate() {
         if named {
-            if let Some(heading) = heading_at(phases, at, collapse_empty, total) {
+            if let Some(heading) = heading_at(phases, at, empty, total) {
                 if std::mem::take(&mut blank) {
                     out.push('\n');
                 }

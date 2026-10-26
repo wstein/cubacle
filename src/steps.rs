@@ -42,6 +42,8 @@ pub struct SolutionIcons {
     pub views: Views,
     /// Whether the icons carry their move number.
     pub numbers: Numbers,
+    /// Whether phases with nothing to do get a heading (`--verbose`).
+    pub show_empty: bool,
     /// How the move lines and the final solution line write moves (the icon
     /// labels stay as they are).
     pub notation: Notation,
@@ -78,17 +80,27 @@ pub(crate) fn phase_heading(phase: &Phase, total: usize) -> String {
     )
 }
 
-/// The heading of `found[at]`. With `collapse`, a run of empty phases gets one
-/// line, `Phases 1-5: nothing to do`, on its first phase and none on the
-/// others (`None`); a lone empty phase keeps its own heading.
-pub(crate) fn heading_at(
-    found: &[Phase],
-    at: usize,
-    collapse: bool,
-    total: usize,
-) -> Option<String> {
+/// What the headings say about phases with nothing to do.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Empty {
+    /// Each empty phase has its own heading.
+    Show,
+    /// A run of empty phases gets one line (`solve --now`).
+    Collapse,
+    /// Empty phases have no heading (the default of `solve`).
+    Hide,
+}
+
+/// The heading of `found[at]`. With [`Empty::Collapse`], a run of empty phases
+/// gets one line, `Phases 1-5: nothing to do`, on its first phase and none on
+/// the others (`None`); a lone empty phase keeps its own heading. With
+/// [`Empty::Hide`] an empty phase has none.
+pub(crate) fn heading_at(found: &[Phase], at: usize, empty: Empty, total: usize) -> Option<String> {
     let phase = &found[at];
-    if !collapse || !phase.moves.is_empty() {
+    if empty == Empty::Hide && phase.moves.is_empty() {
+        return None;
+    }
+    if empty != Empty::Collapse || !phase.moves.is_empty() {
         return Some(phase_heading(phase, total));
     }
     if at > 0 && found[at - 1].moves.is_empty() {
@@ -249,6 +261,7 @@ impl PictureArgs {
             columns: self.columns.map(|c| c as usize),
             views: self.views,
             numbers: self.numbers,
+            show_empty: false,
             notation,
             target: None,
         }
@@ -261,7 +274,7 @@ pub struct Pictures<'a> {
     terminal: Terminal,
     style: Style,
     options: &'a SolutionIcons,
-    collapse_empty: bool,
+    empty: Empty,
     /// Hand units to draw the moves in (`moves --icons` with `·`).
     layout: Option<Layout>,
 }
@@ -285,7 +298,11 @@ impl<'a> Pictures<'a> {
             terminal,
             style,
             options,
-            collapse_empty: false,
+            empty: if options.show_empty {
+                Empty::Show
+            } else {
+                Empty::Hide
+            },
             layout: None,
         }
     }
@@ -298,7 +315,7 @@ impl<'a> Pictures<'a> {
 
     /// Runs of phases with nothing to do get one heading line (`solve --now`).
     pub fn collapsing_empty_phases(mut self) -> Pictures<'a> {
-        self.collapse_empty = true;
+        self.empty = Empty::Collapse;
         self
     }
 
@@ -547,7 +564,7 @@ mod tests {
         ];
         let found = cubacle::phases::from_stages(&stages, 9).unwrap();
         let lines: Vec<Option<String>> = (0..found.len())
-            .map(|i| heading_at(&found, i, true, 9))
+            .map(|i| heading_at(&found, i, Empty::Collapse, 9))
             .collect();
         let want = [
             Some("Phases 1-3: nothing to do"),
@@ -559,7 +576,7 @@ mod tests {
         ];
         assert_eq!(lines, want.map(|l| l.map(str::to_owned)));
         assert_eq!(
-            heading_at(&found, 0, false, 9).as_deref(),
+            heading_at(&found, 0, Empty::Show, 9).as_deref(),
             Some("Phase 1: a (nothing to do)")
         );
     }
