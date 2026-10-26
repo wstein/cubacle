@@ -8,7 +8,7 @@ weight: 40
 
 Status: implemented in `src/synthetic/` (revision r1). The page describes what the code does and `tests/synthetic_test.rs` verifies it.
 
-The generator renders one cube face as a `size x size` RGBA photo from a grid of sticker letters. The photo looks like a cropped camera shot: rounded stickers on a dark backdrop, a thin border, a vignette. A strip at the bottom carries the text `SYNTHETIC <PRESET>`, so the image is never mistaken for a camera photo. It is meant as test material for color recognition.
+The generator renders one cube face as a `size x size` RGBA photo from a grid of sticker letters. The photo looks like a cropped camera shot: rounded stickers on a dark backdrop, a thin border, a vignette. A strip at the bottom carries the text `SYNTHETIC <PRESET>`, so the image is never mistaken for a camera photo. The command `cubacle photo` writes such photos as PNG files, see [Photos of a cube](../cli/photo.md). It is meant as test material for color recognition.
 
 ## Guarantee
 
@@ -138,4 +138,4 @@ The draft r0 came from the owner's ReScript prototype, which ran on JavaScript. 
 | Revision | Content |
 | --- | --- |
 | r0 | Draft from the owner's prototype (cube-assembler, `SyntheticFace.res`), with JavaScript-exact arithmetic and 15 SHA-256 vectors. |
-| r1 | This page: the Rust implementation in `src/synthetic/`, with the differences above. Golden hashes pin the output of r1. |
+| r1 | This page: the Rust implementation in `src/synthetic/` and the command `cubacle photo`, with the differences above. Golden hashes pin the output of r1. |

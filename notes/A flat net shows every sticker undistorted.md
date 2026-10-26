@@ -9,5 +9,6 @@ The corner views of a whole cube distort the faces, so rings and point symmetry 
 
 - [[Whole-cube pictures show two opposite corners]]
 - [[The folded view is the default for whole-cube pictures]]
+- [[A synthetic photo is pinned by golden hashes of its own, not by the bytes of the prototype]]
 
 Source: src/render/net.rs, lines 1-60

@@ -25,3 +25,4 @@ Raw-material notes, category architecture.
 - [[A move is called a move everywhere and carries its number]]
 - [[The toml crate reads the config without serde derive]]
 - [[State pictures lie on a faint translucent panel instead of a frame line]]
+- [[A synthetic photo is pinned by golden hashes of its own, not by the bytes of the prototype]]
