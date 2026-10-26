@@ -65,6 +65,18 @@ fn chunk(out: &mut Vec<u8>, kind: &[u8; 4], data: &[u8]) {
 
 /// Encodes `rgba` (`width * height * 4` bytes, top row first) as a PNG file.
 pub fn encode_rgba(width: u32, height: u32, rgba: &[u8]) -> Vec<u8> {
+    encode_rgba_text(width, height, rgba, None)
+}
+
+/// Like `encode_rgba`, with an optional `tEXt` chunk `(keyword, text)`
+/// before the pixel data. The keyword is 1 to 79 Latin-1 characters; the
+/// text is written as given, so it should be ASCII (PNG says Latin-1).
+pub fn encode_rgba_text(
+    width: u32,
+    height: u32,
+    rgba: &[u8],
+    text: Option<(&str, &str)>,
+) -> Vec<u8> {
     assert_eq!(rgba.len(), width as usize * height as usize * 4);
     let mut raw = Vec::with_capacity(rgba.len() + height as usize);
     for row in rgba.chunks(width as usize * 4) {
@@ -77,6 +89,13 @@ pub fn encode_rgba(width: u32, height: u32, rgba: &[u8]) -> Vec<u8> {
     header.extend_from_slice(&[8, 6, 0, 0, 0]); // 8 bit, RGBA, no interlace
     let mut out = vec![0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A];
     chunk(&mut out, b"IHDR", &header);
+    if let Some((keyword, value)) = text {
+        assert!((1..=79).contains(&keyword.len()));
+        let mut data = keyword.as_bytes().to_vec();
+        data.push(0);
+        data.extend_from_slice(value.as_bytes());
+        chunk(&mut out, b"tEXt", &data);
+    }
     chunk(&mut out, b"IDAT", &zlib_stored(&raw));
     chunk(&mut out, b"IEND", &[]);
     out
@@ -160,6 +179,20 @@ mod tests {
             })
             .collect();
         assert_eq!(rows, rgba);
+    }
+
+    #[test]
+    fn a_text_chunk_comes_before_the_pixels_and_changes_no_pixel() {
+        let rgba: Vec<u8> = (0..4 * 4 * 4).map(|i| (i * 3) as u8).collect();
+        let plain = encode_rgba(4, 4, &rgba);
+        let tagged = encode_rgba_text(4, 4, &rgba, Some(("key", "{\"a\":1}")));
+        assert_eq!(decode(&plain), decode(&tagged));
+        // IHDR (25 bytes with signature), then the tEXt chunk, then IDAT.
+        let at = 8 + 12 + 13;
+        assert_eq!(&tagged[at + 4..at + 8], b"tEXt");
+        assert_eq!(&tagged[at + 8..at + 8 + 11], b"key\0{\"a\":1}");
+        let idat = tagged.windows(4).position(|w| w == b"IDAT").unwrap();
+        assert!(idat > at);
     }
 
     #[test]
