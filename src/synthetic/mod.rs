@@ -27,12 +27,14 @@
 mod color;
 mod draw;
 mod effects;
+mod json;
 mod label;
 mod options;
 mod rng;
 mod shadow;
 
 pub use color::Rgb;
+pub use json::fingerprint_json;
 pub use options::{Geometry, Logo, Options, Preset, Shadow, ShadowShape, SyntheticError};
 
 /// Renders one face as `size * size * 4` bytes of RGBA, row-major, top row
