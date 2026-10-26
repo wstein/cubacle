@@ -160,7 +160,7 @@ g g G G g r r r r r
 Moves: 2-3Rw
 ```
 
-Without `--optimize` the same target is two pictures, `3Rw` and `R'` (`Moves: 3Rw R'`). The ranges are formed inside each solver phase, so none crosses a phase border,, and the phase headings and move numbers count the drawn steps. A picture list is never longer than without the option, and applying the steps one by one gives the same cube as the plain solution (tests check both). `--group` is still refused with `--icons`.
+Without `--optimize` the same target is two pictures, `3Rw` and `R'` (`Moves: 3Rw R'`). The solution is compressed as a whole, as the text answer is, so the pictures are as many as the words of `--optimize ranges` without `--icons` (on six random 5x5x5 solutions: 69, 70, 71, 70, 67 and 70 both ways). A range that spans a solver phase border is drawn under the heading of the phase where it starts, and the phase headings and move numbers count the drawn steps. A picture list is never longer than without the option, and applying the steps one by one gives the same cube as the plain solution (tests check both). `--group` is still refused with `--icons`. `moves --icons --optimize ranges` draws a typed expression the same way, one picture per compressed step (`cubacle moves --size 5 --icons --optimize ranges --graphics plain "U 2R 3R U"` is three pictures, `U`, `2-3Rw`, `U`, and `Moves: U 2-3Rw U`); it takes no `--group`, `--format` or `--out`.
 
 ### Move numbers
 

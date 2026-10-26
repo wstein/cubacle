@@ -100,6 +100,8 @@ B' · L' · F' · R · Bw · Dw' · B F' · R' · Dw2 · L' Rw2 · Fw' · D' · 
 
 ### Undoing a sequence
 
+`moves --icons --optimize ranges` compresses the expression as `--optimize ranges` does and draws one picture per compressed step (`cubacle moves --size 5 --icons --optimize ranges --graphics plain "U 2R 3R U"` draws `U`, `2-3Rw`, `U`); it is refused with `--group`, `--format` and `--out`.
+
 `--inverse` writes the moves that undo the expression: in reverse order, each turned the other way. It works with every other option, `--icons` included. Hand units marked by `·` are inverted one by one and come out in reverse order, so the groups of the answer still match the hands of the person who made the moves (`--icons` draws them as groups). Run in this build:
 
 ```sh
