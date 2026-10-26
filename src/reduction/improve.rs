@@ -12,6 +12,8 @@
 
 use std::time::Duration;
 
+use crate::puzzle::SolveOptions;
+
 /// The budget `--improve` uses when none is given.
 pub(crate) const DEFAULT_BUDGET: Duration = Duration::from_millis(1000);
 
@@ -48,6 +50,21 @@ pub(crate) fn plan(budget: Duration) -> Plan {
     }
 }
 
+/// The plan of a reduction-only solve (a stage of a bigger cube) with a probe
+/// count: `--probes N` keeps N reductions and answers with the shortest. It
+/// counts work, not time, so the answer is the same on every machine. Without
+/// a probe count, or for a full solve, there is no plan.
+pub(crate) fn counted(options: &SolveOptions) -> Option<Plan> {
+    let probes = options.min_probes.filter(|_| options.reduce_only)?;
+    Some(Plan {
+        candidates: usize::try_from(probes)
+            .unwrap_or(usize::MAX)
+            .clamp(1, MAX_CANDIDATES),
+        probes: BASE_PROBES,
+        collect: Duration::from_secs(365 * 24 * 3600),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -60,5 +77,23 @@ mod tests {
         assert!(large.candidates > small.candidates);
         assert!(large.probes > small.probes);
         assert_eq!(plan(Duration::ZERO).candidates, 1);
+    }
+
+    #[test]
+    fn a_counted_plan_needs_a_reduction_only_solve_with_probes() {
+        let probes = |n| SolveOptions::default().with_min_probes(n);
+        assert_eq!(counted(&probes(5)), None);
+        assert_eq!(
+            counted(&probes(5).with_reduce_only(true))
+                .unwrap()
+                .candidates,
+            5
+        );
+        assert_eq!(
+            counted(&SolveOptions::default().with_reduce_only(true)),
+            None
+        );
+        let many = counted(&probes(9999).with_reduce_only(true)).unwrap();
+        assert_eq!(many.candidates, MAX_CANDIDATES);
     }
 }

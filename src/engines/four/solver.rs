@@ -128,7 +128,7 @@ impl Solver for FourSolver {
     }
 
     fn solve(&self, facelets: &Facelets, options: &SolveOptions) -> SolveResult {
-        self.run(facelets, options, None)
+        self.run(facelets, options, improve::counted(options))
     }
 
     fn solve_improving(&self, facelets: &Facelets, options: &SolveOptions) -> SolveResult {
