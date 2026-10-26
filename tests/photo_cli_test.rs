@@ -137,3 +137,102 @@ fn takes_facelets_and_reports_a_bad_preset() {
     );
     let _ = std::fs::remove_dir_all(&out);
 }
+
+/// The chunks of a PNG file as (type, whole chunk bytes with length and CRC).
+fn chunks(path: &Path) -> Vec<(String, Vec<u8>)> {
+    let bytes = std::fs::read(path).unwrap();
+    let mut at = 8;
+    let mut out = Vec::new();
+    while at < bytes.len() {
+        let len = u32::from_be_bytes(bytes[at..at + 4].try_into().unwrap()) as usize;
+        let kind = String::from_utf8(bytes[at + 4..at + 8].to_vec()).unwrap();
+        out.push((kind, bytes[at..at + 12 + len].to_vec()));
+        at += 12 + len;
+    }
+    out
+}
+
+/// A CRC-32 as PNG uses it.
+fn crc32(bytes: &[u8]) -> u32 {
+    let mut crc = 0xFFFF_FFFFu32;
+    for &b in bytes {
+        crc ^= u32::from(b);
+        for _ in 0..8 {
+            crc = if crc & 1 == 1 {
+                (crc >> 1) ^ 0xEDB8_8320
+            } else {
+                crc >> 1
+            };
+        }
+    }
+    !crc
+}
+
+#[test]
+fn the_fingerprint_is_a_text_chunk_with_the_generator_settings() {
+    let out = dir("fingerprint");
+    let args = [
+        "--scramble",
+        "R U",
+        "--pixels",
+        "64",
+        "--preset",
+        "glare",
+        "--seed",
+        "5",
+        "--noise",
+        "12",
+        "--shadow-shape",
+        "corner",
+        "--shadow-strength",
+        "0.2",
+    ];
+    assert!(photo(&out, &args).status.success());
+    let version = env!("CARGO_PKG_VERSION");
+    // Face number i uses the seed plus i: U 5, R 6, F 7, D 8, L 9, B 10.
+    for (i, face) in ["U", "R", "F", "D", "L", "B"].into_iter().enumerate() {
+        let parts = chunks(&out.join(format!("{face}.png")));
+        let kinds: Vec<&str> = parts.iter().map(|(k, _)| k.as_str()).collect();
+        assert_eq!(kinds, ["IHDR", "tEXt", "IDAT", "IEND"], "{face}");
+        let chunk = &parts[1].1;
+        let len = u32::from_be_bytes(chunk[..4].try_into().unwrap()) as usize;
+        let crc = u32::from_be_bytes(chunk[8 + len..].try_into().unwrap());
+        assert_eq!(crc, crc32(&chunk[4..8 + len]));
+        let data = std::str::from_utf8(&chunk[8..8 + len]).unwrap();
+        let (key, json) = data.split_once('\0').unwrap();
+        assert_eq!(key, "cube-assembler");
+        assert!(json.len() <= 60_000);
+        assert_eq!(
+            json,
+            format!(
+                "{{\"v\":1,\"renderer\":\"rust/v1\",\"preset\":\"glare\",\"seed\":{},\"face\":\"{}\",\"size\":64,\"options\":{{\"noise\":12,\"shadow\":{{\"strength\":0.2,\"shape\":\"corner\"}}}},\"app\":{{\"version\":\"{version}\"}}}}",
+                5 + i,
+                face.to_lowercase()
+            )
+        );
+    }
+    let _ = std::fs::remove_dir_all(&out);
+}
+
+#[test]
+fn the_fingerprint_changes_no_pixel_and_can_be_left_out() {
+    let (with, without) = (dir("fp-with"), dir("fp-without"));
+    let args = ["--scramble", "R U", "--pixels", "48", "--preset", "noise"];
+    assert!(photo(&with, &args).status.success());
+    let mut plain = args.to_vec();
+    plain.push("--no-fingerprint");
+    assert!(photo(&without, &plain).status.success());
+    for face in ["U", "R", "F", "D", "L", "B"] {
+        let a = chunks(&with.join(format!("{face}.png")));
+        let b = chunks(&without.join(format!("{face}.png")));
+        assert_eq!(b.len(), 3, "{face}");
+        let rest: Vec<_> = a.iter().filter(|(k, _)| k != "tEXt").collect();
+        assert_eq!(rest.len(), 3);
+        for (x, y) in rest.iter().zip(&b) {
+            assert_eq!(*x, y, "{face}");
+        }
+    }
+    for d in [with, without] {
+        let _ = std::fs::remove_dir_all(d);
+    }
+}
