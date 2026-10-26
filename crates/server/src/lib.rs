@@ -50,8 +50,10 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::Semaphore;
 use tower_http::catch_panic::CatchPanicLayer;
 
+mod canonical;
 mod counts;
 mod input;
+use canonical::Canonical;
 use counts::Counts;
 use input::{read_input, read_target};
 
@@ -379,14 +381,19 @@ struct CubeBody {
     /// The Orbit64 state token; absent when the stickers are not a cube.
     #[serde(skip_serializing_if = "Option::is_none")]
     token: Option<String>,
+    /// The canonical Orbit64 token and its schema; absent when the stickers
+    /// are not a cube.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    canonical: Option<Canonical>,
 }
 
 impl CubeBody {
-    fn of(facelets: &Facelets) -> CubeBody {
+    async fn of(facelets: &Facelets) -> CubeBody {
         CubeBody {
             kind: kind_name(facelets.kind()),
             facelets: facelets.to_string(),
             token: orbit64::encode(facelets).ok(),
+            canonical: Canonical::of(facelets).await,
         }
     }
 }
@@ -395,7 +402,7 @@ async fn random(params: Result<Query<RandomParams>, QueryRejection>) -> ApiResul
     let Query(params) = params.map_err(|e| ApiError::bad_input(e.body_text()))?;
     let kind = engine_kind(params.size.unwrap_or(3))?;
     let facelets = generate::random_state(kind).expect("the 2x2x2 to 7x7x7 have generators");
-    Ok(Json(CubeBody::of(&facelets)))
+    Ok(Json(CubeBody::of(&facelets).await))
 }
 
 #[derive(Deserialize)]
@@ -491,7 +498,7 @@ pub(crate) fn read_cube(cube: &str, scheme: Option<&str>) -> Result<Facelets, Ap
 async fn convert(headers: HeaderMap, body: Result<Bytes, BytesRejection>) -> ApiResult<CubeBody> {
     let request: ConvertRequest = read_body(&headers, body)?;
     let facelets = read_input(request.cube, request.scramble, request.size, request.scheme).await?;
-    Ok(Json(CubeBody::of(&facelets)))
+    Ok(Json(CubeBody::of(&facelets).await))
 }
 
 #[derive(Serialize)]
