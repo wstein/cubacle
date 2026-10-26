@@ -39,6 +39,10 @@ path = "tools/bench/kind_rates.rs"
 name = "four_compare"
 path = "tools/bench/four_compare.rs"
 
+[[example]]
+name = "probes_big"
+path = "tools/bench/probes_big.rs"
+
 [profile.release]
 codegen-units = 1
 lto = "fat"
