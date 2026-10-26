@@ -103,6 +103,22 @@ fn orbit64_tokens_are_cubes_for_identify_find_and_cycles() {
 }
 
 #[test]
+fn show_reads_a_token_as_the_library_pattern_it_is() {
+    let token = token_of("3", "R2 L2 U2 D2 F2 B2");
+    let (ok, out, err) = cubacle(&["patterns", "show", &token, "--size", "3"]);
+    assert!(ok, "{err}");
+    assert!(out.starts_with("Checkerboard (checkerboard)"), "{out}");
+    assert!(err.contains("the token is Checkerboard"), "{err}");
+    // a token of a cube that is no pattern, and text that is no token
+    let (ok, _, err) = cubacle(&["patterns", "show", &token_of("2", "R U")]);
+    assert!(!ok);
+    assert!(err.contains("no library pattern"), "{err}");
+    let (ok, _, err) = cubacle(&["patterns", "show", "ABCD"]);
+    assert!(!ok);
+    assert!(err.contains("no pattern named"), "{err}");
+}
+
+#[test]
 fn a_bad_token_is_an_error_that_says_so() {
     let (ok, _, err) = cubacle(&["patterns", "identify", "AAAAAAAAAAAAAAAAAAAAAAAAAA"]);
     assert!(!ok);

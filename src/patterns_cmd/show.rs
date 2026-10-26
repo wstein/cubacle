@@ -1,6 +1,7 @@
 //! `patterns show`: one pattern with its generators.
 
-use cubacle::patterns::{Generator, Pattern, Span};
+use cubacle::notation::orbit64;
+use cubacle::patterns::{self, Generator, Pattern, Span};
 
 fn print_generator(generator: &Generator) {
     println!(
@@ -68,15 +69,47 @@ fn show_numbered(
     Ok(())
 }
 
+/// The pattern a name, alias or id stands for; or, for an Orbit64 token, the library
+/// pattern the cube is (the first match; the others are named on standard error).
+fn find<'a>(
+    library: &'a crate::patterns_config::Library,
+    name: &str,
+) -> Result<&'a Pattern, String> {
+    if let Some(pattern) = library.find(name) {
+        return Ok(pattern);
+    }
+    let compact: String = name.split_whitespace().collect();
+    let Ok(state) = orbit64::decode(&compact) else {
+        return Err(format!("no pattern named {name:?}"));
+    };
+    let size = state.kind().size();
+    let report = patterns::detect_with(&state, &library.extra, 0);
+    let mut found = report
+        .matches
+        .iter()
+        .filter_map(|m| library.find(&m.id).map(|p| (p, m)));
+    let Some((pattern, first)) = found.next() else {
+        return Err(format!(
+            "the token is a {size}x{size}x{size} cube that is no library pattern (`cubacle patterns identify` lists the closest)"
+        ));
+    };
+    eprintln!(
+        "the token is {} ({}), {}",
+        pattern.name, pattern.id, first.relation
+    );
+    for (other, m) in found {
+        eprintln!("also {} ({}), {}", other.name, other.id, m.relation);
+    }
+    Ok(pattern)
+}
+
 pub(super) fn show(
     library: &crate::patterns_config::Library,
     text: &str,
     size: Option<usize>,
 ) -> Result<(), String> {
     let (name, number) = split_number(text);
-    let pattern = library
-        .find(name)
-        .ok_or_else(|| format!("no pattern named {name:?}"))?;
+    let pattern = find(library, name)?;
     if number.is_some() || pattern.origin.is_some() {
         return show_numbered(pattern, size, number);
     }
