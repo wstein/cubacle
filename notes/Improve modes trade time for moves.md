@@ -9,6 +9,7 @@ The 3x3x3 first solution averages 20.83 moves on 500 random cubes. `solve --prob
 
 - [[Bisect over max_moves is unsound under a time budget]]
 - [[4x4 3x3 hand-off needs a probe minimum]]
+- [[6x6 and 7x7 improve modes only vary the tail]]
 
 Source: src/improve.rs, lines 49-80
 Source: src/engines/three/solver.rs, lines 116-146
