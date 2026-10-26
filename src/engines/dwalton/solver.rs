@@ -34,7 +34,8 @@ pub struct DwaltonSolver {
     seven: OnceLock<Seven>,
 }
 
-type WingStage<'a> = Box<dyn Fn(&Facelets, wings::Stint) -> Result<Vec<Move>, wings::Refused> + 'a>;
+type WingStage<'a> =
+    Box<dyn Fn(&Facelets, wings::Stint) -> Result<wings::Staged, wings::Refused> + 'a>;
 
 /// What a solve spends on a shorter answer: a probe count (see
 /// [`DwaltonSolver::tail`]) and, if the first solution had no limit, the time
@@ -46,7 +47,7 @@ struct Improve {
 }
 
 /// The moves of each stage after the centers.
-type Tail = Vec<(&'static str, Vec<Move>)>;
+type Tail = Vec<(&'static str, wings::Staged)>;
 type TailResult = Result<Tail, (Failure, String)>;
 
 impl std::fmt::Debug for DwaltonSolver {
@@ -137,9 +138,11 @@ impl DwaltonSolver {
                 None => None,
             };
             match run(&cur, (left, probes)) {
-                Ok(moves) => {
-                    cur = cur.apply(&MoveSequence::new(moves.clone())).expect("fits");
-                    parts.push((name, moves));
+                Ok(staged) => {
+                    cur = cur
+                        .apply(&MoveSequence::new(staged.moves.clone()))
+                        .expect("fits");
+                    parts.push((name, staged));
                 }
                 Err(r) => {
                     return Err((
@@ -246,7 +249,11 @@ impl DwaltonSolver {
         };
         let total = |parts: &Tail| {
             let mut joined = all.clone();
-            joined.extend(parts.iter().flat_map(|(_, moves)| moves.iter().copied()));
+            joined.extend(
+                parts
+                    .iter()
+                    .flat_map(|(_, staged)| staged.moves.iter().copied()),
+            );
             normalize(self.kind.size(), &joined, false).len()
         };
         let mut chosen = first;
@@ -262,10 +269,17 @@ impl DwaltonSolver {
             }
             improved = Some((before, total(&chosen)));
         }
-        for (name, moves) in chosen {
-            note(&mut tally, name, &moves);
-            all.extend(moves);
-            marks.push((name, all.len()));
+        for (name, staged) in chosen {
+            note(&mut tally, name, &staged.moves);
+            let base = all.len();
+            all.extend(staged.moves);
+            // the engine's own stages inside are steps of this one
+            for end in staged.ends {
+                marks.push((name, base + end));
+            }
+            if marks.last().is_none_or(|&(_, end)| end != all.len()) {
+                marks.push((name, all.len()));
+            }
         }
         let solution = normalize(self.kind.size(), &all, false);
         let ok = cube
@@ -293,14 +307,7 @@ impl DwaltonSolver {
                 &tally,
             );
         }
-        let mut stages = groups::stages(cube, &all, &marks, &solution);
-        groups::repair(
-            cube,
-            &all,
-            &groups::raw_ends(&marks),
-            &solution,
-            &mut stages,
-        );
+        let stages = groups::stages(cube, &all, &marks, &solution);
         (
             SolveResult {
                 outcome: Ok(MoveSequence::new(solution)),
@@ -361,7 +368,9 @@ mod tests {
                 .unwrap();
             let (cube, done, _) = six.centers(&cube, 40, None).unwrap();
             assert!(super::super::six_stage5::centers_reduced(&cube));
-            let moves = wings::inner_wings(&four, &cube, (None, None)).unwrap();
+            let moves = wings::inner_wings(&four, &cube, (None, None))
+                .unwrap()
+                .moves;
             let after = cube.apply(&MoveSequence::new(moves.clone())).unwrap();
             assert!(
                 super::super::six_stage5::centers_reduced(&after),

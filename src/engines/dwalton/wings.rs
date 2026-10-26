@@ -42,19 +42,27 @@ fn probing(options: SolveOptions, probes: Option<u64>) -> SolveOptions {
     }
 }
 
+/// The moves of a wing stage and the ends of the engine's own stages inside
+/// them, as counts of those moves (the last is the length).
+pub(super) struct Staged {
+    pub moves: Vec<Move>,
+    pub ends: Vec<usize>,
+}
+
 fn reduce_with(
     engine: &Arc<dyn Solver + Send + Sync>,
     fake: &Facelets,
     stage: &'static str,
     (budget, probes): Stint,
-) -> Result<Vec<Move>, Refused> {
+) -> Result<(Vec<Move>, Vec<usize>), Refused> {
     let options = probing(
         limited(SolveOptions::default().with_reduce_only(true), budget),
         probes,
     );
     let result = engine.solve(fake, &options);
+    let ends: Vec<usize> = result.stages.iter().map(|s| s.end).collect();
     match result.outcome {
-        Ok(seq) => Ok(seq.moves().to_vec()),
+        Ok(seq) => Ok((seq.moves().to_vec(), ends)),
         Err(failure) => Err(Refused {
             stage,
             failure,
@@ -68,19 +76,34 @@ fn apply(cube: &Facelets, moves: &[Move]) -> Facelets {
         .expect("the lifted moves fit the cube")
 }
 
+/// The moves `moves` lifted by `depth`, with the stage `ends` of the originals
+/// counted in the lifted moves.
+fn lifted(moves: &[Move], ends: &[usize], depth: u8) -> Staged {
+    let mut out = Vec::new();
+    let mut at = vec![0];
+    for m in moves {
+        out.extend(lift(m, depth));
+        at.push(out.len());
+    }
+    Staged {
+        ends: ends.iter().map(|&e| at[e.min(moves.len())]).collect(),
+        moves: out,
+    }
+}
+
 /// Pairs the inner wing orbit of an even cube; returns the moves.
 pub(super) fn inner_wings(
     four: &Arc<dyn Solver + Send + Sync>,
     cube: &Facelets,
     stint: Stint,
-) -> Result<Vec<Move>, Refused> {
+) -> Result<Staged, Refused> {
     let n = cube.kind().size();
-    let moves = reduce_with(four, &four_of(cube), "inner wings (4x4x4)", stint)?;
+    let (moves, ends) = reduce_with(four, &four_of(cube), "inner wings (4x4x4)", stint)?;
     let depth = (n / 2) as u8;
-    let lifted: Vec<Move> = moves.iter().flat_map(|m| lift(m, depth)).collect();
+    let staged = lifted(&moves, &ends, depth);
     // The 4x4x4 turns whole-cube-wide layers as 4Xw; none are expected.
-    debug_assert!(lifted.iter().all(|m| m.fits(cube.kind())));
-    Ok(lifted)
+    debug_assert!(staged.moves.iter().all(|m| m.fits(cube.kind())));
+    Ok(staged)
 }
 
 /// Pairs the wings of `orbit` through a 5x5x5; returns the moves.
@@ -89,12 +112,9 @@ pub(super) fn orbit_wings(
     cube: &Facelets,
     orbit: usize,
     stint: Stint,
-) -> Result<Vec<Move>, Refused> {
-    let moves = reduce_with(five, &five_of(cube, orbit), "outer wings (5x5x5)", stint)?;
-    Ok(moves
-        .iter()
-        .flat_map(|m| lift(m, (orbit + 2) as u8))
-        .collect())
+) -> Result<Staged, Refused> {
+    let (moves, ends) = reduce_with(five, &five_of(cube, orbit), "outer wings (5x5x5)", stint)?;
+    Ok(lifted(&moves, &ends, (orbit + 2) as u8))
 }
 
 /// Solves the reduced cube as a 3x3x3; returns the moves.
@@ -102,7 +122,7 @@ pub(super) fn finish(
     three: &Arc<dyn Solver + Send + Sync>,
     cube: &Facelets,
     (budget, probes): Stint,
-) -> Result<Vec<Move>, Refused> {
+) -> Result<Staged, Refused> {
     debug_assert!(matches!(cube.kind(), PuzzleKind::Cube6 | PuzzleKind::Cube7));
     let options = probing(
         limited(SolveOptions::default(), budget),
@@ -110,7 +130,10 @@ pub(super) fn finish(
     );
     let result = three.solve(&three_of(cube), &options);
     match result.outcome {
-        Ok(seq) => Ok(seq.moves().to_vec()),
+        Ok(seq) => Ok(Staged {
+            ends: vec![seq.len()],
+            moves: seq.moves().to_vec(),
+        }),
         Err(failure) => Err(Refused {
             stage: "3x3x3",
             failure,

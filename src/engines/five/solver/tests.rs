@@ -141,6 +141,23 @@ fn scrambled_cubes_are_solved_and_replay() {
     }
 }
 
+/// The stages with a numbered part such as `(1/2)` joined into one: name and
+/// the end of its last part.
+fn whole_stages(stages: &[crate::puzzle::SolveStage]) -> Vec<(String, usize)> {
+    let mut out: Vec<(String, usize)> = Vec::new();
+    for stage in stages {
+        let name = match stage.name.rsplit_once(" (") {
+            Some((name, part)) if part.ends_with(')') => name,
+            _ => stage.name,
+        };
+        match out.last_mut() {
+            Some((last, end)) if last == name => *end = stage.end,
+            _ => out.push((name.to_string(), stage.end)),
+        }
+    }
+    out
+}
+
 /// Whether the center stickers of every face show one color.
 fn centers_uniform(cube: &Facelets) -> bool {
     let s = cube.stickers();
@@ -151,19 +168,21 @@ fn centers_uniform(cube: &Facelets) -> bool {
 fn the_stages_cover_the_answer_and_the_reduction_ends_reduced() {
     let solver = real();
     let names = [
-        "centers staged",
-        "wings staged",
-        "centers and wings paired",
+        "centers on their axes",
+        "wings sorted",
+        "centers solved, wings paired",
         "3x3 stage",
     ];
     for seed in 0..12 {
         let cube = scrambled(seed + 40, 6);
         let result = solver.solve(&cube, &SolveOptions::default());
         let solution = result.solution().expect("a solution");
-        let got: Vec<&str> = result.stages.iter().map(|s| s.name).collect();
+        let whole = whole_stages(&result.stages);
+        let got: Vec<&str> = whole.iter().map(|s| s.0.as_str()).collect();
         assert_eq!(got, names, "seed {seed}");
-        let ends: Vec<usize> = result.stages.iter().map(|s| s.end).collect();
-        assert!(ends.windows(2).all(|w| w[0] <= w[1]), "{ends:?}");
+        let all: Vec<usize> = result.stages.iter().map(|s| s.end).collect();
+        assert!(all.windows(2).all(|w| w[0] <= w[1]), "{all:?}");
+        let ends: Vec<usize> = whole.iter().map(|s| s.1).collect();
         assert_eq!(ends[3], solution.len(), "seed {seed}");
         let reduced = cube
             .apply(&MoveSequence::new(solution.moves()[..ends[2]].to_vec()))
@@ -177,9 +196,12 @@ fn a_reduction_only_answer_has_the_three_reduction_stages() {
     let cube = scrambled(77, 6);
     let result = real().solve(&cube, &SolveOptions::default().with_reduce_only(true));
     let solution = result.solution().expect("a reduction");
-    let got: Vec<(&str, usize)> = result.stages.iter().map(|s| (s.name, s.end)).collect();
+    let got = whole_stages(&result.stages);
     assert_eq!(got.len(), 3);
-    assert_eq!(got[2], ("centers and wings paired", solution.len()));
+    assert_eq!(
+        got[2],
+        ("centers solved, wings paired".to_string(), solution.len())
+    );
 }
 
 #[test]

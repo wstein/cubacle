@@ -25,8 +25,9 @@ mod search;
 use std::time::{Duration, Instant};
 
 use crate::puzzle::{
-    center_orbits, normalize, relative_state, Face, Facelets, Failure, Move, MoveSequence,
-    PuzzleKind, SolveMetrics, SolveOptions, SolveResult, SolveStage, Solver, Turn,
+    center_orbits, interned, normalize, relative_state, Face, Facelets, Failure, Move,
+    MoveSequence, PuzzleKind, SolveMetrics, SolveOptions, SolveResult, SolveStage, Solver, Turn,
+    PHASE_MOVES,
 };
 
 /// Search steps the shortest-sequence search may take before the engine's
@@ -43,36 +44,15 @@ const BEAM_DEPTH: usize = 40;
 
 /// The name of the last stage of a route that ends in a fix-up.
 pub const STAGE_NAME: &str = "center fix-up";
-/// The most moves of one stage of the fix-up; a longer piece is cut into
-/// equal parts, so that a person can check the cube at every part.
-const STAGE_MOVES: usize = 20;
-
-/// A stage name made at run time, kept for the life of the process (the names
-/// are few: the engines have six stages at most).
-fn interned(name: String) -> &'static str {
-    use std::collections::HashSet;
-    use std::sync::{Mutex, OnceLock};
-    static NAMES: OnceLock<Mutex<HashSet<&'static str>>> = OnceLock::new();
-    let mut names = NAMES
-        .get_or_init(|| Mutex::new(HashSet::new()))
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
-    if let Some(&known) = names.get(name.as_str()) {
-        return known;
-    }
-    let leaked: &'static str = Box::leak(name.into_boxed_str());
-    names.insert(leaked);
-    leaked
-}
 
 /// The stages of a fix-up from its named pieces (name, moves): a piece over
-/// [`STAGE_MOVES`] moves is cut into equal parts `name (1/2)`. Each stage
+/// [`PHASE_MOVES`] moves is cut into equal parts `name (1/2)`. Each stage
 /// is given with the number of fix-up moves up to its end.
 fn tail_stages(pieces: &[(String, usize)]) -> Vec<(&'static str, usize)> {
     let mut out = Vec::new();
     let mut done = 0;
     for (name, len) in pieces.iter().filter(|(_, len)| *len > 0) {
-        let parts = len.div_ceil(STAGE_MOVES);
+        let parts = len.div_ceil(PHASE_MOVES);
         for part in 0..parts {
             // equal parts: the first ones take the rest
             let size = len / parts + usize::from(part < len % parts);

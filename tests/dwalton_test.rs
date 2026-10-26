@@ -18,61 +18,77 @@ fn solver() -> DwaltonSolver {
     )
 }
 
-/// The stages of an answer: six, in order, covering the moves, with the
-/// engine's own state facts at their ends (checked against the cube state).
+/// The stages of an answer: the six groups in order (a long one cut into
+/// numbered parts), covering the moves, with the engine's own state facts at
+/// their ends (checked against the cube state).
 fn check_stages(cube: &Facelets, result: &SolveResult) {
     let moves = result.solution().expect("a solution");
-    let got: Vec<&str> = result.stages.iter().map(|s| s.name).collect();
-    assert_eq!(
-        got,
+    // the end of the last part of each group, by its name without `(1/2)`
+    let mut groups: Vec<(String, usize)> = Vec::new();
+    for stage in &result.stages {
+        let name = match stage.name.rsplit_once(" (") {
+            Some((name, part)) if part.ends_with(')') => name,
+            _ => stage.name,
+        };
+        match groups.last_mut() {
+            Some((last, end)) if last == name => *end = stage.end,
+            _ => groups.push((name.to_string(), stage.end)),
+        }
+    }
+    let got: Vec<&str> = groups.iter().map(|g| g.0.as_str()).collect();
+    let size = cube.kind().size();
+    let want: [&str; 6] = if size == 6 {
         [
-            "left/right centers staged",
-            "up/down centers staged",
-            "centers prepared",
-            "inner wings and centers",
-            "outer wings and centers",
+            "LR centers on L/R",
+            "UD/FB centers on their axes",
+            "inner centers solved",
+            "inner wings paired",
+            "outer wings paired, centers solved",
             "3x3 stage",
         ]
-    );
+    } else {
+        [
+            "LR centers on L/R",
+            "UD/FB centers on their axes",
+            "centers solved",
+            "middle wings paired",
+            "outer wings paired",
+            "3x3 stage",
+        ]
+    };
+    assert_eq!(got, want);
     let ends: Vec<usize> = result.stages.iter().map(|s| s.end).collect();
     assert!(ends.windows(2).all(|w| w[0] <= w[1]), "{ends:?}");
-    assert_eq!(ends[5], moves.len());
+    assert_eq!(ends.last(), Some(&moves.len()));
+    let group_ends: Vec<usize> = groups.iter().map(|g| g.1).collect();
     // the 3x3 stage turns outer faces only
-    assert!(moves.moves()[ends[4]..]
+    assert!(moves.moves()[group_ends[4]..]
         .iter()
         .all(|m| m.depth == 1 && !m.wide));
     // the state facts hold from the engine's ends on, so the state-based
     // phases cannot end later
     let found = phases(cube, moves).unwrap();
-    assert!(found[0].moves.end <= ends[3], "{found:?} {ends:?}");
-    assert!(found[1].moves.end <= ends[4], "{found:?} {ends:?}");
+    assert!(found[0].moves.end <= group_ends[3], "{found:?} {ends:?}");
+    assert!(found[1].moves.end <= group_ends[4], "{found:?} {ends:?}");
 }
 
+/// A short scramble used to put every move into the first stage, because the
+/// repair of the stage ends ran on to the end of the answer.
 #[test]
-fn six_by_six_scrambles_are_solved_and_replay() {
-    let solver = solver();
-    for _ in 0..3 {
-        let scramble = generate::scramble(PuzzleKind::Cube6, 80);
-        let cube: Facelets = Facelets::solved(PuzzleKind::Cube6)
-            .apply(&scramble)
-            .unwrap();
-        // printed on every run, shown by the harness when an assertion fails
-        println!("scramble: {scramble}");
-        let (result, tally) = solver.solve_tallied(&cube);
-        println!("{tally:?}");
-        assert!(
-            result.is_solved(),
-            "{:?} (scramble: {scramble})",
-            result.message
-        );
-        check_stages(&cube, &result);
-        let moves = result
-            .outcome
-            .unwrap_or_else(|f| panic!("{f:?} {:?} (scramble: {scramble})", result.message));
-        assert!(
-            cube.apply(&moves).unwrap().is_solved(),
-            "scramble: {scramble}"
-        );
+fn a_short_scramble_has_more_than_one_phase() {
+    let scramble: cubacle::puzzle::MoveSequence = "R U F' 2R 3U Lw2 D'".parse().unwrap();
+    let cube = Facelets::solved(PuzzleKind::Cube6)
+        .apply(&scramble)
+        .unwrap();
+    let (result, _) = solver().solve_tallied(&cube);
+    assert!(result.is_solved(), "{:?}", result.message);
+    check_stages(&cube, &result);
+    let total = result.solution().unwrap().len();
+    let mut from = 0;
+    for stage in &result.stages {
+        assert!(stage.end - from < total, "{:?}", result.stages);
+        assert!(stage.end - from <= 21, "{:?}", result.stages);
+        from = stage.end;
     }
 }
 

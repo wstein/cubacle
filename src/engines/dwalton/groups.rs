@@ -1,22 +1,24 @@
 //! The stages of the answer as a learner sees them.
 //!
 //! The reference has many small steps; they are grouped here into six
-//! stages, the same for both sizes. All six are in every answer (a stage that
-//! needs no moves is empty, not left out). The cube at the end of a stage is
-//! in the state the engine reached there: the inner centers are done at the
-//! end of `inner wings and centers`, all centers and wings at the end of
-//! `outer wings and centers`.
+//! stages. All six are in every answer (a stage that needs no moves is
+//! empty, not left out), and a stage over 20 moves is cut at the ends of its
+//! steps into parts `name (1/2)`. The borders are a grouping for the eye: the
+//! cube is where the engine left it at a step end, give or take the moves that
+//! normalizing merged across it.
 //!
-//! | Stage | 6x6x6 steps | 7x7x7 steps |
-//! | --- | --- | --- |
-//! | `left/right centers staged` | inner x-centers staged and obliques paired, centers staged | inner centers staged, obliques paired, centers staged |
-//! | `up/down centers staged` | the same for up and down | the same for up and down |
-//! | `centers prepared` | steps 50 and 60 (centers reducible) | steps 40, 50 and 60 (bars, daisy) |
-//! | `inner wings and centers` | the inner wings and centers, by the 4x4x4 engine | the inner wings and centers, by the 5x5x5 engine |
-//! | `outer wings and centers` | the outer wings and centers, by the 5x5x5 engine | the outer wings and centers, by the 5x5x5 engine |
-//! | `3x3 stage` | the 3x3x3 solver | the 3x3x3 solver |
+//! | Stage (6x6x6 / 7x7x7) | Engine steps |
+//! | --- | --- |
+//! | `LR centers on L/R` | inner and outer centers of the left and right faces staged, obliques paired |
+//! | `UD/FB centers on their axes` | the same for up and down |
+//! | `inner centers solved` / `centers solved` | steps 40 to 60 (centers reducible, bars, daisy) |
+//! | `inner wings paired` / `middle wings paired` | the 4x4x4 engine (6x6x6), the 5x5x5 engine on the middle orbit (7x7x7) |
+//! | `outer wings paired, centers solved` / `outer wings paired` | the 5x5x5 engine on the outer orbit |
+//! | `3x3 stage` | the 3x3x3 solver |
 
-use crate::puzzle::{stage_ends, Facelets, Move, MoveSequence, SolveStage};
+use crate::puzzle::{
+    stage_ends, stage_parts, Facelets, Move, MoveSequence, PuzzleKind, SolveStage,
+};
 
 /// The stages in order.
 pub(super) const GROUPS: [&str; 6] = [
@@ -46,22 +48,77 @@ pub(super) fn group_of(step: &str) -> &'static str {
     }
 }
 
+/// The names a learner sees for the six stages, per cube size.
+fn shown(kind: PuzzleKind) -> [&'static str; 6] {
+    if kind == PuzzleKind::Cube6 {
+        [
+            "LR centers on L/R",
+            "UD/FB centers on their axes",
+            "inner centers solved",
+            "inner wings paired",
+            "outer wings paired, centers solved",
+            "3x3 stage",
+        ]
+    } else {
+        [
+            "LR centers on L/R",
+            "UD/FB centers on their axes",
+            "centers solved",
+            "middle wings paired",
+            "outer wings paired",
+            "3x3 stage",
+        ]
+    }
+}
+
 /// The stages of an answer. `marks` holds each step of the engine in order,
-/// with the length of `raw` at its end; `fin` is `raw` after normalizing.
+/// with the length of `raw` at its end; `fin` is `raw` after normalizing. A
+/// stage over 20 moves is cut at the ends of its steps.
 pub(super) fn stages(
     start: &Facelets,
     raw: &[Move],
     marks: &[(&'static str, usize)],
     fin: &[Move],
 ) -> Vec<SolveStage> {
-    let ends = raw_ends(marks);
+    let names = shown(start.kind());
+    let mut ends = Vec::new();
+    let mut named = Vec::new();
+    let mut at = 0;
+    for (group, name) in GROUPS.iter().zip(names) {
+        let mut steps = Vec::new();
+        let mut last = at;
+        for &(step, end) in marks {
+            if group_of(step) == *group {
+                steps.push(end - last);
+                last = end;
+            }
+        }
+        for (part, len) in stage_parts(name, &steps) {
+            at += len;
+            ends.push(at);
+            named.push(part);
+        }
+    }
     let mapped = stage_ends(start, raw, &ends, fin, &[]);
-    GROUPS
-        .iter()
+    let mut stages: Vec<SolveStage> = named
+        .into_iter()
         .zip(mapped)
-        .map(|(&name, end)| SolveStage { name, end })
-        .collect()
+        .map(|(name, end)| SolveStage { name, end })
+        .collect();
+    repair(start, raw, &ends, fin, &mut stages);
+    // The 3x3 stage turns outer faces only: a slice or wide turn that
+    // normalizing moved behind its first outer turn still belongs to the
+    // stage before it.
+    let plain = |m: &Move| m.depth == 1 && !m.wide;
+    if let (Some(last), true) = (fin.iter().rposition(|m| !plain(m)), stages.len() >= 2) {
+        let before = stages.len() - 2;
+        stages[before].end = stages[before].end.max(last + 1);
+    }
+    stages
 }
+
+/// The most moves a stage end is moved later by [`repair`].
+const REPAIR_WINDOW: usize = 4;
 
 /// Moves a stage end later where normalizing merged moves across it, so the
 /// cube is never in the state the engine reached there. The stage end goes to
@@ -69,7 +126,7 @@ pub(super) fn stages(
 /// engine's end is in place again, so the facts of the stage (centers and
 /// wings done, outer faces only in the 3x3 stage) hold at its end. The moves
 /// themselves are not changed.
-pub(super) fn repair(
+fn repair(
     start: &Facelets,
     raw: &[Move],
     raw_ends: &[usize],
@@ -93,7 +150,9 @@ pub(super) fn repair(
             .collect();
         let mut at = stage.end;
         let mut cur = have;
-        while at < fin.len() {
+        // a merged run is a few moves long; kept stickers that match by
+        // chance are not found again soon
+        while at < fin.len().min(stage.end + REPAIR_WINDOW) {
             if kept
                 .iter()
                 .all(|&i| cur.stickers()[i] == solved.stickers()[i])
@@ -106,26 +165,16 @@ pub(super) fn repair(
             cur = next;
             at += 1;
         }
-        stage.end = at;
+        if kept
+            .iter()
+            .all(|&i| cur.stickers()[i] == solved.stickers()[i])
+        {
+            stage.end = at;
+        }
     }
     for i in 1..stages.len() {
         stages[i].end = stages[i].end.max(stages[i - 1].end);
     }
-}
-
-/// The end of each stage in the raw moves.
-pub(super) fn raw_ends(marks: &[(&'static str, usize)]) -> Vec<usize> {
-    let mut ends = Vec::with_capacity(GROUPS.len());
-    let mut at = 0;
-    for group in GROUPS {
-        for &(name, end) in marks {
-            if group_of(name) == group {
-                at = end;
-            }
-        }
-        ends.push(at);
-    }
-    ends
 }
 
 #[cfg(test)]
@@ -156,6 +205,27 @@ mod tests {
         for (step, group) in steps {
             assert_eq!(group_of(step), GROUPS[group], "{step}");
         }
+    }
+
+    #[test]
+    fn a_long_stage_is_cut_at_step_ends_and_names_follow_the_size() {
+        let start = Facelets::solved(PuzzleKind::Cube7);
+        let raw: Vec<Move> = vec!["U".parse().unwrap(); 4];
+        // steps of 11, 12 and 11 moves in the first group (marks are lengths of raw)
+        let marks = [
+            ("LR inner centers staged", 11),
+            ("LR obliques paired", 23),
+            ("LR centers staged", 34),
+            ("3x3x3", 34),
+        ];
+        let names: Vec<&str> = stages(&start, &raw, &marks, &raw)
+            .iter()
+            .map(|s| s.name)
+            .collect();
+        assert_eq!(names[0], "LR centers on L/R (1/3)");
+        assert_eq!(names[3], "UD/FB centers on their axes");
+        assert_eq!(names.last(), Some(&"3x3 stage"));
+        assert_eq!(shown(PuzzleKind::Cube6)[3], "inner wings paired");
     }
 
     #[test]

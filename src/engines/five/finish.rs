@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 
 use super::reduction::Reduction;
 use super::solver::{join, move_of, three_by_three, FiveSolver};
-use crate::puzzle::{normalize, stage_ends};
+use crate::puzzle::{normalize, stage_ends, stage_parts};
 use crate::puzzle::{Facelets, Failure, Move, MoveSequence, SolveOptions, SolveStage};
 use crate::reduction::improve::Plan;
 
@@ -23,14 +23,15 @@ const HAND_OFF_BUDGET: Duration = Duration::from_secs(10);
 /// another number (as the 4x4x4 does).
 const HAND_OFF_PROBES: u64 = 500;
 
-/// The stages of the answer as a learner sees them, each with the last of the
-/// five phases it ends with. Phases 1 and 2 bring each pair of opposite
-/// colors onto its own axis, phase 3 puts the wings into slots, phases 4 and
-/// 5 pair them and finish the centers. The 3x3x3 stage follows.
-const GROUPS: [(&str, usize); 3] = [
-    ("centers staged", 2),
-    ("wings staged", 3),
-    ("centers and wings paired", 5),
+/// The stages of the answer as a learner sees them, each with the first and
+/// last of the five phases it holds. Phases 1 and 2 bring each pair of
+/// opposite colors onto its own axis, phase 3 puts the wings into slots,
+/// phases 4 and 5 pair them and finish the centers. The 3x3x3 stage follows.
+/// A stage over 20 moves is cut between its phases.
+const GROUPS: [(&str, usize, usize); 3] = [
+    ("centers on their axes", 1, 2),
+    ("wings sorted", 3, 3),
+    ("centers solved, wings paired", 4, 5),
 ];
 
 /// The name of the stage that the 3x3x3 solver makes.
@@ -55,11 +56,26 @@ fn stages(
     three: bool,
 ) -> Vec<SolveStage> {
     let head = phase_ends.last().copied().unwrap_or(0);
-    let mut names: Vec<&'static str> = GROUPS.iter().map(|&(name, _)| name).collect();
-    let mut ends: Vec<usize> = GROUPS
-        .iter()
-        .map(|&(_, last)| phase_ends.get(last - 1).copied().unwrap_or(head))
-        .collect();
+    let end_of = |phase: usize| phase_ends.get(phase - 1).copied().unwrap_or(head);
+    let mut names: Vec<&'static str> = Vec::new();
+    let mut ends: Vec<usize> = Vec::new();
+    for &(name, first, last) in &GROUPS {
+        let mut done = if first == 1 { 0 } else { end_of(first - 1) };
+        let mut prev = done;
+        let steps: Vec<usize> = (first..=last)
+            .map(|phase| {
+                let end = end_of(phase).max(prev);
+                let len = end - prev;
+                prev = end;
+                len
+            })
+            .collect();
+        for (part, len) in stage_parts(name, &steps) {
+            done += len;
+            names.push(part);
+            ends.push(done);
+        }
+    }
     if three {
         names.push(THREE_STAGE);
         ends.push(raw.len());

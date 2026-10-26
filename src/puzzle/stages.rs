@@ -23,6 +23,59 @@ pub struct SolveStage {
     pub end: usize,
 }
 
+/// The most moves a phase should have; a longer one is cut at the ends of its
+/// steps where the engine has them.
+pub(crate) const PHASE_MOVES: usize = 20;
+
+/// A name made at run time, kept for the life of the process. The names are
+/// few (the stages of an engine, with a part number).
+pub(crate) fn interned(name: String) -> &'static str {
+    use std::collections::HashSet;
+    use std::sync::{Mutex, OnceLock};
+    static NAMES: OnceLock<Mutex<HashSet<&'static str>>> = OnceLock::new();
+    let mut names = NAMES
+        .get_or_init(|| Mutex::new(HashSet::new()))
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    if let Some(&known) = names.get(name.as_str()) {
+        return known;
+    }
+    let leaked: &'static str = Box::leak(name.into_boxed_str());
+    names.insert(leaked);
+    leaked
+}
+
+/// The parts of a stage `name` whose steps have the lengths `steps`: the
+/// stage itself when it has at most [`PHASE_MOVES`] moves, else parts of
+/// at most that many moves cut at step ends (a step longer than that is a
+/// part of its own), named `name (1/3)`. Each part is given with its length.
+pub(crate) fn stage_parts(name: &'static str, steps: &[usize]) -> Vec<(&'static str, usize)> {
+    let total: usize = steps.iter().sum();
+    if total <= PHASE_MOVES {
+        return vec![(name, total)];
+    }
+    let mut lens: Vec<usize> = Vec::new();
+    let mut open = 0;
+    for &step in steps.iter().filter(|&&s| s > 0) {
+        if open > 0 && open + step > PHASE_MOVES {
+            lens.push(open);
+            open = 0;
+        }
+        open += step;
+    }
+    if open > 0 {
+        lens.push(open);
+    }
+    let count = lens.len();
+    if count == 1 {
+        return vec![(name, total)];
+    }
+    lens.into_iter()
+        .enumerate()
+        .map(|(i, len)| (interned(format!("{name} ({}/{count})", i + 1)), len))
+        .collect()
+}
+
 /// The positions in `fin` that correspond to the raw ends `raw_ends` of
 /// `raw`, never decreasing; the last raw end maps to the end of `fin`.
 ///
@@ -120,6 +173,21 @@ mod tests {
 
     fn seq(text: &str) -> Vec<Move> {
         text.parse::<MoveSequence>().unwrap().moves().to_vec()
+    }
+
+    #[test]
+    fn a_long_stage_is_cut_at_step_ends() {
+        assert_eq!(stage_parts("a", &[9, 10]), [("a", 19)]);
+        assert_eq!(stage_parts("a", &[]), [("a", 0)]);
+        assert_eq!(stage_parts("a", &[40]), [("a", 40)]);
+        assert_eq!(
+            stage_parts("a", &[11, 12, 11]),
+            [("a (1/3)", 11), ("a (2/3)", 12), ("a (3/3)", 11)]
+        );
+        assert_eq!(
+            stage_parts("a", &[6, 13, 13]),
+            [("a (1/2)", 19), ("a (2/2)", 13)]
+        );
     }
 
     #[test]

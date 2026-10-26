@@ -20,8 +20,8 @@ use crate::puzzle::{stage_ends, Facelets, Move, SolveStage};
 /// The names of the stages, in order.
 const NAMES: [&str; 4] = [
     "centers staged",
-    "centers sorted and wings split",
-    "centers and wings paired",
+    "centers sorted, wings split",
+    "centers solved, wings paired",
     "3x3 stage",
 ];
 
