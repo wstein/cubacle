@@ -17,18 +17,44 @@ user documentation.
   Work on `develop` or on short-lived branches from it.
 - Commits are conventional (`feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `build`,
   `ci`, `chore`; `!` for breaking changes), atomic and focused: one concern per commit,
-  each commit builds and passes the checks.
+  the branch builds and passes the checks on its final tree (see Checks).
 - Commits written with AI assistance carry a `Co-Authored-By:` trailer naming the model.
 - Do not push, tag or change repository settings unless the owner asks.
 - Move code with `git mv` in its own commit, before changing it, so history follows.
 
-## Checks (run before every commit)
+## Checks
+
+The Rust compiler is slow, and the machine is shared. Only the pull request is built:
+a branch (a stack of commits) is built and tested once, on its final tree. Commits are
+not built or tested one by one.
+
+On the final tree of a branch, once, before it is merged or pushed:
 
 ```sh
 cargo fmt --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --release
 ```
+
+- Every commit is formatted (`cargo fmt --check` is cheap), but need not build on its
+  own. A commit message says what the commit does, not that it builds.
+- When the final tree does not build or a test fails, fix it from the error message and
+  its file and line number first: find the commit where the fault first appears
+  (`git log -S`, `git blame`, `git log -L`; none of them compiles) and fix it there
+  before pushing, so the history stays clean: stage the fix and run `tools/fix-up`
+  (`git absorb` folds each hunk into the commit that last touched the same lines and
+  autosquashes; nothing is compiled). Hunks it cannot assign, such as new files, stay
+  staged: use `git commit --fixup <commit>` and `git rebase -i --autosquash` for them.
+  Only for commits that are not pushed yet. Use `git bisect` only when that fails: every bisect step
+  starts the slow compiler again.
+- A branch that changes only `docs/`, `notes/`, `*.md` or CI files skips clippy and the
+  tests; it still passes `fmt --check`, `typos` and, for notes, `cscribe validate`.
+- Several finished branches may be rebased and merged one after the other and checked
+  together: run the full suite once on the merged tree before pushing. A longer stack
+  costs only a few more test runs, not one per commit.
+- Use `nice` and run one heavy job at a time. Agents hand a branch back after one
+  full run on its final tree; the gate does not repeat the work after a rebase
+  without conflicts, and runs it once after a rebase with conflicts.
 
 CI also runs `typos --locale en-us` (config in `_typos.toml`); run it too after writing prose.
 
