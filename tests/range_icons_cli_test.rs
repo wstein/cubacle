@@ -139,5 +139,8 @@ fn group_stays_refused_with_icons_and_says_why() {
         "phases",
     ]);
     assert!(!ok);
-    assert!(error.contains("--group"), "{error}");
+    assert!(
+        error.contains("--group cannot be combined with --icons: the pictures are already headed"),
+        "{error}"
+    );
 }

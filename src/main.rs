@@ -275,7 +275,7 @@ struct SolveArgs {
     /// solution of one phase, the 2x2x2, has no dot), axis (turns about one
     /// axis on disjoint layers, as in ATM) or both, "phases,axis" (a unit
     /// never crosses a phase border); none: a plain list
-    #[arg(long, value_enum, value_delimiter = ',', conflicts_with = "icons")]
+    #[arg(long, value_enum, value_delimiter = ',')]
     group: Vec<phase_dots::SolveGroup>,
     /// Also look the cube up in the pattern library (built-in and the files of
     /// the config) and answer with the library route when it is strictly shorter
@@ -566,6 +566,9 @@ fn default_options(kind: PuzzleKind) -> SolveOptions {
 }
 
 fn solve(args: SolveArgs) -> Result<(), String> {
+    if args.pictures.icons && !args.group.is_empty() {
+        return Err("--group cannot be combined with --icons: the pictures are already headed by the solver phases, and the dots (` · `) mark units in the written answer only".into());
+    }
     within_cmd::check(&args)?;
     if let Some(now) = &args.now {
         let depth = args.depth.unwrap_or(3);
