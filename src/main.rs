@@ -169,7 +169,7 @@ struct SolveArgs {
     /// With --to the way back leads to the target, not to the solved cube
     #[arg(long, value_name = "CUBE", conflicts_with_all = [
         "max_moves", "budget_ms", "probes", "improve", "parallel", "fast", "optimize",
-        "slices", "moves", "all", "count", "raw", "optimal", "nodes", "max_memory", "group",
+        "slices", "moves", "all", "count", "raw", "optimal", "nodes", "max_memory", "group", "every",
         "pattern_aware",
     ])]
     now: Option<String>,
@@ -277,6 +277,11 @@ struct SolveArgs {
     /// never crosses a phase border); none: a plain list
     #[arg(long, value_enum, value_delimiter = ',')]
     group: Vec<phase_dots::SolveGroup>,
+    /// Cut the answer after every N moves, whatever the solver phases are: a
+    /// " · " between the parts, or a heading above the pictures with --icons
+    /// (for example 10 or 20). Replaces the solver phases
+    #[arg(long, value_name = "N", value_parser = clap::value_parser!(u16).range(1..))]
+    every: Option<u16>,
     /// Also look the cube up in the pattern library (built-in and the files of
     /// the config) and answer with the library route when it is strictly shorter
     /// than the solver's answer; the solver still runs, so the answer is never

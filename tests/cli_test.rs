@@ -654,8 +654,8 @@ fn a_4x4_verbose_solve_reports_its_reduction() {
     assert_eq!(phases.len(), 4, "{phases:?}");
     let names = [
         "centers staged",
-        "centers sorted and wings split",
-        "centers and wings paired",
+        "centers sorted, wings split",
+        "centers solved, wings paired",
         "3x3 stage",
     ];
     for (i, (line, name)) in phases.iter().zip(names).enumerate() {
@@ -765,4 +765,21 @@ fn state_pictures_have_no_headline_and_sit_in_the_rows() {
     let end = out.find("End state: ").unwrap();
     assert!(end < out.rfind("\x1b_Ga=T").unwrap());
     assert!(!out.contains("State after phase"), "{out:?}");
+}
+
+#[test]
+fn every_cuts_the_answer_after_n_moves_whatever_the_phases_are() {
+    let scramble = "R U Rw Fw2 U' 2R B";
+    let (ok, out, err) = cubacle(&["solve", "--size", "4", "-s", scramble, "--every", "5"]);
+    assert!(ok, "{err}");
+    let parts: Vec<usize> = out
+        .trim()
+        .split(" · ")
+        .map(|part| part.split_whitespace().count())
+        .collect();
+    assert!(parts.len() > 1, "{out}");
+    assert!(parts[..parts.len() - 1].iter().all(|&n| n == 5), "{out}");
+    assert!(parts.last().is_some_and(|&n| (1..=5).contains(&n)), "{out}");
+    let (ok, _, err) = cubacle(&["solve", "--size", "4", "-s", "R U", "--every", "0"]);
+    assert!(!ok, "{err}");
 }

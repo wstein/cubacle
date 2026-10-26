@@ -56,12 +56,19 @@ pub(crate) fn print(solved: &Solved<'_>) -> Result<(), String> {
         eprintln!("{adopted}");
     }
     // The engine's own stages where it reports them, else the state-based cut.
-    let found =
-        if args.verbose || args.pictures.icons || phase_dots::Grouping::of(&args.group).phases {
+    let found = match args.every {
+        Some(every) if args.optimize == Some(Optimize::Ranges) => {
+            phase_dots::every_packed(facelets.kind(), solution, usize::from(every))
+        }
+        Some(every) => phase_dots::every(solution.len(), usize::from(every)),
+        None if args.verbose
+            || args.pictures.icons
+            || phase_dots::Grouping::of(&args.group).phases =>
+        {
             stage_phases::of(stages, facelets, solution)
-        } else {
-            Vec::new()
-        };
+        }
+        None => Vec::new(),
+    };
     // With `--icons` on a graphics terminal the phase headings say it.
     let headed = args.pictures.icons && steps::shows_phase_headings(args.pictures.graphics);
     if args.verbose && !headed {
@@ -85,7 +92,8 @@ pub(crate) fn print(solved: &Solved<'_>) -> Result<(), String> {
         }
         return steps::print_solution(start, solution, &found, &options, ranges);
     }
-    let grouping = phase_dots::Grouping::of(&args.group);
+    let mut grouping = phase_dots::Grouping::of(&args.group);
+    grouping.phases |= args.every.is_some();
     let dots = grouping.dots();
     let ranges = args.optimize == Some(Optimize::Ranges);
     let (text, count) = phase_dots::write(

@@ -64,6 +64,41 @@ fn packed_phases(
     (words.join(" · "), indexed.len())
 }
 
+/// The parts of a solution of `total` moves cut after every `every` moves
+/// (the last one may be shorter), as phases named `moves`.
+pub fn every(total: usize, every: usize) -> Vec<Phase> {
+    (0..total)
+        .step_by(every.max(1))
+        .enumerate()
+        .map(|(i, from)| Phase {
+            number: i + 1,
+            name: "moves",
+            moves: from..(from + every.max(1)).min(total),
+        })
+        .collect()
+}
+
+/// The parts of a solution cut after every `every` steps of its compressed
+/// form (`--optimize ranges`): phases in the moves of the solution, each
+/// starting where its first compressed step starts.
+pub fn every_packed(kind: PuzzleKind, solution: &MoveSequence, every: usize) -> Vec<Phase> {
+    let indexed = compress_indexed(kind, solution);
+    let starts: Vec<usize> = indexed
+        .iter()
+        .step_by(every.max(1))
+        .map(|(_, start)| *start)
+        .collect();
+    starts
+        .iter()
+        .enumerate()
+        .map(|(i, &from)| Phase {
+            number: i + 1,
+            name: "moves",
+            moves: from..starts.get(i + 1).copied().unwrap_or(solution.len()),
+        })
+        .collect()
+}
+
 /// The solution as text and its move count. With `axis` every part is written
 /// on its own, so ranges never merge across a dot; with dots the parts are joined by
 /// ` · `, otherwise by a space. The parts are the non-empty solver phases
@@ -132,6 +167,29 @@ mod tests {
             name: "test",
             moves,
         }
+    }
+
+    #[test]
+    fn a_fixed_size_cut_covers_the_moves() {
+        let parts = every(25, 10);
+        let ranges: Vec<_> = parts.iter().map(|p| p.moves.clone()).collect();
+        assert_eq!(ranges, [0..10, 10..20, 20..25]);
+        assert!(every(0, 10).is_empty());
+    }
+
+    #[test]
+    fn a_fixed_size_cut_counts_compressed_steps() {
+        let solution: MoveSequence = "R L U D F B R2 L2".parse().unwrap();
+        let kind = PuzzleKind::Cube3;
+        let parts = every_packed(kind, &solution, 2);
+        assert!(!parts.is_empty());
+        let grouping = Grouping {
+            phases: true,
+            axis: false,
+        };
+        let (text, count) = write(Notation::Wca, kind, &solution, &parts, true, grouping);
+        let cuts = text.matches(" · ").count();
+        assert_eq!(cuts, count.div_ceil(2) - 1, "{text}");
     }
 
     #[test]
