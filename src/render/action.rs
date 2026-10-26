@@ -4,7 +4,9 @@
 use std::fmt;
 use std::str::FromStr;
 
-use crate::puzzle::{Face, Facelets, Move, MoveSequence, NotationError, PuzzleKind, Turn};
+use crate::puzzle::{
+    Face, Facelets, LayerMove, Move, MoveSequence, NotationError, PuzzleKind, Turn,
+};
 
 /// The axis of a whole-cube rotation: `x` turns like `R`, `y` like `U`, `z` like `F`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -14,11 +16,18 @@ pub enum Axis {
     Z,
 }
 
-/// A layer move (`R`, `2R`, `Rw`, `3Rw2`) or a whole-cube rotation (`x`, `y'`, `z2`).
+/// A layer move (`R`, `2R`, `Rw`, `3Rw2`), an inner block of layers (`2-3Rw`) or
+/// a whole-cube rotation (`x`, `y'`, `z2`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Action {
     Layer(Move),
-    Rotate { axis: Axis, turn: Turn },
+    /// Layers `from..=to` turned together, neither one layer nor an outer
+    /// block; build it with [`Action::block`].
+    Block(LayerMove),
+    Rotate {
+        axis: Axis,
+        turn: Turn,
+    },
 }
 
 /// Why an icon could not be built.
@@ -41,6 +50,7 @@ impl fmt::Display for Action {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Action::Layer(mv) => write!(f, "{mv}"),
+            Action::Block(mv) => write!(f, "{mv}"),
             Action::Rotate { axis, turn } => {
                 let letter = match axis {
                     Axis::X => 'x',
@@ -104,9 +114,19 @@ fn dir(turn: Turn) -> i32 {
 }
 
 impl Action {
+    /// The action of a compressed move: a plain layer move when one exists,
+    /// else the block.
+    pub fn block(mv: LayerMove) -> Action {
+        match mv.to_move() {
+            Some(plain) => Action::Layer(plain),
+            None => Action::Block(mv),
+        }
+    }
+
     pub(crate) fn fits(&self, kind: PuzzleKind) -> bool {
         match self {
             Action::Layer(mv) => mv.fits(kind),
+            Action::Block(mv) => mv.fits(kind),
             Action::Rotate { .. } => true,
         }
     }
@@ -115,6 +135,9 @@ impl Action {
         matches!(
             self,
             Action::Layer(Move {
+                turn: Turn::Half,
+                ..
+            }) | Action::Block(LayerMove {
                 turn: Turn::Half,
                 ..
             }) | Action::Rotate {
@@ -128,6 +151,7 @@ impl Action {
     pub(crate) fn axis_sign(&self) -> (usize, i32) {
         match self {
             Action::Layer(mv) => face_axis(mv.face),
+            Action::Block(mv) => face_axis(mv.face),
             Action::Rotate { axis, .. } => (*axis as usize, 1),
         }
     }
@@ -139,6 +163,7 @@ impl Action {
         let (_, sign) = self.axis_sign();
         let turn = match self {
             Action::Layer(mv) => mv.turn,
+            Action::Block(mv) => mv.turn,
             Action::Rotate { turn, .. } => *turn,
         };
         -sign * dir(turn)
@@ -146,6 +171,14 @@ impl Action {
 
     /// Whether the cubie at a doubled-grid `position` is turned.
     pub(crate) fn moves(&self, kind: PuzzleKind, position: [i32; 3]) -> bool {
+        if let Action::Block(mv) = self {
+            let (axis, sign) = face_axis(mv.face);
+            let n = kind.size() as i32;
+            let height = sign * position[axis];
+            let outer = n - 1 - 2 * (i32::from(mv.from) - 1);
+            let inner = n - 1 - 2 * (i32::from(mv.to) - 1);
+            return (inner..=outer).contains(&height);
+        }
         let Action::Layer(mv) = self else {
             return true;
         };
@@ -161,6 +194,11 @@ impl Action {
 
     /// The signed position, along the axis, of the middle of the turning layers.
     pub(crate) fn band_center(&self, n: usize) -> f64 {
+        if let Action::Block(mv) = self {
+            let (_, sign) = face_axis(mv.face);
+            let spread = i32::from(mv.from) + i32::from(mv.to) - 2;
+            return f64::from(sign) * (n as f64 - 1.0 - f64::from(spread));
+        }
         let Action::Layer(mv) = self else {
             return 0.0;
         };
@@ -182,6 +220,7 @@ impl Action {
         }
         let moves = match self {
             Action::Layer(mv) => vec![*mv],
+            Action::Block(mv) => mv.to_moves(),
             Action::Rotate { axis, turn } => {
                 let (front, back) = match axis {
                     Axis::X => (Face::R, Face::L),
@@ -281,6 +320,39 @@ mod tests {
                 }
             }
         }
+    }
+
+    /// A block of inner layers lights exactly the stickers its plain moves turn.
+    #[test]
+    fn block_selection_matches_apply() {
+        for kind in [PuzzleKind::Cube4, PuzzleKind::Cube5, PuzzleKind::Cube7] {
+            let solved = Facelets::solved(kind);
+            let n = kind.size() as u8;
+            for face in Face::ALL {
+                for from in 2..n {
+                    for to in from + 1..n {
+                        let action = Action::block(LayerMove::new(face, from, to, Turn::Clockwise));
+                        assert!(matches!(action, Action::Block(_)));
+                        let after = action.apply(&solved).unwrap();
+                        let (axis, _) = action.axis_sign();
+                        for index in 0..kind.facelet_count() {
+                            let (position, normal) = locate(kind, index);
+                            let changed = after.stickers()[index] != solved.stickers()[index];
+                            let lit = action.moves(kind, position) && normal[axis] == 0;
+                            assert_eq!(changed, lit, "{kind:?} {action} sticker {index}");
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn a_block_with_a_plain_spelling_is_a_layer_move() {
+        let outer = Action::block(LayerMove::new(Face::R, 1, 3, Turn::Half));
+        assert_eq!(outer, act("3Rw2"));
+        let inner = Action::block(LayerMove::new(Face::R, 2, 3, Turn::CounterClockwise));
+        assert_eq!(inner.to_string(), "2-3Rw'");
     }
 
     #[test]
