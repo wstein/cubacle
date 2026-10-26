@@ -15,22 +15,8 @@ pub struct PatternsArgs {
     /// Config file (default: $CUBACLE_CONFIG, ./cubacle.toml, ~/.config/cubacle/cubacle.toml)
     #[arg(long, global = true, value_name = "FILE")]
     config: Option<std::path::PathBuf>,
-    /// List as a tree of categories with the number of generators and the
-    /// shortest length per size, instead of the flat list
-    #[arg(long)]
-    tree: bool,
-    /// Order the list: `patternness` puts the most pattern-like first (with a
-    /// patternness column)
-    #[arg(long, value_enum)]
-    sort: Option<SortKey>,
-    /// List only patterns whose patternness (the highest over the sizes shown) is at least N
-    #[arg(long, value_name = "N", value_parser = clap::value_parser!(u8).range(0..=100))]
-    min_patternness: Option<u8>,
-    /// List only patterns of this kind (SOLVED, FEW, MOSTLY, SYM, FACE,
-    /// IRREG), judged at the size with the highest patternness; adds a kind
-    /// column. Library and imported patterns alike
-    #[arg(long, value_name = "NAME")]
-    kind: Option<PatternKind>,
+    #[command(flatten)]
+    list: ListArgs,
     /// Never use the network, not even for `update` or `auto_fetch` (also CUBACLE_OFFLINE=1)
     #[arg(long, global = true, env = "CUBACLE_OFFLINE", value_parser = clap::builder::BoolishValueParser::new())]
     offline: bool,
@@ -41,6 +27,41 @@ pub struct PatternsArgs {
     action: Option<Action>,
 }
 
+/// What the list shows; given to `patterns` or `patterns list`.
+#[derive(Args, Clone, Copy)]
+pub struct ListArgs {
+    /// List as a tree of categories with the number of generators and the
+    /// shortest length per size, instead of the flat list
+    #[arg(long, global = true)]
+    tree: bool,
+    /// Order the list: `patternness` puts the most pattern-like first (with a
+    /// patternness column)
+    #[arg(long, global = true, value_enum)]
+    sort: Option<SortKey>,
+    /// List only patterns whose patternness (the highest over the sizes shown) is at least N
+    #[arg(long, global = true, value_name = "N", value_parser = clap::value_parser!(u8).range(0..=100))]
+    min_patternness: Option<u8>,
+    /// List only patterns of this kind (SOLVED, FEW, MOSTLY, SYM, FACE,
+    /// IRREG), judged at the size with the highest patternness; adds a kind
+    /// column. Library and imported patterns alike
+    #[arg(long, global = true, value_name = "NAME")]
+    kind: Option<PatternKind>,
+}
+
+impl ListArgs {
+    /// The first list option given, for commands that cannot use it.
+    fn first_used(&self) -> Option<&'static str> {
+        [
+            (self.tree, "--tree"),
+            (self.sort.is_some(), "--sort"),
+            (self.min_patternness.is_some(), "--min-patternness"),
+            (self.kind.is_some(), "--kind"),
+        ]
+        .into_iter()
+        .find_map(|(given, name)| given.then_some(name))
+    }
+}
+
 #[derive(Clone, Copy, clap::ValueEnum)]
 enum SortKey {
     Patternness,
@@ -48,6 +69,8 @@ enum SortKey {
 
 #[derive(Subcommand)]
 enum Action {
+    /// List the pattern library, the same as `patterns` alone
+    List,
     /// Describe one pattern and print its generators
     Show {
         /// Pattern id, name, alias or catalogue id (`ct:A200.01`), with `#n` for one generator; spaces are allowed and need no quoting
@@ -128,6 +151,13 @@ pub struct FindArgs {
 }
 
 pub fn run(args: PatternsArgs) -> Result<(), String> {
+    if !matches!(args.action, None | Some(Action::List)) {
+        if let Some(name) = args.list.first_used() {
+            return Err(format!(
+                "{name} applies to the list only: use it with `patterns` or `patterns list`"
+            ));
+        }
+    }
     let config = crate::patterns_config::load(args.config.as_deref())?;
     let mode = crate::patterns_update::Mode {
         force: false,
@@ -163,14 +193,7 @@ pub fn run(args: PatternsArgs) -> Result<(), String> {
         library
     };
     match args.action {
-        None => list::print(
-            &library(),
-            args.size,
-            args.tree,
-            args.sort,
-            args.min_patternness,
-            args.kind,
-        ),
+        None | Some(Action::List) => list::print(&library(), args.size, &args.list),
         Some(Action::Show { name }) => show::show(&library(), &name.join(" "), args.size),
         Some(Action::Find(find)) => state::find_state(&find, args.size.unwrap_or(3)),
         Some(Action::Identify(identify)) => {

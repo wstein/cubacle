@@ -2,7 +2,7 @@
 
 use cubacle::patterns::{self, Pattern, PatternKind, Span};
 
-use super::SortKey;
+use super::ListArgs;
 
 fn lengths(pattern: &Pattern, size: usize) -> String {
     let of = |metric| {
@@ -28,11 +28,14 @@ fn sizes_of(pattern: &Pattern, size: Option<usize>) -> Vec<usize> {
 pub(super) fn print(
     library: &crate::patterns_config::Library,
     size: Option<usize>,
-    tree: bool,
-    sort: Option<SortKey>,
-    min: Option<u8>,
-    kind: Option<PatternKind>,
+    args: &ListArgs,
 ) -> Result<(), String> {
+    let ListArgs {
+        tree,
+        sort,
+        min_patternness: min,
+        kind,
+    } = *args;
     let scored = sort.is_some() || min.is_some();
     let mut items: Vec<(&Pattern, u8)> = library
         .all()
