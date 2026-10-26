@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use clap::Args;
 use cubacle::notation::ColorScheme;
 use cubacle::puzzle::Face;
-use cubacle::synthetic::{render_face, Options, Preset};
+use cubacle::synthetic::{render_face, Options, Preset, Shadow, ShadowShape};
 
 use crate::png_out::encode_rgba;
 use crate::{read_input, InputArgs};
@@ -45,6 +45,15 @@ pub struct PhotoArgs {
     /// Factor for the light on every pixel, 0.5 is half as bright
     #[arg(long)]
     brightness: Option<f64>,
+    /// How much light a shadow takes, 0 to 1 (default 0.15); any shadow option adds a shadow to the preset
+    #[arg(long)]
+    shadow_strength: Option<f64>,
+    /// Shadow outline: band, half, spot or corner (default band)
+    #[arg(long)]
+    shadow_shape: Option<ShadowShape>,
+    /// Width of the shadow edge as a share of the photo (default 0.03)
+    #[arg(long)]
+    shadow_softness: Option<f64>,
 }
 
 /// Where the face at this index of URFDLB sits in the net of 4 x 3 faces.
@@ -83,11 +92,20 @@ pub fn run(args: PhotoArgs) -> Result<(), String> {
         .unwrap_or(ColorScheme::WESTERN_BOY);
     let n = cube.kind().size();
     let size = args.pixels as usize;
+    let shadow = (args.shadow_strength.is_some()
+        || args.shadow_shape.is_some()
+        || args.shadow_softness.is_some())
+    .then_some(Shadow {
+        strength: args.shadow_strength,
+        shape: args.shadow_shape,
+        softness: args.shadow_softness,
+    });
     let options = Options {
         scatter: args.scatter,
         noise: args.noise,
         blur: args.blur,
         brightness: args.brightness,
+        shadow,
         ..Options::default()
     };
     let mut photos = Vec::new();
