@@ -76,6 +76,7 @@ Raw-material notes, category engines.
 - [[Pattern sources are downloaded by cubacle itself from the user's config]]
 - [[Pattern ids have a two-letter source and at most 12 characters]]
 - [[Pattern output puts icons first and the tree is the overview]]
+- [[A picture list stops at 24 patterns and says how many it cut]]
 - [[Big hosts get multi-thread IDA star first, then AVX2, then the 8-edge database]]
 - [[A conditional search takes a schema grid and a guard]]
 - [[A schema grid is written with lowercase variables, uppercase colours and don't-care dots]]
