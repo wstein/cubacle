@@ -1,110 +1,58 @@
 ---
 title: "Synthetic face generator"
-description: "Draft specification: a deterministic renderer that turns a grid of sticker colors into a synthetic cube face photo, with test vectors."
+description: "Specification and description of the synthetic face generator: a deterministic renderer that turns a grid of sticker colors into a cube face photo."
 weight: 40
 ---
 
-# Synthetic Face Generator: Implementation Specification
+# Synthetic face generator
 
-Status: draft. This is the proposal of the owner's ReScript prototype
-(`src/core/vision/SyntheticFace.res` in the cube-assembler repository,
-compiled to JavaScript on V8); it fixes the frame points of the feature, not
-every detail. The sections below describe the prototype. cubacle does not
-reproduce its bytes; where cubacle differs, the section "Differences from the
-draft" at the end says how.
+Status: implemented in `src/synthetic/` (revision r1). The page describes what the code does and `tests/synthetic_test.rs` verifies it.
 
-The generator renders one cube face as a `size x size` RGBA photo from a
-grid of sticker color letters. The photo looks like a cropped camera shot:
-flat rounded stickers on a dark backdrop, a thin border, a vignette. It is
-fully deterministic: the same `(grid, preset, seed, size, options)` always
-yields the same bytes. A border strip carries the word `SYNTHETIC` so the
-image can never be mistaken for a camera photo.
+The generator renders one cube face as a `size x size` RGBA photo from a grid of sticker letters. The photo looks like a cropped camera shot: rounded stickers on a dark backdrop, a thin border, a vignette. A strip at the bottom carries the text `SYNTHETIC <PRESET>`, so the image is never mistaken for a camera photo. It is meant as test material for color recognition.
 
-## 1. Interface
+## Guarantee
 
-```
-renderFace(grid, preset, seed, size, options) -> bytes[size * size * 4]
+The same binary with the same `(grid, preset, seed, size, options)` returns the same bytes. The random numbers come from an integer hash with wrapping arithmetic that is identical on every platform. The colors and the noise use `f64` functions of the Rust standard library (`powf`, `cbrt`, `atan2`, `ln`, `cos`), which can differ in the last bit between platforms; a few pixels may then differ by one level. The golden hashes in the tests are those of the platforms of the CI. Output may change between versions of cubacle when this page says so in the revision history.
+
+## Interface
+
+```rust
+render_face(grid: &[Vec<char>], preset: Preset, seed: i32, size: usize, options: &Options)
+    -> Result<Vec<u8>, SyntheticError>
 ```
 
-| Input     | Type                 | Meaning |
-|-----------|----------------------|---------|
-| `grid`    | `string[n][n]`       | Sticker color letters, row-major, top row first. Letters `W Y O R G B` are known; any other string is "unknown" (gray). `n >= 1`. The grid is square. |
-| `preset`  | string               | One of `clean scatter gradient shadow dim-warm glare noise bad-camera`. Anything else: raise an error `Unknown synthetic preset: <name>`. |
-| `seed`    | int32                | Random seed. Use values that fit in 32 bits. |
-| `size`    | int                  | Photo side in pixels. Recommended 64..2048. |
-| `options` | record, all optional | See section 8. |
+| Input | Meaning |
+| --- | --- |
+| `grid` | Sticker letters, row-major, top row first, square, at least 1x1. `W Y O R G B` are known colors; any other letter is drawn gray. |
+| `preset` | One of the eight presets below. `Preset::from_str` fails with `Unknown synthetic preset: <name>`. |
+| `seed` | Random seed. |
+| `size` | Side of the photo in pixels, at least 1. Recommended 64 to 2048. |
+| `options` | All optional, see below. |
 
-Output: bytes in RGBA order, row-major, top row first, index
-`(y * size + x) * 4`. Alpha is always 255.
+The result has `size * size * 4` bytes in RGBA order, row-major, top row first, index `(y * size + x) * 4`. Alpha is always 255. A grid that is empty or not square, and a size of 0, are errors (`SyntheticError`).
 
-## 2. Numeric conventions (read this first, most porting bugs live here)
+## Numbers
 
-All arithmetic is IEEE-754 binary64 (`double`) unless said otherwise.
+All arithmetic is IEEE-754 binary64. A float is stored into a pixel byte by clamping to 0..255 and rounding to the nearest whole number (NaN becomes 0). Every stage reads back the stored 8-bit pixels, never floats. `round` elsewhere is the nearest whole number as well.
 
-1. **Pixel store rule.** The reference writes into a `Uint8ClampedArray`.
-   Every store of a float `v` into a pixel byte means:
-   `NaN -> 0`; otherwise clamp to `[0, 255]`; then **round half to even**
-   (`0.5 -> 0`, `1.5 -> 2`, `2.5 -> 2`, `254.5 -> 254`). Every read gives that
-   stored integer back, so each processing stage sees 8-bit quantized
-   pixels. Do not keep floats between stages.
-2. **`round(x)`** elsewhere in this document (margin, blur radius, OKLab to
-   sRGB) is JavaScript `Math.round`: **round half up**, i.e.
-   `floor(x + 0.5)`. It is *not* the pixel store rule.
-3. **Integer division** `a / b` on ints truncates toward zero.
-4. **`toInt(f)`** truncates toward zero.
-5. **`ToInt32(d)`** wraps a double modulo 2^32 into `[-2^31, 2^31)`
-   (the JavaScript `|0` operation).
-6. `clamp(v, lo, hi) = min(hi, max(lo, v))`.
-7. Transcendentals (`cbrt`, `pow`, `exp`, `log`, `cos`, `sqrt`, `atan2`)
-   may differ in the last bit between math libraries. The reference output
-   is the V8 result. A port using another libm may differ by +-1 in a few
-   bytes; see section 11 for the tolerance.
+## Random numbers
 
-## 3. Random numbers (counter based)
-
-The generator has no state. Every random value is a pure function of
-`(seed, index)`.
+The generator has no state: every value is a function of `(seed, index)`.
 
 ```
-hash(seed, i):
-    a = ToInt32( ToInt32(seed * 374761393.0) + ToInt32(i * 668265263.0) )
-    # products are double products, ToInt32 of the double
-    b = a XOR (a >>> 13)                # >>> is the UNSIGNED shift; b as int32
-    b = ToInt32( (double)b * 1274126177.0 )   # <-- see gotcha
-    return b XOR (b >>> 16)             # result as int32 (may be negative)
-
-unit(seed, i)  = (hash(seed, i) AND 0xFFFFFF) / 16777216.0      # in [0, 1)
-gauss(seed, i) = sqrt(-2 * ln(unit(seed, 2*i) + 1e-9))
-                 * cos(2 * PI * unit(seed, 2*i + 1))
+z = ((seed as u32) << 32) xor (i * 0x9E3779B97F4A7C15)      wrapping 64-bit arithmetic
+z = z + 0x9E3779B97F4A7C15, then the SplitMix64 finalizer of z
+hash(seed, i) = the high 32 bits of z
+unit(seed, i) = (hash(seed, i) and 0xFFFFFF) / 2^24                      in [0, 1)
+gauss(seed, i) = sqrt(-2 ln(unit(seed, 2i) + 1e-9)) * cos(2 pi unit(seed, 2i + 1))
 ```
 
-**Gotcha (the most important one).** The second multiplication,
-`b * 1274126177`, is the exact mathematical product of two integers up to
-about 2^31 and 1.27e9, i.e. up to about 2.7e18, which exceeds 2^53. The
-reference computes it as a **double product** (rounded to 53 bits), then
-applies `ToInt32`. This is **not** the same as a wrapping 32-bit integer
-multiply (`Math.imul`, C `uint32_t` multiply). The two differ for about 98%
-of inputs. For example `hash(0, 1)` is `-995253203`; a wrapping multiply
-gives `-995253211`. To port: convert `b` to `double`, multiply by the double
-`1274126177.0`, then reduce modulo 2^32 (for a double `d`:
-`m = fmod(d, 4294967296.0)`; if `m < 0` add 2^32; if `m >= 2^31` subtract
-2^32). Use the same double-product-then-`ToInt32` form for the first two
-multiplications; there the products stay below 2^53 for sane seeds and
-indices, but the double form is still the specification.
+The index ranges in use are `0 .. 6 size^2` (noise, three values per pixel, doubled inside `gauss`), `1000 + k` (brightness jitter of sticker `k`), `5000 .. 5015` (glare), `6000 + 2k` and `6001 + 2k` (scatter). The option noise uses `seed + 7919`. A new option or preset takes a new index range, so that existing photos stay unchanged.
 
-Seed must be an int32 and `i` an int that keeps `i * 668265263` exact enough
-for your language; the reference limits are `|i| < 2^22`, which every index
-in this document satisfies for photos up to roughly 1400 x 1400 pixels
-(noise uses `3 * pixelIndex + 2`; larger photos hit the double rounding of
-the product, which is still the defined behavior as long as you compute it
-in doubles).
-
-## 4. Constants
-
-Colors are `(r, g, b)` doubles.
+## Colors
 
 | Name | Value |
-|------|-------|
+| --- | --- |
 | Palette `W` | (232, 232, 224) |
 | Palette `Y` | (238, 206, 44) |
 | Palette `O` | (238, 122, 34) |
@@ -113,336 +61,81 @@ Colors are `(r, g, b)` doubles.
 | Palette `B` | (34, 84, 192) |
 | Backdrop | (20, 20, 24) |
 | Unknown sticker | (128, 128, 128) |
-| Label color | (170, 170, 176) |
-| Default margin | 0.035 (share of `size`) |
-| Default gap | 0.07 (share of a cell) |
-| Default radius | 0.14 (share of a cell) |
+| Label | (170, 170, 176) |
 
-Scatter table (hue sigma in degrees, chroma coefficient of variation):
+Scatter spread per letter (hue sigma in degrees, chroma coefficient of variation): W 22.0 / 0.35, Y 2.5 / 0.045, O 1.2 / 0.034, R 1.4 / 0.043, G 0.7 / 0.063, B 1.0 / 0.08, any other letter 2.0 / 0.05. The table is keyed by the letter of the sticker, also when the palette overrides its color.
 
-| Letter | hue sigma | chroma CV |
-|--------|-----------|-----------|
-| W | 22.0 | 0.35 |
-| Y | 2.5 | 0.045 |
-| O | 1.2 | 0.034 |
-| R | 1.4 | 0.043 |
-| G | 0.7 | 0.063 |
-| B | 1.0 | 0.08 |
-| other | 2.0 | 0.05 |
-
-## 5. OKLab helpers
-
-`rgb` channels are 0..255 numbers.
+Every sticker color goes through OKLCH and back, also with scatter 0 (the round trip rounds to whole numbers). For sticker `k = row * n + col`, with `s` the scatter option:
 
 ```
-srgbToLinear(c):  v = c / 255;  v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ^ 2.4
-
-rgbToOKLCH(rgb):
-    r,g,b = srgbToLinear of each channel
-    l_ = cbrt(0.4122214708*r + 0.5363325363*g + 0.0514459929*b)
-    m_ = cbrt(0.2119034982*r + 0.6806995451*g + 0.1073969566*b)
-    s_ = cbrt(0.0883024619*r + 0.2817188376*g + 0.6299787005*b)
-    L = 0.2104542553*l_ + 0.7936177850*m_ - 0.0040720468*s_
-    a = 1.9779984951*l_ - 2.4285922050*m_ + 0.4505937099*s_
-    b = 0.0259040371*l_ + 0.7827717662*m_ - 0.8086757660*s_
-    C = sqrt(a*a + b*b)
-    h = atan2(b, a) * 180 / PI;  if h < 0: h += 360
-    return (L, C, h)
-
-linearToSrgb(v):  v = clamp(v, 0, 1)
-    e = v <= 0.0031308 ? v * 12.92 : 1.055 * v^(1/2.4) - 0.055
-    return clamp(round(e * 255), 0, 255)          # round half UP, returns a whole number
-
-oklabToRgb(L, a, b):
-    l_ = L + 0.3963377774*a + 0.2158037573*b
-    m_ = L - 0.1055613458*a - 0.0638541728*b
-    s_ = L - 0.0894841775*a - 1.2914855480*b
-    l = l_^3;  m = m_^3;  s = s_^3
-    r = linearToSrgb( 4.0767416621*l - 3.3077115913*m + 0.2309699292*s)
-    g = linearToSrgb(-1.2684380046*l + 2.6097574011*m - 0.3413193965*s)
-    b = linearToSrgb(-0.0041960863*l - 0.7034186147*m + 1.7076147010*s)
-    return (r, g, b)                              # whole numbers 0..255
+(L, C, h) = oklch(base)
+hue    = (h + gauss(seed, 6000 + 2k) * (hueSigma * s)) * pi / 180
+chroma = max(0, C * (1 + gauss(seed, 6001 + 2k) * (chromaCV * s)))
+color  = oklabToRgb(L, chroma cos(hue), chroma sin(hue))
 ```
 
-## 6. Per-sticker color (scatter)
+The conversions are the OKLab matrices of Bjoern Ottosson with sRGB gamma; `oklabToRgb` rounds each channel to a whole number in 0..255.
 
-Every sticker color goes through OKLCH and back, **even with scatter 0**
-(the round trip rounds to whole numbers, which the reference output
-contains; skipping it changes bytes).
+## Drawing
 
-```
-scatterColor(base, label, seed, k, scale):     # k = row * n + col
-    (hueSigma, chromaCV) = scatterTable[label] or (2.0, 0.05)
-    (L, C, h) = rgbToOKLCH(base)
-    hue    = (h + gauss(seed, 6000 + 2*k) * hueSigma * scale) * PI / 180
-    chroma = max(0, C * (1 + gauss(seed, 6001 + 2*k) * chromaCV * scale))
-    return oklabToRgb(L, chroma * cos(hue), chroma * sin(hue))
-```
+With `margin = round(size * marginShare)`, `inner = size - 2 margin`, `cell = inner / n`, `gap = max(2, cell * gapShare)`, `radius = cell * radiusShare`, `half = cell / 2 - gap / 2` and `corner = half - radius`, every pixel `(x, y)` is drawn as follows.
 
-`base` is the palette color for `label` (after the palette override of
-section 8), or the unknown-sticker gray when the label has no color. The
-scatter table is keyed by the **label letter**, even if the palette
-overrides its color.
+1. `fx = x + 0.5 - margin`, `fy` likewise. Outside `[0, inner)` the pixel is the backdrop.
+2. Inside, `col = floor(fx / cell)`, `row = floor(fy / cell)` (both at most `n - 1`), `dx = fx - (col + 0.5) cell`, `dy` likewise. The distance to the rounded square is `outside + min(max(qx, qy), 0) - radius` with `qx = |dx| - corner`, `qy = |dy| - corner` and `outside = sqrt(max(qx, 0)^2 + max(qy, 0)^2)`. The coverage is `clamp(0.5 - distance, 0, 1)`.
+3. The sticker color is the scattered palette color. A logo on this sticker replaces it by the palette color of the logo inside the radius `logo.size * half` (default 0.5), with no scatter.
+4. `shade = rim * slope * jitter` with `rim = 1 - 0.1 clamp(1 - depth / (0.08 cell), 0, 1)` (`depth = -distance`), `slope = 1 - 0.04 (dx + dy) / cell` and `jitter = 1 + (unit(seed, k + 1000) - 0.5) * 0.05 * lightness`.
+5. `color = backdrop (1 - coverage) + base * shade * coverage`, multiplied by the vignette `1 - 0.28 (cx^2 + cy^2)` with `cx = x / size - 0.5`, `cy = y / size - 0.5`.
 
-## 7. Rendering algorithm
-
-### 7.1 Geometry
-
-```
-margin_px = round(size * marginShare)            # round half up, a whole number
-inner     = size - 2 * margin_px
-cell      = inner / n
-gap       = max(2.0, cell * gapShare)
-radius    = cell * radiusShare
-half      = cell / 2 - gap / 2
-corner    = half - radius
-```
-
-### 7.2 Stage 1: draw the face
-
-For every pixel `(x, y)`, `0 <= x, y < size`:
-
-```
-fx = x + 0.5 - margin_px
-fy = y + 0.5 - margin_px
-if fx < 0 or fy < 0 or fx >= inner or fy >= inner:
-    color = backdrop
-else:
-    col = toInt(floor(fx / cell));  row = toInt(floor(fy / cell))
-    dx  = fx - (col + 0.5) * cell;  dy = fy - (row + 0.5) * cell
-    qx  = abs(dx) - corner;         qy = abs(dy) - corner
-    outside  = sqrt(max(qx,0)^2 + max(qy,0)^2)
-    distance = outside + min(max(qx, qy), 0) - radius       # < 0 inside the sticker
-    coverage = clamp(0.5 - distance, 0, 1)
-    label = grid[row][col]
-    base  = scatterColor(palette[label] or unknown, label, seed, row*n + col, scatter)
-    if logo given and logo.row == row and logo.col == col:
-        reach = (logo.size or 0.5) * half
-        if sqrt(dx*dx + dy*dy) <= reach:
-            base = palette[logo.color] or unknown      # no scatter on the patch
-    rim    = 1 - 0.1 * clamp(1 - (-distance) / (cell * 0.08), 0, 1)
-    slope  = 1 + 0.04 * ( -(dx + dy) / cell )
-    jitter = 1 + (unit(seed, row*n + col + 1000) - 0.5) * 0.05 * lightness
-    shade  = rim * slope * jitter
-    color  = backdrop * (1 - coverage) + base * shade * coverage      # per channel
-cx = x / size - 0.5          # x, y are the integer pixel coordinates here
-cy = y / size - 0.5
-falloff = 1 - 0.28 * (cx*cx + cy*cy)
-store pixel (color.r * falloff, color.g * falloff, color.b * falloff)   # pixel store rule
-alpha = 255
-```
-
-Notes: `-distance` in `rim` is the positive depth inside the sticker; the
-sticker with the largest depth gets `rim = 1`, its edge band
-(`0.08 * cell` wide) fades to `0.9`. Pixels with `fx` just inside `inner`
-cannot index past the grid because `col, row <= n - 1` follows from
-`fx < inner = n * cell` (guard against float rounding with
-`min(n - 1, ...)` only if your language rounds differently; the reference
-does not guard).
-
-### 7.3 Stage 2: preset effect
-
-`eachPixel(f)` reads the stored integer `r, g, b` of every pixel, computes
-three floats and stores them with the pixel store rule. Positions passed to
-`f` are `tx = x / size`, `ty = y / size` (integer pixel coordinates, no
-half-pixel offset). The alpha byte is untouched.
+## Presets
 
 | Preset | Effect |
-|--------|--------|
-| `clean`, `scatter` | none |
-| `gradient` | `r' = r * (0.7 + 0.6*tx)`, `g' = g`, `b' = b * (1.3 - 0.6*tx)` |
-| `shadow` | `t = (tx + ty) / 2`; `inside = clamp((t-0.4)/0.03, 0, 1) * clamp((0.65-t)/0.03, 0, 1)`; multiply all channels by `1 - 0.45*inside` |
-| `dim-warm` | multiply channels by `(0.6, 0.5, 0.35)`, **then** `addNoise(seed, sigma 8)` |
-| `glare` | see below |
-| `noise` | `addNoise(seed, sigma 20)` |
-| `bad-camera` | `blur(radius = max(1, round(size * 0.006)))` as integer, **then** `addNoise(seed, sigma 15)` |
+| --- | --- |
+| `clean` | none |
+| `scatter` | none, but the scatter option defaults to 1 |
+| `gradient` | `r * (0.7 + 0.6 tx)`, `b * (1.3 - 0.6 tx)`, `g` unchanged |
+| `shadow` | diagonal band: `t = (tx + ty) / 2`, `inside = clamp((t - 0.4) / 0.03, 0, 1) * clamp((0.65 - t) / 0.03, 0, 1)`, all channels times `1 - 0.45 inside` |
+| `dim-warm` | channels times (0.6, 0.5, 0.35), then noise with sigma 8 |
+| `glare` | four elliptical highlights toward white |
+| `noise` | noise with sigma 20 |
+| `bad-camera` | box blur of radius `max(1, round(0.006 size))`, then noise with sigma 15 |
 
-`addNoise(seed, sigma)` over pixel index `k = y*size + x`:
-`r' = r + gauss(seed, 3k) * sigma`, `g' = g + gauss(seed, 3k+1) * sigma`,
-`b' = b + gauss(seed, 3k+2) * sigma`.
+`tx = x / size`, `ty = y / size`. Noise adds `gauss(seed, 3k + c) * sigma` to channel `c` of pixel `k = y * size + x`. Glare spot `j = 0..3` has center `(unit(seed, 5000 + 4j), unit(seed, 5001 + 4j))` and radii `rx = 0.06 + 0.08 unit(seed, 5002 + 4j)`, `ry = 0.05 + 0.07 unit(seed, 5003 + 4j)`; with `q = ((tx - cx) / rx)^2 + ((ty - cy) / ry)^2` its weight is `0.7 (1 - q)` for `q < 1`, else 0; the largest weight wins and each channel becomes `c (1 - weight) + 255 weight`. The blur is a separable box blur, horizontal pass first, edges replicated, each pass reading the 8-bit result of the previous one.
 
-`glare`: four spots `j = 0..3`:
+## Options
 
-```
-cx = unit(seed, 5000 + 4j)          cy = unit(seed, 5001 + 4j)
-rx = 0.06 + unit(seed, 5002 + 4j) * 0.08
-ry = 0.05 + unit(seed, 5003 + 4j) * 0.07
-```
+| Option | Default | Effect |
+| --- | --- | --- |
+| `scatter` | 1 for `scatter`, else 0 | scale of the hue and chroma scatter |
+| `lightness` | 1 | scale of the brightness jitter between stickers |
+| `palette` | none | letters to colors, merged over the default palette; new letters allowed |
+| `logo` | none | round patch on one sticker (`row`, `col`, `color`, optional `size`) |
+| `brightness` | none | factor on every channel, applied after the preset |
+| `blur` | none | box blur radius `round(blur)`, used when at least 1, after brightness |
+| `noise` | none | noise with this sigma and `seed + 7919`, used when above 0, after blur |
+| `geometry` | margin 0.035, gap 0.07, radius 0.14 | shares of `size` (margin) and of a sticker (gap, radius) |
 
-per pixel: for each spot `q = (tx-cx)^2/rx^2 + (ty-cy)^2/ry^2`, spot weight
-`= q < 1 ? 0.7 * (1 - q) : 0`; `weight = max over spots` (start 0). Each
-channel `c' = c * (1 - weight) + 255 * weight`.
+## Label
 
-`blur(radius)` (integer radius `>= 1`): separable box blur, **horizontal
-pass first into a temporary buffer, then vertical pass back**, clamping
-sample coordinates to `[0, size-1]` (edge replicate). Each output channel is
-`sum / (2*radius + 1)` of the integers of the source buffer of that pass,
-stored with the pixel store rule; alpha written as 255.
+The text is `SYNTHETIC ` plus the preset name in upper case. Glyphs are 5x7 pixels (`A B C D E G H I L M N O R S T W Y -`; a space or a letter without glyph only advances). With `m = round(size * marginShare)`, `scale = max(1, (m - 4) / 7)` (integer division) and `top = size - m + (m - 7 scale) / 2`, character `c` lights the pixel `(m + (6c + gx) scale + dx, top + gy scale + dy)` for each lit glyph pixel `(gx, gy)` and `dx, dy < scale`. Pixels beyond the right or bottom edge are clipped, so on a small photo the end of a long label is cut off.
 
-### 7.4 Stage 3: option effects (in this order, after the preset)
+## Processing order
 
-1. `brightness` given: multiply every channel by `brightness`.
-2. `blur` given and `blur >= 1`: `blur(radius = round(blur))` (round half up).
-3. `noise` given and `noise > 0`: `addNoise(seed + 7919, sigma = noise)`
-   (`seed + 7919` as plain int addition).
+1. Draw the face. 2. Apply the preset. 3. Brightness, blur, noise. 4. Label.
 
-### 7.5 Stage 4: label
+## Differences from the draft r0
 
-Text: `"SYNTHETIC " + UPPERCASE(preset)`, e.g. `SYNTHETIC BAD-CAMERA`.
+The draft r0 came from the owner's ReScript prototype, which ran on JavaScript. cubacle does not reproduce its bytes; its 15 SHA-256 vectors do not apply. Changes in r1:
 
-```
-margin_i = round(size * marginShare)             # same as margin_px, as an integer
-scale    = max(1, (margin_i - 4) / 7)            # integer division, truncating
-top      = size - margin_i + (margin_i - 7*scale) / 2     # integer division, truncating
-for each character index c = 0.. of the text:
-    glyph = glyphs[char]; if missing: skip it (it still advances the position)
-    for gy in 0..6, gx in 0..4 where glyph[gy][gx] == '1':
-        for dy in 0..scale-1, dx in 0..scale-1:
-            X = margin_i + (c*6 + gx)*scale + dx
-            Y = top + gy*scale + dy
-            write the label color at flat index (Y*size + X)*4
-```
+- The hash is a 64-bit integer mixer with wrapping arithmetic, not a double product with the JavaScript `ToInt32`. No libm emulation is attempted; the guarantee above says what holds.
+- A float is stored by round-to-nearest (halves away from zero), not half to even, and `oklabToRgb` and the margin use the same rule instead of JavaScript's round-half-up.
+- The label is clipped at the right edge instead of wrapping into the next row by flat index.
+- The prototype had a ninth preset `real` with tone, shading and face-shift options; r1 keeps the eight presets of the draft and none of them.
+- The sticker scatter is computed once per sticker, not once per pixel; the result is the same.
+- Presets are an enum and the grid is a vector of `char` rows; the only error cases are an unknown preset name, a bad grid and a size of 0.
 
-The write uses the **flat index with no bounds check on X**: a glyph that
-runs past the right edge wraps into the next row's left pixels (this
-happens, e.g., for `BAD-CAMERA` at size 96). Writes whose flat index is
-outside `[0, size*size*4)` are silently dropped. Alpha 255.
+## Revision history
 
-Glyphs: 5 columns x 7 rows, `1` = lit. Space has no glyph. Characters not
-in the table are skipped.
-
-```
-A: 01110 10001 10001 11111 10001 10001 10001
-B: 11110 10001 10001 11110 10001 10001 11110
-C: 01110 10001 10000 10000 10000 10001 01110
-D: 11110 10001 10001 10001 10001 10001 11110
-E: 11111 10000 10000 11110 10000 10000 11111
-G: 01110 10001 10000 10111 10001 10001 01111
-H: 10001 10001 10001 11111 10001 10001 10001
-I: 01110 00100 00100 00100 00100 00100 01110
-L: 10000 10000 10000 10000 10000 10000 11111
-M: 10001 11011 10101 10101 10001 10001 10001
-N: 10001 11001 10101 10011 10001 10001 10001
-O: 01110 10001 10001 10001 10001 10001 01110
-R: 11110 10001 10001 11110 10100 10010 10001
-S: 01111 10000 10000 01110 00001 00001 11110
-T: 11111 00100 00100 00100 00100 00100 00100
-W: 10001 10001 10001 10101 10101 11011 10001
-Y: 10001 10001 01010 00100 00100 00100 00100
--: 00000 00000 00000 11111 00000 00000 00000
-```
-
-Each row string lists the 5 columns left to right; the 7 rows go top to
-bottom in the order shown.
-
-## 8. Options
-
-All optional. Unspecified means the default.
-
-| Option | Type | Default | Effect |
-|--------|------|---------|--------|
-| `scatter` | float | `1` for preset `scatter`, else `0` | `scale` argument of `scatterColor` (section 6) |
-| `lightness` | float | `1` | scales the per-sticker brightness `jitter` (7.2) |
-| `palette` | map letter -> rgb | none | merged over the default palette; the user value wins per letter. New letters are allowed. |
-| `logo` | `{row, col, color, size?}` | none | round patch on one sticker (7.2); `size` default 0.5 |
-| `noise` | float (sigma, 0..255 levels) | none | 7.4 step 3 |
-| `blur` | float (pixels) | none | 7.4 step 2, only if `>= 1` |
-| `brightness` | float | none | 7.4 step 1 |
-| `geometry.margin` | float | 0.035 | `marginShare` |
-| `geometry.gap` | float | 0.07 | `gapShare` |
-| `geometry.radius` | float | 0.14 | `radiusShare` |
-
-An unknown preset name is the only error case. The reference does no other
-validation (a grid that is not square, an empty grid, a non-positive size are
-out of scope; do not rely on any behavior for them).
-
-## 9. Processing order summary
-
-1. Allocate `size*size*4` zero bytes.
-2. Stage 1 draw (7.2).
-3. Preset effect (7.3).
-4. `brightness`, then `blur`, then `noise` (7.4).
-5. Label (7.5).
-6. Return the bytes.
-
-## 10. Implementation checklist
-
-- [ ] `hash` uses the double product and `ToInt32` for the second multiply.
-- [ ] Pixel stores round half to even and clamp; `Math.round` sites round half up.
-- [ ] Every stage reads back the quantized integers, never floats.
-- [ ] Sticker colors pass through the OKLCH round trip even with scatter 0.
-- [ ] The label skips missing glyphs but advances 6 columns, and wraps by flat index.
-- [ ] Blur is horizontal first, edge-clamped, and uses the previous pass's integers.
-- [ ] Preset noise uses `seed`; the option noise uses `seed + 7919`.
-
-## 11. Test vectors
-
-Grid (3 x 3), seed `7`, size `96`:
-
-```
-W Y O
-R G B
-B W R
-```
-
-SHA-256 is over the raw `96*96*4` output bytes. `px(x,y)` is the RGBA of
-that pixel.
-
-| preset | options | sha256 | px(48,48) | px(10,10) | px(80,20) |
-|--------|---------|--------|-----------|-----------|-----------|
-| clean | `{}` | `5e23f4b232c22e9859abf96dcba5b6fd79b9d5b55ba10292a75fd76f88c7e277` | 35,153,76,255 | 213,213,205,255 | 223,114,32,255 |
-| scatter | `{}` | `e89b5f3487a80023d4c3b137fd1d1224cf288d1025a651a1f18b78abeba2c3f7` | 13,154,70,255 | 214,213,206,255 | 225,113,18,255 |
-| gradient | `{}` | `c5b18bdaf6425dec42c9ac485f56867ccb945a75c10d9eec471a2c4aa4e9e6bb` | 35,153,76,255 | 162,213,254,255 | 255,114,26,255 |
-| shadow | `{}` | `ab93f74a9d39cb2a520a65bf65c374163cd9c58a077691adeeebbd053b6bdeae` | 19,84,42,255 | 213,213,205,255 | 123,63,18,255 |
-| dim-warm | `{}` | `64ccb92ca85e307f7fed8d6d7ca19f21569e37649a83adbe1b585e2635f07478` | 18,76,27,255 | 115,109,52,255 | 131,52,7,255 |
-| glare | `{}` | `0404b91de9ed84f2d171ace2669201e4006db75139a7f76f58f01276b22c2a90` | 35,153,76,255 | 240,240,238,255 | 223,114,32,255 |
-| noise | `{}` | `05eb00a6cd2e933ebba624511c9afdbd623e4594b99b39cb76b5f98196635fd7` | 28,154,77,255 | 180,221,154,255 | 215,103,23,255 |
-| bad-camera | `{}` | `c159f860628cb6abdb21f70b66c5bb97639bf3cfad22f83b3032288e5f654d82` | 29,154,77,255 | 188,219,167,255 | 217,106,25,255 |
-| clean | `{lightness: 3}` | `4e43573ddb8afd9a4e591dcc0cbf363e519cfaeea527b6d64f88086e818cfbec` | 36,160,79,255 | 206,206,199,255 | 223,114,32,255 |
-| clean | `{palette: {W: (200,40,40)}}` | `1de8e2dc03c86163cbcbfe7a3617e57d96c4b7950bcba04a13640eb1f12c6651` | 35,153,76,255 | 183,37,37,255 | 223,114,32,255 |
-| clean | `{logo: {row 0, col 0, color B, size 0.5}}` | `f1d5320bcea0e0948721c3652edcc5d5bffd73274707cad0e277b615f9bdeda2` | 35,153,76,255 | 213,213,205,255 | 223,114,32,255 |
-| clean | `{noise: 12}` | `32289cbeb46095b71d4b35c57ac4cf313f843de23ac6500ec972a6894a84d998` | 43,146,67,255 | 211,217,183,255 | 223,121,32,255 |
-| clean | `{blur: 3}` | `4c4872dae83762b6dac4cc42706485d24dcae720846c918ad8bc3e3da3f7c7b1` | 35,153,76,255 | 213,213,205,255 | 223,114,32,255 |
-| clean | `{brightness: 0.5}` | `e923dfc88ebabb72f0b6df4fa360ae13bc1de4bb45722439d8a10b35497018d2` | 18,76,38,255 | 106,106,102,255 | 112,57,16,255 |
-| clean | `{geometry: {gap 0.2, radius 0.3, margin 0.06}}` | `41d1c3b5d054261fff53476770c91f6fead4becd4f8c61cce55d257c82b3c1fc` | 35,153,76,255 | 18,18,22,255 | 223,114,32,255 |
-
-Intermediate vectors, to debug the building blocks:
-
-| Function | Input | Result |
-|----------|-------|--------|
-| `hash` | (0, 0) | `0` |
-| `hash` | (0, 1) | `-995253203` (a wrapping 32-bit multiply gives `-995253211`: wrong) |
-| `hash` | (2, 3) | `-258837870` |
-| `hash` | (1, 0) | `-2112589356`, `unit` = `0.07986187934875488` |
-| `hash` | (1, 1) | `-1443748110`, `unit` = `0.9459067583084106` |
-| `hash` | (7, 5) | `-1240902135`, `unit` = `0.03646904230117798` |
-| `hash` | (7, 6000) | `1296429893`, `unit` = `0.273243248462677` |
-| `hash` | (123456, 999999) | `-630710680`, `unit` = `0.40671396255493164` |
-| `gauss` | (7, 0) | `-0.32686746288037005` |
-| `gauss` | (7, 6000) | `-0.3998755282614002` |
-| `gauss` | (7, 6001) | `-0.5639761522217001` |
-| `rgbToOKLCH` | (190, 36, 46) | L `0.5217946271866125`, C `0.18836178322439825`, h `23.996476659333837` |
-| `rgbToOKLCH` | (232, 232, 224) | L `0.9287812843768155`, C `0.010675359825349588`, h `106.60558918591029` |
-| `rgbToOKLCH` | (34, 84, 192) | L `0.4800873183057759`, C `0.17815358772718604`, h `262.8388343846658` |
-| `oklabToRgb` | (0.6, 0.1, 0.05) | `(186, 100, 92)` |
-| `scatterColor` | base R, label R, seed 7, k 4, scale 1 | `(193, 27, 43)` |
-| `scatterColor` | base W, label W, seed 7, k 0, scale 1 | `(233, 232, 225)` |
-
-**Acceptance.** First make every `hash`/`gauss` line match exactly (they use
-only integer arithmetic, one `ln`, one `cos` and one `sqrt`; `gauss` should
-match to at least 12 significant digits). Then check the pixel probes.
-A port is **exact** when the SHA-256 values match. If only `ln`, `cos`,
-`cbrt` or `pow` differ in the last bit, a few bytes can differ by 1; in
-that case accept the port when every byte is within +-1 of the reference
-and fewer than 1% of the bytes differ, and report which libm you used.
-A single large difference (more than 1) always means a logic error.
-
-## 12. Extension rules
-
-When a new option or preset is added to the reference, it must (a) leave
-all vectors above unchanged when it is absent, (b) draw its random numbers
-from a **new index range** so that existing ranges stay stable, and
-(c) append its own vector to this section. Index ranges in use:
-`0 .. 2*size^2*3` (noise via `gauss`, doubled inside `gauss`),
-`1000 + k` (jitter), `5000 .. 5015` (glare), `6000 + 2k`, `6001 + 2k`
-(scatter), seed offset `7919` (option noise).
+| Revision | Content |
+| --- | --- |
+| r0 | Draft from the owner's prototype (cube-assembler, `SyntheticFace.res`), with JavaScript-exact arithmetic and 15 SHA-256 vectors. |
+| r1 | This page: the Rust implementation in `src/synthetic/`, with the differences above. Golden hashes pin the output of r1. |
