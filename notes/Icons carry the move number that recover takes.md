@@ -9,5 +9,6 @@ A follower of `solve --icons` had to count icons by hand to give `solve --now --
 
 - [[Solve icons checkpoints are Orbit64 tokens]]
 - [[Phases come from the solver's stages]]
+- [[A layer range is one picture with one arrow]]
 
 Source: owner decisions of 2026-10-24, lines 1-1

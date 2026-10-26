@@ -12,6 +12,7 @@ Raw-material notes, category notation.
 - [[Solve icons checkpoints are Orbit64 tokens]]
 - [[Quarter turn frame is off by default]]
 - [[Icons carry the move number that recover takes]]
+- [[A layer range is one picture with one arrow]]
 - [[Recover pictures draw the rollback and the rest of the printed solution]]
 - [[Color schemes]]
 - [[Orbit64 slot numbering caveat]]

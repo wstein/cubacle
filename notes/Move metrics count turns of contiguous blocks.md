@@ -10,5 +10,6 @@ The seven metrics (HTM, QTM, STM, ETM, OBTM, BTM, ATM) are counted on one unit: 
 - [[Shorter solutions beat compute time]]
 - [[The solvers do not minimize QTM or STM]]
 - [[Move input rules are WCA and SiGN]]
+- [[A layer range is one picture with one arrow]]
 
 Source: docs/metrics.md, lines 36-110
