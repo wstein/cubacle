@@ -193,23 +193,25 @@ pub(crate) fn shows_phase_headings(mode: GraphicsMode) -> bool {
     detect_stdout(mode) == Graphics::Kitty
 }
 
-/// The picture options `solve` and `solve --now` share.
+/// The picture options `solve`, `moves` and `patterns` share (global, so that
+/// `patterns list --icons` takes them after the subcommand).
 #[derive(clap::Args)]
 pub struct PictureArgs {
     /// Show each move with a picture of the cube (graphics on a capable terminal)
-    #[arg(long)]
+    #[arg(long, global = true)]
     pub icons: bool,
     /// Icon height in pixels for --icons (default: 32 per cube layer, at least 96)
-    #[arg(long, requires = "icons", value_name = "PIXELS")]
+    #[arg(long, global = true, requires = "icons", value_name = "PIXELS")]
     pub icon_size: Option<u32>,
     /// What the --icons pictures are seen on: sets the notation colour and the
     /// dimming (default: ask the terminal, dark when it does not answer)
-    #[arg(long, requires = "icons", value_enum)]
+    #[arg(long, global = true, requires = "icons", value_enum)]
     pub background: Option<Background>,
     /// How the --icons pictures are drawn: auto, kitty, ansi or plain; an
     /// explicit value also applies when output is not a terminal
     #[arg(
         long,
+        global = true,
         requires = "icons",
         value_enum,
         env = "CUBACLE_GRAPHICS",
@@ -217,15 +219,15 @@ pub struct PictureArgs {
     )]
     pub graphics: GraphicsMode,
     /// Icons per row for --icons (default: as many as fit the terminal width)
-    #[arg(long, requires = "icons", value_name = "N", value_parser = clap::value_parser!(u32).range(1..))]
+    #[arg(long, global = true, requires = "icons", value_name = "N", value_parser = clap::value_parser!(u32).range(1..))]
     pub columns: Option<u32>,
     /// Pictures of a whole cube: folded (default), both corners, urf only, the flat net, or all
-    #[arg(long, requires = "icons", value_enum, default_value_t)]
+    #[arg(long, global = true, requires = "icons", value_enum, default_value_t)]
     pub views: Views,
     /// Move numbers in the top-left corner of the --icons pictures: on
     /// (default) or off. The number is the position in the move list, the
     /// N of `solve --now --at-move N`
-    #[arg(long, requires = "icons", value_enum, default_value_t)]
+    #[arg(long, global = true, requires = "icons", value_enum, default_value_t)]
     pub numbers: Numbers,
 }
 
