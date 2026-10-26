@@ -2,10 +2,11 @@
 
 use std::time::Duration;
 
+use cubacle::canonical::canonical;
 use cubacle::engines::pattern::{find_generator_with, Cap};
 use cubacle::notation::{parse_cube, parse_expression};
 use cubacle::patterns;
-use cubacle::puzzle::Move;
+use cubacle::puzzle::{Facelets, Move};
 
 use super::{FindArgs, IdentifyArgs};
 
@@ -54,11 +55,12 @@ pub(super) fn identify_state(
     };
     crate::state_check::warn(&state);
     let report = patterns::detect_with(&state, &library.extra, args.closest);
-    if verbose {
-        print!("{}", report.detailed());
+    let text = if verbose {
+        report.detailed().to_string()
     } else {
-        print!("{report}");
-    }
+        report.to_string()
+    };
+    print!("{}", with_canonical(&text, &state));
     print_kind(&patterns::measures(&state));
     for pattern in patterns::identify_imported(&library.extra, &state) {
         println!(
@@ -69,6 +71,21 @@ pub(super) fn identify_state(
         );
     }
     Ok(())
+}
+
+/// The report with the line `canonical: TOKEN` below its `pattern:` lines, which name the
+/// class the token identifies. A state that is no cube has no token and no line.
+fn with_canonical(report: &str, state: &Facelets) -> String {
+    let Ok(token) = canonical(state) else {
+        return report.to_owned();
+    };
+    let at = report
+        .split_inclusive('\n')
+        .take_while(|line| line.starts_with("pattern:"))
+        .map(str::len)
+        .sum();
+    let (patterns, rest) = report.split_at(at);
+    format!("{patterns}canonical: {token}\n{rest}")
 }
 
 /// The kind of a state and the measures it was judged by.
