@@ -15,3 +15,4 @@ This section holds specifications that the owner ordered before any code exists.
 | [The definition file](definition-file.md) | A file that defines a pattern by a schema grid and a guard. |
 | [Color schemes](color-schemes.md) | Names, letters and display colors for the six faces. |
 | [REST and JSON](rest-json.md) | The search endpoint and the choice between the text and JSON forms. |
+| [Synthetic face generator](synthetic-face.md) | Draft: the renderer of synthetic cube face photos. |
