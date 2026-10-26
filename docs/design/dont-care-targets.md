@@ -207,7 +207,7 @@ only where the table above says yes, "best found in N nodes" otherwise.
   count when the mask has many free slots. This paper adds no flag; the two
   options only need to take a goal predicate rather than a state. Agree the
   interface with that agent before step 3 of the plan.
-- **MSRV 1.85.** Nothing here needs newer features: bit sets over six colours fit
+- **MSRV 1.95.** Nothing here needs newer features: bit sets over six colours fit
   a `u8`; masks are `Vec<u8>` or arrays.
 - **Memory cap 1.5 GB.** See section 4.4.
 - **Server.** Partial searches are compute-heavy: they run on the blocking pool
