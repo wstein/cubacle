@@ -3,11 +3,11 @@ id: 20261022130002
 aliases: []
 tags: ["type/design", "status/decided", "category/architecture"]
 ---
-Move icons live in a new top-level module `render` that depends only on `puzzle`. It never names `notation`: the CLI turns a `ColourScheme` into a `Palette` through six letters, which keeps the module free to become its own crate. It is pure: `icon(&Facelets, &Action, &Style)` builds a list of filled polygons in a 114 x 109.2 canvas (the cube above, the notation below) that four writers consume (an SVG string, an RGBA raster from an own supersampling scanline filler, Kitty graphics escapes, and a text grid for terminals without graphics). Terminal detection and all I/O stay in the CLI (`src/icons.rs`).
+Move icons live in a new top-level module `render` that depends only on `puzzle`. It never names `notation`: the CLI turns a `ColorScheme` into a `Palette` through six letters, which keeps the module free to become its own crate. It is pure: `icon(&Facelets, &Action, &Style)` builds a list of filled polygons in a 114 x 109.2 canvas (the cube above, the notation below) that four writers consume (an SVG string, an RGBA raster from an own supersampling scanline filler, Kitty graphics escapes, and a text grid for terminals without graphics). Terminal detection and all I/O stay in the CLI (`src/icons.rs`).
 
 ## Projection and layers
 
-The view is a deep oblique one: `sx = x - 0.5 z`, `sy = y - 0.42 z` in the axes of `puzzle::locate`, so Front, Up and Right are visible, for any size `n`. The scale is the box size over `2n * 1.4`. A layer moves when `side * position[axis]` equals (single layer) or is at least (wide) `n - 1 - 2(depth - 1)`, the rule `Facelets::apply` uses, so `Rw` is two layers, `2R` one inner layer and `3Rw` three. Moving layers keep their colours and the rest is darkened to 25 percent (dark backdrop) or 40 percent (light backdrop, `Style::backdrop`); `Shading::GreyMoving` greys the moving layer instead. The default is darkening because the real colours of the moving layer matter more than a uniform grey.
+The view is a deep oblique one: `sx = x - 0.5 z`, `sy = y - 0.42 z` in the axes of `puzzle::locate`, so Front, Up and Right are visible, for any size `n`. The scale is the box size over `2n * 1.4`. A layer moves when `side * position[axis]` equals (single layer) or is at least (wide) `n - 1 - 2(depth - 1)`, the rule `Facelets::apply` uses, so `Rw` is two layers, `2R` one inner layer and `3Rw` three. Moving layers keep their colors and the rest is darkened to 25 percent (dark backdrop) or 40 percent (light backdrop, `Style::backdrop`); `Shading::GreyMoving` greys the moving layer instead. The default is darkening because the real colors of the moving layer matter more than a uniform grey.
 
 ## Arrow direction
 

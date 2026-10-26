@@ -9,7 +9,7 @@ One symbol can stand for several classes of the same abstract group in different
 
 ## Links
 
-- [[A symmetry is a sticker permutation plus a colour map]]
+- [[A symmetry is a sticker permutation plus a color map]]
 - [[A pattern detector reads structure from the cubie state]]
 
 Source: src/patterns/detector/stabilizer.rs, lines 1-60

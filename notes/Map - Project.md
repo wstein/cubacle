@@ -13,4 +13,4 @@ Raw-material notes, category project.
 - [[Third-party pattern collections give names and facts, never move lists]]
 - [[The CubeTwister collection is local test data and never on by default]]
 - [[A review of the cube tools of Randelshofer sets the order of seven ideas]]
-- [[The calendar cube needs labelled stickers and an open target and is a later extension]]
+- [[The calendar cube needs labeled stickers and an open target and is a later extension]]

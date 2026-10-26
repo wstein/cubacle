@@ -8,6 +8,6 @@ Planned: in a guard `x*` stands for any index number, so unique(a*,b*,c*) repeat
 ## Links
 
 - [[A guard combines unique, equal and count with boolean operators]] defines the operators the wildcard appears in.
-- [[A schema grid is written with lowercase variables, uppercase colours and don't-care dots]] shows the index numbers on variables.
+- [[A schema grid is written with lowercase variables, uppercase colors and don't-care dots]] shows the index numbers on variables.
 
 Source: owner decision of 2026-10-25, lines 1-1

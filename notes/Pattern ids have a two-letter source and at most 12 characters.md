@@ -3,7 +3,7 @@ id: 20261025160001
 aliases: []
 tags: ["type/decision", "status/decided", "category/engines"]
 ---
-Every pattern has a catalogue id `xx:code` of at most 12 characters: a two-letter source and a code of up to 9 characters from letters, digits, `.` and `-`. The built-ins use `cu:` with a readable code (`cu:checker`); imports keep the author's code (`ct:A200.01`) under the tag set by `--source`. `show` accepts the name, an alias, the short id or the catalogue id, case-insensitive. Twelve characters keep the id column of the list and the tree narrow.
+Every pattern has a catalog id `xx:code` of at most 12 characters: a two-letter source and a code of up to 9 characters from letters, digits, `.` and `-`. The built-ins use `cu:` with a readable code (`cu:checker`); imports keep the author's code (`ct:A200.01`) under the tag set by `--source`. `show` accepts the name, an alias, the short id or the catalog id, case-insensitive. Twelve characters keep the id column of the list and the tree narrow.
 
 ## Links
 

@@ -3,7 +3,7 @@ id: 20261024180002
 aliases: []
 tags: ["type/design", "status/decided", "category/engines"]
 ---
-Home needs a colour frame and a flip needs an axis priority, and neither is canonical, so the fingerprint reads the pieces in every frame that fits (the centres on an odd cube, every best matching of colours to faces on an even one) and every one of six axis orders, and keeps the least result. A turned, mirrored or recoloured cube then gives the same code, which the tests check on all 48 symmetries. Corners and the middle wings of odd cubes can be told apart and give a cycle type; other wings and centres only give counts of displaced and flipped pieces, because equal pieces have no identity in the colours.
+Home needs a color frame and a flip needs an axis priority, and neither is canonical, so the fingerprint reads the pieces in every frame that fits (the centers on an odd cube, every best matching of colors to faces on an even one) and every one of six axis orders, and keeps the least result. A turned, mirrored or recoloured cube then gives the same code, which the tests check on all 48 symmetries. Corners and the middle wings of odd cubes can be told apart and give a cycle type; other wings and centers only give counts of displaced and flipped pieces, because equal pieces have no identity in the colors.
 
 ## Links
 

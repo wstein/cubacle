@@ -10,7 +10,7 @@ An Orbit64 token is a function of the stickers' colors alone, so a color state f
 - [[Orbit64 tokens]]
 - [[Orbit64 state as mixed-radix digits]]
 - [[Equal pieces are matched fixed points first]]
-- [[Same-coloured inner pieces are equal and there is no strict mode]]
+- [[Same-colored inner pieces are equal and there is no strict mode]]
 - [[The canonical token is the Orbit64 token of the standard-colored member of the detector's class]]
 
 Source: src/notation/orbit64/pieces.rs, lines 108-138

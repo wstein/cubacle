@@ -8,7 +8,7 @@ tags: ["type/design", "status/decided", "category/notation"]
 ## Links
 
 - [[Cycles use our own spelling and the order comes from the cycle type]]
-- [[A symmetry is a sticker permutation plus a colour map]]
+- [[A symmetry is a sticker permutation plus a color map]]
 - [[Move input rules are WCA and SiGN]]
 
 Source: src/puzzle/order.rs, lines 1-7

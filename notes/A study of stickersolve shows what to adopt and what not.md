@@ -7,7 +7,7 @@ Reading a 3x3 optimal solver with a sticker painter showed which ideas help us. 
 
 ## Links
 
-- [[A partial target is a map from slots to allowed colours]]
+- [[A partial target is a map from slots to allowed colors]]
 - [[Fingertrick ranking only orders solutions of the shortest length]]
 
 Source: owner decision of 2026-10-24, lines 1-1

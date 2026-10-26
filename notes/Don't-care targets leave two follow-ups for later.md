@@ -3,7 +3,7 @@ id: 20261025160006
 aliases: []
 tags: ["type/question", "status/open", "category/open-items"]
 ---
-Two follow-ups of the don't-care targets are not built: colour subsets between one and six colours on a sticker (white or yellow on U, useful for OLL goals) sit in the model but have no syntax, and `--show-free`, which would print the state the free stickers ended in, is optional and later. Both wait for the first release of the eight decisions.
+Two follow-ups of the don't-care targets are not built: color subsets between one and six colors on a sticker (white or yellow on U, useful for OLL goals) sit in the model but have no syntax, and `--show-free`, which would print the state the free stickers ended in, is optional and later. Both wait for the first release of the eight decisions.
 
 ## Links
 

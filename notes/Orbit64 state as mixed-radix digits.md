@@ -3,7 +3,7 @@ id: 20261022042148-001
 aliases: []
 tags: ["type/design", "status/reference", "category/notation"]
 ---
-A state is one number of mixed-radix digits: Lehmer digits and orientation digits for corners and midges, Lehmer digits per wing orbit, five combination ranks per centre orbit, then the frame (radix 24) on odd cubes. Token widths 5, 12, 27, 43, 66 and 90 follow from the product of the radices.
+A state is one number of mixed-radix digits: Lehmer digits and orientation digits for corners and midges, Lehmer digits per wing orbit, five combination ranks per center orbit, then the frame (radix 24) on odd cubes. Token widths 5, 12, 27, 43, 66 and 90 follow from the product of the radices.
 
 ## Links
 

@@ -7,7 +7,7 @@ A template state matches when some assignment of colors to the placeholders make
 
 ## Links
 
-- [[Colour schemes]]
+- [[Color schemes]]
 - [[Patterns are defined by structure and searched]]
 - [[Don't-care stickers are written X or named as a subset]]
 

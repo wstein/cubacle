@@ -8,7 +8,7 @@ Moves are read as WCA and SiGN everywhere (solve --scramble, convert, facelets, 
 Rules and where they come from (read 2026-10-23):
 
 - WCA Regulations Article 12a1/12a2/12a4 (<https://www.worldcubeassociation.org/regulations/#article-12-notation>): `nRw` turns n outer layers with 1 < n < N, `Rw` is `2Rw`; x, y, z are cube rotations. The article has no layer ranges, no groups, no brackets for NxNxN and no `M E S`; those are SiGN or community notation. The hybrid range `2-3Rw` is therefore our extension.
-- SiGN, mzrg.com (<https://mzrg.com/rubik/nota.shtml>): lowercase letters turn several layers, a number before the letter names the deepest layer, a range `a-b` is written with a dash (`2-5r`), `'` after a parenthesised group inverts it, a number repeats it, `[P, Q]` is P Q P' Q' and `[P: Q]` is P Q P'.
+- SiGN, mzrg.com (<https://mzrg.com/rubik/nota.shtml>): lowercase letters turn several layers, a number before the letter names the deepest layer, a range `a-b` is written with a dash (`2-5r`), `'` after a parenthesized group inverts it, a number repeats it, `[P, Q]` is P Q P' Q' and `[P: Q]` is P Q P'.
 - Ruwix (<https://ruwix.com/the-rubiks-cube/notation/advanced/>): `2F` is the second layer alone, a lowercase letter the two outer layers, `(X)2` = X X (a reader comment, not the page text). It defines no ranges or commutators.
 - The speedsolving.com wiki answered 403 and was not used.
 

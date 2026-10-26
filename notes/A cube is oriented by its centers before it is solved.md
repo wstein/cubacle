@@ -9,7 +9,7 @@ The owner decided on 2026-10-25 that a 3x3x3, 5x5x5 or 7x7x7 whose face centers 
 
 - [[5x5 reduction engine]]
 - [[5x5 parity and limits]]
-- [[Same-coloured inner pieces are equal and there is no strict mode]]
+- [[Same-colored inner pieces are equal and there is no strict mode]]
 
 Source: src/puzzle/centers.rs, lines 1-120
 Source: src/main.rs, lines 560-600

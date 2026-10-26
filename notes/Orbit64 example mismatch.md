@@ -3,7 +3,7 @@ id: 20261022120023
 aliases: []
 tags: ["type/question", "status/open", "category/open-items"]
 ---
-One token in an Orbit64 example file does not match its neighbouring scramble and is unexplained.
+One token in an Orbit64 example file does not match its neighboring scramble and is unexplained.
 
 ## Links
 
