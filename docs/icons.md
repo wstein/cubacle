@@ -137,6 +137,31 @@ With `-v` the lines `phase 1: centers staged, moves 1-19` go to standard error a
 
 Without graphics there are no phase headings: the text output is one picture per move, as before, and the token line of a phase follows the last move of that phase.
 
+### Ranges in the pictures
+
+`solve --icons --optimize ranges` draws the compressed solution (see `--optimize` in [Solve](cli/solve.md)). A turn of a block of inner layers, `2-3Rw` in WCA, `2-3r` in SiGN, `VR` in SSE (`VB2`, a half turn of the back layers 2-3 on a 7x7x7), is one move: one picture, one number, one arrow. The layers of the block keep their full brightness, the rest of the cube is dimmed as for any move, and the arrow lies in the middle of the block, on the face where the block shows, like the arrow of a wide move (`3Rw`). The label under the cube is the WCA range, `2-3Rw2'` at the longest; the move line and the `Moves:` line use `--notation`.
+
+```text
+cubacle solve --size 5 --to 2-3Rw --icons --graphics plain --optimize ranges
+```
+
+```text
+compressed moves 1
+...
+move 1 of 1: 2-3Rw
+2-3Rw ↑
+     w w W W w
+    w w W W w
+   w w W W w
+  w w W W w
+ w w W W w
+g g G G g r r r r r
+...
+Moves: 2-3Rw
+```
+
+Without `--optimize` the same target is two pictures, `3Rw` and `R'` (`Moves: 3Rw R'`). The ranges are formed inside each solver phase, so none crosses a phase border,, and the phase headings and move numbers count the drawn steps. A picture list is never longer than without the option, and applying the steps one by one gives the same cube as the plain solution (tests check both). `--group` is still refused with `--icons`.
+
 ### Move numbers
 
 Every icon of `solve --icons`, `solve --now --icons` and `moves --icons` has its move number in the top-left corner, in small grey digits that read on a dark and on a light background. The number counts over the whole list of moves drawn (1 to N, across phases), and it is the N of `recover --at-move N`: the move you did last before you noticed the mistake. For `solve --icons` that is the position in the printed solution; `solve --now --icons` numbers the rollback R1 to RN and the rest of the printed solution with its own numbers; `moves --icons` counts over the typed moves, also with `--format svg` and `--out`. `--numbers off` hides the numbers everywhere; `--numbers on` is the default. Without graphics the line `move i of n: MOVE` above the text picture already numbers the moves.
