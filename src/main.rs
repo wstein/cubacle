@@ -35,7 +35,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
-use cubacle::centres;
+use cubacle::centers;
 use cubacle::engines::dwalton::DwaltonSolver;
 use cubacle::engines::five::FiveSolver;
 use cubacle::engines::four::FourSolver;
@@ -600,7 +600,7 @@ fn solve(args: SolveArgs) -> Result<(), String> {
     // target is taken out.
     // A target whose centres differ in colour on one face is reached through
     // a centre fix-up; its cube to solve is made once the engine is at hand.
-    let mixed = target.as_ref().is_some_and(|t| !centres::uniform(t));
+    let mixed = target.as_ref().is_some_and(|t| !centers::uniform(t));
     let facelets = match &target {
         Some(target) if !mixed => {
             relative_state(&start, target).map_err(|error| error.to_string())?
@@ -668,7 +668,7 @@ fn solve(args: SolveArgs) -> Result<(), String> {
                 .to
                 .as_deref()
                 .and_then(|text| parse_expression(text, start.kind()).ok());
-            centres::plan(solver.as_ref(), &start, target, &options, moves.as_ref())
+            centers::plan(solver.as_ref(), &start, target, &options, moves.as_ref())
                 .map_err(|error| error.to_string())?
         }
         _ => None,

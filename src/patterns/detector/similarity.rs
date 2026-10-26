@@ -8,7 +8,7 @@
 //! (a random cube about a third with the solved cube), so the number says
 //! "closer", not "nearly the same".
 
-use super::centre_names::{centre_classes, pair_up};
+use super::center_names::{centre_classes, pair_up};
 use super::geometry::tables;
 use super::library::{entries, Entry};
 use super::pieces::layout;

@@ -15,7 +15,7 @@
 //! ```
 
 mod canon;
-mod centre_names;
+mod center_names;
 mod cycles;
 mod fingerprint;
 pub(super) mod geometry;

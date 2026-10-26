@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, OnceLock};
 use std::time::Instant;
 
-use cubacle::centres;
+use cubacle::centers;
 use cubacle::engines::dwalton::DwaltonSolver;
 use cubacle::engines::five::FiveSolver;
 use cubacle::engines::four::FourSolver;
@@ -58,7 +58,7 @@ fn check(engine: &dyn Solver, kind: PuzzleKind, start: &str, target: &str, back:
         .take(if back { 2 } else { 1 })
     {
         let began = Instant::now();
-        let result = centres::solve_to(engine, from, to, &SolveOptions::default(), hint);
+        let result = centers::solve_to(engine, from, to, &SolveOptions::default(), hint);
         let route = result.solution().unwrap_or_else(|| {
             panic!(
                 "{kind:?} {start} -> {target}: {:?} {:?}",

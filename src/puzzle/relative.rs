@@ -26,7 +26,7 @@ pub enum RelativeError {
     /// The target shows centres of one kind (the centres of one orbit on one
     /// face) in different colours. The relative state only tells a centre the
     /// face it goes to, not the place, so it cannot express the target; the
-    /// route to such a target is planned by `centres::plan`, which aims at a
+    /// route to such a target is planned by `centers::plan`, which aims at a
     /// nearby target with uniform centres and finishes with a centre fix-up.
     CentresMoved,
 }
@@ -43,7 +43,7 @@ impl fmt::Display for RelativeError {
             RelativeError::CentresMoved => write!(
                 f,
                 "the target has centres of different colours on one face, which a relative state \
-                 cannot express; plan the route with `centres::plan`, which ends in a centre fix-up"
+                 cannot express; plan the route with `centers::plan`, which ends in a centre fix-up"
             ),
             RelativeError::ImpossiblePiece { which } => {
                 write!(
@@ -201,7 +201,7 @@ fn centres_uniform(target: &Facelets, cells: &[Cubie]) -> bool {
 /// is a state they solve. A target whose centres of one kind differ in colour
 /// on one face is refused with [`RelativeError::CentresMoved`], because the
 /// relative state only tells a centre which face to reach, not which place;
-/// `centres::plan` turns such a target into one with uniform centres and a
+/// `centers::plan` turns such a target into one with uniform centres and a
 /// fix-up.
 pub fn relative_state(start: &Facelets, target: &Facelets) -> Result<Facelets, RelativeError> {
     relative_by(start, target, false)

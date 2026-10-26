@@ -31,7 +31,7 @@ use axum::middleware::{self, Next};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use cubacle::centres;
+use cubacle::centers;
 use cubacle::engines::dwalton::DwaltonSolver;
 use cubacle::engines::five::FiveSolver;
 use cubacle::engines::four::FourSolver;
@@ -557,7 +557,7 @@ async fn solve(
     // target is taken out.
     // A target whose centres differ in colour on one face is reached by a
     // centre fix-up, planned with the engine inside the solve below.
-    let mixed = target.as_ref().is_some_and(|t| !centres::uniform(t));
+    let mixed = target.as_ref().is_some_and(|t| !centers::uniform(t));
     let facelets = match &target {
         Some(_) if mixed => start.clone(),
         Some(target) => relative_state(&start, target).map_err(|e| match e {
@@ -664,7 +664,7 @@ async fn solve(
                 let hint = target_text
                     .as_deref()
                     .and_then(|text| parse_expression(text, kind).ok());
-                centres::solve_to(engine, &start, &wanted, &options, hint.as_ref())
+                centers::solve_to(engine, &start, &wanted, &options, hint.as_ref())
             } else {
                 engine.solve(&facelets, &options)
             }

@@ -4,7 +4,7 @@
 mod cases {
     use std::sync::Arc;
 
-    use crate::centres::*;
+    use crate::centers::*;
     use crate::engines::four::FourSolver;
     use crate::engines::three::Min2PhaseSolver;
     use crate::puzzle::{reaches, relative_by};
@@ -68,7 +68,7 @@ mod cases {
         assert!(plan.tail().len() <= moves.len());
         // a wrong hint changes nothing but the bound
         let other: MoveSequence = "R U".parse().unwrap();
-        let plan = crate::centres::plan(
+        let plan = crate::centers::plan(
             &engine,
             &start,
             &target,

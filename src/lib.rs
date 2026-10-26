@@ -35,7 +35,7 @@
 //! ```
 
 pub mod canonical;
-pub mod centres;
+pub mod centers;
 pub mod engines;
 pub mod generate;
 mod meet;

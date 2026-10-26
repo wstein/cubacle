@@ -7,7 +7,7 @@
 //! fits and the least result is kept. That makes the fingerprint the same for
 //! a cube, its turned or mirrored image and any renaming of its colours.
 
-use super::centre_names::{centre_classes, pair_up};
+use super::center_names::{centre_classes, pair_up};
 use super::pieces::{frames, Cube, Frame, ORDERS};
 use crate::puzzle::PuzzleKind;
 

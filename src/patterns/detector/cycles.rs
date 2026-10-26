@@ -18,7 +18,7 @@
 
 use std::fmt;
 
-use super::centre_names::{centre_classes, pair_up};
+use super::center_names::{centre_classes, pair_up};
 use super::matching::{centre_groups, Permutation};
 use super::pieces::{axis, layout};
 use crate::puzzle::{locate, Face, Facelets, PuzzleKind};
