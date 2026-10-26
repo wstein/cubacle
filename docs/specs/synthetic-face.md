@@ -137,6 +137,23 @@ The text is `SYNTHETIC ` plus the preset name in upper case. Glyphs are 5x7 pixe
 
 1. Draw the face. 2. Apply the preset. 3. Shadow option (when given and the preset is not `shadow`, which has applied it), brightness, blur, noise. 4. Label.
 
+## Fingerprint
+
+`cubacle photo` (not `render_face`) writes the settings of a photo into its PNG file, so that a reader can render it again. The chunk is a PNG `tEXt` chunk (with CRC) placed before the first `IDAT`, with the keyword `cube-assembler`, a NUL byte, and one JSON object. The text is ASCII (every other character is escaped as `\uXXXX`, so it is valid Latin-1 and UTF-8) and at most 60 000 bytes; the command fails instead of writing more. The pixels do not depend on the chunk. The fields come in this fixed order:
+
+| Field | Value |
+| --- | --- |
+| `v` | `1`, the version of the fingerprint |
+| `renderer` | `"rust/v1"` |
+| `preset` | preset name |
+| `seed` | the seed of this photo (command seed plus face number) |
+| `face` | `"u"`, `"r"`, `"f"`, `"d"`, `"l"` or `"b"` |
+| `size` | side in pixels |
+| `options` | the options that were given, in the order of the Options table: `scatter`, `lightness`, `palette` (letters sorted, each `[r,g,b]`), `logo` (`row`, `col`, `color`, `size`), `noise`, `blur`, `brightness`, `shadow` (`strength`, `shape`, `softness`), `geometry` (`margin`, `gap`, `radius`); options not given are left out, so none gives `{}` |
+| `app` | `{"version": <version of cubacle>}`; no commit hash, so the binary stays reproducible |
+
+Numbers are written in the shortest form that reads back the same (`12`, `0.2`); a value that JSON cannot hold (NaN, infinity) is `null`. The contact sheet has no fingerprint. `--no-fingerprint` leaves it out. The tests in `tests/photo_cli_test.rs` check the chunk and that the pixels are the same with and without it.
+
 ## Differences from r1
 
 r2 follows the shadow stage of the owner's other implementation (cube-assembler, specification section 7.3):
@@ -146,6 +163,7 @@ r2 follows the shadow stage of the owner's other implementation (cube-assembler,
 - The `shadow` option applies to the `shadow` preset, or adds a shadow to any other preset (first step of the option effects).
 - The golden hash of the `shadow` preset changes; four hashes for shapes and `clean` plus shadow are new (`tests/synthetic_test.rs`).
 - `cubacle photo` gets `--shadow-strength`, `--shadow-shape` and `--shadow-softness`.
+- `cubacle photo` writes the fingerprint above into each face file.
 
 The shadow vectors of the other implementation, section 11, do not match byte for byte, presumably because the sticker brightness jitter differs (the hash of r1 is another one, see the r0 differences below). The shadow itself agrees: `px(48,48)` of all four vectors is identical, and the ratios of shadowed to unshadowed pixels at other places agree to within about 0.3 percent.
 

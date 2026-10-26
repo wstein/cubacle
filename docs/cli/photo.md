@@ -97,6 +97,22 @@ For more information, try '--help'.
 
 Across platforms the color math may differ in the last bit in a few pixels; see the guarantee in the specification.
 
+## Fingerprint
+
+Each face file carries the settings that made it in a PNG `tEXt` chunk with the key `cube-assembler`, so a reader can render the same photo again. The pixels are not touched. `--no-fingerprint` leaves the chunk out; the contact sheet never has one, since it holds six photos. The format is in the [specification](../specs/synthetic-face.md#fingerprint).
+
+```sh
+cubacle photo --scramble "R U" --out out --pixels 32 --preset glare --seed 5 --noise 12 --shadow-shape corner
+```
+
+The chunk of `out/U.png` then holds this text (one line, shown here as written):
+
+```text
+{"v":1,"renderer":"rust/v1","preset":"glare","seed":5,"face":"u","size":32,"options":{"noise":12,"shadow":{"shape":"corner"}},"app":{"version":"0.1.0"}}
+```
+
+`strings -n 20 out/U.png` shows it. The seed is that of the face (the seed plus the face number), the options are only those you gave.
+
 ## File format
 
-The files are PNG, RGBA with 8 bits per channel, written without compression (zlib stored blocks), so a file is about as large as its pixels: 16 kB for a 64 pixel face, 3 MB for a sheet at the default size.
+The files are PNG, RGBA with 8 bits per channel, written without compression (zlib stored blocks) and, unless `--no-fingerprint` is given, with one `tEXt` chunk, so a file is about as large as its pixels: 16 kB for a 64 pixel face, 3 MB for a sheet at the default size.
