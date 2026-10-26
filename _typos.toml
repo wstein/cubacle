@@ -1,0 +1,32 @@
+# Spelling check: American English only (run as `typos --locale en-us`).
+[files]
+extend-exclude = [
+  ".git/",
+  ".claude/",
+  "target/",
+  "LICENSE",
+  "LICENSE-MIT",
+  "licenses/",
+  "Cargo.lock",
+  "tests/fixtures/",
+  "docs/static/",
+]
+
+[default]
+extend-ignore-re = [
+  # hex and base64 blobs
+  "[0-9a-fA-F]{32,}",
+]
+
+[default.extend-words]
+# known false positives (cube notation, abbreviations, data)
+oll = "oll"
+nd = "nd"
+TRU = "TRU"
+fo = "fo"
+ba = "ba"
+mis = "mis"
+
+# British words that `--locale en-us` does not flag on its own
+catalogue = "catalog"
+catalogues = "catalogs"
