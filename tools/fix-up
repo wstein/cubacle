@@ -1,0 +1,26 @@
+#!/bin/sh
+# Fold the staged changes into the commits of this branch that last touched the same
+# lines (git absorb), then autosquash. Nothing is compiled. Only for commits that are
+# not pushed yet. See AGENTS.md, "Checks".
+#
+#   git add <the files you fixed>
+#   tools/fix-up [BASE]        # BASE defaults to develop
+#
+# Hunks that git absorb cannot assign stay staged: fix those by hand with
+# `git commit --fixup <commit>` (find the commit with `git log -S` or `git blame`).
+set -eu
+base=${1:-develop}
+command -v git-absorb >/dev/null 2>&1 || { echo "fix-up: git-absorb is not installed (brew install git-absorb)" >&2; exit 2; }
+git diff --cached --quiet && { echo "fix-up: nothing is staged" >&2; exit 2; }
+[ -z "$(git diff --name-only)" ] || echo "fix-up: note: unstaged changes stay untouched" >&2
+before=$(git write-tree)
+git absorb --base "$base" --and-rebase
+after=$(git rev-parse HEAD^{tree})
+# After the rebase the tree of HEAD must contain the staged fix: compare with the tree
+# the index plus the old HEAD had before (git absorb keeps unassigned hunks staged).
+if [ -n "$(git diff --cached --name-only)" ]; then
+  echo "fix-up: some hunks were not assigned and are still staged; fix them with git commit --fixup <commit>" >&2
+  exit 1
+fi
+[ "$before" = "$after" ] || { echo "fix-up: WARNING: the tree changed ($before -> $after); check git diff ORIG_HEAD HEAD" >&2; exit 1; }
+echo "fix-up: done, tree unchanged by the rebase"
