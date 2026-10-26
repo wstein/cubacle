@@ -72,7 +72,17 @@ pub(crate) fn print(solved: &Solved<'_>) -> Result<(), String> {
     if args.pictures.icons {
         let mut options = args.pictures.options(args.input.scheme, args.notation);
         options.target = target;
-        return steps::print_solution(start, solution, &found, &options);
+        let ranges = args.optimize == Some(Optimize::Ranges);
+        if ranges {
+            // the steps the pictures show, as the text answer reports its own
+            let packed = steps::compressed(start, solution, &found);
+            eprintln!("compressed moves {}", packed.len());
+            eprintln!(
+                "compressed {}",
+                metrics_out::compressed_line(facelets.kind(), &packed)
+            );
+        }
+        return steps::print_solution(start, solution, &found, &options, ranges);
     }
     let grouping = phase_dots::Grouping::of(&args.group);
     let dots = grouping.dots();

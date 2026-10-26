@@ -9,8 +9,8 @@ use std::io::Write;
 
 use cubacle::notation::{orbit64, ColorScheme, Notation};
 use cubacle::phases::Phase;
-use cubacle::puzzle::{Facelets, Move, MoveSequence, Turn};
-use cubacle::render::{icon, Action, Icon, Raster, Style};
+use cubacle::puzzle::{Facelets, LayerMove, Move, MoveSequence, Turn};
+use cubacle::render::{icon, Icon, Raster, Style};
 
 use crate::icons::{
     default_height, detect_stdout, show, style, Background, Graphics, GraphicsMode, Numbers,
@@ -21,9 +21,11 @@ use crate::views::{kitty_state, Views};
 mod block;
 mod groups;
 mod kitty;
+mod run;
 mod states;
 pub(crate) use block::{clipped, Block};
 pub use groups::Layout;
+use run::{compress_phases, Run};
 
 /// What `solve --icons` was asked for.
 pub struct SolutionIcons {
@@ -173,10 +175,16 @@ fn row_icon(raster: Raster, lone: bool) -> Raster {
 /// Whether each move is a quarter turn with a half turn right before and right
 /// after it.
 pub(crate) fn lone_quarters(moves: &[Move]) -> Vec<bool> {
-    let half = |mv: Option<&Move>| mv.is_some_and(|m| m.turn == Turn::Half);
-    (0..moves.len())
+    let turns: Vec<Turn> = moves.iter().map(|mv| mv.turn).collect();
+    lone_turns(&turns)
+}
+
+/// [`lone_quarters`] on the turns alone.
+fn lone_turns(turns: &[Turn]) -> Vec<bool> {
+    let half = |turn: Option<&Turn>| turn == Some(&Turn::Half);
+    (0..turns.len())
         .map(|i| {
-            moves[i].turn != Turn::Half && i > 0 && half(moves.get(i - 1)) && half(moves.get(i + 1))
+            turns[i] != Turn::Half && i > 0 && half(turns.get(i - 1)) && half(turns.get(i + 1))
         })
         .collect()
 }
@@ -325,7 +333,34 @@ impl<'a> Pictures<'a> {
         with_start: bool,
         block: Block<'_>,
     ) -> Result<String, String> {
-        if self.graphics == Graphics::Kitty && solution.is_empty() {
+        let run = Run::plain(solution, self.options.notation, start.kind());
+        self.steps_run(start, &run, found, with_start, block)
+    }
+
+    /// The pictures of a compressed solution (`--optimize ranges`): one step
+    /// per range or block move. The ranges are formed inside each phase, and
+    /// the phases and the numbers count the compressed steps.
+    pub fn compressed_steps(
+        &self,
+        start: &Facelets,
+        solution: &MoveSequence,
+        found: &[Phase],
+        with_start: bool,
+    ) -> Result<String, String> {
+        let (steps, phases) = compress_phases(start.kind(), solution, found);
+        let run = Run::packed(&steps, self.options.notation, start.kind());
+        self.steps_run(start, &run, &phases, with_start, Block::whole(run.len()))
+    }
+
+    fn steps_run(
+        &self,
+        start: &Facelets,
+        solution: &Run,
+        found: &[Phase],
+        with_start: bool,
+        block: Block<'_>,
+    ) -> Result<String, String> {
+        if self.graphics == Graphics::Kitty && solution.len() == 0 {
             return Ok(if with_start {
                 self.start_state(start)
             } else {
@@ -346,7 +381,6 @@ impl<'a> Pictures<'a> {
                 found,
                 self.graphics,
                 &self.style,
-                self.options.notation,
                 block,
             )?);
             if block.end
@@ -356,10 +390,8 @@ impl<'a> Pictures<'a> {
             {
                 // the end state has a picture as large as the start picture
                 let mut end = start.clone();
-                for mv in solution.moves() {
-                    end = Action::Layer(*mv)
-                        .apply(&end)
-                        .map_err(|error| error.to_string())?;
+                for action in &solution.actions {
+                    end = action.apply(&end).map_err(|error| error.to_string())?;
                 }
                 out.push_str(&self.start_state(&end));
             }
@@ -397,53 +429,60 @@ impl<'a> Pictures<'a> {
     }
 }
 
-/// Each move of the solution with the picture of the cube before it.
+/// The steps `print_solution` draws with `ranges`: the solution compressed
+/// inside each phase, so that no range crosses a phase border.
+pub fn compressed(start: &Facelets, solution: &MoveSequence, found: &[Phase]) -> Vec<LayerMove> {
+    compress_phases(start.kind(), solution, found).0
+}
+
+/// Each move of the solution with the picture of the cube before it. With
+/// `ranges` (`--optimize ranges`) each range or block move is one picture and
+/// one arrow, and the final `Moves:` line is the compressed solution.
 pub fn print_solution(
     start: &Facelets,
     solution: &MoveSequence,
     found: &[Phase],
     options: &SolutionIcons,
+    ranges: bool,
 ) -> Result<(), String> {
     let pictures = Pictures::new(start.kind().size(), options);
     let mut out = start_line(start)?;
     if let Some(target) = &options.target {
         out.push_str(&target_line(target)?);
     }
-    out.push_str(&pictures.steps(start, solution, found, true)?);
+    let moves = if ranges {
+        out.push_str(&pictures.compressed_steps(start, solution, found, true)?);
+        let steps = compressed(start, solution, found);
+        cubacle::ranges::write(options.notation, start.kind(), &steps)
+    } else {
+        out.push_str(&pictures.steps(start, solution, found, true)?);
+        options.notation.write(start.kind(), solution)
+    };
     let mut stdout = std::io::stdout().lock();
     stdout
         .write_all(out.as_bytes())
-        .and_then(|()| {
-            writeln!(
-                stdout,
-                "\nMoves: {}",
-                options.notation.write(start.kind(), solution)
-            )
-        })
+        .and_then(|()| writeln!(stdout, "\nMoves: {moves}"))
         .map_err(|e| format!("cannot write to standard output: {e}"))
 }
 
 fn text_steps(
     start: &Facelets,
-    solution: &MoveSequence,
+    solution: &Run,
     found: &[Phase],
     graphics: Graphics,
     style: &Style,
-    notation: Notation,
     block: Block<'_>,
 ) -> Result<String, String> {
     let mut state = start.clone();
     let total = block.total;
     let mut out = String::new();
-    let lone = lone_quarters(solution.moves());
-    for (index, mv) in solution.moves().iter().enumerate() {
-        let action = Action::Layer(*mv);
-        let drawn = icon(&state, &action, style).map_err(|error| error.to_string())?;
+    for (index, action) in solution.actions.iter().enumerate() {
+        let drawn = icon(&state, action, style).map_err(|error| error.to_string())?;
         out.push_str(&move_line(
             &block.label(index),
             total,
-            &notation.write_move(start.kind(), mv),
-            lone[index],
+            &solution.written[index],
+            solution.lone[index],
         ));
         out.push_str(&show(&drawn, graphics, style.size));
         out.push('\n');
