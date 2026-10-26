@@ -3,7 +3,7 @@
 use cubacle::notation::{axis_units, Item, Notation};
 use cubacle::phases::Phase;
 use cubacle::puzzle::{MoveSequence, PuzzleKind};
-use cubacle::ranges::compressed_text;
+use cubacle::ranges::{compress_indexed, compressed_text};
 
 /// How `solve` marks the solver phases in its answer.
 #[derive(Clone, Copy, PartialEq, Eq, Default, clap::ValueEnum)]
@@ -40,8 +40,32 @@ impl Grouping {
     }
 }
 
-/// The solution as text and its move count. Every part is written on its own,
-/// so ranges never merge across a dot; with dots the parts are joined by
+/// The solution compressed as a whole and cut at the phase borders: a range
+/// that spans a border stays in the phase where it starts.
+fn packed_phases(
+    notation: Notation,
+    kind: PuzzleKind,
+    solution: &MoveSequence,
+    phases: &[Phase],
+) -> (String, usize) {
+    let indexed = compress_indexed(kind, solution);
+    let mut words = Vec::new();
+    let mut next = 0;
+    for phase in phases.iter().filter(|p| !p.moves.is_empty()) {
+        let start = next;
+        while next < indexed.len() && indexed[next].1 < phase.moves.end {
+            next += 1;
+        }
+        if next > start {
+            let part: Vec<_> = indexed[start..next].iter().map(|(mv, _)| *mv).collect();
+            words.push(cubacle::ranges::write(notation, kind, &part));
+        }
+    }
+    (words.join(" · "), indexed.len())
+}
+
+/// The solution as text and its move count. With `axis` every part is written
+/// on its own, so ranges never merge across a dot; with dots the parts are joined by
 /// ` · `, otherwise by a space. The parts are the non-empty solver phases
 /// (`phases`), cut again into hand units by axis (`axis`; a unit never crosses
 /// a phase border, the border only ever ends a unit), or the whole solution.
@@ -74,6 +98,8 @@ pub fn write(
             .collect()
     } else if borders.is_empty() {
         vec![solution.clone()]
+    } else if ranges {
+        return packed_phases(notation, kind, solution, phases);
     } else {
         phases
             .iter()
