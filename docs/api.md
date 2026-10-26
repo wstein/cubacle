@@ -42,23 +42,23 @@ For `POST` requests, send the header `Content-Type: application/json`.
 
 | Field | Meaning |
 | --- | --- |
-| `cube` | The cube as an Orbit64 token, URFDLB facelets (spaced or compact) or W/R/G/Y/O/B colors. See [Input notations](cli.md#input-notations). |
+| `cube` | The cube as an Orbit64 token, URFDLB facelets (spaced or compact) or W/R/G/Y/O/B colors. See [Input notations](cli/input-notations.md#input-notations). |
 | `scheme` | Optional. `boy`, `jp` or six letters in URFDLB order. |
 | `maxMoves` | Optional. Longest accepted solution, 1 to 25 (1 to 255 for a 4x4x4 or 5x5x5, whose solutions have about 48 and 73 moves). |
 | `slices` | Optional, default `false`. For a 4x4x4 or 5x5x5: allow single inner layers (`2R`) in the answer where they make it shorter. Without it the answer uses outer layers and two-layer turns only (a 5x5x5 also second layers). Ignored for other sizes. See [the move metric](performance.md#move-metric). |
 | `budgetMs` | Optional. Time limit in milliseconds, 1 to 600000. Defaults to, and is capped by, `--request-timeout-ms`. |
 | `minProbes` | Optional, 3x3x3 only. Keep improving the solution until this many probes were made, 1 to 100000000. Counts work, not time, so the answer is the same on every machine. See [3x3x3 performance](engines/3x3.md). |
 | `improve` | Optional, 3x3x3 only. Keep improving until `budgetMs` is spent and return the best solution found; `budgetMs` is required and `minProbes` cannot be combined with it. Spending the budget is not an error once a solution exists. |
-| `notation` | Optional, `wca` (default), `sign` or `sse`. How the `solution` is written: `Rw`, `3Rw` or `r`, `3r` or `TR`, `T3R` (see [Move notations](cli.md#move-notations)). Also a query parameter of `/v1/scramble`. Anything else is a 400. |
+| `notation` | Optional, `wca` (default), `sign` or `sse`. How the `solution` is written: `Rw`, `3Rw` or `r`, `3r` or `TR`, `T3R` (see [Move notations](cli/move-notations.md#move-notations)). Also a query parameter of `/v1/scramble`. Anything else is a 400. |
 | `optimize` | Optional, `ranges`. Adds `compressed` (the solution with layer ranges such as `2-3r`, in the chosen `notation`), `compressedLength` and `compressedMetrics` to the answer; `solution`, `length` and `metrics` are unchanged. Anything else is a 400. See [`--optimize`](cli.md). |
 
-| `target` | Optional, `/v1/solve` only. Solve to this state instead of to the solved cube; the `solution` takes the start (`cube` or `scramble`) to it. How the server reads the text: if it is exactly `superflip`, `checkerboard` or `cube-in-cube` it is that pattern (3x3x3 only); otherwise, if it parses as a cube (an Orbit64 token, URFDLB facelets or colors, read with `scheme`), it is that cube; otherwise it is read as a move expression applied to the solved cube of the start's size. Cube text always wins over a move expression, as it does for the start on the command line. On a 4x4x4 to 7x7x7 a target whose centers of one kind show different colors on one face (built with inner slices or wide turns) is reached by a center fix-up, the last moves of the `solution`; `maxMoves` and `budgetMs` count the whole route. See [Solve to a target](cli.md#solve-to-a-target) and [Targets with mixed centers](cli.md#targets-with-mixed-centers). |
+| `target` | Optional, `/v1/solve` only. Solve to this state instead of to the solved cube; the `solution` takes the start (`cube` or `scramble`) to it. How the server reads the text: if it is exactly `superflip`, `checkerboard` or `cube-in-cube` it is that pattern (3x3x3 only); otherwise, if it parses as a cube (an Orbit64 token, URFDLB facelets or colors, read with `scheme`), it is that cube; otherwise it is read as a move expression applied to the solved cube of the start's size. Cube text always wins over a move expression, as it does for the start on the command line. On a 4x4x4 to 7x7x7 a target whose centers of one kind show different colors on one face (built with inner slices or wide turns) is reached by a center fix-up, the last moves of the `solution`; `maxMoves` and `budgetMs` count the whole route. See [Solve to a target](cli/solve.md#solve-to-a-target) and [Targets with mixed centers](cli/solve.md#targets-with-mixed-centers). |
 
 Other sizes answer 400 to `minProbes` and `improve`.
 
 Unknown fields are rejected with a 400 error.
 
-Instead of `cube`, `/v1/convert` and `/v1/solve` take a `scramble`: moves in WCA, SiGN or SSE spelling, with layer ranges (`2-3r`, `N2-4R`), groups (`(R U)3`, `(R U)'`, `(R U)*3`) and commutators and conjugates (`[A, B]`, `[A: B]`), exactly as the command line reads them (see [Move notations](cli.md#move-notations)). `size` (2 to 7, default 3) says which cube the scramble is applied to. Send `cube` or `scramble`, not both; `size` goes only with `scramble` and `scheme` only with `cube`. A scramble that does not parse is a 400 whose message names the character, such as `scramble: character 7: a [ ] has one comma or colon; nest another [ ] for more`. `notation` chooses how the answer is written; it has the same moves and the same `length` in both.
+Instead of `cube`, `/v1/convert` and `/v1/solve` take a `scramble`: moves in WCA, SiGN or SSE spelling, with layer ranges (`2-3r`, `N2-4R`), groups (`(R U)3`, `(R U)'`, `(R U)*3`) and commutators and conjugates (`[A, B]`, `[A: B]`), exactly as the command line reads them (see [Move notations](cli/move-notations.md#move-notations)). `size` (2 to 7, default 3) says which cube the scramble is applied to. Send `cube` or `scramble`, not both; `size` goes only with `scramble` and `scheme` only with `cube`. A scramble that does not parse is a 400 whose message names the character, such as `scramble: character 7: a [ ] has one comma or colon; nest another [ ] for more`. `notation` chooses how the answer is written; it has the same moves and the same `length` in both.
 
 A `target` is solved to like this (the first request is the `superflip` pattern, the second a scramble as target, the third a mismatched size):
 
@@ -210,7 +210,7 @@ An unknown value answers 400:
 {"error":{"code":"bad_input","message":"notation must be wca, sign or sse, not \"ruwix\""}}
 ```
 
-`sse` writes Superset ENG (`TR`, `T3R`, `NL`, `MR`, `N2-4R`; see [Move notations](cli.md#move-notations)), and the `scramble` field reads it. Run against the server, with a random scramble in the first answer:
+`sse` writes Superset ENG (`TR`, `T3R`, `NL`, `MR`, `N2-4R`; see [Move notations](cli/move-notations.md#move-notations)), and the `scramble` field reads it. Run against the server, with a random scramble in the first answer:
 
 ```sh
 curl -s 'localhost:8080/v1/scramble?size=7&moves=8&notation=sse'

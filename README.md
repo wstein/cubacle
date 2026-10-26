@@ -12,7 +12,7 @@ A solver accepts a cube as typed facelets and returns a typed move sequence. The
 
 ## Command line
 
-**Made a mistake following a solution? Do not try to fix it by hand.** Rescan the cube and run `cubacle solve --now`, with `--at-move N` for the move you stopped at ([docs/cli.md](docs/cli/_index.md#recover-a-mistake)).
+**Made a mistake following a solution? Do not try to fix it by hand.** Rescan the cube and run `cubacle solve --now`, with `--at-move N` for the move you stopped at ([docs/cli.md](docs/cli/recover.md#recover-a-mistake)).
 
 ```
 cubacle solve A4ib8aejxj4Y                       # Orbit64 token
@@ -26,7 +26,7 @@ cubacle scramble -n 25
 cubacle facelets "R U R' U'"
 ```
 
-A scramble is standard move notation with whitespace between the moves (`R U R' U'`, `F2`, `B'`). SiGN spellings (`r`, `3r`) and SSE spellings (`TR`, `T3R`, `MR`, `N2-4R`) are read too and `--notation sign` or `--notation sse` writes them; see [docs/cli.md](docs/cli/_index.md#move-notations). The aliases `R1` (`R`), `R3` (`R'`), and `R2'` or `R'2` (`R2`) are accepted too, as in the WCA export form; unseparated runs such as `RUR'` and a lone `-` are rejected.
+A scramble is standard move notation with whitespace between the moves (`R U R' U'`, `F2`, `B'`). SiGN spellings (`r`, `3r`) and SSE spellings (`TR`, `T3R`, `MR`, `N2-4R`) are read too and `--notation sign` or `--notation sse` writes them; see [docs/cli.md](docs/cli/move-notations.md#move-notations). The aliases `R1` (`R`), `R3` (`R'`), and `R2'` or `R'2` (`R2`) are accepted too, as in the WCA export form; unseparated runs such as `RUR'` and a lone `-` are rejected.
 
 A cube may be written as an [Orbit64](https://github.com/wstein/flix-orbit64) state token, as `URFDLB` facelets, or as sticker colors `W R G Y O B`. Facelets and colors may be compact or spaced, in any grouping, and need no quoting. Colors are read from the fixed centers of an odd cube, so western and Japanese cubes need no flag. A cube without centers (the 2×2×2) uses `--scheme`:
 
