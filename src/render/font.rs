@@ -10,7 +10,18 @@ use super::style::Rgb;
 
 pub(crate) const GLYPH_HEIGHT: f64 = 1.4;
 
+/// The hyphen of a layer range (`2-3Rw`): a plain bar at mid height, as thick
+/// as the stems of the digits. It is drawn here, not taken from the font data.
+static HYPHEN: Glyph = (
+    '-',
+    0.72,
+    &[&[[0.12, 0.64], [0.6, 0.64], [0.6, 0.84], [0.12, 0.84]]],
+);
+
 fn glyph(c: char) -> Option<&'static Glyph> {
+    if c == '-' {
+        return Some(&HYPHEN);
+    }
     QUICKSAND.iter().find(|g| g.0 == c)
 }
 
@@ -76,7 +87,7 @@ mod tests {
 
     #[test]
     fn every_label_character_has_a_glyph_and_stays_in_its_box() {
-        for c in "0123456789URFDLBwx'".chars() {
+        for c in "0123456789URFDLBwx'-".chars() {
             let glyph = glyph(c).unwrap_or_else(|| panic!("{c}"));
             assert!(!glyph.2.is_empty() && glyph.1 > 0.0);
             for p in glyph.2.iter().flat_map(|poly| poly.iter()) {

@@ -42,5 +42,11 @@ mod tests {
         assert!((top(&a) - top(&b)).abs() < 1.5);
         let right = b.iter().flat_map(|p| p.points.iter().map(|q| q[0]));
         assert!(right.fold(f64::MIN, f64::max) < WIDTH);
+        // the longest label of a layer range
+        let range = shapes("2-4Lw2'", Backdrop::Dark);
+        let right = range.iter().flat_map(|p| p.points.iter().map(|q| q[0]));
+        let left = range.iter().flat_map(|p| p.points.iter().map(|q| q[0]));
+        assert!(right.fold(f64::MIN, f64::max) < WIDTH);
+        assert!(left.fold(f64::MAX, f64::min) > 0.0);
     }
 }
