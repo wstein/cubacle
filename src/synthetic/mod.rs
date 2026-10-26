@@ -30,9 +30,10 @@ mod effects;
 mod label;
 mod options;
 mod rng;
+mod shadow;
 
 pub use color::Rgb;
-pub use options::{Geometry, Logo, Options, Preset, SyntheticError};
+pub use options::{Geometry, Logo, Options, Preset, Shadow, ShadowShape, SyntheticError};
 
 /// Renders one face as `size * size * 4` bytes of RGBA, row-major, top row
 /// first. `grid` holds the sticker letters, top row first; `W Y O R G B` are
@@ -64,7 +65,11 @@ pub fn render_face(
         geometry: &options.geometry,
     };
     face.draw(&mut data);
-    effects::apply_preset(&mut data, size, seed, preset);
+    let shadow = options.shadow.unwrap_or_default();
+    effects::apply_preset(&mut data, size, seed, preset, shadow);
+    if preset != Preset::Shadow && options.shadow.is_some() {
+        shadow::apply(&mut data, size, shadow);
+    }
     if let Some(factor) = options.brightness {
         effects::brightness(&mut data, size, factor);
     }

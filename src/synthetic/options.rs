@@ -77,6 +77,8 @@ impl FromStr for Preset {
 pub enum SyntheticError {
     /// The preset name is not one of the eight.
     UnknownPreset(String),
+    /// The shadow shape is not one of the four.
+    UnknownShadowShape(String),
     /// The grid is empty or not square.
     BadGrid,
     /// The photo side is zero.
@@ -89,6 +91,9 @@ impl fmt::Display for SyntheticError {
             SyntheticError::UnknownPreset(name) => {
                 write!(f, "Unknown synthetic preset: {name}")
             }
+            SyntheticError::UnknownShadowShape(name) => {
+                write!(f, "Unknown shadow shape: {name}")
+            }
             SyntheticError::BadGrid => f.write_str("the grid must be square and not empty"),
             SyntheticError::ZeroSize => f.write_str("the photo size must be at least 1"),
         }
@@ -96,6 +101,69 @@ impl fmt::Display for SyntheticError {
 }
 
 impl std::error::Error for SyntheticError {}
+
+/// The outline of a shadow, in photo coordinates.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ShadowShape {
+    /// A diagonal band from the top left to the bottom right.
+    #[default]
+    Band,
+    /// Everything below the diagonal.
+    Half,
+    /// A round spot toward the upper right.
+    Spot,
+    /// A quarter disc around the bottom right corner.
+    Corner,
+}
+
+impl ShadowShape {
+    /// All shapes, in documentation order.
+    pub const ALL: [ShadowShape; 4] = [
+        ShadowShape::Band,
+        ShadowShape::Half,
+        ShadowShape::Spot,
+        ShadowShape::Corner,
+    ];
+
+    /// The name used on the command line.
+    pub fn name(self) -> &'static str {
+        match self {
+            ShadowShape::Band => "band",
+            ShadowShape::Half => "half",
+            ShadowShape::Spot => "spot",
+            ShadowShape::Corner => "corner",
+        }
+    }
+}
+
+impl fmt::Display for ShadowShape {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.name())
+    }
+}
+
+impl FromStr for ShadowShape {
+    type Err = SyntheticError;
+
+    fn from_str(text: &str) -> Result<Self, Self::Err> {
+        ShadowShape::ALL
+            .into_iter()
+            .find(|shape| shape.name() == text)
+            .ok_or_else(|| SyntheticError::UnknownShadowShape(text.to_owned()))
+    }
+}
+
+/// The shadow stage; all fields are optional. The `Shadow` preset applies it
+/// with these values, any other preset gets a shadow when it is given.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct Shadow {
+    /// How much light the shadow takes, 0 to 1 (default 0.15).
+    pub strength: Option<f64>,
+    /// Outline (default `Band`).
+    pub shape: Option<ShadowShape>,
+    /// Width of the edge as a share of the photo side (default 0.03).
+    pub softness: Option<f64>,
+}
 
 /// A round patch of a palette color on one sticker.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -139,6 +207,8 @@ pub struct Options {
     pub blur: Option<f64>,
     /// Factor for the light on every pixel.
     pub brightness: Option<f64>,
+    /// A shadow on top of any preset, or the settings of the `Shadow` preset.
+    pub shadow: Option<Shadow>,
     /// Face shape.
     pub geometry: Geometry,
 }

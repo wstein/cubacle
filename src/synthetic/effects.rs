@@ -1,13 +1,17 @@
 //! Stages 2 and 3: the lighting of a preset and the option effects. Every
 //! stage reads back the stored 8-bit pixels.
 
-use super::color::clamp;
 use super::draw::store;
-use super::options::Preset;
+use super::options::{Preset, Shadow};
 use super::rng::{gauss, unit};
+use super::shadow;
 
 /// Applies `f(tx, ty, r, g, b, pixel index)` to every pixel; alpha is kept.
-fn each_pixel(data: &mut [u8], size: usize, f: impl Fn(f64, f64, [f64; 3], usize) -> [f64; 3]) {
+pub(super) fn each_pixel(
+    data: &mut [u8],
+    size: usize,
+    f: impl Fn(f64, f64, [f64; 3], usize) -> [f64; 3],
+) {
     let side = size as f64;
     for y in 0..size {
         for x in 0..size {
@@ -101,17 +105,19 @@ fn glare(data: &mut [u8], size: usize, seed: i32) {
 }
 
 /// The lighting of a preset (stage 2).
-pub(crate) fn apply_preset(data: &mut [u8], size: usize, seed: i32, preset: Preset) {
+pub(crate) fn apply_preset(
+    data: &mut [u8],
+    size: usize,
+    seed: i32,
+    preset: Preset,
+    shadow: Shadow,
+) {
     match preset {
         Preset::Clean | Preset::Scatter => {}
         Preset::Gradient => each_pixel(data, size, |tx, _, [r, g, b], _| {
             [r * (0.7 + 0.6 * tx), g, b * (1.3 - 0.6 * tx)]
         }),
-        Preset::Shadow => each_pixel(data, size, |tx, ty, rgb, _| {
-            let t = (tx + ty) / 2.0;
-            let inside = clamp((t - 0.4) / 0.03, 0.0, 1.0) * clamp((0.65 - t) / 0.03, 0.0, 1.0);
-            rgb.map(|c| c * (1.0 - 0.45 * inside))
-        }),
+        Preset::Shadow => shadow::apply(data, size, shadow),
         Preset::DimWarm => {
             each_pixel(data, size, |_, _, [r, g, b], _| {
                 [r * 0.6, g * 0.5, b * 0.35]

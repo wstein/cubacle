@@ -4,7 +4,7 @@
 //! The golden SHA-256 values pin the output of the current implementation.
 //! Change them only by an explicit decision to change the photos.
 
-use cubacle::synthetic::{render_face, Geometry, Logo, Options, Preset, Rgb};
+use cubacle::synthetic::{render_face, Geometry, Logo, Options, Preset, Rgb, Shadow, ShadowShape};
 use sha2::{Digest, Sha256};
 
 fn grid(rows: &[&str]) -> Vec<Vec<char>> {
@@ -46,7 +46,7 @@ const GOLDEN_PRESETS: [(Preset, &str); 8] = [
     ),
     (
         Preset::Shadow,
-        "0a1b8fc051b2375e82cc9456b756b4ccd777acc2fe7720d0d1217e50cd588463",
+        "01f6bf366f9c062825e845ad3e97da1280570ea19a02d7fffd3ac81543b6cf61",
     ),
     (
         Preset::DimWarm,
@@ -216,6 +216,80 @@ fn unknown_preset_and_bad_input_are_errors() {
     assert!(render_face(&ragged, Preset::Clean, 1, 64, &Options::default()).is_err());
     assert!(render_face(&[], Preset::Clean, 1, 64, &Options::default()).is_err());
     assert!(render_face(&sample(), Preset::Clean, 1, 0, &Options::default()).is_err());
+}
+
+fn shadow_options(shape: ShadowShape, strength: f64, softness: f64) -> Options {
+    Options {
+        shadow: Some(Shadow {
+            strength: Some(strength),
+            shape: Some(shape),
+            softness: Some(softness),
+        }),
+        ..Options::default()
+    }
+}
+
+#[test]
+fn golden_hash_per_shadow_shape() {
+    let cases = [
+        (
+            "preset shadow, half",
+            Preset::Shadow,
+            shadow_options(ShadowShape::Half, 0.3, 0.2),
+            "f356669b39e2c563b8da61130d0f1c37c1c5743374f150cd121a6d4d1910e008",
+        ),
+        (
+            "preset shadow, spot",
+            Preset::Shadow,
+            shadow_options(ShadowShape::Spot, 0.25, 0.05),
+            "65ac36c9f7bccd97746f10d5e2cb136d8069e3bcc16ba57eef6928ed49bd5b73",
+        ),
+        (
+            "preset shadow, corner",
+            Preset::Shadow,
+            shadow_options(ShadowShape::Corner, 0.2, 0.3),
+            "6c2abd278d70e9cd496283461eed030b394e84ae38033c1d3b5836ad57208f24",
+        ),
+        (
+            "clean plus band",
+            Preset::Clean,
+            shadow_options(ShadowShape::Band, 0.3, 0.1),
+            "d1ce9b49bec79fe4e303114af0bbd7a285b3b28ef72d7fffbe6e5ff1452e1a07",
+        ),
+    ];
+    for (name, preset, options, expected) in cases {
+        let hash = sha(&render(preset, &options));
+        assert_eq!(hash, expected, "{name}: {hash}");
+    }
+}
+
+#[test]
+fn shadow_options_on_the_preset_equal_the_stage_on_clean() {
+    // The same stage on the same light; only the label strip differs.
+    let options = shadow_options(ShadowShape::Band, 0.3, 0.1);
+    let a = render(Preset::Shadow, &options);
+    let b = render(Preset::Clean, &options);
+    let size = 96;
+    // The label starts at row 91 on a 96 pixel photo.
+    let rows = 90 * size * 4;
+    assert_eq!(a[..rows], b[..rows]);
+}
+
+#[test]
+fn shadow_darkens_by_the_default_strength() {
+    let plain = render(Preset::Clean, &Options::default());
+    let shaded = render(
+        Preset::Clean,
+        &Options {
+            shadow: Some(Shadow::default()),
+            ..Options::default()
+        },
+    );
+    // Inside the band (t = 0.5) about 15 percent less light.
+    let before = f64::from(pixel(&plain, 96, 48, 48)[1]);
+    let after = f64::from(pixel(&shaded, 96, 48, 48)[1]);
+    assert!((after / before - 0.85).abs() < 0.01);
+    assert_eq!(pixel(&plain, 96, 10, 10), pixel(&shaded, 96, 10, 10));
 }
 
 /// The nearest of the six palette colors to a pixel.
