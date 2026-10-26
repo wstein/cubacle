@@ -39,8 +39,8 @@ pub struct MovesArgs {
     #[arg(long, value_enum, conflicts_with_all = ["icons", "optimize"])]
     expand: Option<Expand>,
     /// Write adjacent turns of one axis as layer ranges where that is shorter
-    /// (`ranges`, as in `solve`)
-    #[arg(long, value_name = "WHAT", conflicts_with = "icons")]
+    /// (`ranges`, as in `solve`); with `--icons` one picture per range
+    #[arg(long, value_name = "WHAT")]
     optimize: Option<Optimize>,
     /// Print the moves that undo the expression: reversed, each turned the
     /// other way; hand units marked by "·" come out in reverse order too
@@ -295,6 +295,13 @@ fn draw(
     }
     let pictures = &args.pictures;
     let to_stdout = args.out.is_none();
+    if args.optimize.is_some()
+        && (args.group != GroupMode::default() || args.format != Format::Auto || !to_stdout)
+    {
+        return Err(
+            "--optimize with --icons draws the step pictures: no --group, --format or --out".into(),
+        );
+    }
     if args.format == Format::Auto && to_stdout {
         // Step pictures, as `solve --icons` shows them.
         let options = pictures.options(args.scheme, args.notation);
@@ -306,7 +313,11 @@ fn draw(
             let tree = parse_grouped(text, kind).map_err(|error| error.to_string())?;
             pictures = pictures.grouped(Layout::of(&tree));
         }
-        let mut steps = pictures.steps(&start, moves, &[], false)?;
+        let mut steps = if args.optimize == Some(Optimize::Ranges) {
+            pictures.compressed_steps(&start, moves, &[], false)?
+        } else {
+            pictures.steps(&start, moves, &[], false)?
+        };
         // the cube after the last move, as `solve --icons` ends
         let end = start.apply(moves).map_err(|error| error.to_string())?;
         steps.push('\n');
