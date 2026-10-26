@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Checks for develop and pull requests against develop.
 # The msrv job builds with the rust-version of Cargo.toml (1.95, forced by sysinfo 0.39).
+# The spelling job runs typos --locale en-us (American English, see AGENTS.md).
 # The notes job validates notes/ with the pinned ChartScribe release (checksum and build attestation verified when pinning).
 name: ci
 on:
@@ -122,3 +123,15 @@ jobs:
           "$RUNNER_TEMP/cscribe/cscribe_0.1.0_linux_amd64/cscribe" version
       - name: Validate the notes
         run: '"$RUNNER_TEMP/cscribe/cscribe_0.1.0_linux_amd64/cscribe" validate'
+  spelling:
+    name: spelling
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: American English (typos, config in _typos.toml)
+        uses: crate-ci/typos@7f9d0819ca1c008ade73f4b41fa9d258d48f605b # v1.51.1
+        with:
+          args: --locale en-us

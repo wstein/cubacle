@@ -30,6 +30,8 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --release
 ```
 
+CI also runs `typos --locale en-us` (config in `_typos.toml`); run it too after writing prose.
+
 Tests that record solver output (`tests/fixtures/`) must not be edited to make a
 change pass; a change that alters solver output needs an explicit decision.
 
