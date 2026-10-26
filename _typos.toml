@@ -10,6 +10,7 @@ extend-exclude = [
   "Cargo.lock",
   "tests/fixtures/",
   "docs/static/",
+  "tests/canonical_vectors.txt",
 ]
 
 [default]
@@ -26,6 +27,9 @@ TRU = "TRU"
 fo = "fo"
 ba = "ba"
 mis = "mis"
+# German header word in the import tests, and a lo/hi pair in the renderer
+unter = "unter"
+alo = "alo"
 
 # British words that `--locale en-us` does not flag on its own
 catalogue = "catalog"
