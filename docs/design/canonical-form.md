@@ -6,7 +6,8 @@ weight: 50
 
 # Canonical form
 
-Status: spike, not merged into the public CLI or REST. The code is
+Status: in the library and in `cubacle patterns identify` (the `canonical:` line); not in the REST
+server, and there is no `canon` command. The code is
 `src/canonical/mod.rs`, its tests `src/canonical/tests.rs`. Numbers
 marked **[M]** were measured for this paper (release build, one Apple Silicon
 core, `nice`); every command below was run.

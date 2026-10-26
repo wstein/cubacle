@@ -313,6 +313,51 @@ Moves: D2 B2 D' B2 D2 U' F2 D U' R2 U' R' B' L2 D' F U2 R'
 
 `solve --now --fresh --icons` draws the fresh solution only. When the way back is for a cube that has to be turned as a whole first, there are no move pictures.
 
+## Patterns with icons
+
+`cubacle patterns --icons` draws the pattern commands with the code of `solve --icons`. The options are the same and mean the same: `--icon-size`, `--background`, `--graphics auto|kitty|ansi|plain` (also `CUBACLE_GRAPHICS`), `--columns`, `--views`, `--numbers`. On a pipe the output is plain text without escape sequences. Without `--icons` nothing changes, byte for byte, and the picture options are refused without it. `cycles`, `import`, `update` and `sources` have no pictures and refuse `--icons`.
+
+**The list** (`patterns --icons` or `patterns list --icons`) prints each row of the plain list and below it the pattern as a state, labeled with its size, so `--size`, `--kind`, `--min-patternness` and `--sort` select and order the pictures as they do the rows. The size drawn is `--size`; without it the 3x3x3, or the smallest size the pattern has when it has no 3x3x3. A list of hundreds would flood the screen, so `--icons` stops after 24 patterns unless `--limit N` says otherwise, and standard error says so: `showing the first 2 of 5 patterns; --limit 5 shows all of them`. `--limit` works without `--icons` too (the default there is all rows). `--tree` stays text: with `--icons` it prints the tree as before and a note on standard error says so. On a graphics terminal `--columns` limits how many views of one state share a row, as it does for `solve`; the patterns themselves come one below the other.
+
+```sh
+cubacle patterns list --icons --size 3 --limit 2 --graphics plain
+```
+
+```text
+id	name	sizes (outer/range moves)
+checkerboard	Checkerboard	3:6/3
+3x3x3
+state, folded view: corner U F R, with L, D and B flat around it
+          W Y W     B G B
+         Y W Y      G B G
+        W Y W       B G B
+O R O  G B G R O R
+R O R  B G B O R O
+O R O  G B G R O R
+       Y W Y
+       W Y W
+       Y W Y
+
+six-spots	Six spots	3:8/6
+3x3x3
+...
+showing the first 2 of 5 patterns; --limit 5 shows all of them
+```
+
+The last line is on standard error; the output above is the built-in library, with imported tables the list is longer.
+
+**`patterns show NAME --icons`** prints the text of `show`, then for every size it prints (all sizes, or `--size`) the picture of the pattern (`3x3x3 pattern`) and below each printed generator its move icons, drawn on the solved cube like `moves --icons`. With `#n` (`show checkerboard#1 --icons`) only that generator and the pattern get pictures; an imported pattern without `#n` prints every generator, each with its icons, so choose one with `#n` when there are many.
+
+**`patterns find CUBE --icons`** prints the found moves as before and then the move icons, a blank line, the line `End state: TOKEN` and the picture of the cube the moves build, as `moves --icons` ends.
+
+**`patterns identify CUBE --icons`** prints the report as before, then the picture of the cube labeled `your cube`, then one picture for each of the `closest:` patterns, labeled the way the text names it (`closest: Checkerboard (checkerboard) 100 %`), at the size of the cube. `--closest N` sets how many. A pattern is drawn as the library stores it, which may be turned or recolored against your cube; the percentage is the match after the best turn and renaming.
+
+```sh
+cubacle patterns identify "U2 D2 R2 L2 F2 B2" --icons --closest 1 --graphics plain
+```
+
+The `canonical:` line of `identify` is described in [Patterns](patterns.md#identifying-a-state).
+
 ## Terminal support
 
 `cubacle` writes Kitty graphics when standard output is a terminal and the environment names a terminal that supports the [Kitty graphics protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/): `KITTY_WINDOW_ID` is set, `TERM` is `xterm-kitty`, or `TERM_PROGRAM` is `ghostty` or `WezTerm`. Other terminals get coloured text, or plain text when `NO_COLOR` is set, `TERM` is `dumb` or standard output is not a terminal.
@@ -321,7 +366,7 @@ The Kitty output transmits raw RGBA (`a=T,f=32`) in chunks of at most 4096 base6
 
 ## Forcing the graphics and terminals
 
-`--graphics auto|kitty|ansi|plain` (on `moves` and `solve`, also with `--now`, with `--icons`) and the variable `CUBACLE_GRAPHICS` with the same values choose how the pictures are drawn. The flag wins over the variable, and the variable over `auto`. An invalid value is refused with the accepted ones listed (`[possible values: auto, kitty, ansi, plain]`).
+`--graphics auto|kitty|ansi|plain` (on `moves`, `solve`, also with `--now`, and `patterns`, with `--icons`) and the variable `CUBACLE_GRAPHICS` with the same values choose how the pictures are drawn. The flag wins over the variable, and the variable over `auto`. An invalid value is refused with the accepted ones listed (`[possible values: auto, kitty, ansi, plain]`).
 
 - `auto` (the default) decides in this order. Standard output not a terminal, `TERM=dumb` or `NO_COLOR` give plain text. The variables listed under [Terminal support](#terminal-support) give Kitty graphics. Otherwise the terminal is asked once (below), and coloured text is drawn only when it does not answer.
 - `kitty`, `ansi` and `plain` are used as given, also when standard output is not a terminal: `--graphics kitty` writes the escape sequences into a pipe or a file.

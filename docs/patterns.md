@@ -86,6 +86,8 @@ centres-cycled	Cycled centres	4:8/4 5:8/4 6:8/4
 
 Not every pattern exists on every size or was found within the search budget; the missing entries are open, not impossible. The nested cube in a cube has only a long solver-derived generator (5x5x5); the 6x6x6 and 7x7x7 versions, the opposite centres on the 5x5x5 and 7x7x7 and the 2x2x2 analogues other than the cube in a cube were not found. Lists such as Tetris, Anaconda or Pons asinorum are not included because we could not state their structure with certainty.
 
+`cubacle patterns list` is the same list as `cubacle patterns` alone and takes the same options (`--size`, `--kind`, `--min-patternness`, `--sort`, `--tree`), before or after the word `list`; the output is identical. `--limit N` stops after N rows (standard error says how many were cut). Each of these options belongs to the list: `patterns show checkerboard --kind SYM` is refused with `--kind applies to the list only`. `--icons` adds a picture to every row, and to `show`, `find` and `identify`; see [Patterns with icons](icons.md#patterns-with-icons).
+
 ## Finding a generator
 
 `cubacle patterns find` looks for the shortest known sequence that builds a cube from the solved cube. The cube is given like the input of `solve` (or with `-s`), on the size of `--size` (3 unless given):
@@ -106,6 +108,22 @@ R2 3R2 L2 3L2 U2 3U2 D2 3D2 F2 3F2 B2 3B2
 
 It first searches products of macros (from the 4x4x4 up), then an exact bidirectional search over plain moves for something shorter. `--moves SET` restricts the answer to a move set (see `solve --moves`); a macro is used only when its moves and those of its inverse are all in the set. `--max-memory MB` (default 1500) is a hard cap on the searches; a search that reaches it says so, and "nothing found within the cap" is not "no sequence exists". `-b` sets a time limit.
 
+## Cube input
+
+Every `patterns` action that reads a cube (`identify`, `find` and `cycles`) takes it as `solve` does: an Orbit64 token, URFDLB facelets, W/R/G/Y/O/B colors, a move expression or `-s`. A token carries its size in its length (12 characters for a 2x2x2, 90 for a 7x7x7), so `--size` is not needed and does not matter for it:
+
+```sh
+cubacle patterns identify ECldoWxDLh9aSPlZ0uhAqXJZqWOvtv3i2OzDwQ8tMihDqHmCaP9u4ABQ4utqmrm9XdqMg1k0g-SCANuUYVPb1tnsvw
+```
+
+```text
+pattern: no library match
+canonical: Dki5KH1XWMQR-MYl-jyNBoh54zmGNjlON6_sDBROhBhzl8DJ7cw2FaslOb-HhRAA5OvOUzsxSlROfgJt0Cx98MDpAA
+patternness: 19 %
+```
+
+`show` names a pattern, not a cube, but it also takes an Orbit64 token: the token is looked up like `identify` does (up to turning, mirroring and recoloring) and `show` describes the first library pattern it is, naming the others on standard error. A token of a cube that is no library pattern is refused with `the token is a 3x3x3 cube that is no library pattern`. Text that is neither a pattern name nor a token gives `no pattern named "..."`.
+
 ## Identifying a state
 
 `cubacle patterns identify` reads the structure of a cube without searching for anything. The cube is given like the input of `solve` (an Orbit64 token, facelets, colours, a move expression or `-s`), on the size of `--size` (3 unless given), 2x2x2 to 7x7x7. It never replaces the search: it explains a state and names the family it belongs to.
@@ -116,6 +134,7 @@ cubacle patterns identify "U2 D2 R2 L2 F2 B2"
 
 ```text
 pattern: Checkerboard (checkerboard), exactly
+canonical: AAAABeBQZgAA
 patternness: 100 %
 closest: Checkerboard 100 %, Solved cube 56 %, Four spots 56 %
 partial: corners matches Solved cube exactly; edges differs
@@ -170,6 +189,7 @@ The commutator is no symmetric cube, but a half turn about an edge axis carries 
 The report has these parts.
 
 - **pattern**: the state is put into canonical form, the smallest sticker string under the 48 cube symmetries (24 rotations and their mirror images) and every renaming of the six colours, and looked up among the library patterns and the solved cube of that size. The text after the name says how the state differs from the library's colouring: `exactly`, `turned`, `mirrored`, `with colours renamed`, or a combination. A state that is no library pattern prints `no library match`; a random cube does not match.
+- **canonical**: the [canonical Orbit64 token](design/canonical-form.md) of the state, one identifier for every turned, mirrored or recolored copy of it (`canonical: AAAABeBQZgAA` is the checkerboard on a 3x3x3). It sits below the `pattern:` lines, on every size from 2x2x2 to 7x7x7. A state that no turn can reach (it has a warning on standard error) has no such line.
 - **patternness** and **closest**: see below; `closest` names the three library patterns (the solved cube included) with the share of stickers that agree after the best of the 48 symmetries and colour renamings, and a `partial:` line says in which orbits the state equals the closest pattern that matches in some (`partial: corners, edges match Solved cube exactly; wings (depth 1) differ`).
 - **fingerprint**: for every piece orbit (corners, edges, wings by depth, centres) the number of displaced pieces, of twisted corners or flipped edges, and, where pieces can be told apart (corners, and the edges of the 3x3x3 and the middle wings of odd cubes), the cycle type of their permutation. The compact code is `C` corners with `t` twisted, `E` edges and `W<depth>:` wings with `f` flipped, `X` (x-centres, on the diagonals of a face), `+` (+-centres, on its mid-lines) and `O` (oblique) centre orbits (the number of misplaced stickers; a ring number follows where a shape has more than one ring, `X2:`), each preceded by the number displaced and followed by the cycle lengths in brackets: `C0t0 E0f12` is the superflip. The code is read in every colour frame and axis order that fits and the least is kept, so a cube, its turned or mirrored image and any renaming of its colours give the same code. On an even cube, which has no fixed centres, the frame is the best matching of colours to faces.
 - **subgroups**: exact tests on the pieces. `corners only`, `edges only` and (4x4x4 up) `centres only` say that nothing else moved. On the 3x3x3, `G1 domino group` (corners untwisted, edges unflipped, the middle-layer edges in the middle layer; one line per axis) and the half-turn group are exact too: the half-turn test checks the classes of four corners and four edges and a table of 648 projected arrangements, and a test walks all 663 552 states of the group to confirm it. `<R,U>` and `<R,U,F>` have no description by pieces, so the test only refutes (a piece those faces never touch is moved) or answers `possible`; `cubacle solve --moves "<R,U>"` is the proof. The tests assume a legal cube.
@@ -437,10 +457,12 @@ With imports configured, `patterns` appends `imported from FILE` to the rows of 
 ```text
 $ cubacle patterns identify -s "U2 D2"
 pattern: Slice (ct:D1.02), turned, with colours renamed
+canonical: EBmpoPjf4AAA
 closest: Slice (ct:D1.02) 100 %, Four spots 85 %, Solved cube 78 %
 imported: ct:D1.02 Slice (imported from demo.txt)
 $ cubacle patterns identify -s "R2 L2 U"
 pattern: no library match
+canonical: GyMnxTVjVEsw
 closest: Slice (ct:D1.02) 70 %, Four spots 67 %, Solved cube 59 %
 ```
 
