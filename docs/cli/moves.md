@@ -98,6 +98,22 @@ B' · L' · F' · R · Bw · Dw' · B F' · R' · Dw2 · L' Rw2 · Fw' · D' · 
 
 `--group phases,axis` combines the two. The phase border wins: a unit never crosses it, so the dots are those of `phases` plus those of `axis`, and `U | D'` split across two phases is `U · D'` although `axis` alone writes `U D'` (the 4x4x4 answer above has the same dots both ways; a unit test covers the split). With `--optimize ranges` each unit is compressed on its own. `solve --group axis` has no icons form (`--icons` stays the phase pictures). The dotted answer is read back by `moves` as the same moves (a test checks it for wca, sign and sse). The 2x2x2 and the 3x3x3 (min2phase) report no stage ends: in the runs made for this page the whole solution was one phase and no dot was written. The REST backend returns a flat string; it has no groups.
 
+### Undoing a sequence
+
+`--inverse` writes the moves that undo the expression: in reverse order, each turned the other way. It works with every other option, `--icons` included. Hand units marked by `·` are inverted one by one and come out in reverse order, so the groups of the answer still match the hands of the person who made the moves (`--icons` draws them as groups). Run in this build:
+
+```sh
+cubacle moves --inverse "R U2 F'"
+cubacle moves --size 4 --inverse --notation sign "Rw U"
+cubacle moves --size 7 --inverse "VB VD · VL' VR' · VU'"
+```
+
+```text
+F U2 R'
+U' r'
+U' 3Uw R' 3Rw L' 3Lw D 3Dw' B 3Bw'
+```
+
 ### Middle slices and whole-cube rotations
 
 | Written | Meaning |

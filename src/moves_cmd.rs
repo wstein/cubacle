@@ -42,6 +42,10 @@ pub struct MovesArgs {
     /// (`ranges`, as in `solve`)
     #[arg(long, value_name = "WHAT", conflicts_with = "icons")]
     optimize: Option<Optimize>,
+    /// Print the moves that undo the expression: reversed, each turned the
+    /// other way; hand units marked by "·" come out in reverse order too
+    #[arg(long)]
+    inverse: bool,
     #[command(flatten)]
     pictures: PictureArgs,
     /// Hand units: dots (default) draws the groups marked by "·" and "( )",
@@ -134,9 +138,63 @@ pub(crate) fn expand(text: &str, kind: PuzzleKind) -> Result<MoveSequence, Strin
     parse_expression(text, kind).map_err(|error| error.to_string())
 }
 
+/// The expression that undoes `text`. With units marked by "·" at the top
+/// level, each unit is inverted and the units come in reverse order; else the
+/// plain moves are written reversed.
+fn inverse_text(text: &str, notation: Notation, kind: PuzzleKind) -> Result<String, String> {
+    let units = units_of(text);
+    if units.len() < 2 {
+        let moves = expand(text, kind)?;
+        let back: MoveSequence = moves
+            .moves()
+            .iter()
+            .rev()
+            .map(|m| Move::new(m.face, m.depth, m.wide, opposite(m.turn)))
+            .collect();
+        return Ok(notation.write(kind, &back));
+    }
+    let back: Vec<String> = units
+        .iter()
+        .rev()
+        .map(|unit| format!("({})'", unit.trim()))
+        .collect();
+    Ok(back.join(" · "))
+}
+
+/// The parts of `text` between top-level "·" marks, empty parts left out.
+fn units_of(text: &str) -> Vec<&str> {
+    let mut units = Vec::new();
+    let (mut depth, mut from) = (0usize, 0usize);
+    for (at, c) in text.char_indices() {
+        match c {
+            '(' | '[' => depth += 1,
+            ')' | ']' => depth = depth.saturating_sub(1),
+            '·' if depth == 0 => {
+                units.push(&text[from..at]);
+                from = at + c.len_utf8();
+            }
+            _ => {}
+        }
+    }
+    units.push(&text[from..]);
+    units.retain(|unit| !unit.trim().is_empty());
+    units
+}
+
+fn opposite(turn: Turn) -> Turn {
+    match turn {
+        Turn::Clockwise => Turn::CounterClockwise,
+        Turn::CounterClockwise => Turn::Clockwise,
+        Turn::Half => Turn::Half,
+    }
+}
+
 pub fn run(args: MovesArgs) -> Result<(), String> {
     let kind = kind_of(args.size)?;
-    let text = read_text(&args.expression)?;
+    let mut text = read_text(&args.expression)?;
+    if args.inverse {
+        text = inverse_text(&text, args.notation, kind)?;
+    }
     let moves = expand(&text, kind)?;
     if !args.pictures.icons && args.group != GroupMode::Axis && args.group != GroupMode::default() {
         return Err(

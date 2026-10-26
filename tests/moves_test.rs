@@ -101,3 +101,25 @@ fn wca_and_sign_round_trip_on_every_size() {
         assert_eq!(moves(&["--size", size, &scramble]), scramble);
     }
 }
+
+#[test]
+fn inverse_undoes_the_moves() {
+    assert_eq!(moves(&["--inverse", "R U2 F'"]), "F U2 R'");
+    assert_eq!(
+        moves(&["--inverse", "--notation", "sign", "--size", "4", "Rw U"]),
+        "U' r'"
+    );
+}
+
+#[test]
+fn inverse_inverts_each_hand_unit_and_reverses_their_order() {
+    let text = "VB VD VL VD2 VL' VD VB2 VD' · VL' VR' · VU' VB VU2 VB' VU2 VF'";
+    let back = moves(&["--size", "7", "--inverse", text]);
+    // the sequence followed by its reverse is the identity: reversing twice
+    // gives the original moves
+    let forward = moves(&["--size", "7", text]);
+    assert_eq!(moves(&["--size", "7", "--inverse", &back]), forward);
+    assert!(back.starts_with("F' 3Fw"), "last unit comes first: {back}");
+    let grouped = moves(&["--size", "7", "--inverse", "--group", "axis", text]);
+    assert!(grouped.contains(" · "), "{grouped}");
+}
