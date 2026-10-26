@@ -58,13 +58,15 @@ fn improve_and_parallel_return_a_valid_solution_within_the_budget() {
 
 #[test]
 fn improve_flags_are_refused_where_they_do_not_fit() {
-    let cases: [(&[&str], &str); 7] = [
+    let cases: [(&[&str], &str); 6] = [
         (&["--parallel", "-b", "100"], "together with --improve"),
         (&["--improve", "--parallel"], "needs a time budget"),
         (&["--probes", "5", "--improve"], "cannot be used"),
         (&["--size", "2", "--improve"], "already optimal"),
-        (&["--size", "6", "--probes", "5"], "not available"),
-        (&["--size", "7", "--improve"], "not available"),
+        (
+            &["--size", "6", "--improve", "--parallel", "-b", "100"],
+            "3x3x3 only",
+        ),
         (
             &["--size", "4", "--improve", "--parallel", "-b", "100"],
             "3x3x3 only",
@@ -110,6 +112,39 @@ fn probes_and_improve_work_on_the_4x4x4_and_5x5x5() {
         let (_, improved) = reduction_answer(size, &["--improve", "-b", "2000"]);
         assert!(improved <= plain, "{size}: {improved} against {plain}");
     }
+}
+
+/// A short scramble of a 6x6x6 or 7x7x7 (a 7x7x7 keeps its face centers).
+#[test]
+fn probes_and_improve_work_on_the_6x6x6_and_7x7x7() {
+    for size in ["6", "7"] {
+        let (_, plain_len) = reduction_answer(size, &[]);
+        let (a, probed) = reduction_answer(size, &["--probes", "5"]);
+        let (b, _) = reduction_answer(size, &["--probes", "5"]);
+        assert_eq!(a, b, "{size}: --probes is deterministic");
+        assert!(probed <= plain_len, "{size}: {probed} against {plain_len}");
+        let (_, improved) = reduction_answer(size, &["--improve", "-b", "500"]);
+        assert!(
+            improved <= plain_len,
+            "{size}: {improved} against {plain_len}"
+        );
+        let (_, with) = cubacle_verbose(size);
+        assert!(with.contains("improved from"), "{size}: {with}");
+    }
+}
+
+fn cubacle_verbose(size: &str) -> (bool, String) {
+    let (ok, _, error) = cubacle(&[
+        "solve",
+        "-s",
+        "R U F' Rw2 Uw Fw' L D2 B",
+        "--size",
+        size,
+        "--probes",
+        "3",
+        "-v",
+    ]);
+    (ok, error)
 }
 
 /// A 5x5x5 whose plain answer has 69 moves; `-m 67` finds 66. A high probe
