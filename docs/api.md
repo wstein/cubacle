@@ -34,7 +34,7 @@ The server binds to the local machine by default. It has no authentication, so d
 | `GET /v1/scramble?moves=25&size=3` | `moves`: 1 to 200; `size`: 2 to 7; `notation`?: `wca`, `sign` or `sse` | `{"scramble":"U' L2 F2 D U2"}` |
 | `GET /v1/random?size=3` | `size`: 2 to 7 (only 2 to 5 have engines) | `{"kind":"2x2x2","facelets":"...","token":"...","canonical":{"token":"...","schema":"..."}}` |
 | `POST /v1/convert` | `{"cube" or "scramble","size"?,"scheme"?}` | `{"kind","facelets","token"?,"canonical"?}` |
-| `POST /v1/solve` | `{"cube" or "scramble","size"?,"scheme"?,"maxMoves"?,"budgetMs"?,"minProbes"?,"improve"?,"slices"?,"notation"?,"optimize"?,"target"?}` | `{"kind","solution","length","metrics","compressed"?,"compressedLength"?,"compressedMetrics"?,"elapsedMicros"}` |
+| `POST /v1/solve` | `{"cube" or "scramble","size"?,"scheme"?,"maxMoves"?,"budgetMs"?,"minProbes"?,"improve"?,"slices"?,"notation"?,"optimize"?,"target"?}` | `{"kind","solution","inverse","length","metrics","compressed"?,"compressedLength"?,"compressedMetrics"?,"elapsedMicros"}` |
 
 For `POST` requests, send the header `Content-Type: application/json`.
 
@@ -104,6 +104,14 @@ The solve request returns:
 The `elapsedMicros` value varies between runs.
 
 ### Move counts
+
+Every solve answer also carries `inverse`, next to `solution`: the moves that undo `solution`, written in the same `notation` (reversed, each turned the other way). Applied to the solved cube, or to the `target` when one was given, they build the start cube. The field is always present; the other fields are unchanged. For the scramble `R U F D2 L' B R2 U' F2 D L2 B' U2 R F`:
+
+```json
+{"kind":"3x3x3","solution":"R' U2 D' R B' D L' U B U R L' D2 R' F2 B2 R U2 R' F2 U2","inverse":"U2 F2 R U2 R' B2 F2 R D2 L R' U' B' U' L D' B R' D U2 R","length":21,"metrics":{"htm":21,"qtm":28,"stm":21,"etm":21,"obtm":21,"btm":21,"atm":18},"elapsedMicros":2249}
+```
+
+(The `elapsedMicros` value is that of one run.)
 
 Every solve answer carries `metrics`: the length of `solution` in all seven metrics of [Move metrics](metrics.md), as integers, always in the key order `htm`, `qtm`, `stm`, `etm`, `obtm`, `btm`, `atm`. The command line shows three or four of them on its `metrics:` line; the server always sends all seven, so a client picks what it needs and ignores the rest. The counts are those of `cubacle::metrics::count` on the returned moves (`length` is the solver's own count, `moves N` on the command line). The same object under `compressedMetrics` counts `compressed` when `optimize` asked for it. The counts are part of every answer and cannot be turned off.
 

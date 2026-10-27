@@ -506,6 +506,8 @@ async fn convert(headers: HeaderMap, body: Result<Bytes, BytesRejection>) -> Api
 struct SolveBody {
     kind: String,
     solution: String,
+    /// The moves that undo `solution`, in the same notation.
+    inverse: String,
     length: usize,
     metrics: Counts,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -725,6 +727,7 @@ async fn solve(
             Ok(Json(SolveBody {
                 kind: kind_name(kind),
                 solution: notation.write(kind, solution),
+                inverse: notation.write(kind, &solution.inverse()),
                 length: solution.len(),
                 metrics: Counts::of(solution, kind),
                 compressed: packed
