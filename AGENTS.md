@@ -66,3 +66,10 @@ provenance of third-party code is recorded in `NOTICE.md` before it lands.
 Keep dependencies on their latest releases. `rust-version` is the lowest Rust version
 that is measured to build the workspace (the `msrv` CI job), not a wish; raise it
 deliberately when a dependency update requires it.
+
+
+## Planned PuzWerk integration boundary
+
+Canonical cross-project decision: https://github.com/wstein/cubistry/issues/21. PuzWerk (`wstein/puzwerk`) is **planned, not yet created**. Its reusable cube state, NxN mechanics, sticker identity/orientation and codecs belong to a **ReScript** core; its Three.js viewer to TypeScript. **No new Rust project or Rust package belongs in PuzWerk.** Rust solver algorithms continue in a pre-existing separate Rust project, connected by a versioned solver adapter (goals, moves, orientation-aware stickers, capabilities, replay, errors). The user referred to that Rust project as “Cube Backhaul”; confirm whether this repo is the intended project before changing ownership or names.
+
+Before introducing cross-project physical cube models or a new renderer here, check issue #21. This existing solver's internal representations needed for efficient search are permitted; avoid a new *independent public* shared cube-core implementation. Do not claim 6×6/7×7 engines finished without proof. Preserve AGPL licensing, `develop` workflow, existing tests and solver correctness; no premature dependency on an uncreated PuzWerk package.
