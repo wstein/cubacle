@@ -217,4 +217,28 @@ mod cases {
         assert!(uniform(plan.goal()));
         assert_eq!(plan.tail_stages().last().map(|s| s.0), Some(STAGE_NAME));
     }
+
+    #[test]
+    fn the_engine_prefix_is_finished_by_a_shorter_beam_search() {
+        let engine = crate::engines::five::FiveSolver::new(Arc::new(Min2PhaseSolver::shared()));
+        let start = cube(
+            PuzzleKind::Cube5,
+            "R U F2 D' L B 2R 2U' 2F 2L2 2D' B2 2F 2U 2R' D2 F' 2B U2 2D",
+        );
+        let target = start
+            .apply(&"2R 2U' 2F 2L2 2D 2B' 2R' 2U 2F 2R2 2D' 2L".parse().unwrap())
+            .unwrap();
+        let plan = plan(&engine, &start, &target, &SolveOptions::default(), None)
+            .unwrap()
+            .expect("mixed");
+        assert_eq!(plan.method(), Method::Refined);
+        // an engine prefix is about 50 moves
+        assert!(plan.tail().len() < 45, "{}", plan.tail());
+        assert!(uniform(plan.goal()));
+        assert_eq!(plan.goal().apply(plan.tail()).unwrap(), target);
+        assert_eq!(
+            plan.tail_stages().last().map(|s| s.1),
+            Some(plan.tail().len())
+        );
+    }
 }

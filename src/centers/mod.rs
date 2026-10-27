@@ -17,10 +17,11 @@
 //! `w` depends on the target alone. It is the shortest sequence of layer moves
 //! (a search with a table per orbit and color) when that is short, else a
 //! short one from a beam search, else the shortest prefix of the engine's own
-//! solution of `T` that leaves the centers uniform. The engine is used only
-//! through [`Solver`].
+//! solution of `T` that leaves the centers uniform, with its end shortened by
+//! a beam search (see `refine`). The engine is used only through [`Solver`].
 
 mod direct;
+mod refine;
 mod search;
 
 use std::time::{Duration, Instant};
@@ -40,8 +41,26 @@ const SEARCH_DEPTH: usize = 12;
 /// The beam searches tried when the exact one finds nothing: whether the
 /// colors go to their own faces (else to any face), and the beam width.
 const BEAMS: [(bool, usize); 3] = [(true, 250), (true, 1000), (false, 500)];
+/// The beams of the 4x4x4, whose one center orbit a wide beam sorts in about
+/// four moves fewer than a narrow one.
+const BEAMS_FOUR: [(bool, usize); 2] = [(false, 16_000), (true, 16_000)];
+/// The engine's sorting is only tried against a way (beam, or the target's
+/// moves undone) longer than this: it is the least the engine's sorting takes
+/// on a cube of the size (measured, after the end is shortened), so a shorter
+/// way is not worth a solve.
+fn engine_floor(kind: PuzzleKind) -> usize {
+    match kind {
+        PuzzleKind::Cube4 => 10,
+        PuzzleKind::Cube5 => 25,
+        PuzzleKind::Cube6 => 80,
+        _ => 120,
+    }
+}
 /// The longest sequence a beam search builds.
 const BEAM_DEPTH: usize = 40;
+
+/// The named pieces of a fix-up: name and moves.
+type Pieces = Vec<(String, usize)>;
 
 /// The name of the last stage of a route that ends in a fix-up.
 pub const STAGE_NAME: &str = "center fix-up";
@@ -103,6 +122,9 @@ pub enum Method {
     Beam,
     /// A prefix of the engine's solution of the target.
     Engine,
+    /// A prefix of the engine's solution of the target, its last moves
+    /// replaced by a shorter finish from a beam search.
+    Refined,
     /// The moves that built the target, undone.
     Known,
 }
@@ -114,6 +136,9 @@ impl std::fmt::Display for Method {
             Method::Search => "shortest layer moves",
             Method::Beam => "layer moves from a beam search",
             Method::Engine => "prefix of the engine's solution of the target",
+            Method::Refined => {
+                "prefix of the engine's solution of the target, finished by a beam search"
+            }
             Method::Known => "the moves that built the target, undone",
         })
     }
@@ -279,11 +304,12 @@ fn keeps_frame(goal: &Facelets, start: &Facelets) -> bool {
 /// last first, each named after the stage it takes back.
 fn from_engine(
     solver: &dyn Solver,
+    model: &search::Model,
     start: &Facelets,
     target: &Facelets,
     options: &SolveOptions,
     started: Instant,
-) -> Result<(MoveSequence, Vec<(String, usize)>), PlanError> {
+) -> Result<(MoveSequence, Pieces, bool), PlanError> {
     let mut asked = SolveOptions::default().with_slices(options.slices);
     if let Some(budget) = options.time_budget {
         asked = asked.with_time_budget(
@@ -314,20 +340,36 @@ fn from_engine(
             )))
         }
     };
-    let mut state = target.clone();
-    for (at, mv) in solution.moves().iter().enumerate() {
-        state = state
+    let mut states = vec![target.clone()];
+    for mv in solution.moves() {
+        let next = states[states.len() - 1]
             .apply(&MoveSequence::new(vec![*mv]))
             .map_err(|e| PlanError::Failed(e.to_string()))?;
-        if uniform(&state) && keeps_frame(&state, start) {
-            return Ok((
-                MoveSequence::new(solution.moves()[..=at].to_vec()),
-                undo_pieces(&stages, at + 1),
-            ));
+        let done = uniform(&next) && keeps_frame(&next, start);
+        states.push(next);
+        if done {
+            break;
         }
     }
-    Err(PlanError::Failed(
-        "the engine's solution never leaves the centers uniform".into(),
+    let used = states.len() - 1;
+    if used == solution.len() && !(uniform(&states[used]) && keeps_frame(&states[used], start)) {
+        return Err(PlanError::Failed(
+            "the engine's solution never leaves the centers uniform".into(),
+        ));
+    }
+    let sound = |state: &Facelets| keeps_frame(state, start);
+    let over = || refine::out_of_time(started, options.time_budget);
+    if let Some(cut) = refine::shorten(model, &states, &sound, &over) {
+        let mut moves = solution.moves()[..cut.keep].to_vec();
+        moves.extend_from_slice(cut.finish.moves());
+        let mut pieces = vec![(STAGE_NAME.to_string(), cut.finish.len())];
+        pieces.extend(undo_pieces(&stages, cut.keep));
+        return Ok((MoveSequence::new(moves), pieces, true));
+    }
+    Ok((
+        MoveSequence::new(solution.moves()[..used].to_vec()),
+        undo_pieces(&stages, used),
+        false,
     ))
 }
 
@@ -393,6 +435,14 @@ fn frame_moves(start: &Facelets, target: &Facelets) -> Result<MoveSequence, Plan
     Err(PlanError::Impossible(
         "the face centers of the target are not those of the start in any orientation".into(),
     ))
+}
+
+fn beams(kind: PuzzleKind) -> &'static [(bool, usize)] {
+    if kind == PuzzleKind::Cube4 {
+        &BEAMS_FOUR
+    } else {
+        &BEAMS
+    }
 }
 
 fn model_of(kind: PuzzleKind) -> search::Model {
@@ -486,12 +536,16 @@ pub fn plan(
         .or(own)
         .map(|w| (w, Method::Search))
         .or_else(|| {
-            BEAMS.iter().find_map(|&(own, width)| {
-                model
-                    .beam(&base, own, width, BEAM_DEPTH.min(room))
-                    .filter(sound)
-                    .map(|w| (w, Method::Beam))
-            })
+            // every beam is run and the shortest sequence wins
+            beams(kind)
+                .iter()
+                .filter_map(|&(own, width)| {
+                    model
+                        .beam(&base, own, width, BEAM_DEPTH.min(room))
+                        .filter(sound)
+                })
+                .min_by_key(MoveSequence::len)
+                .map(|w| (w, Method::Beam))
         })
         .map(|(w, method)| {
             let mut moves = frame.moves().to_vec();
@@ -507,19 +561,36 @@ pub fn plan(
         (None, Some(known)) => Some((known, Method::Known)),
         (None, None) => None,
     };
-    let (sorting, method, undoing) = match found {
-        Some((w, method)) => (w, method, None),
-        None => {
-            let (prefix, pieces) = from_engine(solver, start, &base, options, began)?;
-            let mut moves = frame.moves().to_vec();
-            moves.extend_from_slice(prefix.moves());
-            // the undoing of the frame moves comes last
-            let mut pieces = pieces;
-            if !frame.is_empty() {
-                pieces.push((STAGE_NAME.to_string(), frame.len()));
+    // The engine's own sorting, its end shortened: the only way when nothing
+    // above exists, and a rival to a beam or a long known way.
+    let rival = found
+        .as_ref()
+        .is_none_or(|(w, method)| *method != Method::Search && w.len() > engine_floor(kind));
+    let engine = if rival {
+        match from_engine(solver, &model, start, &base, options, began) {
+            Ok((prefix, pieces, cut)) => {
+                let mut moves = frame.moves().to_vec();
+                moves.extend_from_slice(prefix.moves());
+                // the undoing of the frame moves comes last
+                let mut pieces = pieces;
+                if !frame.is_empty() {
+                    pieces.push((STAGE_NAME.to_string(), frame.len()));
+                }
+                let method = if cut { Method::Refined } else { Method::Engine };
+                Some((MoveSequence::new(moves), method, Some(pieces)))
             }
-            (MoveSequence::new(moves), Method::Engine, Some(pieces))
+            // another way exists: the engine is only an attempt to be shorter
+            Err(_) if found.is_some() => None,
+            Err(error) => return Err(error),
         }
+    } else {
+        None
+    };
+    let (sorting, method, undoing) = match (found, engine) {
+        (Some((w, method)), Some((e, ..))) if w.len() <= e.len() => (w, method, None),
+        (_, Some(engine)) => engine,
+        (Some((w, method)), None) => (w, method, None),
+        (None, None) => unreachable!("the engine either answers or fails the plan"),
     };
     let pieces = undoing.unwrap_or_else(|| vec![(STAGE_NAME.to_string(), sorting.len())]);
     let goal = target
