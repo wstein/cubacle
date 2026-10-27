@@ -8,8 +8,8 @@ use cubacle::engines::optimal::{Limits, OptimalSolver, Tables};
 use cubacle::engines::three::Min2PhaseSolver;
 use cubacle::puzzle::{Facelets, PuzzleKind, SolveMetrics, SolveOptions, SolveResult, Solver};
 
+use crate::cli::SolveArgs;
 use crate::ram::{self, Ram};
-use crate::SolveArgs;
 
 /// Probes of the default engine's answer, as in a plain `solve`.
 const DEFAULT_PROBES: u64 = 3000;

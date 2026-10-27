@@ -13,8 +13,8 @@ use cubacle::engines::restricted::{
 use cubacle::notation::Notation;
 use cubacle::puzzle::{reaches, Alphabet, Facelets, PuzzleKind, SolveOptions};
 
+use crate::cli::SolveArgs;
 use crate::restricted_cmd::failure_text;
-use crate::SolveArgs;
 
 /// Whether the command asks for a list.
 pub fn wanted(args: &SolveArgs) -> bool {

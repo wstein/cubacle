@@ -4,7 +4,8 @@
 use cubacle::puzzle::{reaches, solves_by_color, Facelets, MoveSequence, PuzzleKind, SolveStage};
 use cubacle::ranges::Optimize;
 
-use crate::{inverse, metrics_out, phase_dots, stage_phases, steps, SolveArgs};
+use crate::cli::SolveArgs;
+use crate::{inverse, metrics_out, phase_dots, stage_phases, steps};
 
 /// A solution and what it was found for.
 pub(crate) struct Solved<'a> {

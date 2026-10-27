@@ -41,7 +41,7 @@ pub fn solver_for(alphabet: Alphabet, max_memory_mb: usize) -> Result<Box<dyn So
 pub fn failure_text(failure: Failure, message: Option<String>) -> String {
     let fallback = match failure {
         Failure::InvalidInput => "the cube state is impossible",
-        Failure::CentersOffFace => return crate::failure_message(failure, message),
+        Failure::CentersOffFace => return crate::failure::failure_message(failure, message),
         Failure::BudgetExhausted => "the time budget ran out",
         Failure::Exhausted => "no solution within the move limit",
         Failure::Internal => "internal error",

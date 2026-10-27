@@ -6,7 +6,8 @@ use clap::{parser::ValueSource, ArgMatches};
 use cubacle::notation::{parse_cube, parse_partial};
 use cubacle::puzzle::{Facelets, PuzzleKind};
 
-use crate::{kind_of, SolveArgs};
+use crate::cli::SolveArgs;
+use crate::input::kind_of;
 
 /// The message for a command that got neither a cube nor a scramble.
 pub(crate) const NO_CUBE: &str = "no cube given; give a cube state or --scramble (or use --to TARGET to start from the solved cube)";

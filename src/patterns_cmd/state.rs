@@ -16,7 +16,7 @@ use crate::steps::SolutionIcons;
 /// `patterns cycles`: a move sequence is followed piece by piece; a cube given
 /// as text is read from its colors.
 pub(super) fn cycles_state(args: &IdentifyArgs, size: usize) -> Result<(), String> {
-    let kind = crate::kind_of(size)?;
+    let kind = crate::input::kind_of(size)?;
     let text = match &args.scramble {
         Some(scramble) => scramble.clone(),
         None => args.cube.join(" "),
@@ -35,7 +35,7 @@ pub(super) fn cycles_state(args: &IdentifyArgs, size: usize) -> Result<(), Strin
                 patterns::cycles_of_moves(kind, &moves)?,
                 cubacle::puzzle::Facelets::solved(kind).apply(&moves).ok(),
             ),
-            Err(_) => return crate::parse_text(&text, args.scheme, size).map(|_| ()),
+            Err(_) => return crate::input::parse_text(&text, args.scheme, size).map(|_| ()),
         },
     };
     print!("{cycles}");
@@ -55,8 +55,8 @@ pub(super) fn identify_state(
     icons: Option<&SolutionIcons>,
 ) -> Result<(), String> {
     let state = match &args.scramble {
-        Some(scramble) => crate::scrambled(scramble, crate::kind_of(size)?)?,
-        None => crate::parse_text(&args.cube.join(" "), args.scheme, size)?.0,
+        Some(scramble) => crate::input::scrambled(scramble, crate::input::kind_of(size)?)?,
+        None => crate::input::parse_text(&args.cube.join(" "), args.scheme, size)?.0,
     };
     crate::state_check::warn(&state);
     let mut report = patterns::detect_with(&state, &library.extra, args.closest);
@@ -150,8 +150,8 @@ pub(super) fn find_state(
     icons: Option<&SolutionIcons>,
 ) -> Result<(), String> {
     let state = match &args.scramble {
-        Some(scramble) => crate::scrambled(scramble, crate::kind_of(size)?)?,
-        None => crate::parse_text(&args.cube.join(" "), args.scheme, size)?.0,
+        Some(scramble) => crate::input::scrambled(scramble, crate::input::kind_of(size)?)?,
+        None => crate::input::parse_text(&args.cube.join(" "), args.scheme, size)?.0,
     };
     crate::state_check::require(&state)?;
     let cap = Cap::megabytes(args.max_memory);

@@ -10,11 +10,14 @@ use cubacle::recover::{
     diagnose_staged, locate, Advice, Limits, PhaseInfo, Plan, RecoverError, Scope,
 };
 
+use crate::cli::InputArgs;
+use crate::engine::{default_options, solver_for};
+use crate::failure::failure_message;
+use crate::input::read_cube;
 use crate::metrics_out;
 use crate::recover_icons;
 use crate::stage_phases;
 use crate::steps::PictureArgs;
-use crate::{default_options, failure_message, read_cube, solver_for, InputArgs};
 
 /// The options only `solve --now` takes (the way back after a mistake);
 /// each needs `--now`.

@@ -391,7 +391,7 @@ impl Config {
         let size = size
             .or_else(|| size_from_name(location))
             .ok_or("cannot tell the cube size: use { path = ..., size = N }")?;
-        let kind = crate::kind_of(size)?;
+        let kind = crate::input::kind_of(size)?;
         let got = import_tab(
             &text,
             &ImportOptions {

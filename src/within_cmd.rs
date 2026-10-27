@@ -11,7 +11,7 @@ use cubacle::puzzle::{Facelets, SolveStage, Target};
 use cubacle::within::{self, Kit, Limit, Limits, Outcome};
 
 use crate::answer::{self, Solved};
-use crate::SolveArgs;
+use crate::cli::SolveArgs;
 
 /// Exit code when no route exists within K moves.
 const EXIT_NO_ROUTE: i32 = 2;
@@ -150,7 +150,7 @@ pub(crate) fn run(
             &format!("no route of at most {k} moves in the {alphabet} alphabet ({metric})"),
         ),
         Outcome::Limit(limit) => {
-            crate::LIMIT_REACHED.store(true, std::sync::atomic::Ordering::Relaxed);
+            crate::failure::LIMIT_REACHED.store(true, std::sync::atomic::Ordering::Relaxed);
             Err(match limit {
                 Limit::Time => "time limit",
                 Limit::Memory => "memory limit",

@@ -5,7 +5,7 @@ use std::time::Duration;
 use cubacle::engines::three::Min2PhaseSolver;
 use cubacle::puzzle::{Facelets, PuzzleKind, SolveOptions, SolveResult, Solver};
 
-use crate::SolveArgs;
+use crate::cli::SolveArgs;
 
 /// The budget `--improve` uses when `-b` is absent.
 const DEFAULT_BUDGET_MS: u64 = 1000;

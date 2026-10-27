@@ -159,7 +159,7 @@ pub fn run(args: ImportArgs, cache_dir: &Path, size: Option<usize>) -> Result<()
     }
     let size = size.or_else(|| size_from_name(&args.file));
     let size = size.ok_or("cannot tell the cube size: pass --size N")?;
-    let kind = crate::kind_of(size)?;
+    let kind = crate::input::kind_of(size)?;
     let bytes = std::fs::read(&args.file).map_err(|e| format!("{}: {e}", args.file))?;
     let label = Path::new(&args.file)
         .file_name()

@@ -3,7 +3,8 @@
 use clap::{Args, ValueEnum};
 use cubacle::canonical::canonical;
 
-use crate::{read_unchecked, InputArgs};
+use crate::cli::InputArgs;
+use crate::input::read_unchecked;
 
 /// How `canon` writes its answer.
 #[derive(Clone, Copy, PartialEq, Eq, ValueEnum)]

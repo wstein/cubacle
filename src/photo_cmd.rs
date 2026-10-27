@@ -8,8 +8,9 @@ use cubacle::notation::ColorScheme;
 use cubacle::puzzle::Face;
 use cubacle::synthetic::{fingerprint_json, render_face, Options, Preset, Shadow, ShadowShape};
 
+use crate::cli::InputArgs;
+use crate::input::read_input;
 use crate::png_out::{encode_rgba, encode_rgba_text};
-use crate::{read_input, InputArgs};
 
 /// The seed when none is given, so that two runs write the same files.
 const DEFAULT_SEED: i32 = 1;

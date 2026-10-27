@@ -8,7 +8,9 @@ use std::time::Duration;
 
 use cubacle::puzzle::{Facelets, Failure, SolveOptions, Target};
 
-use crate::{default_options, enumerate_cmd, metrics_out, phase_dots, solver_for, SolveArgs};
+use crate::cli::SolveArgs;
+use crate::engine::{default_options, solver_for};
+use crate::{enumerate_cmd, metrics_out, phase_dots};
 
 /// Refuses the options that do not combine with a partial target (yet).
 fn check(args: &SolveArgs) -> Result<(), String> {
@@ -92,7 +94,7 @@ pub fn run(args: &SolveArgs, start: &Facelets, target: &Target) -> Result<(), St
         Err(failure) => Err(result.message.unwrap_or_else(|| {
             match failure {
                 Failure::InvalidInput => "the start or the target is impossible",
-                Failure::CentersOffFace => crate::CENTERS_OFF_FACE,
+                Failure::CentersOffFace => crate::failure::CENTERS_OFF_FACE,
                 Failure::BudgetExhausted => "the time budget ran out",
                 Failure::Exhausted => "no solution within the move limit",
                 Failure::Internal => "internal error",
