@@ -15,7 +15,7 @@ cubacle solve --size 4 --scramble "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F Uw Rw' F2 
 ```
 
 ```text
-Uw' Rw' Uw L' Fw U' B2 Rw' D B Uw2 Rw' Fw2 R2 Rw2 U F Fw2 L2 U' D' Rw2 F' Uw2 L U L' D' B L U2 L' D' F2 B2 U' L2 F2 U2 F2 D' L2 B Rw' Lw Fw Bw'
+Uw' Rw' Dw F' Lw F' L2 Uw' B L Fw2 Uw' Rw2 U2 Uw2 F R Rw2 D2 F' B' Uw2 R' Bw2 U F U' B' R U F2 U' B' L2 R2 F' U2 L2 F2 L2 B' U2 R
 ```
 
 The solution has 43 moves and needs no rotation. Some answers end with up to four whole-cube turns such as `Rw' Lw Fw Bw'`: each pair of opposite wide turns, such as `Rw' Lw`, turns the whole cube, and at most four turns bring any cube to the standard orientation. The solutions of 1000 random cubes have 47.5 moves on average (44.3 without the rotation). The tool replays every 4x4x4 solution on the cube and exits with an error if it does not solve it. With a move limit the solution cannot meet, `solve` fails:
@@ -39,7 +39,7 @@ cubacle solve --size 5 --scramble "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F" | wc -w
 ```
 
 ```text
-67
+63
 ```
 
 The solutions have 73 moves on average: 70 to 76 over 100 random cubes and 69 to 77 over 300 others (see [Engines and limits](../engines/_index.md)). It starts like this:
