@@ -3,11 +3,13 @@
 #[cfg(test)]
 mod cases {
     use std::sync::Arc;
+    use std::time::Duration;
 
+    use crate::centers::prefix::undo_pieces;
     use crate::centers::*;
     use crate::engines::four::FourSolver;
     use crate::engines::three::Min2PhaseSolver;
-    use crate::puzzle::{reaches, relative_by};
+    use crate::puzzle::{reaches, relative_by, Failure, SolveMetrics, SolveStage};
 
     fn cube(kind: PuzzleKind, moves: &str) -> Facelets {
         Facelets::solved(kind)
