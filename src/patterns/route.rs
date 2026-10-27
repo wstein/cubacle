@@ -9,6 +9,7 @@
 //! are returned, so a hit is never wrong.
 
 use std::collections::HashMap;
+use std::hash::{BuildHasherDefault, Hasher};
 
 use super::detector::geometry::{image, symmetries, Sym};
 use super::Pattern;
@@ -27,7 +28,29 @@ pub struct RouteIndex {
     kind: PuzzleKind,
     entries: Vec<Entry>,
     /// Image coloring to (entry, symmetry).
-    map: HashMap<Vec<u8>, (u32, u8)>,
+    map: HashMap<Vec<u8>, (u32, u8), BuildHasherDefault<StickerHasher>>,
+}
+
+/// A fast hasher for the sticker colorings (a few hundred bytes each, no
+/// adversary): the index holds 48 keys per generator, and the default
+/// SipHash made hashing a visible part of building it.
+#[derive(Default)]
+struct StickerHasher(u64);
+
+impl Hasher for StickerHasher {
+    fn write(&mut self, bytes: &[u8]) {
+        for chunk in bytes.chunks(8) {
+            let mut word = 0u64;
+            for &b in chunk {
+                word = word << 8 | u64::from(b);
+            }
+            self.0 = (self.0.rotate_left(5) ^ word).wrapping_mul(0x9e37_79b9_7f4a_7c15);
+        }
+    }
+
+    fn finish(&self) -> u64 {
+        self.0 ^ (self.0 >> 32)
+    }
 }
 
 /// A pattern found in a state.
@@ -105,7 +128,7 @@ impl RouteIndex {
         let mut index = RouteIndex {
             kind,
             entries: Vec::new(),
-            map: HashMap::new(),
+            map: HashMap::default(),
         };
         let solved = Facelets::solved(kind);
         for pattern in patterns {

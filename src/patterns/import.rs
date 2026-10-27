@@ -240,9 +240,8 @@ pub fn import_tab(text: &str, options: &ImportOptions, read: Reader) -> Imported
                 if generator.number == 0 {
                     generator.number = 1;
                 }
-                pattern
-                    .scores
-                    .push((options.size, super::patternness(&state)));
+                // Filled in after the loop, on all cores.
+                pattern.scores.push((options.size, 0));
                 pattern.generators.push(generator);
                 patterns.push((pattern, state));
             }
@@ -256,9 +255,30 @@ pub fn import_tab(text: &str, options: &ImportOptions, read: Reader) -> Imported
         });
         report.accepted += 1;
     }
+    score_all(&mut patterns);
     Imported {
         patterns: patterns.into_iter().map(|(p, _)| p).collect(),
         report,
         rows,
     }
+}
+
+/// Sets the patternness of every pattern (the single score pushed for its
+/// first generator's state). The scores are independent, so the work is split
+/// over the cores; each result goes to its own pattern, so the outcome does
+/// not depend on the thread count.
+fn score_all(patterns: &mut [(Pattern, Facelets)]) {
+    let threads = crate::reduction::par::threads();
+    let chunk = patterns.len().div_ceil(threads).max(16);
+    std::thread::scope(|scope| {
+        for part in patterns.chunks_mut(chunk) {
+            scope.spawn(move || {
+                for (pattern, state) in part {
+                    if let Some(score) = pattern.scores.last_mut() {
+                        score.1 = super::patternness(state);
+                    }
+                }
+            });
+        }
+    });
 }
