@@ -4,7 +4,7 @@
 use cubacle::puzzle::{reaches, solves_by_color, Facelets, MoveSequence, PuzzleKind, SolveStage};
 use cubacle::ranges::Optimize;
 
-use crate::{metrics_out, phase_dots, stage_phases, steps, SolveArgs};
+use crate::{inverse, metrics_out, phase_dots, stage_phases, steps, SolveArgs};
 
 /// A solution and what it was found for.
 pub(crate) struct Solved<'a> {
@@ -34,7 +34,7 @@ pub(crate) fn print(solved: &Solved<'_>) -> Result<(), String> {
         stages,
         ..
     } = *solved;
-    let target = solved.target.clone();
+    let mut target = solved.target.clone();
     // Every engine's answer is replayed here, whatever the size.
     let wanted = target
         .clone()
@@ -55,6 +55,21 @@ pub(crate) fn print(solved: &Solved<'_>) -> Result<(), String> {
     if let Some(adopted) = &solved.adopted {
         eprintln!("{adopted}");
     }
+    // With `--inverse` everything below shows the moves that undo the solution,
+    // starting from the cube the solution ends in; the counts above stay those
+    // of the solution.
+    let built;
+    let back;
+    let (start, solution) = if args.inverse {
+        built = start.apply(solution).map_err(|e| e.to_string())?;
+        back = inverse::moves(solution);
+        (&built, &back)
+    } else {
+        (start, solution)
+    };
+    if args.inverse {
+        target = Some(solved.start.clone());
+    }
     // The engine's own stages where it reports them, else the state-based cut.
     let found = match args.every {
         Some(every) if args.optimize == Some(Optimize::Ranges) => {
@@ -65,7 +80,12 @@ pub(crate) fn print(solved: &Solved<'_>) -> Result<(), String> {
             || args.pictures.icons
             || phase_dots::Grouping::of(&args.group).phases =>
         {
-            stage_phases::of(stages, facelets, solution)
+            if args.inverse {
+                let phases = stage_phases::of(stages, facelets, solved.solution);
+                inverse::phases(&phases, solution.len())
+            } else {
+                stage_phases::of(stages, facelets, solution)
+            }
         }
         None => Vec::new(),
     };

@@ -4,6 +4,7 @@ mod enumerate_cmd;
 mod fetch;
 mod icons;
 mod improve;
+mod inverse;
 mod metrics_out;
 mod moves_cmd;
 mod optimal_cmd;
@@ -282,6 +283,12 @@ struct SolveArgs {
     /// (for example 10 or 20). Replaces the solver phases
     #[arg(long, value_name = "N", value_parser = clap::value_parser!(u16).range(1..))]
     every: Option<u16>,
+    /// Print the solution inverted: the moves that build the start cube from the
+    /// solved cube (from the --to target when given). Phases, --every, --icons
+    /// and --optimize ranges follow the inverted order; the counts stay those
+    /// of the solution
+    #[arg(long, conflicts_with_all = ["now", "all", "count"])]
+    inverse: bool,
     /// Also look the cube up in the pattern library (built-in and the files of
     /// the config) and answer with the library route when it is strictly shorter
     /// than the solver's answer; the solver still runs, so the answer is never

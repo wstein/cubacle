@@ -70,6 +70,11 @@ pub fn run(args: &SolveArgs, start: &Facelets, target: &Target) -> Result<(), St
             if let Some(message) = &result.message {
                 eprintln!("{message}");
             }
+            let solution = if args.inverse {
+                crate::inverse::moves(&solution)
+            } else {
+                solution
+            };
             let (text, _) = phase_dots::write(
                 args.notation,
                 kind,

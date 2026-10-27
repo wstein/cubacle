@@ -46,6 +46,11 @@ pub struct MovesArgs {
     /// other way; hand units marked by "·" come out in reverse order too
     #[arg(long)]
     inverse: bool,
+    /// Act only on the last N moves of the expression (counted after groups and
+    /// repeats are expanded; the "·" marks are dropped), for example to take back
+    /// a mistake: --inverse --from-end 3
+    #[arg(long, value_name = "N", value_parser = clap::value_parser!(usize))]
+    from_end: Option<usize>,
     #[command(flatten)]
     pictures: PictureArgs,
     /// Hand units: dots (default) draws the groups marked by "·" and "( )",
@@ -145,13 +150,7 @@ fn inverse_text(text: &str, notation: Notation, kind: PuzzleKind) -> Result<Stri
     let units = units_of(text);
     if units.len() < 2 {
         let moves = expand(text, kind)?;
-        let back: MoveSequence = moves
-            .moves()
-            .iter()
-            .rev()
-            .map(|m| Move::new(m.face, m.depth, m.wide, opposite(m.turn)))
-            .collect();
-        return Ok(notation.write(kind, &back));
+        return Ok(notation.write(kind, &crate::inverse::moves(&moves)));
     }
     let back: Vec<String> = units
         .iter()
@@ -181,17 +180,20 @@ fn units_of(text: &str) -> Vec<&str> {
     units
 }
 
-fn opposite(turn: Turn) -> Turn {
-    match turn {
-        Turn::Clockwise => Turn::CounterClockwise,
-        Turn::CounterClockwise => Turn::Clockwise,
-        Turn::Half => Turn::Half,
-    }
-}
-
 pub fn run(args: MovesArgs) -> Result<(), String> {
     let kind = kind_of(args.size)?;
     let mut text = read_text(&args.expression)?;
+    if let Some(last) = args.from_end {
+        let all = expand(&text, kind)?;
+        let total = all.len();
+        if last > total {
+            return Err(format!(
+                "--from-end {last}: the expression has only {total} moves"
+            ));
+        }
+        let tail = MoveSequence::new(all.moves()[total - last..].to_vec());
+        text = args.notation.write(kind, &tail);
+    }
     if args.inverse {
         text = inverse_text(&text, args.notation, kind)?;
     }

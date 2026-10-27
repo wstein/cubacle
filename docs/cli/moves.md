@@ -116,6 +116,18 @@ U' r'
 U' 3Uw R' 3Rw L' 3Lw D 3Dw' B 3Bw'
 ```
 
+`--from-end N` acts only on the last N moves of the expression (counted after groups and repeats are expanded; the `·` marks are dropped, and N larger than the expression is an error). With `--inverse` it takes back the last moves of a played sequence, for example a mistake in the last three moves:
+
+```sh
+cubacle moves --inverse --from-end 3 "R U F D L B"
+cubacle moves --from-end 2 "R U F D L B"
+```
+
+```text
+B' L' D'
+L B
+```
+
 ### Middle slices and whole-cube rotations
 
 | Written | Meaning |

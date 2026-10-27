@@ -31,6 +31,24 @@ cubacle solve --size 4 -s "R U 2R 2U' Fw 2L' B2 D 2D' R' U2 2F Uw Rw' F2 Lw" --e
 B' L' F' R Bw Dw' B F' R' Dw2 · L' Rw2 Fw' D' L' R' Fw2 U' Bw2 R2 · L' F2 Dw2 R U Rw2 U B U L2 · B2 D2 F' U F2 L2 D2 R B2 L · F2 R2 U2 L' B' L
 ```
 
+#### --inverse
+
+`--inverse` prints the solution inverted: the moves that build the start cube from the solved cube (reversed, each turned the other way). With `--to` they lead from the target to the start. The solver runs as always; the `moves` line and the metrics on standard error stay those of the solution, the answer on standard output is the inverse. Everything that cuts the answer is mirrored with it: the phase list is reversed and each phase is named `undo phase N: <name>` after the phase it undoes (so `-v` and the pictures show `undo phase 4: 3x3 stage` first), `--every N` cuts the inverted moves, and `--optimize ranges` compresses after inverting. With `--icons` the first picture is the cube the solution ends in (the solved cube, or the target), and the target state line is the start cube. `--inverse` is refused with `--now`, `--all` and `--count`, which print other things than one solution.
+
+```sh
+cubacle solve -s "R U F D2 L' B R2 U' F2 D L2 B' U2 R F"
+cubacle solve -s "R U F D2 L' B R2 U' F2 D L2 B' U2 R F" --inverse
+cubacle solve --size 4 -s "R U 2R 2U' Fw 2L' B2 D 2D' R' U2 2F Uw Rw' F2 Lw" --inverse --every 10
+```
+
+```text
+F' R' U2 B L2 D' F2 U R2 B' L D2 F' U' R'
+R U F D2 L' B R2 U' F2 D L2 B' U2 R F
+L' B L U2 R2 F2 L' B2 R' D2 · L2 F2 U' F D2 B2 L2 U' B' U' · Rw2 U' R' Dw2 F2 L R2 Bw2 U Fw2 · R L D Fw Rw2 L Dw2 R F B' · Dw Bw' R' F L B
+```
+
+The inverse of a solution of a scrambled cube is, on the 3x3x3, the scramble itself when the solver found no shorter way; the REST field `inverse` is the same text (see the [REST API](../api.md)).
+
 ### A nearly solved cube: --within
 
 `--within K` is for a cube that is only slightly scrambled: it finds an optimal route of at most K moves (K from 1 to 7; write `--within=5`, plain `--within` means 6). The search starts at the cube and at the target and meets in the middle on the colors of the stickers, so it needs no relative state and works for every size from the 2x2x2 to the 7x7x7 and for every target: the solved cube, `--to` as a move expression or as a state text, also a state with mixed center colors (made with slice moves). Every route is replayed color by color before it is printed.

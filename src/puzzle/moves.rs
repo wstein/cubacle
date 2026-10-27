@@ -157,6 +157,22 @@ impl MoveSequence {
         self.moves.is_empty()
     }
 
+    /// The moves that undo this sequence: reversed, each turned the other way.
+    pub fn inverse(&self) -> MoveSequence {
+        self.moves
+            .iter()
+            .rev()
+            .map(|m| {
+                let turn = match m.turn {
+                    Turn::Clockwise => Turn::CounterClockwise,
+                    Turn::CounterClockwise => Turn::Clockwise,
+                    Turn::Half => Turn::Half,
+                };
+                Move::new(m.face, m.depth, m.wide, turn)
+            })
+            .collect()
+    }
+
     /// Whether every move exists on a cube of the given size.
     pub fn fits(&self, kind: PuzzleKind) -> bool {
         self.moves.iter().all(|mv| mv.fits(kind))
