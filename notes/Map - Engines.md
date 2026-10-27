@@ -37,6 +37,7 @@ Raw-material notes, category engines.
 - [[Same-colored inner pieces are equal and there is no strict mode]]
 - [[Equal pieces are matched fixed points first]]
 - [[A center fix-up pass lets --to reach mixed centers]]
+- [[A close target gets a direct route before the fix-up plan]]
 - [[Pattern shortcut finds hand-built cubes]]
 - [[Pattern-aware solving adopts a library route only when it is strictly shorter]]
 - [[Pattern search speed comes from measuring first, then symmetry, compact states and cores]]

@@ -113,6 +113,34 @@ Rules and limits:
 
 On the 4x4x4 to 7x7x7 the solvers work on colors: they bring every center to its face but leave the centers of a face in any order. A target built with inner slices (`2R`, SSE `VB`), wide turns with slices or an imported pattern can show different colors on one face, and the solver cannot aim for that directly. `solve --to` then plans the route in three steps: find moves `w` that make the target's centers uniform, solve the start to that nearby target as for any uniform target, and append `w` undone, the center fix-up. `w` is the shortest sequence of layer moves when a search finds it within a fixed work limit (so the answer is the same on every machine), else a short one from a beam search, else the shortest prefix of the engine's own solution of the target that leaves the centers uniform. When the target is given as moves, undoing those moves bounds the fix-up, so the route is never longer than solving to the solved cube and then making the target's moves. The fix-up is its own phase, `center fix-up`, the last one in `-v`, `--group phases` and `--icons`.
 
+Before any of that, `solve` looks for a direct route when start and target are close: a meet-in-the-middle search over the layer moves and single inner layers (the search of `--within`, up to 6 moves, bounded by moves and memory and not by the clock, so the answer is the same on every machine) between the two states. A route it finds is the shortest in that alphabet and is the answer, as one phase, `direct route`; without one the plan above runs unchanged. The search costs about 0.2 s on the 7x7x7 when there is no route, and states further apart than the bound are ruled out at once. A 7x7x7 target three inner slices away from the start:
+
+```sh
+cubacle solve --size 7 "R U F2 D' L B" --to "R U F2 D' L B 2R 3U' 4F" -v
+```
+
+```text
+center fix-up: 3 moves (direct route from start to target)
+moves 3
+phase 1: direct route, moves 1-3
+6L' 5D 4B'
+```
+
+(the lines about the empty solve before it and the `metrics` line are left out). Measured on 40-move random starts with targets 3, 6, 10 and 15 random moves away (`solve START --to TARGET`, moves; before is the route through the fix-up, plain is the solve of the start plus the target's moves):
+
+| Cube, target moves away | Before | Now | Plain |
+| --- | --- | --- | --- |
+| 5x5x5, 3 | 119 / 121 / 122 | 3 | 72 / 72 / 73 |
+| 5x5x5, 6 | 119 / 122 / 120 | 6 | 75 / 76 / 75 |
+| 5x5x5, 10 and 15 | 119, 118 | 119, 118 (unchanged) | 78, 85 |
+| 6x6x6, 3 | 244 / 255 | 3 | 135 / 142 |
+| 6x6x6, 6 | 244 | 6 | 139 |
+| 7x7x7, 3 | 351 / 350 | 3 | 183 / 185 |
+| 7x7x7, 6 | 360 / 360 | 6 | 195 / 195 |
+| 7x7x7, 10 | 353 | 353 (unchanged) | 198 |
+
+Targets further than 6 moves away still take the fix-up route; closing that gap (more moves in the direct search costs 6 s and 700 MB at 7 moves on the 7x7x7) is open.
+
 The owner's SSE slice target on a 7x7x7, from a 40-move scramble (`B L2 3R' 3U' ... B' 3D2`; 220 moves, 188 for the start and 32 for the fix-up, 35 s on a busy machine):
 
 ```sh
