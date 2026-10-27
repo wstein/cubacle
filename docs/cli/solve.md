@@ -83,6 +83,22 @@ moves 3
 U' R' Rw
 ```
 
+### Known patterns
+
+With `-v`, `solve` prints one line to stderr when the start (or the target) is
+a pattern of the library, with the library's shortest known generator. It is
+information only: the search runs as always and is never skipped or shortened
+because of it. Use `--pattern-aware` to let a shorter library route replace the
+answer. Without `-v` nothing changes.
+
+```sh
+cubacle solve -v "U2 D2 R2 L2 F2 B2"
+```
+
+```text
+pattern: checkerboard (known generator: R2 L2 F2 B2 U2 D2, 6 moves)
+```
+
 ### Solve to a target
 
 `--to <TARGET>` makes `solve` print the moves that take the start cube to the target instead of to the solved cube. The target is one argument (quote it) and is read like the start: an Orbit64 token, URFDLB facelets, W/R/G/Y/O/B colors (with `--scheme`), or, when the text is no cube, a move expression applied to the solved cube of the start's size. A text that is exactly `superflip`, `checkerboard` or `cube-in-cube` is the pattern of that name instead; these are 3x3x3 patterns, and other sizes get `--to: superflip is a 3x3x3 pattern, not a 4x4x4 one`. Longer texts such as `superflip R` are not names.

@@ -54,7 +54,7 @@ pub struct Request<'a> {
 /// Whether a move is one the solver of the size would write: face turns on
 /// the 3x3x3; from the 4x4x4 up also outer blocks (`Rw`), and single inner
 /// layers (`2R`) only with `--slices`.
-fn in_alphabet(kind: PuzzleKind, slices: bool, mv: &Move) -> bool {
+pub(crate) fn in_alphabet(kind: PuzzleKind, slices: bool, mv: &Move) -> bool {
     if mv.depth == 1 && !mv.wide {
         return true;
     }

@@ -15,6 +15,7 @@ mod optimal_cmd;
 mod order_cmd;
 mod partial_cmd;
 mod pattern_aware_cmd;
+mod pattern_hint;
 mod patterns_cmd;
 mod patterns_config;
 mod patterns_import_cmd;

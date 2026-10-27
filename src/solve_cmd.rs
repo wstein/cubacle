@@ -12,8 +12,8 @@ use crate::engine::{default_options, solver_for};
 use crate::failure::{failure_message, limit_message, DEFAULT_MAX_TIME_MS, LIMIT_REACHED};
 use crate::input::{read_cube, read_target};
 use crate::{
-    answer, enumerate_cmd, improve, optimal_cmd, partial_cmd, pattern_aware_cmd, recover_cmd,
-    restricted_cmd, solved_start, within_cmd,
+    answer, enumerate_cmd, improve, optimal_cmd, partial_cmd, pattern_aware_cmd, pattern_hint,
+    recover_cmd, restricted_cmd, solved_start, within_cmd,
 };
 
 pub(crate) fn solve(args: SolveArgs) -> Result<(), String> {
@@ -55,6 +55,15 @@ pub(crate) fn solve(args: SolveArgs) -> Result<(), String> {
         .as_deref()
         .map(|text| read_target(text, &args, &start))
         .transpose()?;
+    if args.verbose {
+        pattern_hint::print(
+            args.config.as_deref(),
+            &start,
+            target.as_ref().and_then(|t| t.as_state()).as_ref(),
+            args.notation,
+            args.slices,
+        );
+    }
     if let Some(k) = args.within {
         if let within_cmd::Done::Printed = within_cmd::run(&args, k, &start, target.as_ref())? {
             return Ok(());
