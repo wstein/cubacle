@@ -35,12 +35,14 @@ cubacle template check concentric-squares.cubacle
 ok: concentric-squares, size 5, 18 variables, guard ok
 ```
 
-A file without `color-constraints` ends in `no guard`. A problem is reported as `error: file:line:column: message` on stderr with exit status 1, the position counted in the file:
+The file is in `docs/static/examples/definitions/` (published at `https://wstein.github.io/cubacle/examples/definitions/`). `template check` reads the six faces written out, as above; a grid of one face, as in the JSON files there and in the specification, is not read yet (`expected 6 faces, found 1`).
+
+A file without `color-constraints` ends in `no guard`. A problem is reported as `error: file:line:column: message` on stderr with exit status 1, the position counted in the file. `bad.cubacle` in the same directory is the 3x3x3 grid of a cross with the constraint `unique(a*, b*, c*) && equal(a*, d*)`; the constraint names `d*`, which the grid does not have:
 
 ```sh
-cubacle template check bad.cubacle    # the constraint names d*, which the schema does not have
+cubacle template check bad.cubacle
 ```
 
 ```text
-error: bad.cubacle:12:35: no variable of the schema matches "d*"
+error: bad.cubacle:11:52: no variable of the schema matches "d*"
 ```

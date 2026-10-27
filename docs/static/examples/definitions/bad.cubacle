@@ -1,0 +1,11 @@
+# bad.cubacle, a 3x3x3: the constraint names d*, which the grid does not have
+pattern-name: bad
+cube-size: 3
+sticker-grid:
+  a1 b1 a1 b1 c1 b1 a1 b1 a1 /
+  a2 b2 a2 b2 c2 b2 a2 b2 a2 /
+  a3 b3 a3 b3 c3 b3 a3 b3 a3 /
+  a4 b4 a4 b4 c4 b4 a4 b4 a4 /
+  a5 b5 a5 b5 c5 b5 a5 b5 a5 /
+  a6 b6 a6 b6 c6 b6 a6 b6 a6
+color-constraints: unique(a*, b*, c*) && equal(a*, d*)

@@ -37,7 +37,7 @@ pattern-title: Concentric squares
 cube-size: 5
 color-scheme: western
 sticker-grid:
-  a b b b a / b b c b b / b c U c b / b b c b b / a b b b a
+  a b b b a b b c b b b c U c b b b c b b a b b b a
 color-constraints: unique(a*, b*, c*)
 ```
 
@@ -233,7 +233,7 @@ Key mapping, stated once: every JSON key is the camelCase form of the kebab-case
 - `colorScheme` is a name or six letters (see [Color schemes](color-schemes.md)). The display colors of six letters are `colorLetters`, an object from letter to color in JSON and a `color-letters:` line in the text form, with the same value grammar as in a scheme file.
 - `movableOrbits`, `fixedOrbits`, `patternAliases` and `patternTags` are lists of strings.
 
-The example of the worked example above in both forms (files `concentric-squares.cubacle` and `concentric-squares.json` in `docs/static/examples/definitions/`, published at `https://wstein.github.io/cubacle/examples/definitions/`):
+The example of the worked example above in both forms (the `.cubacle` file spells out all six faces, because `cubacle template check` does not read the one-face shorthand yet; files `concentric-squares.cubacle` and `concentric-squares.json` in `docs/static/examples/definitions/`, published at `https://wstein.github.io/cubacle/examples/definitions/`):
 
 ```json
 {
