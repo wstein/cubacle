@@ -67,18 +67,18 @@ Keep dependencies on their latest releases. `rust-version` is the lowest Rust ve
 that is measured to build the workspace (the `msrv` CI job), not a wish; raise it
 deliberately when a dependency update requires it.
 
-## PuzWerk integration boundary
+## PuzlWerk integration boundary
 
-[PuzWerk already exists](https://github.com/wstein/puzwerk). Repository existence
+[PuzlWerk already exists](https://github.com/wstein/puzlwerk). Repository existence
 is not evidence of a released package, a stable integration API or an approved
 migration. See [Cubistry #21](https://github.com/wstein/cubistry/issues/21) for the
 cross-project architecture; verify the current contract before adding dependencies.
 
-PuzWerk owns the shared **ReScript** cube core: reusable state, coordinates,
+PuzlWerk owns the shared **ReScript** cube core: reusable state, coordinates,
 mechanics, sticker identity/orientation and codecs, with a **TypeScript** viewer.
 **Cubacle is the existing independent Rust solver project**. Integrating it as
 an optional provider requires a versioned adapter for goals, moves, capabilities,
-frames, replay and errors. Do not add a Rust project or Rust package to PuzWerk.
+frames, replay and errors. Do not add a Rust project or Rust package to PuzlWerk.
 Cubacle's efficient internal search representations remain its responsibility;
 do not create a competing public shared cube core or renderer here.
 
@@ -87,3 +87,11 @@ and solver correctness. Shared-core ownership does not authorize moving or delet
 working Cubacle code. Require an approved integration/migration plan and verify
 package availability, compatibility and exact-frame replay before changing consumers.
 Do not claim size support or optimality beyond the verified engine and goal scope.
+
+## PuzlWerk naming conventions
+
+- Display/branding: **PuzlWerk**. Technical identifiers, paths, directory names and imports always use lowercase `puzlwerk`.
+- GitHub repository: `wstein/puzlwerk`. npm scope: `@puzlwerk/*`; a scope name does not imply a published package or authorize a new dependency.
+- Apply exact-case, context-aware edits to active references; never use global case-insensitive replacements.
+- Preserve historical ADR wording, immutable snapshots, source URLs/revisions/hashes, quotations and license/copyright notices. Classify old-name occurrences as historical, active or uncertain; report uncertain cases for review instead of silently changing them.
+- Naming-only work does not authorize a solver/application change, package publication or migration. Preserve existing `@cubistry/*` packages.
