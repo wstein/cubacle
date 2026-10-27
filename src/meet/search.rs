@@ -5,9 +5,13 @@
 //! in O(stickers moved) per block, so the last block of a walk is never applied
 //! to the state.
 
+use std::collections::BTreeMap;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::{mpsc, Mutex};
 use std::time::Instant;
 
 use super::alphabet::Alphabet;
+use crate::reduction::par;
 
 fn mix(mut x: u64) -> u64 {
     x = x.wrapping_add(0x9E37_79B9_7F4A_7C15);
@@ -60,6 +64,9 @@ pub(crate) struct Walker<'a> {
     deadline: Instant,
     exact: bool,
     ticks: u32,
+    /// Only the sequences that start with this block (a task of a parallel
+    /// walk).
+    only: Option<usize>,
     pub(crate) aborted: bool,
 }
 
@@ -84,7 +91,102 @@ impl<'a> Walker<'a> {
             deadline,
             exact: false,
             ticks: 0,
+            only: None,
             aborted: false,
+        }
+    }
+
+    /// A walker of the same walk for one first block.
+    fn restricted(&self, first: usize) -> Walker<'a> {
+        Walker {
+            only: Some(first),
+            ..Walker::new(self.al, self.keys, self.deadline)
+        }
+        .with_exact(self.exact)
+    }
+
+    fn with_exact(mut self, exact: bool) -> Walker<'a> {
+        self.exact = exact;
+        self
+    }
+
+    /// Like [`Walker::walk`] for `depth` of at least 1 and without the root,
+    /// with the work split by first block over the cores. `visit` fills an
+    /// accumulator made by `init(first)`, one per first block; `consume` gets
+    /// the accumulators on the calling thread in alphabet order, which is the
+    /// order of the serial walk, so the result does not depend on the thread
+    /// count.
+    pub(crate) fn walk_split<T: Send>(
+        &mut self,
+        start: &[u8],
+        depth: usize,
+        all: bool,
+        init: impl Fn(usize) -> T + Sync,
+        visit: impl Fn(&mut T, u64, &[u8]) + Sync,
+        mut consume: impl FnMut(T),
+    ) {
+        let count = self.al.len();
+        let threads = if depth <= 1 {
+            1
+        } else {
+            par::threads().min(count)
+        };
+        if threads <= 1 {
+            for first in 0..count {
+                if !self.al.may_follow(None, first) {
+                    continue;
+                }
+                let mut walker = self.restricted(first);
+                let mut part = init(first);
+                walker.walk(start, depth, all, &mut |h, seq| visit(&mut part, h, seq));
+                if walker.aborted {
+                    self.aborted = true;
+                    return;
+                }
+                consume(part);
+            }
+            return;
+        }
+        let next = AtomicUsize::new(0);
+        let aborted = AtomicBool::new(false);
+        let this: &Walker<'a> = self;
+        let (sender, receiver) = mpsc::channel::<(usize, T)>();
+        std::thread::scope(|scope| {
+            for _ in 0..threads {
+                let sender = sender.clone();
+                let (next, aborted) = (&next, &aborted);
+                let (init, visit) = (&init, &visit);
+                scope.spawn(move || loop {
+                    let first = next.fetch_add(1, Ordering::Relaxed);
+                    if first >= count || aborted.load(Ordering::Relaxed) {
+                        break;
+                    }
+                    let mut part = init(first);
+                    if this.al.may_follow(None, first) {
+                        let mut walker = this.restricted(first);
+                        walker.walk(start, depth, all, &mut |h, seq| visit(&mut part, h, seq));
+                        if walker.aborted {
+                            aborted.store(true, Ordering::Relaxed);
+                        }
+                    }
+                    if sender.send((first, part)).is_err() {
+                        break;
+                    }
+                });
+            }
+            drop(sender);
+            let mut waiting: BTreeMap<usize, T> = BTreeMap::new();
+            let mut want = 0;
+            for (first, part) in receiver {
+                waiting.insert(first, part);
+                while let Some(part) = waiting.remove(&want) {
+                    consume(part);
+                    want += 1;
+                }
+            }
+        });
+        if aborted.load(Ordering::Relaxed) {
+            self.aborted = true;
         }
     }
 
@@ -93,7 +195,8 @@ impl<'a> Walker<'a> {
     pub(crate) fn walk(&mut self, start: &[u8], depth: usize, all: bool, visit: Visit<'_>) {
         let mut levels: Vec<Vec<u8>> = vec![start.to_vec(); depth.max(1)];
         let sums = sums_of(start, self.keys);
-        if all || depth == 0 {
+        // A task of a parallel walk leaves the root to the caller.
+        if (all || depth == 0) && self.only.is_none() {
             visit(hash_of(&sums, self.exact), &[]);
         }
         if depth > 0 {
@@ -116,6 +219,9 @@ impl<'a> Walker<'a> {
         for k in 0..self.al.len() {
             if self.aborted {
                 return;
+            }
+            if level == 0 && self.only.is_some_and(|only| only != k) {
+                continue;
             }
             if !self.al.may_follow(last, k) {
                 continue;
@@ -173,24 +279,105 @@ fn unpack(code: u64) -> Vec<u8> {
         .collect()
 }
 
+type Slice<'s> = &'s mut [(u64, u64)];
+
+/// Where a part of the table is written: the slice of one first block, which
+/// the sizes computed beforehand cut out of the one vector.
+struct Sink<'s> {
+    slice: Slice<'s>,
+    at: usize,
+}
+
 impl Table {
+    /// The table of the sequences of 0 to `depth` blocks from `start`.
+    ///
+    /// The walk is split by first block over the cores. The number of
+    /// sequences behind each first block is known, so every block writes into
+    /// its own slice of one vector (no copy, no growing), and the vector is
+    /// the same, entry for entry, as that of the serial walk.
     pub(crate) fn build(
         walker: &mut Walker<'_>,
         start: &[u8],
         depth: usize,
         expected: usize,
     ) -> Option<Table> {
-        let mut entries: Vec<(u64, u64)> = Vec::with_capacity(expected);
-        walker.walk(start, depth, true, &mut |h, seq| {
-            entries.push((h, pack(seq)))
-        });
+        let mut entries = Self::split_entries(walker, start, depth, expected);
         if walker.aborted {
             return None;
         }
+        if entries.is_none() {
+            // The sizes did not add up (they always do): the plain walk.
+            entries = Some(Self::serial_entries(walker, start, depth, expected)?);
+        }
+        let mut entries = entries?;
         entries.sort_unstable_by_key(|e| (e.0, e.1 & 15));
         entries.dedup_by_key(|e| e.0);
         entries.shrink_to_fit();
         Some(Table { entries })
+    }
+
+    /// The unsorted entries of the split walk, `None` when the sizes of the
+    /// parts are not the ones counted.
+    pub(super) fn split_entries(
+        walker: &mut Walker<'_>,
+        start: &[u8],
+        depth: usize,
+        expected: usize,
+    ) -> Option<Vec<(u64, u64)>> {
+        let sizes = walker.alphabet().sizes_from(depth);
+        let total = sizes.iter().fold(1usize, |t, &n| t.saturating_add(n));
+        if depth == 0 || total != expected {
+            return None;
+        }
+        let root = hash_of(&sums_of(start, walker.keys), walker.exact);
+        let mut entries = vec![(0u64, 0u64); total];
+        entries[0] = (root, pack(&[]));
+        let mut rest = &mut entries[1..];
+        let slots: Vec<Mutex<Option<Slice<'_>>>> = sizes
+            .iter()
+            .map(|&n| {
+                let (head, tail) = std::mem::take(&mut rest).split_at_mut(n);
+                rest = tail;
+                Mutex::new(Some(head))
+            })
+            .collect();
+        let mut complete = true;
+        walker.walk_split(
+            start,
+            depth,
+            true,
+            |first| {
+                let slice = slots[first]
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .take()
+                    .unwrap_or_default();
+                Sink { slice, at: 0 }
+            },
+            |sink: &mut Sink<'_>, h, seq| {
+                if let Some(slot) = sink.slice.get_mut(sink.at) {
+                    *slot = (h, pack(seq));
+                }
+                sink.at += 1;
+            },
+            |sink| complete &= sink.at == sink.slice.len(),
+        );
+        drop(slots);
+        complete.then_some(entries)
+    }
+
+    /// The unsorted entries by one serial walk.
+    pub(super) fn serial_entries(
+        walker: &mut Walker<'_>,
+        start: &[u8],
+        depth: usize,
+        expected: usize,
+    ) -> Option<Vec<(u64, u64)>> {
+        let mut entries: Vec<(u64, u64)> = Vec::with_capacity(expected);
+        walker.walk(start, depth, true, &mut |h, seq| {
+            entries.push((h, pack(seq)))
+        });
+        (!walker.aborted).then_some(entries)
     }
 
     pub(crate) fn get(&self, hash: u64) -> Option<Vec<u8>> {

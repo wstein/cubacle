@@ -29,13 +29,25 @@ pub(crate) fn hits(
 ) -> Option<Vec<Vec<u8>>> {
     let al = walker.alphabet();
     let mut found: Vec<Vec<u8>> = Vec::new();
-    walker.walk(start, walked, false, &mut |h, seq| {
+    let probe = |found: &mut Vec<Vec<u8>>, h: u64, seq: &[u8]| {
         if let Some(stored) = table.get(h) {
             if stored.len() + seq.len() < bound {
                 found.push(joined(al, walked_first, seq, &stored));
             }
         }
-    });
+    };
+    if walked == 0 {
+        walker.walk(start, 0, false, &mut |h, seq| probe(&mut found, h, seq));
+    } else {
+        walker.walk_split(
+            start,
+            walked,
+            false,
+            |_| Vec::new(),
+            probe,
+            |part| found.extend(part),
+        );
+    }
     (!walker.aborted).then_some(found)
 }
 

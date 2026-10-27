@@ -197,6 +197,23 @@ impl Alphabet {
         }
     }
 
+    /// For each first block, how many sequences of 1 to `depth` blocks start
+    /// with it (saturating).
+    pub(crate) fn sizes_from(&self, depth: usize) -> Vec<usize> {
+        let m = self.len();
+        let mut sizes = vec![usize::from(depth > 0); m];
+        for _ in 1..depth {
+            sizes = (0..m)
+                .map(|k| {
+                    (0..m)
+                        .filter(|&l| self.may_follow(Some(k as u8), l))
+                        .fold(1usize, |t, l| t.saturating_add(sizes[l]))
+                })
+                .collect();
+        }
+        sizes
+    }
+
     /// How many sequences of 0 to `depth` blocks exist.
     pub(crate) fn count_up_to(&self, depth: usize) -> u64 {
         let m = self.len();
