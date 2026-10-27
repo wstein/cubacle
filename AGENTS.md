@@ -66,3 +66,24 @@ provenance of third-party code is recorded in `NOTICE.md` before it lands.
 Keep dependencies on their latest releases. `rust-version` is the lowest Rust version
 that is measured to build the workspace (the `msrv` CI job), not a wish; raise it
 deliberately when a dependency update requires it.
+
+## PuzWerk integration boundary
+
+[PuzWerk already exists](https://github.com/wstein/puzwerk). Repository existence
+is not evidence of a released package, a stable integration API or an approved
+migration. See [Cubistry #21](https://github.com/wstein/cubistry/issues/21) for the
+cross-project architecture; verify the current contract before adding dependencies.
+
+PuzWerk owns the shared **ReScript** cube core: reusable state, coordinates,
+mechanics, sticker identity/orientation and codecs, with a **TypeScript** viewer.
+**Cubacle is the existing independent Rust solver project**. Integrating it as
+an optional provider requires a versioned adapter for goals, moves, capabilities,
+frames, replay and errors. Do not add a Rust project or Rust package to PuzWerk.
+Cubacle's efficient internal search representations remain its responsibility;
+do not create a competing public shared cube core or renderer here.
+
+Preserve AGPL licensing, upstream notices, the `develop` workflow, existing tests
+and solver correctness. Shared-core ownership does not authorize moving or deleting
+working Cubacle code. Require an approved integration/migration plan and verify
+package availability, compatibility and exact-frame replay before changing consumers.
+Do not claim size support or optimality beyond the verified engine and goal scope.
