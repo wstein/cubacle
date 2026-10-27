@@ -8,6 +8,10 @@ weight: 3
 
 The `cubacle` tool has eleven subcommands: `solve` (also the way back after a mistake, with `--now`), `convert`, `canon`, `scramble`, `random`, `facelets`, `moves`, `order`, `photo` (see [Photos of a cube](photo.md)), `template` (see "Check a template file") and `patterns` (see [Patterns](patterns.md); its actions are `list` (the same as `patterns` alone), `show`, `find`, `identify` for the structure of a state and `cycles` for its part cycles and order, `import` for pattern tables, `update` (alias `download`) to download the URL sources of the config, `sources` for the pattern files in use and `--tree` for the overview by category; `--icons` draws pictures of the list, `show`, `find` and `identify`, see [Patterns with icons](icons.md#patterns-with-icons); see "Importing pattern files"). Run `cubacle <command> --help` for the full option list.
 
+## Reading the examples
+
+An example shows the lines that the text around it discusses, in the order the program prints them. Some lines on standard error are left out unless the text names them, in this guide and in [Patterns](../patterns.md): `solve` prints `metrics: ...` (the move counts in the metrics) after `moves N`, and `-v` adds `phase N: ...` lines and the lines about the stages (`preparing the ... tables`, `center fix-up`); `solve --now -v` adds `recover route metrics: ...` and `fresh metrics: ...`; `moves` prints `metrics:`, and `solve --optimize ranges` adds `compressed moves` and `compressed metrics:`; `patterns show` and `patterns find` print `metrics:` (and `find` prints `patternness:`). Timings (`elapsed`) vary between runs. Run a command to see all of its output.
+
 ## Pages
 
 - [Solve a cube](solve.md): Solve a cube, with targets and shorter or shortest solutions.
