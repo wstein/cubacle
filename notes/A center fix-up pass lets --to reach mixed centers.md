@@ -12,5 +12,6 @@ The reduction engines read centers by color, so the relative state of a target w
 - [[6x6 and 7x7 improve modes only vary the tail]]
 - [[A long phase is cut at the engine's own steps]]
 - [[A close target gets a direct route before the fix-up plan]]
+- [[The end of the engine's center sorting is shortened by a beam search]]
 
-Source: src/centres/mod.rs, lines 1-30
+Source: src/centers/mod.rs, lines 1-30

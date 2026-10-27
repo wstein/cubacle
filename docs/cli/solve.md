@@ -112,7 +112,7 @@ Rules and limits:
 
 ### Targets with mixed centers
 
-On the 4x4x4 to 7x7x7 the solvers work on colors: they bring every center to its face but leave the centers of a face in any order. A target built with inner slices (`2R`, SSE `VB`), wide turns with slices or an imported pattern can show different colors on one face, and the solver cannot aim for that directly. `solve --to` then plans the route in three steps: find moves `w` that make the target's centers uniform, solve the start to that nearby target as for any uniform target, and append `w` undone, the center fix-up. `w` is the shortest sequence of layer moves when a search finds it within a fixed work limit (so the answer is the same on every machine), else a short one from a beam search, else the shortest prefix of the engine's own solution of the target that leaves the centers uniform. When the target is given as moves, undoing those moves bounds the fix-up, so the route is never longer than solving to the solved cube and then making the target's moves. The fix-up is its own phase, `center fix-up`, the last one in `-v`, `--group phases` and `--icons`.
+On the 4x4x4 to 7x7x7 the solvers work on colors: they bring every center to its face but leave the centers of a face in any order. A target built with inner slices (`2R`, SSE `VB`), wide turns with slices or an imported pattern can show different colors on one face, and the solver cannot aim for that directly. `solve --to` then plans the route in three steps: find moves `w` that make the target's centers uniform, solve the start to that nearby target as for any uniform target, and append `w` undone, the center fix-up. `w` is the shortest sequence of layer moves when a search finds it within a fixed work limit (so the answer is the same on every machine), else a short one from a beam search (on the 4x4x4 a wide one, 16000 states, from the solved faces and from any faces, the shorter result wins), else the shortest prefix of the engine's own solution of the target that leaves the centers uniform. On the 5x5x5 and larger, and against a long beam result or a long known way, that prefix is shortened at its end: a beam search restarts from the state the engine reached a few moves before the end and often finishes in about half the moves (the last 20 moves in 8), and the cut with the fewest moves in all is taken. The work is counted in beam states, not in seconds, so the answer is the same on every machine. When the target is given as moves, undoing those moves bounds the fix-up, so the route is never longer than solving to the solved cube and then making the target's moves. The fix-up is its own phase, `center fix-up`, the last one in `-v`, `--group phases` and `--icons`.
 
 Before any of that, `solve` looks for a direct route when start and target are close: a meet-in-the-middle search over the layer moves and single inner layers (the search of `--within`, up to 6 moves, bounded by moves and memory and not by the clock, so the answer is the same on every machine) between the two states. A route it finds is the shortest in that alphabet and is the answer, as one phase, `direct route`; without one the plan above runs unchanged. The search costs about 0.2 s on the 7x7x7 when there is no route, and states further apart than the bound are ruled out at once. A 7x7x7 target three inner slices away from the start:
 
@@ -140,7 +140,25 @@ phase 1: direct route, moves 1-3
 | 7x7x7, 6 | 360 / 360 | 6 | 195 / 195 |
 | 7x7x7, 10 | 353 | 353 (unchanged) | 198 |
 
-Targets further than 6 moves away still take the fix-up route; closing that gap (more moves in the direct search costs 6 s and 700 MB at 7 moves on the 7x7x7) is open.
+Targets further than 6 moves away still take the fix-up route; closing that gap (more moves in the direct search costs 6 s and 700 MB at 7 moves on the 7x7x7, and the search holds at most 7 moves) is open. A route through the colors-only engines cannot be improved by matching the centers first: after the engine's solve of the rest the centers of a face are in an order the engine does not control (22 to 40 of 48 center stickers of a 5x5x5 were off after a 20-move engine tail), so the centers need a full fix-up again. What shortens the fix-up is the end of the engine's own sorting and a wider beam on the 4x4x4. Same pairs as above, targets 10 and 15 random moves away, mean moves before and after (5 pairs per row on the 4x4x4 and 5x5x5, 2 on the 6x6x6, 1 on the 7x7x7), plain as above:
+
+| Cube, target moves away | Before | After | Plain |
+| --- | --- | --- | --- |
+| 4x4x4, 10 / 15 | 60.4 / 61.4 | 55.6 / 55.0 | 55 / 58 |
+| 5x5x5, 10 / 15 | 120.0 / 121.0 | 106.8 / 107.4 | 79 / 85 |
+| 6x6x6, 10 / 15 | 245.5 / 248.5 | 238.5 / 241.0 | 145 / 151 |
+| 7x7x7, 10 / 15 | 353 / 343 | 345 / 338 | 198 / 193 |
+
+The solve takes 2 to 6 s longer on the 5x5x5 and about 1 to 6 s longer on the 6x6x6 and 7x7x7 for the beam restarts, and up to 3 s on the 4x4x4. An example, a 5x5x5 start and a target 12 inner-slice moves away (both as facelets; 117 moves before, 109 now):
+
+```sh
+cubacle solve DLLFLDUDDDUFUDBBLRLBRRRURDULBDFBLUURLRUUFDBFFBRRBRFBFRFDFFDDFFFRUFRFFRUUULLFFFFUDRDLDDDDUDLBLRLBBBRDBRBUUUFLLFDULRDDURRLUBBBLFUFDLLBBULLBBULRBBDLBURRR --to DBLFLBLULRUFUUBDRDBDRURRRDBLDDFBLRURRRDUFDBFFBURDRFFFUFDDFFDFDFBUFFFDRUBUULFRFFUBLRFBDUDDDBBULBBDBUDBLBRUUDLUFDLLLDDURRLULBULFLFRLLUBRLLRBFLRBBULBRRLR -v
+```
+
+```text
+center fix-up: 42 moves (prefix of the engine's solution of the target, finished by a beam search)
+moves 109
+```
 
 The owner's SSE slice target on a 7x7x7, from a 40-move scramble (`B L2 3R' 3U' ... B' 3D2`; 220 moves, 188 for the start and 32 for the fix-up, 35 s on a busy machine):
 

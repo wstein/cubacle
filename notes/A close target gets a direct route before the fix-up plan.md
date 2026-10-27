@@ -8,5 +8,6 @@ tags: ["type/decision", "status/decided", "category/engines"]
 ## Links
 
 - [[A center fix-up pass lets --to reach mixed centers]]
+- [[The end of the engine's center sorting is shortened by a beam search]]
 
 Source: src/centers/direct.rs, lines 1-40
