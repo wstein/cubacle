@@ -6,6 +6,7 @@
 //! for every cube size without per-size tables.
 
 use std::fmt;
+use std::sync::OnceLock;
 
 use super::{Face, Facelets, Move, MoveSequence, PuzzleKind, Turn};
 
@@ -98,6 +99,33 @@ fn quarter(axis: usize, v: Vec3) -> Vec3 {
 /// Where every sticker goes when `mv` is performed: sticker `i` ends up at
 /// index `result[i]`, and stickers outside the turned layers stay put.
 pub(crate) fn destinations(kind: PuzzleKind, mv: &Move) -> Vec<usize> {
+    cached(kind, mv).map_or_else(|| compute(kind, mv), <[usize]>::to_vec)
+}
+
+const DEPTHS: usize = 8;
+const SLOTS: usize = 6 * 6 * DEPTHS * 2 * 3;
+
+/// The tables of the moves with a depth up to 7, each computed once per
+/// process (finding where a sticker goes costs far more than reading it).
+static TABLES: [OnceLock<Box<[usize]>>; SLOTS] = [const { OnceLock::new() }; SLOTS];
+
+fn cached(kind: PuzzleKind, mv: &Move) -> Option<&'static [usize]> {
+    let depth = usize::from(mv.depth);
+    if depth >= DEPTHS {
+        return None;
+    }
+    let turn = match mv.turn {
+        Turn::Clockwise => 0,
+        Turn::Half => 1,
+        Turn::CounterClockwise => 2,
+    };
+    let kind_at = PuzzleKind::ALL.iter().position(|&k| k == kind)?;
+    let slot =
+        (((kind_at * 6 + mv.face.index()) * DEPTHS + depth) * 2 + usize::from(mv.wide)) * 3 + turn;
+    Some(TABLES[slot].get_or_init(|| compute(kind, mv).into_boxed_slice()))
+}
+
+fn compute(kind: PuzzleKind, mv: &Move) -> Vec<usize> {
     let (axis, sign) = match mv.face {
         Face::U => (1, 1),
         Face::D => (1, -1),
@@ -139,7 +167,15 @@ pub(crate) fn destinations(kind: PuzzleKind, mv: &Move) -> Vec<usize> {
 
 fn turned(kind: PuzzleKind, stickers: &[Face], mv: &Move) -> Vec<Face> {
     let mut result = stickers.to_vec();
-    for (index, &target) in destinations(kind, mv).iter().enumerate() {
+    let owned;
+    let table = match cached(kind, mv) {
+        Some(table) => table,
+        None => {
+            owned = compute(kind, mv);
+            &owned
+        }
+    };
+    for (index, &target) in table.iter().enumerate() {
         result[target] = stickers[index];
     }
     result
@@ -151,6 +187,28 @@ mod tests {
 
     fn seq(text: &str) -> MoveSequence {
         text.parse().unwrap()
+    }
+
+    #[test]
+    fn the_cached_tables_equal_the_computed_ones() {
+        for kind in PuzzleKind::ALL {
+            for face in Face::ALL {
+                for depth in 1..=7u8 {
+                    for wide in [false, true] {
+                        for turn in [Turn::Clockwise, Turn::Half, Turn::CounterClockwise] {
+                            let mv = Move::new(face, depth, wide, turn);
+                            if !mv.fits(kind) {
+                                continue;
+                            }
+                            // Twice: the first call fills the cache, the second reads it.
+                            for _ in 0..2 {
+                                assert_eq!(destinations(kind, &mv), compute(kind, &mv), "{mv}");
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     #[test]

@@ -7,6 +7,7 @@
 //! its own to make a random state, and searched on its own.
 
 use std::collections::HashMap;
+use std::sync::OnceLock;
 
 use super::cubies::cubies;
 use super::{locate, PuzzleKind};
@@ -45,6 +46,14 @@ fn rotations(position: Vec3, normal: Vec3) -> Vec<(Vec3, Vec3)> {
 /// the middle of each face of an odd cube is fixed and belongs to none. A cube
 /// of size `n` has `(n - 2)^2 / 4` of them, rounded down.
 pub(crate) fn center_orbits(kind: PuzzleKind) -> Vec<Vec<usize>> {
+    static CELLS: [OnceLock<Vec<Vec<usize>>>; 6] = [const { OnceLock::new() }; 6];
+    let at = PuzzleKind::ALL.iter().position(|&k| k == kind).unwrap_or(0);
+    CELLS[at]
+        .get_or_init(|| compute_center_orbits(kind))
+        .clone()
+}
+
+fn compute_center_orbits(kind: PuzzleKind) -> Vec<Vec<usize>> {
     let n = kind.size();
     let mut at: HashMap<(Vec3, Vec3), usize> = HashMap::new();
     let mut centers = Vec::new();
