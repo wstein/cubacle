@@ -84,7 +84,10 @@ mod cases {
     fn either_pairing_of_equal_pieces_reaches_the_goal() {
         let engine = four();
         let options = SolveOptions::default();
-        for (start, target) in [("", "2R 2U' 2F"), ("R U F2 D' L B", "Rw 2U Fw' 2L")] {
+        for (start, target) in [
+            ("", "2R 2U' 2F 2L2 2D 2B' 2R' 2U"),
+            ("R U F2 D' L B", "Rw 2U Fw' 2L"),
+        ] {
             let (start, target) = (
                 cube(PuzzleKind::Cube4, start),
                 cube(PuzzleKind::Cube4, target),
@@ -92,6 +95,7 @@ mod cases {
             let plan = plan(&engine, &start, &target, &options, None)
                 .unwrap()
                 .expect("mixed");
+            assert_ne!(plan.method(), Method::Direct);
             for reversed in [false, true] {
                 let relative = relative_by(&start, plan.goal(), reversed).unwrap();
                 let result = plan.complete(engine.solve(&relative, &options));
@@ -107,7 +111,7 @@ mod cases {
     fn the_limit_covers_the_fix_up_and_the_budget_the_planning() {
         let engine = four();
         let start = cube(PuzzleKind::Cube4, "R U");
-        let target = cube(PuzzleKind::Cube4, "2R 2U' 2F");
+        let target = cube(PuzzleKind::Cube4, "2R 2U' 2F 2L2 2D 2B' 2R' 2U");
         let options = SolveOptions::default();
         let plan = plan(&engine, &start, &target, &options, None)
             .unwrap()
@@ -166,5 +170,51 @@ mod cases {
         assert_eq!(pieces, want);
         // no stages: one piece
         assert_eq!(undo_pieces(&[], 5), [(STAGE_NAME.to_string(), 5)]);
+    }
+
+    #[test]
+    fn close_states_get_a_direct_route_of_the_moves_between_them() {
+        let engine = four();
+        for (kind, moves) in [
+            (PuzzleKind::Cube5, "2R 3U' 2F"),
+            (PuzzleKind::Cube6, "2R 3U' 2F"),
+            (PuzzleKind::Cube7, "2R 3U' 4F"),
+            (PuzzleKind::Cube5, "2R2"),
+        ] {
+            let start = cube(kind, "R U F2 D' L B");
+            let target = start.apply(&moves.parse().unwrap()).unwrap();
+            let plan = plan(&engine, &start, &target, &SolveOptions::default(), None)
+                .unwrap()
+                .expect("mixed");
+            assert_eq!(plan.method(), Method::Direct, "{kind:?}");
+            assert!(plan.tail().len() <= 3, "{kind:?}: {}", plan.tail());
+            assert_eq!(plan.goal(), &start);
+            assert_eq!(start.apply(plan.tail()).unwrap(), target);
+            assert_eq!(plan.tail_stages(), [(DIRECT_STAGE_NAME, plan.tail().len())]);
+            // nothing to solve first: the stages are the route alone
+            let result = plan.complete(SolveResult {
+                outcome: Ok(MoveSequence::default()),
+                message: None,
+                metrics: SolveMetrics::default(),
+                stages: Vec::new(),
+            });
+            assert_eq!(result.stages.len(), 1);
+            assert_eq!(result.stages[0].name, DIRECT_STAGE_NAME);
+        }
+    }
+
+    #[test]
+    fn far_states_keep_the_fix_up_route() {
+        let engine = four();
+        let start = cube(PuzzleKind::Cube4, "R U F2 D' L B");
+        let target = start
+            .apply(&"2R 2U' 2F 2L2 2D 2B' 2R' 2U Rw".parse().unwrap())
+            .unwrap();
+        let plan = plan(&engine, &start, &target, &SolveOptions::default(), None)
+            .unwrap()
+            .expect("mixed");
+        assert_ne!(plan.method(), Method::Direct);
+        assert!(uniform(plan.goal()));
+        assert_eq!(plan.tail_stages().last().map(|s| s.0), Some(STAGE_NAME));
     }
 }

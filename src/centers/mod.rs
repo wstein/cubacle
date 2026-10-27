@@ -20,6 +20,7 @@
 //! solution of `T` that leaves the centers uniform. The engine is used only
 //! through [`Solver`].
 
+mod direct;
 mod search;
 
 use std::time::{Duration, Instant};
@@ -44,6 +45,9 @@ const BEAM_DEPTH: usize = 40;
 
 /// The name of the last stage of a route that ends in a fix-up.
 pub const STAGE_NAME: &str = "center fix-up";
+
+/// The name of the only stage of a direct route.
+pub const DIRECT_STAGE_NAME: &str = "direct route";
 
 /// The stages of a fix-up from its named pieces (name, moves): a piece over
 /// [`PHASE_MOVES`] moves is cut into equal parts `name (1/2)`. Each stage
@@ -90,6 +94,9 @@ pub fn uniform(state: &Facelets) -> bool {
 /// How the moves `w` were found.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Method {
+    /// The route between start and target itself, found when they are close:
+    /// no uniform goal, no fix-up.
+    Direct,
     /// The shortest sequence of layer moves.
     Search,
     /// A short sequence of layer moves from a beam search, not proven shortest.
@@ -103,6 +110,7 @@ pub enum Method {
 impl std::fmt::Display for Method {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
+            Method::Direct => "direct route from start to target",
             Method::Search => "shortest layer moves",
             Method::Beam => "layer moves from a beam search",
             Method::Engine => "prefix of the engine's solution of the target",
@@ -231,7 +239,10 @@ impl Plan {
         let mut moves = solution.moves().to_vec();
         moves.extend_from_slice(self.tail.moves());
         let total = moves.len();
-        if result.stages.is_empty() {
+        if reached == 0 {
+            // nothing was solved first (a direct route): no empty stages
+            result.stages.clear();
+        } else if result.stages.is_empty() {
             result.stages.push(SolveStage {
                 name: "reduction to the target",
                 end: reached,
@@ -426,6 +437,19 @@ pub fn plan(
     let began = Instant::now();
     let kind = target.kind();
     debug_assert!(kind >= PuzzleKind::Cube4);
+    // Close states: the few moves between them beat any detour. The plan
+    // then solves the start to itself (nothing to do) and makes the route as
+    // its tail.
+    if let Some(route) = direct::route(start, target) {
+        let len = route.len();
+        return Ok(Some(Plan {
+            goal: start.clone(),
+            tail: route,
+            tail_stages: tail_stages(&[(DIRECT_STAGE_NAME.to_string(), len)]),
+            method: Method::Direct,
+            spent: began.elapsed(),
+        }));
+    }
     if !model_of(kind).balanced(target) {
         return Err(PlanError::Impossible(
             "a center orbit shows a color more or less than four times".into(),

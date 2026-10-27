@@ -17,7 +17,7 @@ const RULES: [(&str, &[&str]); 23] = [
         "src/canonical",
         &["puzzle", "notation", "patterns", "canonical"],
     ),
-    ("src/centers", &["puzzle", "centers"]),
+    ("src/centers", &["puzzle", "centers", "within"]),
     ("src/meet", &["puzzle", "meet"]),
     ("src/metrics", &["puzzle", "metrics"]),
     ("src/puzzle", &["puzzle"]),
