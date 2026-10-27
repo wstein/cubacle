@@ -6,10 +6,9 @@
 //! solves it. The search is exhaustive over that space and deterministic; only
 //! the optional deadline can cut it short.
 
-use std::collections::HashMap;
 use std::time::Instant;
 
-use super::geometry::{apply, hash};
+use super::geometry::{apply, hash, KeyMap};
 use super::library::Library;
 use super::Cap;
 use crate::puzzle::{Facelets, MoveSequence};
@@ -48,7 +47,7 @@ const FRONTIER_BYTES: usize = 128;
 /// The products of macros that reach each state from the solved cube.
 pub(super) struct Table {
     /// Packed products by state; the cost is not needed after the build.
-    reached: HashMap<u64, (usize, u64)>,
+    reached: KeyMap<(usize, u64)>,
     capped: bool,
 }
 
@@ -59,7 +58,7 @@ impl Table {
     pub(super) fn build(library: &Library, cap: Cap) -> Table {
         let solved = stickers_of(&Facelets::solved(library.kind));
         let mut buffer = vec![0; solved.len()];
-        let mut reached: HashMap<u64, (usize, u64)> = HashMap::new();
+        let mut reached: KeyMap<(usize, u64)> = KeyMap::default();
         reached.insert(hash(&solved), (0, 0));
         let frontier_item = solved.len() + FRONTIER_BYTES;
         let mut frontier: Vec<(Vec<u8>, Vec<usize>, usize)> = vec![(solved, Vec::new(), 0)];

@@ -7,10 +7,10 @@
 //! unsettled path can beat the best meeting, so the result is a cheapest
 //! sequence of the given moves.
 
-use std::collections::HashMap;
+use std::collections::hash_map::Entry as Slot;
 use std::time::{Duration, Instant};
 
-use super::geometry::{apply, hash};
+use super::geometry::{apply, hash, KeyMap};
 
 /// One step of the search: a state permutation and what it costs.
 pub struct Step {
@@ -34,7 +34,7 @@ struct Entry {
 const ROOT: u32 = u32::MAX;
 
 struct Side {
-    known: HashMap<u64, Entry>,
+    known: KeyMap<Entry>,
     /// States waiting at each cost, stored back to back.
     queue: Vec<Vec<u8>>,
     level: usize,
@@ -43,7 +43,7 @@ struct Side {
 impl Side {
     fn new(roots: &[Vec<u8>]) -> Side {
         let mut side = Side {
-            known: HashMap::new(),
+            known: KeyMap::default(),
             queue: vec![Vec::new()],
             level: 0,
         };
@@ -73,7 +73,7 @@ pub enum Outcome {
     NotFound(String),
 }
 
-fn chain(known: &HashMap<u64, Entry>, mut at: u64) -> Vec<usize> {
+fn chain(known: &KeyMap<Entry>, mut at: u64) -> Vec<usize> {
     let mut steps = Vec::new();
     loop {
         let entry = &known[&at];
@@ -152,17 +152,22 @@ pub fn search(
                 apply(table, state, &mut buffer);
                 let key = hash(&buffer);
                 let cost = level + step.cost;
-                if mine.known.get(&key).is_some_and(|e| e.cost <= cost) {
-                    continue;
+                let entry = Entry {
+                    cost,
+                    parent: here,
+                    step: index as u32,
+                };
+                match mine.known.entry(key) {
+                    Slot::Occupied(mut old) => {
+                        if old.get().cost <= cost {
+                            continue;
+                        }
+                        old.insert(entry);
+                    }
+                    Slot::Vacant(slot) => {
+                        slot.insert(entry);
+                    }
                 }
-                mine.known.insert(
-                    key,
-                    Entry {
-                        cost,
-                        parent: here,
-                        step: index as u32,
-                    },
-                );
                 while mine.queue.len() <= cost {
                     mine.queue.push(Vec::new());
                 }

@@ -2,6 +2,8 @@
 //! `new[i] = old[src[i]]`, built from the same layout as `Facelets::apply`
 //! (the search replays its result with the library before printing it).
 
+use std::hash::{BuildHasherDefault, Hasher};
+
 use crate::puzzle::{Face, LayerMove, Turn};
 
 type Vec3 = [i32; 3];
@@ -99,6 +101,31 @@ pub fn compose(first: &[usize], second: &[usize]) -> Vec<usize> {
 pub fn apply(table: &[usize], state: &[u8], out: &mut [u8]) {
     for (slot, &s) in out.iter_mut().zip(table) {
         *slot = state[s];
+    }
+}
+
+/// A map keyed by the already mixed 64-bit state hashes of [`hash`]: hashing
+/// the key again with SipHash only cost time.
+pub type KeyMap<V> = std::collections::HashMap<u64, V, BuildHasherDefault<KeyHasher>>;
+
+/// Spreads a [`hash`] value over all bits (its lowest bit is always set).
+#[derive(Default)]
+pub struct KeyHasher(u64);
+
+impl Hasher for KeyHasher {
+    fn write(&mut self, bytes: &[u8]) {
+        for &b in bytes {
+            self.0 = (self.0 << 8 | u64::from(b)).wrapping_mul(0x9e37_79b9_7f4a_7c15);
+        }
+    }
+
+    fn write_u64(&mut self, value: u64) {
+        self.0 = value;
+    }
+
+    fn finish(&self) -> u64 {
+        let h = self.0.wrapping_mul(0x9e37_79b9_7f4a_7c15);
+        h ^ (h >> 32)
     }
 }
 
