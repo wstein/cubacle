@@ -103,6 +103,23 @@ pattern: checkerboard (known generator: R2 L2 F2 B2 U2 D2, 6 moves)
 
 `--to <TARGET>` makes `solve` print the moves that take the start cube to the target instead of to the solved cube. The target is one argument (quote it) and is read like the start: an Orbit64 token, URFDLB facelets, W/R/G/Y/O/B colors (with `--scheme`), or, when the text is no cube, a move expression applied to the solved cube of the start's size. A text that is exactly `superflip`, `checkerboard` or `cube-in-cube` is the pattern of that name instead; these are 3x3x3 patterns, and other sizes get `--to: superflip is a 3x3x3 pattern, not a 4x4x4 one`. Longer texts such as `superflip R` are not names.
 
+Other pattern names of the [pattern library](../patterns.md) work as well, for the cube size of the start (`--size`), when the text is no cube and no move expression: the name, id, alias or catalog id, with case, spaces, hyphens and underscores ignored (`six-spots`, `Six Spots` and `6 spots` are the same). The target is the state of the pattern on that size. The library is the one of `cubacle patterns` (the built-in patterns and the config's files, never a download); a name that matches nothing there is an error with the close names. A name that is not defined for the size, or that means different states there, is an error that says so, and the catalog ids tell the entries apart.
+
+```sh
+cubacle solve "R U F2 D' L" --to "Six Spots"
+cubacle solve "R U" --to six-spotz
+```
+
+```text
+moves 20
+metrics: htm 20, qtm 28, stm 20
+R F B' U' D' R U2 R F B' R2 D2 B2 D2 R2 F' B R2 F' B2
+error: --to: not a cube (character 'S' at 0 is neither a face (URFDLB), a color (WRGYOB) nor orbit64) and not a move expression for a 3x3x3 (character 0: invalid move "six-spotz" (a layer range is more than one move; read it as a sequence))
+no pattern is called "six-spotz"; close: six-spots; `cubacle patterns list` shows every pattern name
+```
+
+The REST backend reads only the three fixed names: its `target` does not load a config.
+
 ```sh
 cubacle solve "R U F2 D' L" --to superflip
 cubacle solve --scramble "R U R' U'" --to "F2 B2"

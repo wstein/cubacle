@@ -544,6 +544,8 @@ The built-ins have one level: Simple patterns (checkerboard, six spots, four spo
 
 `cubacle solve --pattern-aware` ([CLI guide](cli.md)) indexes the generators of the active library (the built-in patterns and the imported files) under the 48 symmetries of the cube, looks the cube up exactly, and answers with the pattern's route only when it is strictly shorter than the solver's answer. A large imported collection therefore shortens the answer for every cube that is in it, in any turned or mirrored position, and costs nothing for any other cube.
 
+`cubacle solve --to NAME` also takes a library pattern as the target. When the text is no cube and no move expression, it is looked up among the names, ids, aliases and catalog ids of the active library (case, spaces, hyphens and underscores ignored) for the cube size of the start, and the target is the pattern's state on that size. Nothing is downloaded: only the built-in patterns and the files already listed in the config are read. See [Solve to a target](cli/solve.md#solve-to-a-target).
+
 ## How the generators were found
 
 `examples/pattern_search` runs a bidirectional search over cost levels from the solved cube and from the pattern (in every orientation on even cubes) and replays its answer with the library before printing it:
