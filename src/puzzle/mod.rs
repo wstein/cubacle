@@ -18,6 +18,7 @@ mod relative;
 mod solver;
 mod stages;
 mod target;
+mod threads;
 
 pub use alphabet::Alphabet;
 pub(crate) use alphabet::{inner_layer_set, layer_set};
@@ -40,3 +41,4 @@ pub use solver::{Failure, SolveMetrics, SolveOptions, SolveResult, Solver};
 pub use stages::SolveStage;
 pub(crate) use stages::{interned, stage_ends, stage_parts, PHASE_MOVES};
 pub use target::{Target, TargetError};
+pub(crate) use threads::threads;

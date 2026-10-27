@@ -268,7 +268,7 @@ pub fn import_tab(text: &str, options: &ImportOptions, read: Reader) -> Imported
 /// over the cores; each result goes to its own pattern, so the outcome does
 /// not depend on the thread count.
 fn score_all(patterns: &mut [(Pattern, Facelets)]) {
-    let threads = crate::reduction::par::threads();
+    let threads = crate::puzzle::threads();
     let chunk = patterns.len().div_ceil(threads).max(16);
     std::thread::scope(|scope| {
         for part in patterns.chunks_mut(chunk) {

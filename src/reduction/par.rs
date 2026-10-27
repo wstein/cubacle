@@ -4,23 +4,7 @@ use std::ops::Range;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
 
-/// The most threads `CUBACLE_THREADS` can ask for.
-const MAX_THREADS: usize = 256;
-
-/// The number of worker threads: `CUBACLE_THREADS` if it is a positive
-/// number (at most 256), else the available parallelism.
-pub(crate) fn threads() -> usize {
-    from_setting(std::env::var("CUBACLE_THREADS").ok().as_deref())
-}
-
-fn from_setting(value: Option<&str>) -> usize {
-    value
-        .and_then(|value| value.parse::<usize>().ok())
-        .filter(|&count| count > 0)
-        .map(|count| count.min(MAX_THREADS))
-        .or_else(|| std::thread::available_parallelism().ok().map(usize::from))
-        .unwrap_or(1)
-}
+pub(crate) use crate::puzzle::threads;
 
 /// Runs `f(worker)` for `worker` in `0..threads`, worker 0 on the calling
 /// thread, and returns when all are done. A panic in a worker is re-raised.
@@ -151,16 +135,6 @@ mod tests {
         });
         assert_eq!(got, vec![0]);
         assert_eq!(started.load(Ordering::Relaxed), 1);
-    }
-
-    #[test]
-    fn the_thread_setting_is_capped_and_checked() {
-        assert_eq!(from_setting(Some("3")), 3);
-        assert_eq!(from_setting(Some("1000000")), MAX_THREADS);
-        let default = from_setting(None);
-        assert!(default >= 1);
-        assert_eq!(from_setting(Some("0")), default);
-        assert_eq!(from_setting(Some("many")), default);
     }
 
     #[test]

@@ -11,7 +11,7 @@ use std::sync::{mpsc, Mutex};
 use std::time::Instant;
 
 use super::alphabet::Alphabet;
-use crate::reduction::par;
+use crate::puzzle::threads;
 
 fn mix(mut x: u64) -> u64 {
     x = x.wrapping_add(0x9E37_79B9_7F4A_7C15);
@@ -126,11 +126,7 @@ impl<'a> Walker<'a> {
         mut consume: impl FnMut(T),
     ) {
         let count = self.al.len();
-        let threads = if depth <= 1 {
-            1
-        } else {
-            par::threads().min(count)
-        };
+        let threads = if depth <= 1 { 1 } else { threads().min(count) };
         if threads <= 1 {
             for first in 0..count {
                 if !self.al.may_follow(None, first) {
