@@ -4,7 +4,8 @@
 use cubacle::notation::{named_target, parse_expression};
 use cubacle::puzzle::{Facelets, PuzzleKind};
 
-use crate::{engine_kind, read_cube, ApiError};
+use crate::error::ApiError;
+use crate::request::{engine_kind, read_cube};
 
 /// The cube named by `cube` or by `scramble` (exactly one of them). `size`
 /// (default 3) says which cube a scramble is applied to and is refused with
