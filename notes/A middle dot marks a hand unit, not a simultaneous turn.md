@@ -8,5 +8,6 @@ A `·` in a move list marks a hand unit (a grip group): the moves between two do
 ## Links
 
 - [[Move input rules are WCA and SiGN]]
+- [[An inverse solve mirrors the phases and starts from the end state]]
 
 Source: src/notation/expr/grouped.rs, lines 1-60

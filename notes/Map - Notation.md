@@ -24,6 +24,7 @@ Raw-material notes, category notation.
 - [[SSE notation is read and written]]
 - [[Move input rules are WCA and SiGN]]
 - [[A middle dot marks a hand unit, not a simultaneous turn]]
+- [[An inverse solve mirrors the phases and starts from the end state]]
 - [[Don't-care stickers are written X or named as a subset]]
 - [[One check names an impossible state on every size]]
 - [[A corner is read with all three colors in turning order]]
