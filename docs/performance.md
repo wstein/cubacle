@@ -157,6 +157,32 @@ These are ranked proposals from the measurement, **not done**. Gains marked [E] 
 
 Changing answers (A and D) needs an owner decision, because the recorded fixtures pin the solver output. Estimated latency with A to F [E]: 2x2x2 unchanged (0.002 ms); 3x3x3 about 0.3-0.4 ms (now 0.79, Java 0.57); 4x4x4 about 12-15 ms (now 41.6, Java 114); 5x5x5 about 50-65 ms (now 100, Java 576). A speed-up of 10x over Java is not reached today for either size (4x4x4: 2.74x; 5x5x5: 5.75x at 12 threads); 4x4x4 would need about 11.4 ms, and the sequential parts alone take 23 ms now [D]. For throughput it is reached for the 4x4x4 (12.1x) [D].
 
+## Pattern search: `patterns find`, `--within`, `--pattern-aware`
+
+Measured 2026-10-27 on the same machine (shared with other jobs, so single runs of `/usr/bin/time -l` with a spread of about 10 %), release build, `develop` `aa49e22` against the same tree with the changes below. The profile (`sample`) of the slow runs pointed at three places, none of them the search itself: the library load of `--pattern-aware` and `patterns identify` (the patternness of every imported generator was computed one after the other, on moving-table code that recomputed its sticker tables for every call), the hash maps of the exact search of `patterns find` (SipHash on keys that already are 64-bit hashes, two probes per state), and the table walk of `--within` (one core). Every output is byte-identical to before: 30 commands (`--within` on 3x3x3 to 6x6x6, `patterns find`, `identify --repair`, `solve --pattern-aware`, the solvers) were compared old against new.
+
+| Workload (command) | Before | After | Peak RSS before / after |
+| --- | --- | --- | --- |
+| `solve --pattern-aware --fast --size 3` (library of 2784 generators imported) | 1.93 s | 0.83 s | 29 / 29 MB |
+| `solve --pattern-aware --size 4 -s "U' 3Fw F' 3Uw' U 3Fw' F 3Uw"` | 1.87 s | 0.71 s | 89 / 94 MB |
+| `patterns identify "U2 D2 R2 L2 F2 B2 R U' F2" --repair` | 1.67 s | 0.50 s | 61 / 61 MB |
+| `solve --size 5 -s "R U F2 2R 2U' Fw Rw" --within=7 --slices` | 0.88 s | 0.34 s | 134 / 134 MB |
+| `solve --size 4 -s "R U2 F' D L2 B R" --within=7 --slices` | 0.39 s | 0.18 s | 75 / 75 MB |
+| `patterns find` of a random 20-move 3x3x3 (runs to the 1500 MB cap, finds nothing) | 1.83 s | 1.51 s | 1158 / 1192 MB |
+| `patterns find --size 7 --max-memory 200 -s "R2 3R2 5R2 L2 U2 3U2 5U2 D2 F2 3F2 5F2 B2"` | 1.23 s | 1.10 s | 646 / 729 MB |
+| `patterns find` of a library pattern on the 3x3x3 or 5x5x5 (`R2 L2 U2 D2 F2 B2`) | under 10 ms | under 10 ms | 9 / 9 MB |
+
+What changed, each with its equality test or check:
+
+- Move tables of the facelet model (`destinations`) and the center orbits are computed once per process instead of on every call. A test compares the cached table with the computed one for every size and move.
+- The patternness of imported generators is computed on all cores (`CUBACLE_THREADS` applies); each score goes to its own pattern, so the result does not depend on the thread count. The route index uses a cheaper hasher for its sticker keys.
+- The exact search of `patterns find` keys its maps on the 64-bit state hash directly and probes once per state.
+- The stored table of `--within` and of the pattern repair is walked by first block on all cores. The table is one vector in which every first block writes its own slice (sizes counted beforehand), so the vector is entry for entry the one of the serial walk and the memory is the same as before; a test compares the two. The sort of that vector stays serial because its tie-breaks pin which of several equal-length routes is printed.
+
+Not changed, with the numbers that say why: `solve --within=7` on the 3x3x3 takes under 10 ms (bound check and tiny tables), the pattern lookup itself is one hash lookup (0.3 ms for the built-in library), and the 7x7x7 `patterns find` spends its time in the exact search, whose level-by-level memory check lets one level overshoot `--max-memory` (646 to 729 MB resident at 200 MB, independent of the cap from 50 to 200 MB); tightening that would change which searches stop, so it needs a decision.
+
+Commands run: `/usr/bin/time -l target/release/cubacle <command above>` for each row, once for the old and once for the new binary, and `sample <pid> 1` for the profile of the pattern-aware run.
+
 ## Reproduce
 
 The full measurement used a scratch harness outside the repository (instrumented copy of the code, serialized and idle-checked runs); its commands are in the report, not in the repository. What anyone can run from the repository:
