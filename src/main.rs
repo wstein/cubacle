@@ -48,7 +48,25 @@ use crate::cli::{Cli, Command, InputArgs, Output};
 use crate::failure::{EXIT_ERROR, EXIT_LIMIT, LIMIT_REACHED};
 use crate::input::{kind_of, read_input, scrambled};
 
+/// A closed pipe (`cubacle ... | head`) ends the program quietly, as other
+/// command line tools do; every other panic reports as usual.
+fn quiet_on_closed_pipe() {
+    let report = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        let text = if let Some(text) = info.payload().downcast_ref::<String>() {
+            text.as_str()
+        } else {
+            info.payload().downcast_ref::<&str>().copied().unwrap_or("")
+        };
+        if text.contains("Broken pipe") {
+            std::process::exit(0);
+        }
+        report(info);
+    }));
+}
+
 fn main() -> ExitCode {
+    quiet_on_closed_pipe();
     let matches = <Cli as clap::CommandFactory>::command().get_matches();
     let cli = <Cli as clap::FromArgMatches>::from_arg_matches(&matches)
         .unwrap_or_else(|error| error.exit());
