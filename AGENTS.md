@@ -67,9 +67,23 @@ Keep dependencies on their latest releases. `rust-version` is the lowest Rust ve
 that is measured to build the workspace (the `msrv` CI job), not a wish; raise it
 deliberately when a dependency update requires it.
 
+## PuzWerk integration boundary
 
-## Planned PuzWerk integration boundary
+[PuzWerk already exists](https://github.com/wstein/puzwerk). Repository existence
+is not evidence of a released package, a stable integration API or an approved
+migration. See [Cubistry #21](https://github.com/wstein/cubistry/issues/21) for the
+cross-project architecture; verify the current contract before adding dependencies.
 
-Canonical cross-project decision: https://github.com/wstein/cubistry/issues/21. PuzWerk (`wstein/puzwerk`) is **planned, not yet created**. Its reusable cube state, NxN mechanics, sticker identity/orientation and codecs belong to a **ReScript** core; its Three.js viewer to TypeScript. **No new Rust project or Rust package belongs in PuzWerk.** Rust solver algorithms continue in a pre-existing separate Rust project, connected by a versioned solver adapter (goals, moves, orientation-aware stickers, capabilities, replay, errors). The user referred to that Rust project as “Cube Backhaul”; confirm whether this repo is the intended project before changing ownership or names.
+PuzWerk owns the shared **ReScript** cube core: reusable state, coordinates,
+mechanics, sticker identity/orientation and codecs, with a **TypeScript** viewer.
+**Cubacle is the existing independent Rust solver project**. Integrating it as
+an optional provider requires a versioned adapter for goals, moves, capabilities,
+frames, replay and errors. Do not add a Rust project or Rust package to PuzWerk.
+Cubacle's efficient internal search representations remain its responsibility;
+do not create a competing public shared cube core or renderer here.
 
-Before introducing cross-project physical cube models or a new renderer here, check issue #21. This existing solver's internal representations needed for efficient search are permitted; avoid a new *independent public* shared cube-core implementation. Do not claim 6×6/7×7 engines finished without proof. Preserve AGPL licensing, `develop` workflow, existing tests and solver correctness; no premature dependency on an uncreated PuzWerk package.
+Preserve AGPL licensing, upstream notices, the `develop` workflow, existing tests
+and solver correctness. Shared-core ownership does not authorize moving or deleting
+working Cubacle code. Require an approved integration/migration plan and verify
+package availability, compatibility and exact-frame replay before changing consumers.
+Do not claim size support or optimality beyond the verified engine and goal scope.
