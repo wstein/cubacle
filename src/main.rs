@@ -33,6 +33,7 @@ mod solved_start;
 mod stage_phases;
 mod state_check;
 mod steps;
+mod target_name;
 mod template_cmd;
 mod terminal;
 mod views;

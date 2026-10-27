@@ -9,7 +9,7 @@ use cubacle::notation::{
 use cubacle::puzzle::{Facelets, PuzzleKind, Target};
 
 use crate::cli::{InputArgs, SolveArgs};
-use crate::{solved_start, state_check};
+use crate::{solved_start, state_check, target_name};
 
 pub(crate) fn kind_of(size: usize) -> Result<PuzzleKind, String> {
     PuzzleKind::of_size(size).ok_or_else(|| format!("size must be between 2 and 7, not {size}"))
@@ -116,8 +116,39 @@ pub(crate) fn read_target(
         }
         return Ok(partial);
     }
-    let (target, _) = parse_text(text, args.input.scheme, start.kind().size())
-        .map_err(|error| format!("--to: {error}"))?;
-    state_check::require(&target).map_err(|error| format!("--to: {error}"))?;
-    Ok(Target::complete(&target))
+    match parse_text(text, args.input.scheme, start.kind().size()) {
+        Ok((target, _)) => {
+            state_check::require(&target).map_err(|error| format!("--to: {error}"))?;
+            Ok(Target::complete(&target))
+        }
+        Err(error) => library_name(text, args, start.kind(), error),
+    }
+}
+
+/// The text is no cube and no expression: a library pattern name, else the
+/// original error with the close names. Reads the config, never downloads.
+fn library_name(
+    text: &str,
+    args: &SolveArgs,
+    kind: PuzzleKind,
+    error: String,
+) -> Result<Target, String> {
+    if !target_name::looks_like_name(text) {
+        return Err(format!("--to: {error}"));
+    }
+    let Ok(config) = crate::patterns_config::load(args.config.as_deref()) else {
+        return Err(format!("--to: {error}"));
+    };
+    let library = config.library();
+    match target_name::library_target(text, kind, &library) {
+        Some(Ok(state)) => {
+            state_check::require(&state).map_err(|error| format!("--to: {error}"))?;
+            Ok(Target::complete(&state))
+        }
+        Some(Err(reason)) => Err(format!("--to: {reason}")),
+        None => Err(format!(
+            "--to: {error}{}",
+            target_name::unknown_note(text, &library)
+        )),
+    }
 }
