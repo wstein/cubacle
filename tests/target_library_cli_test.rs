@@ -76,3 +76,28 @@ fn the_fixed_names_and_expressions_keep_their_meaning() {
     let (ok, _, _) = cubacle(&["solve", "R U", "--to", "F2 B2"]);
     assert!(ok);
 }
+
+#[test]
+fn an_ambiguous_name_lists_the_catalog_ids() {
+    let dir = concat!(env!("CARGO_TARGET_TMPDIR"), "/ambiguous-name");
+    std::fs::create_dir_all(dir).unwrap();
+    let table = format!("{dir}/twin.tsv");
+    std::fs::write(
+        &table,
+        "#cubacle-patterns 1 patternness-v1\n#source test\n\
+         twin-a\tt:1\t3\t1\tTwin\t\t\t\t\t-\tR2\n\
+         twin-b\tt:2\t3\t1\tTwin\t\t\t\t\t-\tU2\n",
+    )
+    .unwrap();
+    let config = format!("{dir}/cubacle.toml");
+    std::fs::write(&config, format!("[patterns]\nfiles = [\"{table}\"]\n")).unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_cubacle"))
+        .args(["solve", "R U", "--to", "twin"])
+        .env("CUBACLE_CONFIG", &config)
+        .output()
+        .expect("cubacle runs");
+    let error = String::from_utf8_lossy(&output.stderr);
+    assert!(!output.status.success(), "{error}");
+    assert!(error.contains("ambiguous"), "{error}");
+    assert!(error.contains("t:1, t:2"), "{error}");
+}

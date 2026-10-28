@@ -177,6 +177,33 @@ mod tests {
     }
 
     #[test]
+    fn two_entries_with_one_name_and_different_states_are_ambiguous() {
+        let table = "#cubacle-patterns 1 patternness-v1\n#source test\n\
+            twin-a\tt:1\t3\t1\tTwin\t\t\t\t\t-\tR2\n\
+            twin-b\tt:2\t3\t1\tTwin\t\t\t\t\t-\tU2\n";
+        let library = Library {
+            extra: cubacle::patterns::read_imported(table, "test").unwrap(),
+            ..Library::default()
+        };
+        let error = library_target("twin", PuzzleKind::Cube3, &library)
+            .unwrap()
+            .unwrap_err();
+        assert!(
+            error.contains("ambiguous") && error.contains("t:1, t:2"),
+            "{error}"
+        );
+        // The same state under one name is not ambiguous.
+        let same = table.replace("U2", "R2");
+        let library = Library {
+            extra: cubacle::patterns::read_imported(&same, "test").unwrap(),
+            ..Library::default()
+        };
+        assert!(library_target("twin", PuzzleKind::Cube3, &library)
+            .unwrap()
+            .is_ok());
+    }
+
+    #[test]
     fn move_expressions_do_not_look_like_names() {
         assert!(!looks_like_name("R U"));
         assert!(!looks_like_name("F2 B2"));
