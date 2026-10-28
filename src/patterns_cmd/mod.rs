@@ -154,7 +154,9 @@ pub struct FindArgs {
     /// generators (see `solve --moves`)
     #[arg(long, value_name = "SET")]
     moves: Option<String>,
-    /// Hard memory cap of the searches in megabytes
+    /// Hard memory cap of the searches in megabytes, estimated from the states
+    /// stored and checked after every state: a capped search stops as soon as
+    /// the estimate reaches it
     #[arg(long, value_name = "MB", default_value_t = DEFAULT_MAX_MEMORY_MB)]
     max_memory: usize,
     /// Hard time limit in milliseconds (default: none, the cap ends the search)

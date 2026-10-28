@@ -139,6 +139,11 @@ pub fn search(
         let level = mine.level;
         let states = std::mem::take(&mut mine.queue[level]);
         for state in states.chunks(len) {
+            // The cap holds inside a level too: stop as soon as the stored
+            // states reach it, not only when the next level would start.
+            if mine.known.len() + theirs.known.len() > limits.max_states {
+                return Outcome::NotFound(format!("budget exhausted at level {level}"));
+            }
             let here = hash(state);
             if mine.known[&here].cost != level {
                 continue;

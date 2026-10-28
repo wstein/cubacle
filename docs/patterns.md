@@ -106,7 +106,7 @@ best known, a shorter one may exist (the exact search reached the memory cap (20
 R2 3R2 L2 3L2 U2 3U2 D2 3D2 F2 3F2 B2 3B2
 ```
 
-It first searches products of macros (from the 4x4x4 up), then an exact bidirectional search over plain moves for something shorter. `--moves SET` restricts the answer to a move set (see `solve --moves`); a macro is used only when its moves and those of its inverse are all in the set. `--max-memory MB` (default 1500) is a hard cap on the searches; a search that reaches it says so, and "nothing found within the cap" is not "no sequence exists". `-b` sets a time limit.
+It first searches products of macros (from the 4x4x4 up), then an exact bidirectional search over plain moves for something shorter. `--moves SET` restricts the answer to a move set (see `solve --moves`); a macro is used only when its moves and those of its inverse are all in the set. `--max-memory MB` (default 1500) is a hard cap on the searches (the exact search counts its states as it stores them and stops inside a level when the estimate reaches the cap, so the resident size follows the cap; see [Performance](performance.md)); a search that reaches it says so, and "nothing found within the cap" is not "no sequence exists". `-b` sets a time limit.
 
 ## Cube input
 

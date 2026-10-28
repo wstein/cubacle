@@ -190,3 +190,20 @@ fn a_filter_that_leaves_no_macro_is_an_error() {
     let nothing = |_: &Move| false;
     assert!(PatternSearch::new(PuzzleKind::Cube4, Cap::default(), Some(&nothing)).is_err());
 }
+
+#[test]
+fn a_run_under_the_cap_gives_the_same_answer_with_any_larger_cap() {
+    let state = cube(PuzzleKind::Cube3, "U2 D2 R2 L2 F2 B2");
+    let a = find_generator(&state, Cap::megabytes(1500), None).unwrap();
+    let b = find_generator(&state, Cap::megabytes(64_000), None).unwrap();
+    assert_eq!(a, b);
+    assert!(a.proven);
+}
+
+#[test]
+fn the_exact_search_stops_inside_a_level_when_the_cap_is_reached() {
+    // About 4800 states fit in 1 MB; a 14-move scramble needs far more.
+    let state = cube(PuzzleKind::Cube3, "R U F D L B R U F D L B R U");
+    let result = find_generator(&state, Cap::megabytes(1), None);
+    assert!(matches!(result, Err(NotFound::Cap(_))), "{result:?}");
+}

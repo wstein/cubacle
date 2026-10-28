@@ -179,9 +179,21 @@ What changed, each with its equality test or check:
 - The exact search of `patterns find` keys its maps on the 64-bit state hash directly and probes once per state.
 - The stored table of `--within` and of the pattern repair is walked by first block on all cores. The table is one vector in which every first block writes its own slice (sizes counted beforehand), so the vector is entry for entry the one of the serial walk and the memory is the same as before; a test compares the two. The sort of that vector stays serial because its tie-breaks pin which of several equal-length routes is printed.
 
-Not changed, with the numbers that say why: `solve --within=7` on the 3x3x3 takes under 10 ms (bound check and tiny tables), the pattern lookup itself is one hash lookup (0.3 ms for the built-in library), and the 7x7x7 `patterns find` spends its time in the exact search, whose level-by-level memory check lets one level overshoot `--max-memory` (646 to 729 MB resident at 200 MB, independent of the cap from 50 to 200 MB); tightening that would change which searches stop, so it needs a decision.
+Not changed, with the numbers that say why: `solve --within=7` on the 3x3x3 takes under 10 ms (bound check and tiny tables), the pattern lookup itself is one hash lookup (0.3 ms for the built-in library), and the 7x7x7 `patterns find` spends its time in the exact search, whose memory cap is described next.
 
 Commands run: `/usr/bin/time -l target/release/cubacle <command above>` for each row, once for the old and once for the new binary, and `sample <pid> 1` for the profile of the pattern-aware run.
+
+### Memory cap of the exact search
+
+The exact search of `patterns find` used to check `--max-memory` only between breadth-first levels, so one level could overshoot the cap far (it was "not a hard cap"). It now counts the stored states as they are stored and stops inside the level when the estimate (about `2 * stickers + 112` bytes per state) reaches the cap; the message and exit behavior are those of a reached cap. A run that stays under the cap is unchanged (a test compares the answer under two caps), while a capped run may stop earlier than before. Measured on 2026-10-28 (single `/usr/bin/time -l` runs, shared machine), `patterns find --size 7 --max-memory MB -s "R2 3R2 5R2 L2 U2 3U2 5U2 D2 F2 3F2 5F2 B2"`; the answer was the same 12-move generator in all six runs:
+
+| `--max-memory` | Before: time, peak RSS | After: time, peak RSS |
+| --- | --- | --- |
+| 50 | 1.28 s, 490 MB | 0.48 s, 40 MB |
+| 100 | 1.10 s, 725 MB | 0.22 s, 72 MB |
+| 200 | 1.12 s, 726 MB | 0.28 s, 94 MB |
+
+The resident size now follows the cap (below it, because the estimate is generous). `--within` sizes its stored table from the cap before the search starts and was not changed.
 
 ## Reproduce
 
