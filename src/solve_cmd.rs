@@ -55,13 +55,16 @@ pub(crate) fn solve(args: SolveArgs) -> Result<(), String> {
         .as_deref()
         .map(|text| read_target(text, &args, &start))
         .transpose()?;
+    // With --pattern-aware the index is built once and shared with the hint.
+    let prebuilt = (args.verbose && args.pattern_aware && start.kind() != PuzzleKind::Cube2)
+        .then(|| pattern_aware_cmd::index(args.config.as_deref(), start.kind(), args.slices));
     if args.verbose {
         pattern_hint::print(
             args.config.as_deref(),
             &start,
             target.as_ref().and_then(|t| t.as_state()).as_ref(),
             args.notation,
-            args.slices,
+            prebuilt.as_ref().map(|(index, _)| index),
         );
     }
     if let Some(k) = args.within {
@@ -206,6 +209,7 @@ pub(crate) fn solve(args: SolveArgs) -> Result<(), String> {
                 max_moves: args.max_moves,
                 slices: args.slices,
                 verbose: args.verbose,
+                prebuilt: prebuilt.as_ref(),
             },
             result,
         )

@@ -86,13 +86,20 @@ U' R' Rw
 ### Known patterns
 
 With `-v`, `solve` prints one line to stderr when the start (or the target) is
-a pattern of the library, with the library's shortest known generator. It is
-information only: the search runs as always and is never skipped or shortened
-because of it. Use `--pattern-aware` to let a shorter library route replace the
-answer. Without `-v` nothing changes.
+a pattern of the library. It is information only: the search runs as always
+and is never skipped or shortened because of it. Use `--pattern-aware` to let
+a shorter library route replace the answer; with it, `-v` also names the
+library's shortest known generator, because the route index is built anyway
+(about 0.3 s; without `--pattern-aware` the index is not built and only the
+name is printed). Without `-v` nothing changes.
 
 ```sh
 cubacle solve -v "U2 D2 R2 L2 F2 B2"
+cubacle solve -v --pattern-aware "U2 D2 R2 L2 F2 B2"
+```
+
+```text
+pattern: checkerboard
 ```
 
 ```text

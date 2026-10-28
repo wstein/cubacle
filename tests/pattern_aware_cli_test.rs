@@ -23,7 +23,9 @@ impl Run {
     }
 
     fn pattern(&self) -> Option<&str> {
-        self.stderr.lines().find(|l| l.starts_with("pattern: "))
+        self.stderr
+            .lines()
+            .find(|l| l.starts_with("pattern route: "))
     }
 }
 

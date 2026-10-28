@@ -201,11 +201,11 @@ R L F U2 R2 U' D' F2 R' F B U L2 B2 D2 R2 D' L2 D B2 D
 
 moves 20
 metrics: htm 20, qtm 28, stm 20
-pattern: cu:superflip Superflip (library route, 1 move shorter)
+pattern route: cu:superflip Superflip (library route, 1 move shorter)
 R L U2 F U' D F2 R2 B2 L U2 F' B' U R2 D F2 U R2 U
 ```
 
-A 4x4x4 whose centers were cycled (`U' 3Fw F' 3Uw' U 3Fw' F 3Uw`) goes from 12 moves to 8, by the six-spot route (`pattern: cu:sixspot Six spots (library route, 4 moves shorter)`). The lookup is one hash lookup in a map built once per run from the generators of the library under the 48 symmetries; the built-in library takes about 0.3 ms to index on a 3x3x3 (`-v` prints the time). A route keeps to the alphabet of the solver: face turns on the 3x3x3, outer blocks (`Rw`) from the 4x4x4 up, single inner layers only with `--slices`. With `--to`, the relative state and its inverse are looked up; when the relative state cannot be made for a size, the normal route is used.
+A 4x4x4 whose centers were cycled (`U' 3Fw F' 3Uw' U 3Fw' F 3Uw`) goes from 12 moves to 8, by the six-spot route (`pattern route: cu:sixspot Six spots (library route, 4 moves shorter)`). The lookup is one hash lookup in a map built once per run from the generators of the library under the 48 symmetries; the built-in library takes about 0.3 ms to index on a 3x3x3 (`-v` prints the time). A route keeps to the alphabet of the solver: face turns on the 3x3x3, outer blocks (`Rw`) from the 4x4x4 up, single inner layers only with `--slices`. With `--to`, the relative state and its inverse are looked up; when the relative state cannot be made for a size, the normal route is used.
 
 ### Restricted move sets
 

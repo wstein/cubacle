@@ -26,13 +26,13 @@ impl Adopted {
     pub fn line(&self) -> String {
         match self.shorter {
             Some(n) => format!(
-                "pattern: {} {} (library route, {n} {} shorter)",
+                "pattern route: {} {} (library route, {n} {} shorter)",
                 self.catalog,
                 self.name,
                 if n == 1 { "move" } else { "moves" }
             ),
             None => format!(
-                "pattern: {} {} (library route, no other answer)",
+                "pattern route: {} {} (library route, no other answer)",
                 self.catalog, self.name
             ),
         }
@@ -49,6 +49,8 @@ pub struct Request<'a> {
     pub max_moves: Option<u8>,
     pub slices: bool,
     pub verbose: bool,
+    /// An index built earlier for the hint of `-v`; `apply` reuses it.
+    pub prebuilt: Option<&'a (RouteIndex, Duration)>,
 }
 
 /// Whether a move is one the solver of the size would write: face turns on
@@ -120,14 +122,21 @@ pub fn apply(request: &Request, result: SolveResult) -> (SolveResult, Option<Ado
     if kind == PuzzleKind::Cube2 || result.outcome == Err(Failure::InvalidInput) {
         return (result, None);
     }
-    let (index, built) = index(request.config, kind, request.slices);
+    let owned;
+    let (index, built) = match request.prebuilt {
+        Some((index, built)) => (index, *built),
+        None => {
+            owned = index(request.config, kind, request.slices);
+            (&owned.0, owned.1)
+        }
+    };
     if request.verbose {
         eprintln!(
             "pattern index: {} generators of the library in {built:?}",
             index.len()
         );
     }
-    let Some(hit) = best_route(&index, request) else {
+    let Some(hit) = best_route(index, request) else {
         return (result, None);
     };
     let own = result.solution().map(MoveSequence::len);

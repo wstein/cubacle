@@ -12,7 +12,7 @@ fn line(
     label: &str,
     library: &crate::patterns_config::Library,
     notation: Notation,
-    slices: bool,
+    index: Option<&patterns::RouteIndex>,
 ) -> Option<String> {
     if state.is_solved() {
         return None;
@@ -20,10 +20,7 @@ fn line(
     let report = patterns::detect_with(state, &library.extra, 0);
     let found = report.matches.first()?;
     let kind = state.kind();
-    let index = patterns::RouteIndex::build(kind, library.all(), &|mv| {
-        crate::pattern_aware_cmd::in_alphabet(kind, slices, mv)
-    });
-    let generator = index.lookup(state).map(|hit| {
+    let generator = index.and_then(|index| index.lookup(state)).map(|hit| {
         format!(
             " (known generator: {}, {} moves)",
             notation.write(kind, &hit.build),
@@ -37,20 +34,22 @@ fn line(
     ))
 }
 
-/// Print the hints for the start and the target to stderr.
+/// Print the hints for the start and the target to stderr. The name needs no
+/// lookup; the known generator is added only when the caller has the route
+/// index already (`--pattern-aware`), because building it costs about 0.7 s.
 pub(crate) fn print(
     config: Option<&std::path::Path>,
     start: &Facelets,
     target: Option<&Facelets>,
     notation: Notation,
-    slices: bool,
+    index: Option<&patterns::RouteIndex>,
 ) {
     let Ok(config) = crate::patterns_config::load(config) else {
         return;
     };
     let library = config.library();
     for (label, state) in [("", Some(start)), (" (target)", target)] {
-        if let Some(text) = state.and_then(|s| line(s, label, &library, notation, slices)) {
+        if let Some(text) = state.and_then(|s| line(s, label, &library, notation, index)) {
             eprintln!("{text}");
         }
     }

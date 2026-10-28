@@ -25,6 +25,16 @@ fn solve(args: &[&str]) -> (String, String) {
 fn verbose_names_the_pattern() {
     let (_, err) = solve(&["-v", "U2 D2 R2 L2 F2 B2"]);
     assert!(err.contains("pattern: checkerboard"), "{err}");
+    assert!(!err.contains("known generator"), "{err}");
+}
+
+#[test]
+fn pattern_aware_builds_the_index_once_for_hint_and_route() {
+    // The built-in-only library of this test has no generator for the
+    // checkerboard; with a full library the hint adds "(known generator: ...)".
+    let (_, err) = solve(&["-v", "--pattern-aware", "U2 D2 R2 L2 F2 B2"]);
+    assert!(err.contains("pattern: checkerboard"), "{err}");
+    assert_eq!(err.matches("pattern index:").count(), 1, "{err}");
 }
 
 #[test]
