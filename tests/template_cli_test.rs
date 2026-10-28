@@ -74,3 +74,56 @@ fn a_missing_file_is_an_error() {
     assert!(String::from_utf8_lossy(&output.stderr)
         .starts_with("error: /no/such/file.cubacle: cannot read"));
 }
+
+#[test]
+fn a_grid_of_one_face_stands_for_all_six() {
+    let text = "pattern-name: one-face\ncube-size: 3\nsticker-grid:\n  a b a\n  b U b\n  a b a\ncolor-constraints: unique(a*, b*)\n";
+    let (ok, out, err) = check("template_one_face", text);
+    assert!(ok, "{err}");
+    assert_eq!(out, "ok: one-face, size 3, 12 variables, guard ok");
+}
+
+#[test]
+fn a_wrong_one_face_grid_names_file_line_and_column() {
+    let text = "pattern-name: short\ncube-size: 3\nsticker-grid: a b a / b b / a b a\n";
+    let (ok, out, err) = check("template_one_face_short", text);
+    assert!(!ok);
+    assert_eq!(out, "");
+    assert_eq!(
+        err,
+        "error: FILE:3:34: the grid of one face has 8 stickers, expected 9 (3x3)"
+    );
+}
+
+#[test]
+fn the_shipped_examples_are_read() {
+    let dir = format!(
+        "{}/docs/static/examples/definitions",
+        env!("CARGO_MANIFEST_DIR")
+    );
+    for (name, expected) in [
+        (
+            "checkerboard-free-center",
+            "ok: checkerboard-free-center, size 3, 12 variables, guard ok",
+        ),
+        (
+            "concentric-squares",
+            "ok: concentric-squares, size 5, 18 variables, guard ok",
+        ),
+        (
+            "custom-scheme",
+            "ok: custom-scheme-cross, size 3, 0 variables, no guard",
+        ),
+        (
+            "ring-symmetric",
+            "ok: ring-symmetric, size 3, 12 variables, guard ok",
+        ),
+    ] {
+        let output = Command::new(env!("CARGO_BIN_EXE_cubacle"))
+            .args(["template", "check", &format!("{dir}/{name}.cubacle")])
+            .output()
+            .expect("cubacle runs");
+        assert!(output.status.success(), "{name}");
+        assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), expected);
+    }
+}

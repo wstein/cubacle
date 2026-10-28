@@ -130,3 +130,69 @@ fn other_sizes_check_n_times_n() {
         assert!(parse(&short, kind, &scheme()).is_err());
     }
 }
+
+fn parse3(text: &str) -> Schema {
+    parse(text, PuzzleKind::Cube3, &scheme()).unwrap()
+}
+
+fn error3(text: &str) -> String {
+    parse(text, PuzzleKind::Cube3, &scheme())
+        .unwrap_err()
+        .to_string()
+}
+
+#[test]
+fn a_grid_of_one_face_is_the_same_on_all_six() {
+    let schema = parse2("a b b a").unwrap();
+    assert_eq!(schema.slots.len(), 24);
+    assert_eq!(
+        schema.names,
+        ["a1", "b1", "a2", "b2", "a3", "b3", "a4", "b4", "a5", "b5", "a6", "b6"]
+    );
+    assert_eq!(schema.slots[4], Slot::Var(2));
+    assert_eq!(schema.slots[5], Slot::Var(3));
+    assert_eq!(schema.slots[7], Slot::Var(2));
+}
+
+#[test]
+fn rows_of_a_one_face_grid_may_be_broken_by_slash_and_newline() {
+    let flat = parse3("a b a b . b a b a");
+    for text in [
+        "a b a / b . b / a b a",
+        "a b a\nb . b\n\na b a",
+        "a, b, a,\nb, ., b,\na, b, a",
+    ] {
+        let schema = parse3(text);
+        assert_eq!(schema.slots, flat.slots, "{text}");
+        assert_eq!(schema.names, flat.names, "{text}");
+    }
+}
+
+#[test]
+fn the_center_letter_of_a_one_face_grid_is_the_letter_of_each_face() {
+    let schema = parse3("? U ? / U U U / ? U ?");
+    let faces: Vec<Slot> = (0..6).map(|f| schema.slots[f * 9 + 4]).collect();
+    let expected: Vec<Slot> = Face::ALL.iter().map(|&face| Slot::Fixed(face)).collect();
+    assert_eq!(faces, expected);
+    // The arms keep the letter U.
+    assert_eq!(schema.slots[9 + 1], Slot::Fixed(Face::U));
+    // Other letters are not touched; an even size has no center.
+    assert_eq!(parse3("R R R R R R R R R").slots[13], Slot::Fixed(Face::R));
+    assert_eq!(parse2("U U U U").unwrap().slots[4], Slot::Fixed(Face::U));
+}
+
+#[test]
+fn a_one_face_grid_with_a_wrong_count_names_the_position() {
+    assert_eq!(
+        error2("a b a"),
+        "line 1, column 6: the grid of one face has 3 stickers, expected 4 (2x2)"
+    );
+    assert_eq!(
+        error3("a b a / b . b / a b"),
+        "line 1, column 20: the grid of one face has 8 stickers, expected 9 (3x3)"
+    );
+    assert_eq!(
+        error3("a b a / b . b / a b é"),
+        "line 1, column 21: unexpected character 'é', expected a lowercase letter, an uppercase letter, \".\" or \"?\""
+    );
+}

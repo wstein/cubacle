@@ -170,8 +170,8 @@ fn errors_come_from_the_part_that_is_wrong() {
         "line 1, column 8: variable \"q1\" does not occur in the schema"
     );
     assert_eq!(
-        error("a a a a", ""),
-        "line 1, column 8: expected 6 faces, found 1"
+        error("a a a a / b b b b", ""),
+        "line 1, column 18: expected 6 faces, found 2"
     );
 }
 
