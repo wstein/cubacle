@@ -4,7 +4,6 @@
   "patternName": "concentric-squares",
   "patternTitle": "Concentric squares",
   "cubeSize": 5,
-  "colorScheme": "western",
   "stickerGrid": [
     [
       ["a", "b", "b", "b", "a"],

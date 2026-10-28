@@ -11,6 +11,7 @@
       ["a", "a", "a"]
     ]
   ],
-  "colorConstraints": "unique(a*, b*) && symmetric(D4h)",
+  "colorConstraints": "unique(a*, b*)",
+  "requiredSymmetry": "D4h",
   "movableOrbits": ["corners", "edges"]
 }

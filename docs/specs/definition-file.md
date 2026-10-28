@@ -35,7 +35,6 @@ The file is line-based: `key: value`. `#` starts a comment that runs to the end 
 pattern-name: concentric-squares
 pattern-title: Concentric squares
 cube-size: 5
-color-scheme: western
 sticker-grid:
   a b b b a b b c b b b c U c b b b c b b a b b b a
 color-constraints: unique(a*, b*, c*)
@@ -112,7 +111,7 @@ move-alphabet = "outer" | "slices" | "blocks" | move { ws move } ;
 The grid lists the stickers of the faces, face by face, each row by row.
 
 - A token made of a lowercase letter and an optional number, such as `a` or `b1`, is a placeholder that may take any color. The same token means the same color.
-- A single uppercase letter is a fixed color, read through the scheme. A center is written as the letter of its face (U R F D L B): the fixed color of that face. A center token may also be a lowercase variable, like any other sticker. In a one-face grid, the center letter stands for the letter of the face the grid is applied to.
+- A single uppercase letter is a fixed color, read through the scheme. A center is written as the letter of its face (U R F D L B): the fixed color of that face. A center token may also be a lowercase variable, like any other sticker. In a one-face grid, the center letter stands for the letter of the face the grid is applied to: the U letter of the scheme at the center position is replaced by the letter of each face, other letters are kept. An even size has no center.
 - `.` and `?` are don't care.
 - Separators are `,` and space; `/` separates faces, and so do a newline and a blank line.
 - The number of stickers per face is checked against the size: N times N for size N.
@@ -132,6 +131,10 @@ digits      = digit { digit } ;
 ```
 
 The face index (the position of the face in the schema) is appended to every placeholder: `a` on the first face is the variable `a1`, on the second face `a2`.
+
+One face. A grid of exactly N times N tokens is one face and stands for all six: the same pattern on every face, the index of the face appended to each placeholder (`a1` to `a6`), the center letter as above. Then `/` and newlines only break rows, so `a b a / b . b / a b a` is one 3x3 face. A grid with six faces writes its placeholders as they are to be named (`a1`, `b2`), without an index appended.
+
+Differences: the layout example used `color-scheme: western`, whose letters are W R G Y O B, so its `U` was an unknown color; the example now uses the default scheme. The grammar above lets `/` separate faces, but the shipped one-face examples break the rows of one face with `/`. The reader decides by the count: N times N tokens or fewer in all is one face and `/` breaks rows; more is six faces. A number in a token of a one-face grid is kept and the face index follows it (`b1` on the second face is `b12`).
 
 ## Guard
 
@@ -210,6 +213,7 @@ The parser reports the line, the column and what was expected, for example `line
 
 The text form and a JSON document are two serializations of one canonical model: the typed definition (pattern name, title, aliases, tags, cube size, color scheme, color letters, sticker grid, color constraints, required symmetry and antisymmetry, sequence order, movable and fixed orbits, move alphabet, search limits). The run options are a separate object, not part of the definition. The text parser and the JSON reader both produce exactly this model, so converting from one form to the other loses nothing except comments and layout.
 
+- Status: `cubacle template check` reads the text form only; the JSON reader is not implemented, and the `.json` example files only show the form (`template check` on one says `expected "key: value"`).
 - The JSON text is read with a JSON parser library (`serde_json`). There is no hand-written JSON parser.
 - The result is checked against the JSON Schema with a validation library (the `jsonschema` crate). Errors carry a JSON pointer path, for example `/schema/2/3`, in the place where the text form gives line and column.
 - The schema is the contract. It is written by hand and split into files with shared definitions. The Rust types are checked against it by conformance tests: every example must validate and round-trip. Schemas are not generated from the parser output.
@@ -233,7 +237,7 @@ Key mapping, stated once: every JSON key is the camelCase form of the kebab-case
 - `colorScheme` is a name or six letters (see [Color schemes](color-schemes.md)). The display colors of six letters are `colorLetters`, an object from letter to color in JSON and a `color-letters:` line in the text form, with the same value grammar as in a scheme file.
 - `movableOrbits`, `fixedOrbits`, `patternAliases` and `patternTags` are lists of strings.
 
-The example of the worked example above in both forms (the `.cubacle` file spells out all six faces, because `cubacle template check` does not read the one-face shorthand yet; files `concentric-squares.cubacle` and `concentric-squares.json` in `docs/static/examples/definitions/`, published at `https://wstein.github.io/cubacle/examples/definitions/`):
+The example of the worked example above in both forms (the `.cubacle` file spells out all six faces with their indexes, the JSON file has the one-face shorthand; `cubacle template check` reads the one-face form of the text file too; files `concentric-squares.cubacle` and `concentric-squares.json` in `docs/static/examples/definitions/`, published at `https://wstein.github.io/cubacle/examples/definitions/`):
 
 ```json
 {
@@ -242,7 +246,6 @@ The example of the worked example above in both forms (the `.cubacle` file spell
   "patternName": "concentric-squares",
   "patternTitle": "Concentric squares",
   "cubeSize": 5,
-  "colorScheme": "western",
   "stickerGrid": [
     [
       ["a", "b", "b", "b", "a"],
@@ -256,7 +259,7 @@ The example of the worked example above in both forms (the `.cubacle` file spell
 }
 ```
 
-Further examples in the same directory: `checkerboard-free-center` (a 3x3 grid with a don't-care), `ring-symmetric` (with `symmetric(D4h)`) and `custom-scheme` (a color scheme object with `#RGB` and `#RRGGBB` colors). All JSON examples start with `$schema`, so editors can offer completion and validation. The example files were validated against the schemas with the Python package `jsonschema` (Draft 2020-12).
+Further examples in the same directory: `checkerboard-free-center` (a 3x3 grid with a don't-care), `ring-symmetric` (with `required-symmetry: D4h`, the same as `symmetric(D4h)` in the guard; `template check` reads the key and does not read the call yet) and `custom-scheme` (a color scheme object with `#RGB` and `#RRGGBB` colors). All JSON examples start with `$schema`, so editors can offer completion and validation. The example files were validated against the schemas with the Python package `jsonschema` (Draft 2020-12).
 
 ## Result lines
 
