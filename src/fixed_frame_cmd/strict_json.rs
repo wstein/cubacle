@@ -1,5 +1,6 @@
 //! Bounded JSON Lines and duplicate-aware JSON parsing for the fixed-frame wire contract.
 
+use std::borrow::Cow;
 use std::fmt;
 use std::io::BufRead;
 
@@ -58,10 +59,11 @@ fn read_bounded_line<R: BufRead>(input: &mut R, limit: usize) -> Result<Option<V
     Ok(Some(value))
 }
 
-/// Parse without accepting duplicate keys, non-integer number tokens or trailing values.
+/// Parse without accepting duplicate keys or trailing values.
+/// Preserve floats for ignored extension fields; typed integer fields use `integer`.
 fn parse(bytes: &[u8]) -> Result<Value, String> {
-    check_number_tokens(bytes)?;
-    let mut reader = serde_json::Deserializer::from_slice(bytes);
+    let bytes = check_number_tokens(bytes)?;
+    let mut reader = serde_json::Deserializer::from_slice(&bytes);
     let value = Seed { depth: 0 }
         .deserialize(&mut reader)
         .map_err(|error| error.to_string())?;
@@ -70,7 +72,8 @@ fn parse(bytes: &[u8]) -> Result<Value, String> {
 }
 
 /// Bound tokens before serde can parse a long number. Strings and escaped quotes are skipped.
-fn check_number_tokens(bytes: &[u8]) -> Result<(), String> {
+fn check_number_tokens(bytes: &[u8]) -> Result<Cow<'_, [u8]>, String> {
+    let mut normalized = Cow::Borrowed(bytes);
     let mut index = 0;
     let mut in_string = false;
     while index < bytes.len() {
@@ -95,14 +98,26 @@ fn check_number_tokens(bytes: &[u8]) -> Result<(), String> {
                 if token.len() > MAX_NUMBER_BYTES {
                     return Err("numeric token exceeds 128 bytes".to_owned());
                 }
-                if token.iter().any(|byte| matches!(byte, b'.' | b'e' | b'E')) {
-                    return Err("fractional and exponent number tokens are not integers".to_owned());
+                // serde treats lexical -0 as a float. Replace only its minus with whitespace,
+                // preserving offsets and the integer kind; -0.0 and -0e0 remain floats.
+                if token == b"-0" {
+                    normalized.to_mut()[start] = b' ';
                 }
             }
             _ => index += 1,
         }
     }
-    Ok(())
+    Ok(normalized)
+}
+
+/// Only integer tokens satisfy known integer fields; 1.0 and 1e0 must not coerce to 1.
+/// The wider return type preserves every signed i64 and unsigned u64 input exactly.
+pub(super) fn integer(value: &Value) -> Result<i128, String> {
+    value
+        .as_i64()
+        .map(i128::from)
+        .or_else(|| value.as_u64().map(i128::from))
+        .ok_or_else(|| "expected a signed/unsigned 64-bit integer token".to_owned())
 }
 
 struct Seed {
@@ -137,14 +152,9 @@ impl<'de> Visitor<'de> for Seed {
     }
 
     fn visit_f64<E: de::Error>(self, value: f64) -> Result<Value, E> {
-        // serde classifies lexical -0 as f64. Fractions/exponents were rejected above.
-        if value == 0.0 {
-            Ok(Value::from(0))
-        } else {
-            Err(E::custom(
-                "integer is outside the signed/unsigned 64-bit range",
-            ))
-        }
+        serde_json::Number::from_f64(value)
+            .map(Value::Number)
+            .ok_or_else(|| E::custom("number is not finite"))
     }
 
     fn visit_str<E: de::Error>(self, value: &str) -> Result<Value, E> {
