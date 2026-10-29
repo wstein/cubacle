@@ -14,7 +14,7 @@ use cubacle::puzzle::{
     RelativeError, SolveOptions, Solver,
 };
 use cubacle::ranges::Optimize;
-use cubacle::report::SolveReport;
+use cubacle::report::{JsonFormat, SolveReport};
 use serde::Deserialize;
 
 use crate::error::{ApiError, JsonText};
@@ -25,6 +25,9 @@ use crate::state::*;
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct SolveRequest {
+    /// Select the solve body version (default 2; 1 preserves the original bytes).
+    #[serde(default, deserialize_with = "read_format_version")]
+    pub(crate) format_version: Option<u8>,
     pub(crate) cube: Option<String>,
     /// Moves in WCA, SiGN or SSE notation instead of `cube`.
     pub(crate) scramble: Option<String>,
@@ -54,6 +57,13 @@ pub(crate) struct SolveRequest {
     pub(crate) target: Option<String>,
 }
 
+/// Absence selects the default; explicit null is not an allowed format selector.
+fn read_format_version<'de, D: serde::Deserializer<'de>>(
+    reader: D,
+) -> Result<Option<u8>, D::Error> {
+    u8::deserialize(reader).map(Some)
+}
+
 /// Failure statuses:
 ///
 /// * `BudgetExhausted` -> 504. 408 means the client was too slow sending its
@@ -70,6 +80,11 @@ pub(crate) async fn solve(
     body: Result<Bytes, BytesRejection>,
 ) -> Result<JsonText, ApiError> {
     let request: SolveRequest = read_body(&headers, body)?;
+    let format = match request.format_version.unwrap_or(2) {
+        1 => JsonFormat::V1,
+        2 => JsonFormat::V2,
+        _ => return Err(ApiError::bad_input("formatVersion must be 1 or 2")),
+    };
     let notation = read_notation(request.notation.as_deref())?;
     let optimize: Option<Optimize> = request
         .optimize
@@ -260,8 +275,9 @@ pub(crate) async fn solve(
         Ok(solution) => {
             let report =
                 SolveReport::of(kind, solution, notation, optimize, result.metrics.elapsed)
-                    .with_phases(&result.stages);
-            Ok(JsonText(report.to_json()))
+                    .with_phases(&result.stages)
+                    .with_evidence(result.metrics.evidence);
+            Ok(JsonText(report.to_json_format(format)))
         }
         Err(Failure::InvalidInput) => Err(ApiError::new(
             StatusCode::UNPROCESSABLE_ENTITY,
