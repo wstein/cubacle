@@ -31,6 +31,17 @@ pub struct SolveOptions {
     /// The 6x6x6 and 7x7x7 honor it, the 4x4x4 and 5x5x5 read it as
     /// `reduce_only`.
     pub centers_only: bool,
+    /// 3x3x3, partial target: search for a proven shortest answer to the set
+    /// of states the target allows (an iterative-deepening search with
+    /// multi-goal pruning tables) instead of the routes that need few
+    /// completions. Other engines ignore it.
+    pub exact: bool,
+    /// 3x3x3, partial target: the target counts after any of the 24
+    /// whole-cube rotations, which cost no moves. Implies `exact`.
+    pub free_orientation: bool,
+    /// A cap on the memory of the pruning tables, in megabytes, for the
+    /// engines that build tables for a target (`exact`).
+    pub max_memory_mb: Option<usize>,
 }
 
 impl SolveOptions {
@@ -56,6 +67,22 @@ impl SolveOptions {
 
     pub fn with_reduce_only(mut self, reduce_only: bool) -> SolveOptions {
         self.reduce_only = reduce_only;
+        self
+    }
+
+    pub fn with_exact(mut self, exact: bool) -> SolveOptions {
+        self.exact = exact;
+        self
+    }
+
+    pub fn with_free_orientation(mut self, free: bool) -> SolveOptions {
+        self.free_orientation = free;
+        self.exact |= free;
+        self
+    }
+
+    pub fn with_max_memory(mut self, megabytes: usize) -> SolveOptions {
+        self.max_memory_mb = Some(megabytes);
         self
     }
 

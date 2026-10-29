@@ -164,6 +164,7 @@ impl FiveSolver {
             slices: false,
             reduce_only: false,
             centers_only: false,
+            ..SolveOptions::default()
         };
         let finish = self.three.solve(&three_by_three(&reduced), &hand_off);
         let probes = finish.metrics.probes;

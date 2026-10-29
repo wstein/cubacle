@@ -16,6 +16,7 @@ mod moves;
 mod orbits;
 mod order;
 mod relative;
+mod rotation;
 mod solver;
 mod stages;
 mod target;
@@ -39,6 +40,7 @@ pub use order::{sticker_cycles, OrbitCycles, StickerCycles, StickerOrbit};
 #[cfg(test)]
 pub(crate) use relative::relative_by;
 pub use relative::{reaches, relative_state, RelativeError};
+pub(crate) use rotation::rotation_maps;
 pub use solver::{Failure, SolveMetrics, SolveOptions, SolveResult, Solver};
 pub use stages::SolveStage;
 pub(crate) use stages::{interned, stage_ends, stage_parts, PHASE_MOVES};

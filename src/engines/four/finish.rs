@@ -170,6 +170,7 @@ impl FourSolver {
             slices: false,
             reduce_only: false,
             centers_only: false,
+            ..SolveOptions::default()
         };
         let finish = self.three.solve(&three, &hand_off);
         let probes = finish.metrics.probes;
