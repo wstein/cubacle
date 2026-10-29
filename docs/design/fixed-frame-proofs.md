@@ -169,7 +169,8 @@ Input forms of a state:
 
 Output always carries `poses`; with `"stickers": true` in the request it also carries the full
 wire state in the proof-checkers form: an id-sorted array of
-`[id, cubie, [p], [n], [up], image]`.
+`[id, cubie, [p], [n], [up], image]`, where `image` is null when absent in the print.
+An absent image is distinct from the empty image string of a blank; input null is not an image.
 
 ### 2.4 Pose index and keys (`pose24.v1`, `key.v1`)
 
@@ -193,10 +194,23 @@ the print, never cubacle's internal coordinates.
   `N_k = 8! / (8 - k)! * 3^k` entries.
 - **All eight bodies.** For k = 8 the eighth body's pose follows from the other seven in every
   reachable state, so the key is the k = 7 key of the seven lowest tracked body ids and
-  `N_8 = N_7 = 88,179,840`. A checker derives the eighth pose either from the twist invariant,
-  which it must then verify on its own (for example, that the print and the 18 move images of
-  it satisfy it), or by its own breadth-first search.
+  `N_8 = N_7 = 88,179,840`. The missing body occupies the one unused position. Its twist is
+  derived by the geometric invariant below, not by summing the reference-x twist digits.
 
+**Normative reachability invariant and eighth-pose decoding.** At position `p`, let the signed
+outward axes be `X = (p.x,0,0)`, `Y = (0,p.y,0)`, `Z = (0,0,p.z)`. Define the right-handed
+cyclic corner frame `C(p)` as `(Y,Z,X)` if `p.x*p.y*p.z = +1`, otherwise `(Y,X,Z)`.
+For each body, follow its reference Y-normal sticker through the proper rigid rotation; let
+`o(b)` be the index 0, 1 or 2 of its current normal in `C(current position)`. In the print all
+`o(b)` are 0. Every legal face turn preserves `sum(o(b)) modulo 3`, and, with distinct
+positions and proper rigid bodies, sum 0 is the complete corner reachability condition.
+To decode the missing body, enumerate its three proper rotations at the unused position and
+choose the unique one making that sum 0; then compute its reference-x twist digit as above.
+A checker derives these rotations geometrically, verifies the invariant on the 18 moves and
+reference state, and rejects any full pose list whose sum is not 0. Permutation parity is
+unrestricted on a 2x2x2. Reference-x twist digits alone are not an additive invariant.
+
+For k = 0, the empty tracked set has one key, 0, and its distance table is the single byte 0.
 For k <= 7 every key is a reachable projected state: N_3 = 9,072, N_4 = 136,080 and
 N_5 = 1,632,960 were reached by breadth-first search [M], and N_7 = 88,179,840 by the full
 search [M]; N_6 = 14,696,640 follows from N_7 (every projection of a reachable state is a key,
@@ -249,6 +263,27 @@ exact physical distances, for every hidden pose of the untracked bodies. This is
 the Cubistry reviews already use for their 9,072- and 136,080-state graphs; the certificate
 makes it explicit and checkable.
 
+**Premises use the union projection.** Let `U = T(D) union T(P)`, sorted by body id.
+Enumerate the reachable keys of `U`, evaluate `P` there, and look up each distance by projecting
+to the goal table on `T(D)`. Never evaluate `P` on a goal key that omits one of its bodies.
+`sources` and the premise histogram count these union keys, not full-state completions; record
+`sourceBodies` and `sourceKeys` to make the denominator explicit. Each key has the same number
+of full-state completions: `(8-k)! * 3^(7-k)` for k <= 7, and 1 for k = 8. Thus the maximum is
+also the maximum over full physical sources. At k = 0 this factor is 88,179,840. For k = 8 use
+the seven-body encoding of section 2.4. A maximum witness carries a full, reachable `from`
+state, its union `key`, and a shortest `path`; choose the lowest union key and then the lowest
+full key among its completions for deterministic tie-breaking.
+
+An empty display premise means all states. An unsatisfiable premise instead gives `sources: 0`,
+`histogram: []`, `eccentricity: null`, and no witness; it must never establish a finite universal
+bound by vacuity. An unsatisfiable target gives a goal record with `goalKeys: 0` and no table,
+histogram or eccentricity; distance, eccentricity and run requests using it fail `invalid_display`.
+Goal-record histogram and eccentricity always describe the unconditional goal table on T(D);
+an optional goal premise requests `premiseClosed`, not conditional statistics. Separate
+eccentricity records carry the conditional union-source histogram and maximum.
+`premiseClosed` means every full state meeting D meets P, checked on the same union projection,
+including the cases of empty or unsatisfiable predicates.
+
 ### 2.7 Relation to the existing models
 
 | Model | Identity | Frame | Where |
@@ -268,8 +303,8 @@ question "a certificate (the proof as a replayable record)" for slice 2 is answe
 2x2x2.
 
 Default behavior is untouched: `solve --size 2` keeps the rotation quotient and the bytes of its
-text output; only its `--json` body gains the format 2 keys (with `frame` set to
-`"any-orientation"`, section 6). A
+text output; only its `--json` body gains the format 2 keys (with `frame` derived from the
+actual route and target, section 6). A
 later, separate option `solve --size 2 --fixed-frame` (fixed frame, color cube, solved target)
 is possible but is not needed by the consumers and is not part of this plan.
 
@@ -344,7 +379,9 @@ cubacle fixed-frame table    --print PRINT.json (--display DISPLAY.json [--premi
 - Errors: text on standard error and exit status 1 for invalid input (print, state, display,
   JSON), 2 for an unsupported format version or puzzle, 3 for internal or I/O errors. In
   `batch` a bad request produces an `error` record and the run goes on, unless `--certificate`
-  is set, which stops at the first error with exit status 1, so a certificate is never partial.
+  is set, which stops at the first error with the applicable exit status and writes no summary.
+  Standard output may already contain a prefix: it is not a valid certificate. A checker requires
+  the final summary, verifies its hash and count, and rejects truncation or trailing records.
 - Threads: one by default. Optional parallel goal builds must not change a byte of output.
 
 ## 5. Batch JSON Lines
@@ -359,12 +396,21 @@ request); records carry `format` and `formatVersion` in the header.
 
 | `op` | Fields | Answer |
 | --- | --- | --- |
-| `print` | `formatVersion`, `puzzle` (`"2x2x2"`), `printing` (section 2.2) | `header` record; must be the first line; a later `print` line starts a new context |
+| `print` | `formatVersion`, `puzzle` (`"2x2x2"`), `printing` (section 2.2) | `header` record; must be the first line; a later `print` line starts a new context and clears all goal bindings and cached tables |
 | `goal` | `goalId`, `display`, optional `premise` | `goal` record (counts, histogram, eccentricity, table hash) |
 | `distance` | `id`, `from` (a state), `goalId` or `display`, optional `stickers` | `distance` record |
 | `eccentricity` | `id`, `goalId`, `premise` (a display), optional `witness` | `eccentricity` record |
 | `run` | `id`, `from`, `goals` (list of goal ids, cyclic), `maxSteps` | `run` record (section 7.7) |
 | `sample` | `id`, `count`, `seed`, `goalId` | `count` `distance` records from seeded random states (section 8) |
+
+Goal ids are unique within a print context; rebinding an id is `invalid_display`. A distance
+request with an inline display first emits a goal record containing that display, then its
+distance record. Its generated goal id is `inline.` followed by the first 56 hexadecimal digits
+of the SHA-256 of the canonical display bytes; caller-supplied ids beginning with `inline.` are
+reserved and rejected. A generated-id collision with a different canonical display is an error,
+never an overwrite. Identical inline goals reuse their binding. `distance --json` and the REST
+distance endpoint return a single distance record with the inline `display` embedded instead of
+`goalId`; they are query answers, not standalone certificates.
 
 ### 5.2 Example
 
@@ -384,7 +430,7 @@ Records (the header is shortened):
 
 ```json
 {"record":"header","format":"cubacle.fixed-frame","formatVersion":1,"toolVersion":"0.2.0","gitCommit":null,"puzzle":"2x2x2","frame":"x=R,y=U,z=F;quarter=-90@outward","metric":"htm","moveOrder":"U U2 U' R R2 R' F F2 F' D D2 D' L L2 L' B B2 B'","poseIndex":"pose24.v1","key":"key.v1","tableEncoding":"u8-dense-v1","printSha256":"..."}
-{"record":"goal","goalId":"blank-H-34","trackedBodies":[1,3,6,7],"keys":136080,"goalKeys":3,"deadRules":[],"histogram":[3,45,594,6015,39849,79143,10431],"eccentricity":6,"tableSha256":"0a3f73e6d95731fe778d47d5a8bdd092d925a3514f2936f60557899d38d81c1c"}
+{"record":"goal","goalId":"blank-H-34","display":{"cells":[{"p":[-1,1,1],"n":[0,0,1],"accept":[{"image":""}]},{"p":[1,1,1],"n":[0,0,1],"accept":[{"image":"H","up":[0,1,0]}]},{"p":[-1,-1,1],"n":[0,0,1],"accept":[{"image":"3","up":[0,1,0]}]},{"p":[1,-1,1],"n":[0,0,1],"accept":[{"image":"4","up":[0,1,0]}]}]},"trackedBodies":[1,3,6,7],"keys":136080,"goalKeys":3,"deadRules":[],"histogram":[3,45,594,6015,39849,79143,10431],"eccentricity":6,"tableSha256":"0a3f73e6d95731fe778d47d5a8bdd092d925a3514f2936f60557899d38d81c1c"}
 {"record":"distance","id":"cex","goalId":"blank-H-34","from":{"poses":[5,19,7,12,2,17,23,11]},"key":114083,"distance":6,"proven":true,"path":"U B R2 B2 U' L","pathRule":"lex-least-shortest","reached":{"poses":[2,4,14,17,18,8,23,11]}}
 ```
 
@@ -406,6 +452,23 @@ error at any depth; unknown fields are errors in every object that the schema cl
 `additionalProperties: false`, and are parsed and ignored only where the schema leaves the object
 open (a sticker, so that a Cubistry `slot` passes). What the dependency decision means is in
 D2.
+
+Canonicalization for hashing is explicit. Print fields are `id`, `cubie`, `p`, `n`, `up`,
+then `image` only if present; unknown fields are excluded and stickers are sorted by id.
+For a display, sort every `ids` list numerically; serialize each rule with `ids` or `image`
+first and optional `up` second; deduplicate rules and sort their canonical ASCII bytes
+lexicographically. Sort cells lexicographically by the numeric tuple `(p.x,p.y,p.z,n.x,n.y,n.z)`;
+write their fields as `p`, `n`, `accept`, under `{"cells":[...]}`. `deadRules` indexes refer to
+these canonical cells and rules, not request order. All output displays use this normal form.
+Thus cell/rule order changes do not alter table bytes, canonical goal identity or records.
+
+JSON escaping uses `\"` and `\\` for quote and backslash, does not escape `/`, uses
+`\u00xx` (lowercase hexadecimal, no short escapes) for every control character, and
+`\uxxxx` for every non-ASCII UTF-16 code unit. Code points above U+FFFF use a high/low
+surrogate pair; isolated surrogate input is rejected. ASCII printable characters are literal.
+The final newline is a single LF, not CRLF, and is included in the chain hash. Optional fields
+are omitted unless explicitly defined as nullable; missing `image` remains missing in canonical
+print bytes and is never silently converted into an empty string.
 
 ## 6. Versioning and the `solve --json` change
 
@@ -431,9 +494,18 @@ section 17; the short form is that **this is a breaking change of the default ou
   | `formatVersion` | 2 | Marks the extended body. |
   | `toolVersion` | string | The crate version, `0.2.0`. |
   | `gitCommit` | string or null | Set by the release build from the environment; null otherwise. No build script is added. |
-  | `frame` | `"any-orientation"` or `"fixed"` | `"any-orientation"` for the 2x2x2 `solve`, which is optimal up to a whole-cube rotation; `"fixed"` for every other size and for fixed-frame records. Makes the rotation quotient visible to consumers. [A: confirmed engine by engine in the implementation PR] |
-  | `proven` | Boolean | True only where the engine proves the answer shortest in HTM: 2x2x2 tables, `--optimal`, `--within`, exact partial routes; false for two-phase and reduction engines. |
+  | `frame` | `"any-orientation"` or `"fixed"` | Derived from the actual route and target, not cube size: the ordinary 2x2 table solve uses `"any-orientation"`; exact-state `--within` uses `"fixed"` even on 2x2; accepted rotation-quotiented routes use `"any-orientation"` at any size. New fixed-frame records always use the fixed world frame. |
+  | `proven` | Boolean | True only when the actual result proves the emitted path shortest in HTM for its reported frame and target. Never infer this from `--optimal`, `--within` or puzzle size alone; fallback and interrupted results need their own evidence. |
   | `lowerBound` | integer or null | The proven lower bound: equal to `length` when `proven`; the depth searched out when a limit stopped an optimal search; null when nothing is proven. |
+
+  Proof metadata is carried from the actual search result to the report. An interrupted
+  `--optimal` returning an incumbent has `proven: false` unless its lower bound meets that
+  incumbent. `--within --then-solve` falls back to the normal solver's evidence; the presence
+  of `--within` does not prove the fallback optimal. A proof in a slices or blocks alphabet
+  does not establish HTM optimality: report `proven: false` and `lowerBound: null` unless a
+  separate valid HTM bound exists. Existing routes that refuse `--json` continue to refuse it;
+  this format change does not enable new route/option combinations. Tests cover these route
+  distinctions, bounded-search interruption, fallback, and quotient versus exact targets.
 
   Every key of format 1 keeps its name, place, type and meaning. The only difference is the tail:
   the `solve -s "R U" --json` example of `docs/cli/solve-options.md` is, in format 1 (as in
@@ -481,16 +553,25 @@ cubacle (no port, no generated tables, no linked library); it may read the same 
 ### 7.2 What a certificate is
 
 A certificate is the batch output with `--certificate`: a JSON Lines file with a `header`
-record, then the answer records, then a `summary` record, plus optional sidecar tables. The
+record, then the answer records, then one final `summary` record, plus optional sidecar tables. The
 header contains the complete print (not only its hash), the frame string, the move order and
 the encodings, so the file states the whole problem on its own. The summary holds the record
 count and `chainSha256`, the SHA-256 of all preceding lines as bytes (each with its `\n`).
+Every goal record includes its canonical `display` and optional `premise`; every eccentricity
+record includes its actual `premise`, union-source encoding and optional full-state witness.
+Every run includes the cyclic `goals` list, `maxSteps`, and an implicit initial next-goal index
+of 0; its step i targets `goals[i modulo goals.length]`. A checker needs no request file.
+Later headers start new print contexts and invalidate preceding goal bindings; each record
+resolves only against its most recent header. A single summary covers all contexts, including
+all headers. Empty output, a missing summary, an error record, an unknown goal binding, a
+second summary or any trailing record invalidates a certificate. Producers may emit a prefix
+on failure, but never a successful summary; checker acceptance is atomic.
 
 | Claim | Evidence in the certificate | What the checker does |
 | --- | --- | --- |
 | `dist(s, D) <= d` | `path` of length `d` | Replays it on the full 24-sticker state of `s` with its own engine; checks the end meets `D` and equals `reached`. |
 | `dist(s, D) >= d` | goal table of `D` (by hash or sidecar) and `key` | Verifies the table (7.4), computes the key of `s` itself, checks `table[key] == d`. |
-| `ecc(D \| P) = e` | goal table, premise `P`, `witness` key and path | Verifies the table; maximum of the table over keys meeting `P` equals `e`; the witness meets `P` and has value `e`. |
+| `ecc(D \| P) = e` | goal table, premise `P`, `witness` key and path | Verifies the table; maximum of the goal table over union-source keys meeting `P` equals `e`; the full witness meets `P`, projects to its declared key and has value `e`. |
 | `G(D)` empty | `goalKeys: 0` | Evaluates the predicate on every key of `T(D)` itself. |
 | Run closes with preperiod `a`, period `b` | the step words | Replays full states; state after step `a + b` equals state after step `a` with the same goal index; each step's length checked as above. |
 | Histogram, counts | the numbers | Recomputed from the verified table. |
@@ -542,7 +623,7 @@ of the letter, every same-letter transition takes at most five" on the preferred
 print is, per target display `D` (180 of them), `ecc(D | P_letter) <= 5`, where the premise
 `P_letter` puts the letter upright upper right. The induction step of the Cubistry proof
 (every target meets the premise again) is a check of `G(D)` against `P`: the checker verifies
-that every goal key also meets `P` (on the union of tracked bodies). cubacle reports it as
+that every union key meeting `D` also meets `P` (on the union of tracked bodies). cubacle reports it as
 `premiseClosed: true`; the checker recomputes it.
 
 ### 7.6 What is not certified
@@ -556,7 +637,14 @@ covers exactly its records.
 A `run` request gives a start state and a cyclic list of goal ids. cubacle steps with the
 lex-least shortest word to the next goal, until the pair (full state, goal index) repeats or
 `maxSteps` is reached. The record lists every step (`goalId`, `distance`, `path`) and the
-`preperiod` and `period`, or `closed: false`. cubacle's policy is its tie rule, not Cubistry's
+`preperiod` and `period`, or `closed: false`. It also records the complete cyclic `goals`
+list and `maxSteps`. The first target is `goals[0]`. At each step boundary the repetition key is
+(the complete physical state, index of the next goal); the initial boundary is step 0.
+For a closed run, `preperiod + period` equals the number of recorded steps and the first repeat
+must occur there; an open run has exactly `maxSteps` steps and no earlier repeat. A closed run
+has both period fields; an open run has neither. Zero-move steps are real steps and advance the
+goal index. The checker verifies every step against the referenced goal, not just the final state.
+cubacle's policy is its tie rule, not Cubistry's
 policy 13 or 1, so its runs are not expected to equal Cubistry's runs; the universal bounds of
 section 7.5 hold for every shortest policy, which is what the golden tests use.
 
@@ -674,7 +762,11 @@ The print files are AGPL data of Cubistry, the same license as cubacle; they are
   accepts every rotation of the goal). On the 2x2x2 a whole-cube rotation is reachable by moves:
   `U D'` is a `y` rotation, so for it the quotient says 0 and the fixed frame says 2. That case
   is a test.
-- A display and the same display with its cells reordered give identical records.
+- A display and the same display with its cells or rules reordered give identical canonical records.
+- A premise naming an otherwise untracked body uses the union projection; test empty and
+  unsatisfiable premises, k = 0, and all-eight-body union keys.
+- A certificate alone reconstructs every target, premise and run phase; reject missing goals,
+  truncated output, goal rebinding, a wrong premise, a changed phase and trailing records.
 - Adding an accepted sticker to a cell never increases a distance; removing a cell never
   increases it.
 
@@ -1067,8 +1159,8 @@ request; every limit is checked before the work it bounds, and a limit that stop
 | Body size of the two routes | `--max-fixed-frame-body-bytes`, `CUBACLE_MAX_FIXED_FRAME_BODY_BYTES` | 1048576 | The shared `--max-body-bytes` (16384) holds a print (about 2 KB) and a few goals; a batch of 180 displays is about 100 KB. A route-level limit leaves the other endpoints at 16384. Over it: 413. |
 | Lines per request | none, fixed | 2000 | Bounds the number of operations. Over it: 413. |
 | Distinct goal tables per request | none, fixed | 256 | Bounds the build work. |
-| Tracked bodies per goal | none, fixed | at most 6 (14,696,640 keys, 14 MB) | The seven- and eight-body table (84 MB, seconds of CPU) is a job for the command line (D4), not for a request. |
-| Memory per request | `--max-fixed-frame-memory-mb`, `CUBACLE_MAX_FIXED_FRAME_MEMORY_MB` | 128 | Tables (1 byte per key), one frontier (at most 1 byte per key) and the response buffer. With the default concurrency the server needs that many times the number of CPUs at most, which is the place to lower it. |
+| Tracked bodies per goal or goal/premise union | none, fixed | at most 6 (14,696,640 keys, 14 MB) | The seven- and eight-body table (84 MB, seconds of CPU) is a job for the command line (D4), not for a request. |
+| Memory per request | `--max-fixed-frame-memory-mb`, `CUBACLE_MAX_FIXED_FRAME_MEMORY_MB` | 128 | All live allocations: tables, frontiers, parsed input, goal metadata, run state and response buffer. A queue of u32 keys costs 4 bytes per entry, not 1; a scan-per-depth builder may avoid that queue. Check sizes with overflow-safe arithmetic before allocation and account retained tables during eviction/build. With the default concurrency the server needs that many times the number of CPUs at most, which is the place to lower it. |
 | Response size | none, fixed | 8 MiB | Bounds the output of one request; 8 MiB is some tens of thousands of distance records [E]. Over it: an `error` record `over_limit` and the request ends. |
 | `run.maxSteps` | none, fixed | 10000 | The schema allows more for the command line. |
 | `sample.count`, all `sample` lines together | none, fixed | 10000 | Same. |
@@ -1138,8 +1230,9 @@ cubacle fixed-frame table --print tests/fixtures/fixed_frame/blank.print.json --
 sha256sum full.u8
 ```
 
-`table` prints the goal record on one line; for the Cubistry prints it is the line below, which
-validates against the record schema, and `sha256sum` prints the same hash for the 88,179,840
+`table` prints the goal record on one line, including the complete 24-cell reference `display`.
+The line below is an excerpt with that display omitted (not a complete schema-valid record);
+`sha256sum` prints the same hash for the 88,179,840
 bytes of `full.u8`:
 
 ```json
