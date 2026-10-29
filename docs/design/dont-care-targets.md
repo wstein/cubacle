@@ -397,6 +397,19 @@ Goal: any partial target on the 3x3x3, however many completions it has, answered
 - **Memory.** `--max-memory` (default 1500 MB) bounds tables and their move tables. The corner table is taken first, then the largest edge set that still fits; with nothing that fits the search runs without tables and says so.
 - **Proof.** A returned answer is shortest: every depth below it was searched out under an admissible bound. When the time limit (`-b`, default 60 s) ends the search, the result is an error that names the depth proven empty, never a longer answer; the same when the move limit (`-m`) is reached.
 - **Opt-in.** The routes of section 11 stay as they are for the targets they handled. The new route runs with `--optimal` on a target with open stickers, and always with `--any-orientation`. Complete targets and all default outputs are unchanged.
-- **Validation.** Against the measurement spike for the calendar use case (4 views per front-face target, optimum 7 to 11 moves), and against the exact edge search for the cross. Numbers follow when the route is built.
+- **Validation.** Against the measurement spike for the calendar use case (4 views per front-face target, optimum 7 to 11 moves), and against the exact edge search for the cross. Numbers are in the results block below.
+
+Results (release, Apple M2 Pro, one core, one process at a time; built in `src/engines/three/partial/`, user text in `docs/cli/solve.md`):
+
+| Case | Measured [M] |
+|---|---|
+| Five front-face target sets of the spike (4 views each, optimum 7, 8, 9, 10 and 11 moves) | all five answers have the spike's length and are replayed through the facelet model; table build 2.4 to 2.7 s (spike: 7.4 s for its tables), search 5,000 to 1.2 million nodes, under 0.5 s; 44 to 51 MB of tables |
+| Face of colors (`F` face, 8 moves) | 2.2 s, 55 MB peak (a plain solve is a few ms and 4 MB) |
+| U ring, any orientation (24 views) | 2.6 s, 55 MB peak, 7 moves |
+| Two bottom layers (F2L) | 11 moves in 4.6 s and 123 MB peak; 13 moves for a 20-move scramble in 5.9 s, 3.6 million nodes |
+| Cross, exact route against the edge search | same length on four scrambles (the edge search stays the default, 0.03 s) |
+| A limit | `-b 300` on the 20-move F2L: `not proven: no solution has fewer than 12 moves ...`, the table build (4.4 s) is outside `-b`; `-m 6`: `no solution within 6 moves: searched out`; `--max-memory 0`: no tables, still correct, slow |
+
+The CPU cost is paid only on request: the corner table is 88 million entries and its breadth-first search from the target's seed states is the 2 s. A smaller projection for targets that constrain few corners, a cache of the tables per target text, and threads for the build are open.
 
 Left for slice 2: center twists (`t = (U, R, F, D, L, B)`, each Z4) as a view condition, picture targets, and a certificate (the proof as a replayable record).
