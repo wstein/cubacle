@@ -12,7 +12,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 /// (source directory, modules it may name), keyed as `puzzle` or `engines::three`.
-const RULES: [(&str, &[&str]); 23] = [
+const RULES: [(&str, &[&str]); 24] = [
     (
         "src/canonical",
         &["puzzle", "notation", "patterns", "canonical"],
@@ -28,6 +28,10 @@ const RULES: [(&str, &[&str]); 23] = [
     ("src/synthetic", &["synthetic"]),
     ("src/recover", &["puzzle", "recover"]),
     ("src/ranges", &["puzzle", "notation", "ranges"]),
+    (
+        "src/report",
+        &["puzzle", "notation", "metrics", "ranges", "report"],
+    ),
     ("src/patterns", &["puzzle", "meet", "patterns"]),
     ("src/reduction", &["puzzle", "reduction"]),
     ("src/within", &["puzzle", "meet", "within"]),
@@ -71,6 +75,7 @@ const APP_ALLOWED: &[&str] = &[
     "synthetic",
     "recover",
     "ranges",
+    "report",
     "metrics",
     "within",
     "patterns",

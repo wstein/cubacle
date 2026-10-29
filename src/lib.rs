@@ -49,5 +49,6 @@ pub mod ranges;
 pub mod recover;
 mod reduction;
 pub mod render;
+pub mod report;
 pub mod synthetic;
 pub mod within;
