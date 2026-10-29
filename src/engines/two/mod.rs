@@ -19,8 +19,8 @@ use std::time::Instant;
 
 use crate::notation::orbit64::{CORNER_COLORS, CORNER_FACELETS};
 use crate::puzzle::{
-    Face, Facelets, Failure, Move, MoveSequence, PuzzleKind, SolveMetrics, SolveOptions,
-    SolveResult, Solver, Target, Turn,
+    Face, Facelets, Failure, Move, MoveSequence, PuzzleKind, SolveEvidence, SolveFrame,
+    SolveMetrics, SolveOptions, SolveResult, Solver, Target, Turn,
 };
 
 const PERMS: usize = 5040;
@@ -414,16 +414,22 @@ impl Solver for PocketSolver {
 
     fn solve(&self, facelets: &Facelets, options: &SolveOptions) -> SolveResult {
         let started = Instant::now();
-        let finish =
-            |outcome: Result<MoveSequence, Failure>, message: Option<String>| SolveResult {
+        let finish = |outcome: Result<MoveSequence, Failure>, message: Option<String>| {
+            let evidence = outcome.as_ref().map_or_else(
+                |_| SolveEvidence::default(),
+                |path| SolveEvidence::optimal(SolveFrame::AnyOrientation, path.len()),
+            );
+            SolveResult {
                 outcome,
                 message,
                 metrics: SolveMetrics {
                     elapsed: started.elapsed(),
                     probes: None,
+                    evidence,
                 },
                 stages: Vec::new(),
-            };
+            }
+        };
 
         if facelets.kind() != PuzzleKind::Cube2 {
             let size = facelets.kind().size();

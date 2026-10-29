@@ -6,7 +6,10 @@ use std::time::{Duration, Instant};
 
 use cubacle::engines::optimal::{Limits, OptimalSolver, Tables};
 use cubacle::engines::three::Min2PhaseSolver;
-use cubacle::puzzle::{Facelets, PuzzleKind, SolveMetrics, SolveOptions, SolveResult, Solver};
+use cubacle::puzzle::{
+    Facelets, PuzzleKind, SolveEvidence, SolveFrame, SolveMetrics, SolveOptions, SolveResult,
+    Solver,
+};
 
 use crate::cli::SolveArgs;
 use crate::ram::{self, Ram};
@@ -124,7 +127,8 @@ impl Solver for Optimal {
             min_probes: Some(DEFAULT_PROBES),
             ..*options
         };
-        let (outcome, message) = match self.engine.solve_report(facelets, &first, &limits) {
+        let (outcome, message, evidence) = match self.engine.solve_report(facelets, &first, &limits)
+        {
             Ok(report) => {
                 let n = report.solution.len();
                 if report.proven {
@@ -140,9 +144,14 @@ impl Solver for Optimal {
                         report.lower_bound
                     );
                 }
-                (Ok(report.solution), None)
+                let evidence = SolveEvidence {
+                    frame: SolveFrame::Fixed,
+                    proven: report.proven,
+                    lower_bound: Some(u32::from(report.lower_bound)),
+                };
+                (Ok(report.solution), None, evidence)
             }
-            Err((failure, message)) => (Err(failure), message),
+            Err((failure, message)) => (Err(failure), message, SolveEvidence::default()),
         };
         SolveResult {
             outcome,
@@ -150,6 +159,7 @@ impl Solver for Optimal {
             metrics: SolveMetrics {
                 elapsed: start.elapsed(),
                 probes: None,
+                evidence,
             },
             stages: Vec::new(),
         }

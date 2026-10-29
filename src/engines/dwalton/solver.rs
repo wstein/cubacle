@@ -204,6 +204,7 @@ impl DwaltonSolver {
                     metrics: SolveMetrics {
                         elapsed: started.elapsed(),
                         probes: None,
+                        ..SolveMetrics::default()
                     },
                     stages: Vec::new(),
                 },
@@ -293,6 +294,7 @@ impl DwaltonSolver {
                     metrics: SolveMetrics {
                         elapsed: started.elapsed(),
                         probes: None,
+                        ..SolveMetrics::default()
                     },
                     stages,
                 },
@@ -376,6 +378,7 @@ impl DwaltonSolver {
                 metrics: SolveMetrics {
                     elapsed: started.elapsed(),
                     probes: None,
+                    ..SolveMetrics::default()
                 },
                 stages,
             },

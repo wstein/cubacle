@@ -47,9 +47,19 @@ fn finish(
         metrics: SolveMetrics {
             elapsed: started.elapsed(),
             probes: None,
+            ..SolveMetrics::default()
         },
         stages: Vec::new(),
     }
+}
+
+/// Evidence is attached only by routes that actually prove shortest HTM paths.
+fn proven(started: Instant, solution: MoveSequence, message: String) -> SolveResult {
+    let evidence =
+        crate::puzzle::SolveEvidence::optimal(crate::puzzle::SolveFrame::Fixed, solution.len());
+    let mut result = finish(started, Ok(solution), message);
+    result.metrics.evidence = evidence;
+    result
 }
 
 /// The color (face index) of a facelet position.

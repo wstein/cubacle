@@ -225,6 +225,7 @@ impl FiveSolver {
             metrics: SolveMetrics {
                 elapsed: started.elapsed(),
                 probes,
+                ..SolveMetrics::default()
             },
             stages: Vec::new(),
         };
