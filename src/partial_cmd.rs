@@ -2,10 +2,13 @@
 //!
 //! A target with no open sticker never comes here: it is a state, and the
 //! relative-state path in `main` solves it as before. A partial target goes to
-//! the engine's `solve_to`; what the free stickers ended in is not printed.
+//! the engine's `solve_to`; what the free stickers ended in is not printed. On a
+//! 4x4x4 to 7x7x7 the only partial target is the centers (`centers`, or `X`
+//! text with the centers fully specified), solved by `centers::solve_centers_only`.
 
 use std::time::Duration;
 
+use cubacle::centers::{self, CenterGoal};
 use cubacle::puzzle::{Facelets, Failure, SolveOptions, Target};
 
 use crate::cli::SolveArgs;
@@ -41,12 +44,11 @@ fn check(args: &SolveArgs) -> Result<(), String> {
 pub fn run(args: &SolveArgs, start: &Facelets, target: &Target) -> Result<(), String> {
     check(args)?;
     let kind = start.kind();
-    // The reduction engines have no goal stages yet; say so before their tables are built.
-    if kind.size() >= 4 {
-        return Err(format!(
-            "unsupported: the {0}x{0}x{0} engine cannot solve targets with open stickers yet (the 2x2x2 and 3x3x3 can)",
-            kind.size()
-        ));
+    // The reduction engines solve one subset: the centers. Say so before their
+    // tables are built when the target is another one.
+    let centers = kind.size() >= 4;
+    if centers {
+        CenterGoal::read(start, target)?;
     }
     let solver = solver_for(kind);
     let mut options: SolveOptions = default_options(kind);
@@ -61,7 +63,11 @@ pub fn run(args: &SolveArgs, start: &Facelets, target: &Target) -> Result<(), St
     if let Some(probes) = args.probes {
         options = options.with_min_probes(probes);
     }
-    let result = solver.solve_to(start, target, &options);
+    let result = if centers {
+        centers::solve_centers_only(solver.as_ref(), start, target, &options)
+    } else {
+        solver.solve_to(start, target, &options)
+    };
     if args.verbose {
         eprintln!("elapsed {:?}", result.metrics.elapsed);
     }
