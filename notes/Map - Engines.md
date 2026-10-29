@@ -55,6 +55,7 @@ Raw-material notes, category engines.
 - [[Pattern kinds name what is regular and are calibrated on short scrambles]]
 - [[The detector explains patterns and never replaces the search]]
 - [[Partial targets are solved as a goal-set search]]
+- [[A centers-only target is solved by the engine's center stage and a beam]]
 - [[An optimal mode is a measured clean-room design]]
 - [[Vector code exists for NEON, AVX2 and AVX-512 with one fallback]]
 - [[The optimal mode bounds its search by corner and edge databases]]

@@ -290,7 +290,7 @@ error: no cube given; give a cube state or --scramble (or use --to TARGET to sta
 
 A `--to` target may leave stickers open: the printed moves then reach any state that shows the right color on every sticker that is fixed. An open sticker is written `X` (a `?` is read as `X`). Lowercase `x` stays the cube rotation and is never a sticker. A text is a target with open stickers when it has the length of a cube string (24, 54, 96, ...) and an `X` or `?` among face letters (`URFDLB`) or color letters (`WRGYOB`, read with `--scheme`); every other text is read as above, and a target without an open sticker keeps the old code path and the old output, byte for byte. Orbit64 tokens cannot express open stickers.
 
-Two names stand for a 3x3x3 subset over the solved cube: `cross` (the four edges of the down face, both stickers each, and the centers) and `cross-u`, `cross-r`, `cross-f`, `cross-d`, `cross-l`, `cross-b` for the cross of another face. A name is only taken as the whole text.
+Three names stand for a subset over the solved cube. `centers` is the solved centers of a 4x4x4 to 7x7x7 with every edge and corner open (see the table below). The other two are 3x3x3 subsets: `cross` (the four edges of the down face, both stickers each, and the centers) and `cross-u`, `cross-r`, `cross-f`, `cross-d`, `cross-l`, `cross-b` for the cross of another face. A name is only taken as the whole text.
 
 ```sh
 cubacle solve --size 2 "R U F2 R' U' F R2 U F'" --to UUUURRRRXXXXXXXXXXXXXXXX
@@ -321,7 +321,8 @@ The line after the metrics says what the answer is. `shortest` is printed only w
 | 3x3x3 | up to five whole edges and the centers (`cross`, `cross-u`, ...) | shortest, by an exact search over those edges |
 | 3x3x3 | any mask that allows at most 24 complete cubes (for example one corner open) | best found: the shortest of the two-phase answers to each cube; `--probes N` makes them shorter, 16 moves instead of 20 in the example below |
 | 3x3x3 | more (a face, F2L) | refused with `unsupported: the target allows more than 24 complete cubes` |
-| 4x4x4 and larger | any | refused with `unsupported: the 4x4x4 engine cannot solve targets with open stickers yet` |
+| 4x4x4 to 7x7x7 | the centers only: `centers`, or X text with every center sticker given, one color per face, edges and corners all X | shortest where an exact search over the layer moves finds it (up to 12 moves), else best found: the engine's center stage cut at the first prefix that meets the target, shortened by a beam search on the 4x4x4 and 5x5x5; edges and corners stay wherever the moves put them |
+| 4x4x4 to 7x7x7 | any other mask | refused with `unsupported: on a 4x4x4 a target with open stickers can only constrain the centers (the named subset `centers`)` |
 
 ```sh
 cubacle solve "R U2 F' D L2 B R' U F2 D' L B2 U' R2 F D2 L' U B' R" --probes 3000 --to UUUUUUUUXXRRRRRRRRFFXFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB
@@ -334,7 +335,22 @@ best found: the shortest of the two-phase answers to 1 complete cube(s) the targ
 U2 B U' D R' L2 U2 R F2 D2 B' R2 B D' L' F'
 ```
 
-Errors name the case: `unreachable: no state of the 2x2x2 meets the target (all 3674160 states tested)` for three stickers of one corner all `U`; `the target needs color U on 12 stickers but a cube has only 4 of it; the target is contradictory` for too many of a color; `contradictory: no edge of the cube has the colors U and D`; `unreachable: the target wants another color on a center, and the centers of a 3x3x3 never move`; `--to: cross is a 3x3x3 subset, not a 2x2x2 one`. With a target that has open stickers `--moves`, `--all`, `--count`, `--icons`, `--improve` and `--parallel` are refused for now. Measured on a quiet machine in release (fixed scrambles, one process at a time): any 2x2x2 mask 0.25 to 0.3 s and about 30 MB (a plain 2x2x2 solve is 0.08 s and 21 MB), the 3x3x3 cross 0.03 s and 4.5 MB, a cross and one more edge 0.7 s and 25 MB, one or two corners open 0.04 s.
+A centers-only target needs the centers of every face to be one color, the six colors on six faces. On an even cube the colors may be turned (the centers of a cube after `Rw Lw'`); on an odd cube the face centers never move, so they must be the start's. The answer may turn single inner layers (`2R`) whether or not `--slices` is given, as the answers to targets with mixed centers do.
+
+```sh
+cubacle solve --size 4 "Rw U2 F' 2D Lw2 B R' 2U F2 D' Lw B2 U' 2R F Dw2 L' U Fw 2L' B2 R U2 Dw'" --to centers
+```
+
+```text
+moves 13
+metrics: obtm 18, qtm 25, stm 18, btm 13
+best found: 13 moves, the engine's center stage cut to the target and shortened by a beam search, not proven shortest
+Rw' 3U' 2R2 Bw' Rw2 2U U2 Fw D2 Fw2 2R F2 2R'
+```
+
+Measured in release on a quiet machine, three random scrambles each, one process at a time, against the full solve of the same cubes. 4x4x4: 13 moves, 1.1 s, 0.7 GB (full solve 45 moves, 0.3 s, 70 MB); 5x5x5: 40 to 44 moves, 2.2 to 2.8 s, 0.8 GB (70 moves, 1.2 s, 340 MB); 6x6x6: 108 to 116 moves, 3 to 4 s, 0.43 GB (129 to 137 moves, 2.5 to 3.8 s, 0.43 GB); 7x7x7: 162 to 168 moves, 4.2 s, 0.47 GB (183 to 189 moves, 3.9 s, 0.48 GB). The beam search that shortens the end costs most of the time and memory of the 4x4x4 and 5x5x5 answers. The 6x6x6 and 7x7x7 engines finish their centers inside the first wing stage of the smaller engines, so a centers-only answer there saves about a tenth of the moves and no time.
+
+Errors name the case: `unreachable: no state of the 2x2x2 meets the target (all 3674160 states tested)` for three stickers of one corner all `U`; `the target needs color U on 12 stickers but a cube has only 4 of it; the target is contradictory` for too many of a color; `contradictory: no edge of the cube has the colors U and D`; `unreachable: the target wants another color on a center, and the centers of a 3x3x3 never move`; `--to: cross is a 3x3x3 subset, not a 2x2x2 one`; `--to: centers is a 4x4x4 to 7x7x7 subset, not a 3x3x3 one`; on a 4x4x4 to 7x7x7, `unsupported: the centers of a centers-only target must all be specified`, `unsupported: the centers of face U show different colors in the target; a target with mixed centers must be complete` and `unreachable: the target wants another color on a face center than the start has`. With a target that has open stickers `--moves`, `--all`, `--count`, `--icons`, `--improve` and `--parallel` are refused for now. Measured on a quiet machine in release (fixed scrambles, one process at a time): any 2x2x2 mask 0.25 to 0.3 s and about 30 MB (a plain 2x2x2 solve is 0.08 s and 21 MB), the 3x3x3 cross 0.03 s and 4.5 MB, a cross and one more edge 0.7 s and 25 MB, one or two corners open 0.04 s.
 
 ### Shorter solutions
 

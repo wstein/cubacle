@@ -354,9 +354,9 @@ Built, in this order (the order differs from section 8 where noted); the three c
 | 3. `solve_to` on the `Solver` trait | done, with the default "unsupported" error; built before the 2x2 so the engines could override it |
 | 4. 2x2 by a multi-source search | done, proven shortest |
 | 5. 3x3 by completion enumeration | done: at most 24 completions, best found (not proven shortest) |
-| 6. Named subsets | partly: `cross` and `cross-<face>`; `layer` and `centers` are not built |
+| 6. Named subsets | partly: `cross`, `cross-<face>` and `centers` (4x4x4 to 7x7x7); `layer` is not built |
 | 7. 3x3 cross and F2L with relaxed tables | partly: whole edges up to five, exact (the cross and its parts); F2L, a face and other masks with more than 24 completions are refused |
-| 8. 4x4 and 5x5 centers, moved centers as color targets | not built: `reduce` in the 4x4 engine runs its three phases in one go to a 3x3x3, and a centers-only goal inside them was not looked for yet |
+| 8. 4x4 and 5x5 centers, moved centers as color targets | centers only done for the 4x4 to 7x7 (the first slice, see below); moved centers as color targets and other masks are refused, naming the supported subset |
 | 9. Server | not built, by decision of this task; the REST `target` field would take the same text and `reached` is still optional |
 | 10. Docs and notes | done for the CLI, the 2x2 and 3x3 engine pages and the notes |
 
@@ -376,6 +376,14 @@ Measured in release on a quiet machine, fixed scrambles, one process at a time, 
 | 3x3x3 cross and one more edge (12^5 * 2^5 = 24^5 = 7,962,624 table entries; 12P5 * 2^5 = 3,041,280 of them are distinct states) | cross + 1 pair 37 MB, not built | 0.7 s, 25 MB |
 | 3x3x3 one or two corners open (1 and 3 completions) | threshold needs a measurement | 0.04 s; 20 moves, 16 with `--probes 3000` |
 | 3x3x3 F2L | seconds to minutes | not built |
-| 4x4x4 centers only | existing stage tables, about 12 MB | not built |
+| 4x4x4 centers only | existing stage tables, about 12 MB | 13 moves, 1.1 s, 0.7 GB peak (full solve 45 moves, 0.3 s, 70 MB); see the centers-only block below |
 
 Open questions: how far the completion threshold of 24 can be raised (it is a node limit of 200,000 in the enumeration, not a measured optimum); whether the 2x2 goal test should be faster (an incremental test would take it near the plain solve); the meaning of "cross" on a cube whose centers are not home, which is moot for the 3x3x3 (centers never move) and needs a decision with the 4x4 centers work.
+
+### Centers only on 4x4x4 to 7x7x7 (first slice, owner order of the week of 2026-10-26)
+
+`solve --to centers`, or X text where every edge and corner is X and every center is given, is solved on the 4x4x4 to 7x7x7 by `centers::solve_centers_only` (`src/centers/only.rs`); any other mask or size keeps failing with a message naming the subset. The goal is the generic `Target` (a color set per sticker), its cared stickers are a `puzzle::Mask`, and the check "centers only" is `target.care().is_subset_of(&Mask::centers(kind))`, so the 3x3x3 masked search can reuse both. Complete targets and all default outputs are unchanged.
+
+Two routes, the shorter answer wins. First an exact search over the layer moves with the center tables of `src/centers/search.rs`, now aimed at a color-to-face map (`Aim`): answers up to 12 moves are proved shortest. Second the engine's own center stage through `SolveOptions::centers_only` (the 4x4x4 and 5x5x5 reduce with it; the 6x6x6 and 7x7x7 stop after the center stages and the first wing stage of the smaller engine, which finishes their centers), the first prefix that meets the target, finished in the frame of the target, and on the 4x4x4 and 5x5x5 shortened by the beam search of `refine`. Numbers are in the table above and in `docs/cli/solve.md`: the 4x4x4 answer has 13 moves instead of 45; the 6x6x6 and 7x7x7 save about a tenth of the moves and no time, because their engines finish the centers inside the wing stage.
+
+Open: whether the beam should also run on the 6x6x6 and 7x7x7 (a tenth fewer moves for 5 s and 1 GB, over the memory cap, so it is off); whether answers may use single inner layers without `--slices` (they do now); mixed centers as an `X` color target and the `layer` name.
