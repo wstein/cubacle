@@ -64,3 +64,6 @@ impl BuildLimits {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;
