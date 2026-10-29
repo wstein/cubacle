@@ -57,6 +57,8 @@ Raw-material notes, category engines.
 - [[Partial targets are solved as a goal-set search]]
 - [[A target set is a list of views solved by multi-goal deepening]]
 - [[A centers-only target is solved by the engine's center stage and a beam]]
+- [[A picture cube adds the center twists as a search coordinate]]
+- [[A certificate records the search so a second program can replay it]]
 - [[An optimal mode is a measured clean-room design]]
 - [[Vector code exists for NEON, AVX2 and AVX-512 with one fallback]]
 - [[The optimal mode bounds its search by corner and edge databases]]
