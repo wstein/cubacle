@@ -130,11 +130,11 @@ upper       = "A".."U" ;
 digits      = digit { digit } ;
 ```
 
-The face index (the position of the face in the schema) is appended to every placeholder: `a` on the first face is the variable `a1`, on the second face `a2`.
+A placeholder is a variable named by the whole token; equal names are the same variable. A number is part of the name and names a further variable of the family (`a`, `a1`, `a2`), not a face; `a*` in a constraint groups the family.
 
-One face. A grid of exactly N times N tokens is one face and stands for all six: the same pattern on every face, the index of the face appended to each placeholder (`a1` to `a6`), the center letter as above. Then `/` and newlines only break rows, so `a b a / b . b / a b a` is one 3x3 face. A grid with six faces writes its placeholders as they are to be named (`a1`, `b2`), without an index appended.
+One face. A grid of exactly N times N tokens is one face and stands for all six: the same pattern on every face with the same variables (nothing is appended), the center letter as above. Then `/` and newlines only break rows, so `a b a / b . b / a b a` is one 3x3 face. A grid with six faces writes its placeholders as they are to be named (`a1`, `b2`).
 
-Differences: the layout example used `color-scheme: western`, whose letters are W R G Y O B, so its `U` was an unknown color; the example now uses the default scheme. The grammar above lets `/` separate faces, but the shipped one-face examples break the rows of one face with `/`. The reader decides by the count: N times N tokens or fewer in all is one face and `/` breaks rows; more is six faces. A number in a token of a one-face grid is kept and the face index follows it (`b1` on the second face is `b12`).
+Differences: the layout example used `color-scheme: western`, whose letters are W R G Y O B, so its `U` was an unknown color; the example now uses the default scheme. The grammar above lets `/` separate faces, but the shipped one-face examples break the rows of one face with `/`. The reader decides by the count: N times N tokens or fewer in all is one face and `/` breaks rows; more is six faces. The face number is not appended to the placeholders of a one-face grid, as an earlier reading did (`a` on the second face as `a2`, `b1` as `b12`): the number names a variable of a family and `a*` groups the family, so the six faces of a one-face grid share their variables and `b1` stays `b1` on every face.
 
 ## Guard
 
@@ -237,7 +237,7 @@ Key mapping, stated once: every JSON key is the camelCase form of the kebab-case
 - `colorScheme` is a name or six letters (see [Color schemes](color-schemes.md)). The display colors of six letters are `colorLetters`, an object from letter to color in JSON and a `color-letters:` line in the text form, with the same value grammar as in a scheme file.
 - `movableOrbits`, `fixedOrbits`, `patternAliases` and `patternTags` are lists of strings.
 
-The example of the worked example above in both forms (the `.cubacle` file spells out all six faces with their indexes, the JSON file has the one-face shorthand; `cubacle template check` reads the one-face form of the text file too; files `concentric-squares.cubacle` and `concentric-squares.json` in `docs/static/examples/definitions/`, published at `https://wstein.github.io/cubacle/examples/definitions/`):
+The example of the worked example above in both forms (the `.cubacle` file spells out all six faces with the variables `a1` to `a6`, the JSON file has the one-face shorthand; `cubacle template check` reads the one-face form of the text file too; files `concentric-squares.cubacle` and `concentric-squares.json` in `docs/static/examples/definitions/`, published at `https://wstein.github.io/cubacle/examples/definitions/`):
 
 ```json
 {
@@ -277,13 +277,13 @@ b b c b b
 a b b b a
 ```
 
-The grid above is the U face; the other faces carry their own letter in the center. With the face index, the variables of the first face are `a1`, `b1` and `c1`. The guard
+The grid above is the U face; the other faces carry their own letter in the center. Written as a grid of one face, all six faces share the variables `a`, `b` and `c`. To give each face its own variables, write the six faces out with `a1` to `a6` (the shipped `concentric-squares.cubacle` does); then `a*` groups the family. The guard
 
 ```text
 unique(a*, b*, c*)
 ```
 
-requires, for every face, that the three ring colors differ.
+requires that the three ring colors differ (for every index of the family when the six faces are written out).
 
 ## Measured facts
 

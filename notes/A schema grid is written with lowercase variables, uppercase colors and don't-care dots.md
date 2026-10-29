@@ -3,7 +3,7 @@ id: 20261025140102
 aliases: []
 tags: ["type/design", "status/decided", "category/engines"]
 ---
-Planned: a schema is a grid of tokens, one face per line or faces separated by `/`; tokens are separated by comma, space or `/`. A lowercase letter with an optional number (a, b1) is a symbolic color variable that may take any color; an uppercase letter is a fixed color; `.` and `?` are don't care. Variables make the schema say how stickers relate (these two are equal) without naming the color, which is why one schema covers all colorings of a pattern. Example, 5x5, one face (25 tokens, rows in order): `a b b b a b b c b b b c U c b b b c b b a b b b a`, with the face index appended to every variable.
+Planned: a schema is a grid of tokens, one face per line or faces separated by `/`; tokens are separated by comma, space or `/`. A lowercase letter with an optional number (a, b1) is a symbolic color variable that may take any color; an uppercase letter is a fixed color; `.` and `?` are don't care. Variables make the schema say how stickers relate (these two are equal) without naming the color, which is why one schema covers all colorings of a pattern. Example, 5x5, one face (25 tokens, rows in order): `a b b b a b b c b b b c U c b b b c b b a b b b a`. The one-face form repeats the same variables on all six faces; a number names a further variable of the family, not a face.
 
 ## Links
 

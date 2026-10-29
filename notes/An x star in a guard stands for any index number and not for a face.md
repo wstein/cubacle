@@ -3,7 +3,7 @@ id: 20261025140105
 aliases: []
 tags: ["type/design", "status/decided", "category/engines"]
 ---
-Planned: in a guard `x*` stands for any index number, so unique(a*,b*,c*) repeats the condition for every index present. It is not automatically a face: the index is only a label, so a guard may also compare variables of different faces (cross-face guards are allowed). Keeping the index free of meaning lets the same syntax serve per-face rules and rules across faces.
+Planned: in a guard `x*` stands for any index number, so unique(a*,b*,c*) repeats the condition for every index present. It is not automatically a face: the index is only a label (the bare name `a` is the member with an empty index), so a guard may also compare variables of different faces (cross-face guards are allowed). Keeping the index free of meaning lets the same syntax serve per-face rules and rules across faces.
 
 ## Links
 

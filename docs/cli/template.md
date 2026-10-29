@@ -39,7 +39,7 @@ The file is in `docs/static/examples/definitions/` (published at `https://wstein
 
 ### A grid of one face
 
-A symmetric definition needs only one face. When the grid has `N*N` tokens in all, they are the U face, the same pattern on all six faces; then `/` and newlines only break rows. A placeholder gets the number of its face appended (`a` is `a1` on U, `a2` on R, and so on up to `a6` on B), so `a*` in the constraints names the six of them. On a cube of odd size the center letter `U` stands for the letter of the face it is on. A number already in a token is kept and the face number comes after it (`b1` on R is `b12`).
+A symmetric definition needs only one face. When the grid has `N*N` tokens in all, they are the U face, the same pattern on all six faces; then `/` and newlines only break rows. The placeholders are the same variables on every face: nothing is appended, so `b1` stays `b1` on all six faces. A number in a token does not mean a face; it names a further variable of the same family (`a`, `a1` and `a2` are three variables), and `a*` in the constraints groups the whole family. On a cube of odd size the center letter `U` stands for the letter of the face it is on.
 
 ```text
 # checkerboard-free-center.cubacle
@@ -55,10 +55,10 @@ cubacle template check checkerboard-free-center.cubacle
 ```
 
 ```text
-ok: checkerboard-free-center, size 3, 12 variables, guard ok
+ok: checkerboard-free-center, size 3, 2 variables, guard ok
 ```
 
-Fewer or more stickers than one face and not six faces are an error with the position, for example `error: short.cubacle:3:34: the grid of one face has 8 stickers, expected 9 (3x3)`.
+Here `a` and `b` are two variables, and the guard `unique(a*, b*)` (a and b show different colors) can be met, so `guard ok`. Fewer or more stickers than one face and not six faces are an error with the position, for example `error: short.cubacle:3:34: the grid of one face has 8 stickers, expected 9 (3x3)`.
 
 Every `.cubacle` file in that directory is read (`checkerboard-free-center`, `concentric-squares`, `custom-scheme`, `ring-symmetric`), except `bad.cubacle`, which fails on purpose, see below. `ring-symmetric.cubacle` gives its symmetry with the key `required-symmetry: D4h`; the call `symmetric(D4h)` in `color-constraints` is not read yet.
 
