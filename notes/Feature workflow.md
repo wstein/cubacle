@@ -9,6 +9,7 @@ A Sonnet author builds each feature in a separate git worktree, an Opus review f
 
 - [[Workspace split timing]]
 - [[Notes policy]]
+- [[Marked doc examples are rewritten by running the binary]]
 
 Source: AGENTS.md, lines 18-20
 Source: docs/architecture.md, lines 34-36

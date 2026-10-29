@@ -6,6 +6,7 @@ tags: ["type/map", "category/process"]
 Raw-material notes, category process.
 
 - [[Feature workflow]]
+- [[Marked doc examples are rewritten by running the binary]]
 - [[Notes policy]]
 - [[Branches are integrated one at a time with a per-commit gate]]
 - [[Searches are capped at 1.5 GB and run one at a time]]
