@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wstein.github.io/cubacle/schema/v1/solve-result.schema.json",
+  "title": "cubacle solve result",
+  "description": "Draft, not implemented: the body of cubacle solve --json and of POST /v1/solve. Format 1 is the body of v0.1.0 (no formatVersion key). Format 2, the default from v0.2.0, appends formatVersion, toolVersion, gitCommit, frame, proven and lowerBound after all other keys; --json-format 1 or formatVersion 1 in the request selects format 1. See docs/design/fixed-frame-proofs.md, sections 6 and 17.",
+  "type": "object",
+  "$defs": {
+    "metrics": {
+      "description": "The length of the solution in the seven metrics, always in this key order.",
+      "type": "object",
+      "properties": {
+        "htm": { "type": "integer", "minimum": 0 },
+        "qtm": { "type": "integer", "minimum": 0 },
+        "stm": { "type": "integer", "minimum": 0 },
+        "etm": { "type": "integer", "minimum": 0 },
+        "obtm": { "type": "integer", "minimum": 0 },
+        "btm": { "type": "integer", "minimum": 0 },
+        "atm": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["htm", "qtm", "stm", "etm", "obtm", "btm", "atm"],
+      "additionalProperties": false
+    }
+  },
+  "properties": {
+    "kind": { "type": "string", "pattern": "^[2-7]x[2-7]x[2-7]$" },
+    "solution": { "type": "string" },
+    "inverse": { "type": "string" },
+    "length": { "type": "integer", "minimum": 0 },
+    "metrics": { "$ref": "#/$defs/metrics" },
+    "compressed": { "description": "Only with optimize ranges.", "type": "string" },
+    "compressedLength": { "type": "integer", "minimum": 0 },
+    "compressedMetrics": { "$ref": "#/$defs/metrics" },
+    "elapsedMicros": { "type": "integer", "minimum": 0 },
+    "phases": {
+      "description": "Only for the 4x4x4 to 7x7x7 engines: one entry per phase, in order; a phase can have 0 moves.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "moves": { "type": "integer", "minimum": 0 }
+        },
+        "required": ["name", "moves"],
+        "additionalProperties": false
+      }
+    },
+    "patternHint": { "description": "Only with -v on the command line: the lowercase name of a known pattern.", "type": "string" },
+    "formatVersion": { "description": "Format 2 only. Absent in format 1.", "const": 2 },
+    "toolVersion": { "description": "Format 2 only: the crate version.", "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?$" },
+    "gitCommit": {
+      "description": "Format 2 only: set by the release build from the environment, otherwise null.",
+      "oneOf": [{ "type": "string", "pattern": "^[0-9a-f]{40}$" }, { "type": "null" }]
+    },
+    "frame": {
+      "description": "Format 2 only: any-orientation for the 2x2x2 solve (optimal up to a rotation of the whole cube), fixed otherwise.",
+      "enum": ["any-orientation", "fixed"]
+    },
+    "proven": { "description": "Format 2 only: true only where the engine proves the answer shortest in HTM.", "type": "boolean" },
+    "lowerBound": {
+      "description": "Format 2 only: the proven lower bound; equal to length when proven, null when nothing is proven.",
+      "oneOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }]
+    }
+  },
+  "required": ["kind", "solution", "inverse", "length", "metrics", "elapsedMicros"],
+  "dependentRequired": {
+    "formatVersion": ["toolVersion", "gitCommit", "frame", "proven", "lowerBound"],
+    "toolVersion": ["formatVersion"],
+    "gitCommit": ["formatVersion"],
+    "frame": ["formatVersion"],
+    "proven": ["formatVersion"],
+    "lowerBound": ["formatVersion"],
+    "compressed": ["compressedLength", "compressedMetrics"],
+    "compressedLength": ["compressed"],
+    "compressedMetrics": ["compressed"]
+  },
+  "additionalProperties": false,
+  "examples": [
+    {"kind":"3x3x3","solution":"U' R'","inverse":"R U","length":2,"metrics":{"htm":2,"qtm":2,"stm":2,"etm":2,"obtm":2,"btm":2,"atm":2},"elapsedMicros":0},
+    {"kind":"3x3x3","solution":"U' R'","inverse":"R U","length":2,"metrics":{"htm":2,"qtm":2,"stm":2,"etm":2,"obtm":2,"btm":2,"atm":2},"elapsedMicros":0,"formatVersion":2,"toolVersion":"0.2.0","gitCommit":null,"frame":"fixed","proven":false,"lowerBound":null}
+  ]
+}
