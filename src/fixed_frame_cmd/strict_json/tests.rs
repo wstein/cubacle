@@ -1,6 +1,6 @@
 use std::io::{BufReader, Cursor};
 
-use super::{parse, read_bounded_line, read_line};
+use super::{integer, parse, read_bounded_line, read_line};
 
 #[test]
 fn duplicate_keys_at_every_depth_are_rejected() {
@@ -21,16 +21,19 @@ fn integer_lexemes_keep_the_full_u64_range() {
     assert_eq!(value[0].as_i64(), Some(i64::MIN));
     assert_eq!(value[1].as_u64(), Some(u64::MAX));
     assert_eq!(value[2].as_i64(), Some(0));
-    for input in [
-        "1.0",
-        "1e0",
-        "0E+0",
-        "NaN",
-        "Infinity",
-        "18446744073709551616",
-    ] {
+    for input in ["1.0", "1e0", "0E+0", "-0.0", "-0e0", "18446744073709551616"] {
+        assert!(
+            integer(&parse(input.as_bytes()).unwrap()).is_err(),
+            "coerced {input}"
+        );
+    }
+    for input in ["NaN", "Infinity"] {
         assert!(parse(input.as_bytes()).is_err(), "accepted {input}");
     }
+    assert_eq!(integer(&value[0]).unwrap(), i128::from(i64::MIN));
+    assert_eq!(integer(&value[1]).unwrap(), i128::from(u64::MAX));
+    // Schema-open sticker extensions may contain valid JSON floats, then be ignored.
+    assert!(parse(br#"{"slot":{"weight":1.5,"scale":1e2}}"#).is_ok());
 }
 
 #[test]
@@ -39,9 +42,7 @@ fn numeric_token_limit_is_checked_outside_strings() {
         .unwrap_err()
         .contains("128 bytes"));
     // A huge but syntactically bounded number fails range validation, not the token bound.
-    assert!(!parse("9".repeat(128).as_bytes())
-        .unwrap_err()
-        .contains("128 bytes"));
+    assert!(integer(&parse("9".repeat(128).as_bytes()).unwrap()).is_err());
     assert!(parse(format!(r#"{{"text":"{}1.0\\\"2e0"}}"#, "9".repeat(200)).as_bytes()).is_ok());
 }
 
