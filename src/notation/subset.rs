@@ -1,11 +1,12 @@
 //! Named subsets of the solved cube as partial targets: a fixed mask over the
 //! solved cube, written as a single word for `solve --to`.
 
-use crate::puzzle::{Face, Facelets, PuzzleKind, Target};
+use crate::puzzle::{Face, Facelets, Mask, PuzzleKind, Target};
 
 /// The names [`named_subset`] knows. A face letter after a dash picks the face:
 /// `cross-u`, `cross-r`, `cross-f`, `cross-d`, `cross-l`, `cross-b`.
-pub const NAMED_SUBSETS: [&str; 2] = ["cross", "cross-<face>"];
+/// `centers` is the solved centers of a 4x4x4 to 7x7x7.
+pub const NAMED_SUBSETS: [&str; 3] = ["cross", "cross-<face>", "centers"];
 
 /// The two facelets of each 3x3x3 edge slot (UR UF UL UB DR DF DL DB FR FL BL BR).
 const EDGE_FACELETS: [[usize; 2]; 12] = [
@@ -30,6 +31,9 @@ const EDGE_FACELETS: [[usize; 2]; 12] = [
 /// size. `cross` is `cross-d`: the four edges of the down face, both stickers
 /// each, and the centers, over the solved cube.
 pub fn named_subset(text: &str, kind: PuzzleKind) -> Option<Result<Target, String>> {
+    if text == "centers" {
+        return Some(centers(kind));
+    }
     let face = match text {
         "cross" => Face::D,
         _ => {
@@ -60,6 +64,21 @@ pub fn named_subset(text: &str, kind: PuzzleKind) -> Option<Result<Target, Strin
         keep[center * 9 + 4] = true;
     }
     Some(Ok(Target::masked(&Facelets::solved(kind), |i| keep[i])))
+}
+
+/// `centers`: every center sticker of the solved cube, the rest open. It needs
+/// a cube with centers that move, so a 4x4x4 to 7x7x7.
+fn centers(kind: PuzzleKind) -> Result<Target, String> {
+    if kind.size() < 4 {
+        return Err(format!(
+            "centers is a 4x4x4 to 7x7x7 subset, not a {0}x{0}x{0} one",
+            kind.size()
+        ));
+    }
+    Ok(Target::masked_by(
+        &Facelets::solved(kind),
+        &Mask::centers(kind),
+    ))
 }
 
 #[cfg(test)]
@@ -103,5 +122,24 @@ mod tests {
             error.contains("3x3x3") && error.contains("4x4x4"),
             "{error}"
         );
+    }
+
+    #[test]
+    fn centers_constrain_only_the_centers_of_a_big_cube() {
+        for (kind, count) in [
+            (PuzzleKind::Cube4, 24),
+            (PuzzleKind::Cube5, 54),
+            (PuzzleKind::Cube6, 96),
+            (PuzzleKind::Cube7, 150),
+        ] {
+            let target = named_subset("centers", kind).unwrap().unwrap();
+            assert_eq!(target.constrained(), count, "{kind:?}");
+            assert_eq!(target.care(), Mask::centers(kind));
+        }
+        for kind in [PuzzleKind::Cube2, PuzzleKind::Cube3] {
+            let error = named_subset("centers", kind).unwrap().unwrap_err();
+            assert!(error.contains("4x4x4 to 7x7x7"), "{error}");
+        }
+        assert!(named_subset("center", PuzzleKind::Cube4).is_none());
     }
 }
