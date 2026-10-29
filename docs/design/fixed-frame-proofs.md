@@ -688,10 +688,14 @@ itself does not judge them.
 
 ### 10.4 Where the tests run
 
-- Default `cargo test`: k <= 4 cases, the counterexample, negative controls, the determinism
-  byte test. Budget: under one second of test time in release [E].
-- `#[ignore]`, filter `fixed_frame_full`: the full 88-million-key table and its hash, k = 5 and
-  k = 6 goldens, the 180-display H/S/M batch. Run on request, or in an opt-in CI job like
+- Default `cargo test`: k <= 4 cases, the five golden cases of the release gate (section 19.3),
+  the counterexample, negative controls, the determinism byte test. Budget: under one second of
+  test time in release [E]. The golden cases also run alone, as the CI job `fixed-frame-golden`
+  (`cargo test --release --test fixed_frame_golden_test`), so their result does not wait for the
+  slow `rust` job.
+- `#[ignore]`, filter `fixed_frame_full`: the full 88-million-key table and its hash against
+  `tests/fixtures/fixed_frame/table-hashes.json` (section 19.1), k = 5 and k = 6 goldens, the
+  180-display H/S/M batch. Run on request, and in the opt-in CI job `fixed-frame-full`, like
   `four-full`, never in the default `rust` job, which already times out on `develop`.
 - The independent checkers (Flix and Julia) run in Cubistry, in optional tests that use the
   pinned release, never in cubacle's CI. They are not part of the release gate (section 19.3);
@@ -699,7 +703,8 @@ itself does not judge them.
 
 ## 11. Performance, memory and CI
 
-The default suite gains only the small cases. No table is cached on disk (tables of k <= 7
+The default suite gains only the small cases; two small CI jobs are added, `fixed-frame-golden`
+and `fixed-frame-full` (section 19.3). No table is cached on disk (tables of k <= 7
 build in seconds, so the cost of a cache and its integrity hash is not worth it). The 1.5 GB cap
 holds with a wide margin: the largest table is 84 MB. The server gains the endpoints of D6
 (section 18); they build their tables per request and keep none, which answers the don't-care
@@ -843,9 +848,16 @@ byte for byte what the command line writes, so the server adds no second format;
 the consumers need (four bodies, 136,080 keys) build in milliseconds [E], which is why no state
 is kept between requests.
 
-### Still open from the first draft
-7. **Release.** Is v0.2.0 the tag for this, and does it wait for the green `rust` job only, or
-   for all jobs?
+### D7. The release gate of v0.2.0 (DECIDED)
+
+The tag v0.2.0 waits for all required CI jobs to be green, `ci-result` included, and for the
+Cubistry-reference golden tests to be green in CI (section 19.3). The slow `rust` job must be
+repaired first; a separate investigation exists, and this paper only records that the gate
+depends on it. Other repositories pin only release tags with green CI (1.3.3), so a partial gate
+would defeat the point of a tag, and the goldens are the only tie between cubacle's answers and
+the numbers of the Cubistry proofs.
+
+The questions that remain open after these decisions are in section 20.
 
 ## 15. Implementation plan
 
@@ -884,9 +896,11 @@ after the CI of `develop` is green (decision 3).
 - **Strict JSON** rests on `serde_json` plus our duplicate-key check (D2). A gap in the check
   would let a duplicate key through; the negative controls of section 10.3 cover it, and the
   independent checkers read the same bytes with their own parsers.
-- **CI.** The `rust` job times out on `develop` now; the new default tests must stay small, and
-  the heavy ones stay ignored. A release waits for green CI, so this work can be blocked by an
-  unrelated job.
+- **CI.** The `rust` job times out on `develop` now. A separate investigation repairs it, and
+  the release gate depends on that repair (D7): this work cannot be tagged before it, and it can
+  be blocked by a job it did not break. The new default tests stay small, the heavy ones stay
+  ignored and have their own job, and the golden cases have a small job of their own so that a
+  regression in them shows even while `rust` is red.
 - **Large tables in a checker.** Mode L on 88 million keys is a compiled-checker job (Julia, Flix
   on the JVM); Python is a development aid only (D5) and is kept to k <= 5.
 - **The checkers depend on another repository's SPEC.** A fixed-frame certificate is
@@ -1116,3 +1130,59 @@ jobs, so even the untuned C figure would pass.
 
 Nobody has to download or trust the table: a consumer regenerates it, or runs an independent
 checker in mode R (section 7.4), and compares the hash with the notes.
+
+### 19.3 The release gate for v0.2.0 (D7)
+
+The owner cuts the tag (`AGENTS.md`: no tag unless the owner asks) from a commit of `develop` for
+which all of the following hold.
+
+1. **All required CI jobs are green, `ci-result` included.** The jobs today are `rust`,
+   `five-full`, `four-full`, `msrv`, `docs`, `notes` and `spelling`. The aggregate `ci-result`
+   and the classifier job `changes` are on the branch `ci/skip-rust-for-docs-only` (commit
+   `ec7e3d9`) and not yet on `develop` [C]; the gate presumes that branch is merged. The two jobs
+   of this work, `fixed-frame-golden` and `fixed-frame-full`, are added to the `needs` of
+   `ci-result` by row 8 of section 15, and they belong to the set that a documentation-only
+   change skips, like `rust` and `four-full`.
+2. **The `rust` job is repaired first.** It times out on `develop` today (30-minute limit [C]).
+   A separate investigation exists. This paper does not repeat it; the gate only depends on its
+   result, and no tag is cut while `rust` is red.
+3. **The Cubistry-reference golden tests are green in CI.** The values are the reviews of
+   Cubistry reproduced by an independent scratch implementation ([R] and [M], section 3); the
+   test names are proposals.
+
+   | Case | Expected | Test |
+   | --- | --- | --- |
+   | Three corners (letter upper right, tens lower left, units lower right, upright) | 9,072 keys, eccentricity 6, histogram 1, 15, 177, 1397, 4981, 2497, 4 | `golden_three_bodies` |
+   | 378 sources with the letter in place | eccentricity 5, histogram 1, 6, 29, 118, 180, 44 | `golden_letter_in_place` |
+   | Blank print, blank corner in any twist plus three glyphs | 136,080 keys, 3 goal keys, eccentricity 6, histogram 3, 45, 594, 6015, 39849, 79143, 10431 | `golden_blank_print` |
+   | 810 sources with blank and letter in place | eccentricity 6, histogram 3, 9, 27, 99, 273, 363, 36 | `golden_blank_premise` |
+   | Counterexample `U D2 B D'` to blank/H/34 | distance 6, key 114083, lex-least shortest word `U B R2 B2 U' L`; `R F' D F2 R' D` replays to the display too | `golden_counterexample` |
+
+   All five are k <= 4 and need well under a second [E], so they are ordinary tests of the
+   default suite and also run alone in `fixed-frame-golden`. They are non-slow checks, not an
+   opt-in job. The heavy goldens (k = 5 and k = 6, the 180-display batch, the full-table hash of
+   section 19.1) run in `fixed-frame-full`, an opt-in job in the sense of `four-full`: it is not
+   in the default suite, but it is in `ci-result`, so it must be green for the tag as well, and
+   the hash printed in the release notes is checked by a machine.
+4. **The release pull request** (row 10) sets version 0.2.0 in both crates, adds the Breaking
+   changes block (section 17.2) and the Fixed-frame tables block (section 19.1) to the release
+   notes, and is merged before the tag.
+
+The checkers (D5) are not part of the gate: they pin the tag after it exists.
+
+## 20. Open questions
+
+Only what the decisions D1 to D7 leave open.
+
+1. **REST default of `/v1/solve`.** D3 names `solve --json`. This paper makes `POST /v1/solve`
+   follow it, because both are written by one function and the documentation promises equal
+   bytes (section 6). If the owner wants the server to stay on format 1 until clients have moved,
+   it is a one-line default in the request reader, at the price of the two bodies no longer being
+   equal.
+2. **Group 3 in the Cubistry SPEC.** The Flix and Julia checkers cannot read a fixed-frame
+   certificate until Cubistry's coordinator accepts a Group 3 and its corpus (row C1 of
+   section 15). That is Cubistry's decision, not cubacle's.
+3. **REST limits.** The numbers of section 18.3 are proposals; the server pull request
+   measures memory and time per request and may change them.
+4. **Output and the AGPL.** Whether certificates and tables carry no AGPL obligation for the
+   consumer is assumed (section 12), not decided; it is the owner's call and not legal advice.
