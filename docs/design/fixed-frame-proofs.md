@@ -666,9 +666,9 @@ itself does not judge them.
 
 The default suite gains only the small cases. No table is cached on disk (tables of k <= 7
 build in seconds, so the cost of a cache and its integrity hash is not worth it). The 1.5 GB cap
-holds with a wide margin: the largest table is 84 MB. Nothing is added to the server in this
-plan; a REST endpoint would need a decision on stateless table builds per request (the don't-care
-design's open question 6).
+holds with a wide margin: the largest table is 84 MB. The server gains the endpoints of D6
+(section 18); they build their tables per request and keep none, which answers the don't-care
+design's open question 6.
 
 ## 12. Licensing
 
@@ -782,12 +782,19 @@ is marked breaking for the changelog and is the reason the next tag is **v0.2.0*
 a breaking change raises the minor number). The details, the list of consumers found and the
 migration are in section 17, the pull request in row 6 of section 15.
 
+### D6. A REST endpoint ships with the first fixed-frame release (DECIDED)
+
+`POST /v1/fixed-frame/batch` and `POST /v1/fixed-frame/distance` are part of v0.2.0, designed in
+section 18. Request and response are the records of section 5 and the same two schema files,
+byte for byte what the command line writes, so the server adds no second format; the tables that
+the consumers need (four bodies, 136,080 keys) build in milliseconds [E], which is why no state
+is kept between requests.
+
 ### Still open from the first draft
 4. **Sidecar tables in releases.** Should a release also publish the full-frame table and its
    hash as a reference artifact (84 MB), or only the hash?
 5. **Who owns the independent checker**: Cubistry Research (Python) first, the proof-checkers
    (Flix, Julia) later, or both from the start.
-6. **Server.** Is a REST endpoint for fixed-frame queries wanted at all?
 7. **Release.** Is v0.2.0 the tag for this, and does it wait for the green `rust` job only, or
    for all jobs?
 
@@ -912,3 +919,88 @@ and `/home/claude/puzlwerk` for `cubacle` (case-insensitive) together with `--js
 The fixed-frame formats are new and have no earlier consumers. The batch and REST records use
 their own `formatVersion` 1 (section 5). The endpoints other than `POST /v1/solve` and the
 text output of every command are untouched.
+
+## 18. REST endpoint
+
+Decided in D6. The endpoints live in `crates/server` and follow the rules of the existing server
+(`docs/api.md`): stateless, compute on blocking threads behind the semaphore, errors in the
+shape `{"error":{"code","message"}}`, listener on `127.0.0.1` by default.
+
+### 18.1 Paths and bodies
+
+| Method and path | Request body | Success |
+| --- | --- | --- |
+| `POST /v1/fixed-frame/batch` (query `certificate=true`, optional) | `Content-Type: application/x-ndjson`: the request lines of section 5, the first one the `print` line ([schema](../static/schema/v1/fixed-frame-request.schema.json)) | 200, `application/x-ndjson`: the record lines of section 5 ([schema](../static/schema/v1/fixed-frame-record.schema.json)), byte for byte what `cubacle fixed-frame batch` writes for the same input; `certificate=true` is `--certificate` |
+| `POST /v1/fixed-frame/distance` | `Content-Type: application/json`: one object with `formatVersion`, `puzzle`, `printing`, `from`, `display` and optional `stickers` (`restDistanceRequest` in the request schema) | 200, `application/json`: one `distance` record, what `distance --json` prints |
+
+There is no `table` endpoint and no sidecar: a table of up to 84 MB and files on a server's disk
+do not fit a stateless server. The goal record carries `tableSha256`, and a client that wants the
+table recomputes it (mode R of section 7.4).
+
+The newline-delimited type is not a "simple" cross-site content type, so, like the JSON-only rule
+of the other endpoints, a browser form cannot trigger the work; any other type is a 415
+`unsupported_media_type`. The response is built completely before its first byte is sent, so a
+status code is always the status of the whole request: there is no partial 200 after a timeout,
+and a certificate is never partial.
+
+### 18.2 Errors
+
+- Per-line problems in the default mode are `error` records inside a 200 response, as in the
+  command line (section 4); the run goes on.
+- With `certificate=true` the first error ends the request: 400 `bad_input`, whose message holds
+  the code, the line number and the message of the error record that the command would have
+  written. An unsupported `formatVersion` or puzzle in the `print` line (exit status 2 of the
+  command) is a 400 `bad_input` in both modes; an internal failure (exit status 3) is 500
+  `internal`.
+- The existing codes keep their meaning: 413 `payload_too_large`, 415 `unsupported_media_type`,
+  429 `busy` with `Retry-After: 1`, 504 `budget_exhausted`, 404 and 405.
+
+### 18.3 Limits
+
+The values are proposals [A], confirmed or changed by the measurements of the server pull
+request; every limit is checked before the work it bounds, and a limit that stops one line is an
+`error` record with code `over_limit` unless the table says otherwise.
+
+| Limit | Flag and environment variable | Default | Reason |
+| --- | --- | --- | --- |
+| Body size of the two routes | `--max-fixed-frame-body-bytes`, `CUBACLE_MAX_FIXED_FRAME_BODY_BYTES` | 1048576 | The shared `--max-body-bytes` (16384) holds a print (about 2 KB) and a few goals; a batch of 180 displays is about 100 KB. A route-level limit leaves the other endpoints at 16384. Over it: 413. |
+| Lines per request | none, fixed | 2000 | Bounds the number of operations. Over it: 413. |
+| Distinct goal tables per request | none, fixed | 256 | Bounds the build work. |
+| Tracked bodies per goal | none, fixed | at most 6 (14,696,640 keys, 14 MB) | The seven- and eight-body table (84 MB, seconds of CPU) is a job for the command line (D4), not for a request. |
+| Memory per request | `--max-fixed-frame-memory-mb`, `CUBACLE_MAX_FIXED_FRAME_MEMORY_MB` | 128 | Tables (1 byte per key), one frontier (at most 1 byte per key) and the response buffer. With the default concurrency the server needs that many times the number of CPUs at most, which is the place to lower it. |
+| Response size | none, fixed | 8 MiB | Bounds the output of one request; 8 MiB is some tens of thousands of distance records [E]. Over it: an `error` record `over_limit` and the request ends. |
+| `run.maxSteps` | none, fixed | 10000 | The schema allows more for the command line. |
+| `sample.count`, all `sample` lines together | none, fixed | 10000 | Same. |
+| Time | `--request-timeout-ms`, `CUBACLE_REQUEST_TIMEOUT_MS` (existing) | 30000 | One deadline for the whole request, checked between lines and at every layer of a table build. Over it: 504 `budget_exhausted`, no body. There is no `budgetMs` field: the answer is either complete or absent, never a function of the clock. |
+| Concurrency | `--max-concurrency` (existing) | number of CPUs | One permit per request, as for `solve`; no free permit is a 429 at once. |
+
+### 18.4 No persistent state
+
+Tables are built inside the request and dropped at its end. There is no cache between requests,
+no file on disk, no `--tables`, no session; instances can sit behind a load balancer, as
+`docs/api.md` promises. The cost is small for the consumers' case (tables of four bodies, a few
+milliseconds each [E]), and the batch exists to share tables inside one request. The same body
+gives the same bytes, so a cache in front of the server may use the body as its key; the server
+does not.
+
+### 18.5 Authentication and exposure
+
+Unchanged from the existing server and stated the same way: there is no authentication, the
+listener binds to `127.0.0.1`, and the server must not be exposed to untrusted networks. The
+limits above bound one request, not a crowd: a client can hold every permit for the length of the
+timeout, exactly as with `solve`. The server has no CORS layer. It logs method, path, status and
+latency and never bodies (a print can be private). The server is part of the AGPL program, so
+the source-offer duty of the AGPL for network users applies to operators who modify it, as it
+does for the existing endpoints; that is not legal advice.
+
+### 18.6 Implementation notes
+
+The batch engine is one public function of the library, `run_batch(input, output, limits,
+deadline)`, with a `Limits` value that the command fills generously (`--max-memory`) and the
+server fills from the table above. Because both call it, the bytes are equal by construction,
+and a test sends the same body to the router and to the command and compares them. The route code
+(`crates/server/src/fixed_frame.rs`, about 200 lines [E]) only checks the content type, takes the
+permit, runs the function on `spawn_blocking` and maps its outcome to a status. This function and
+`Limits` are the only public items of the module (`AGENTS.md`: default visibility is
+`pub(crate)`). The pages `docs/api.md` and `crates/server/README.md` get the rows of 18.1 and the
+flags of 18.3.
