@@ -23,18 +23,24 @@ paper. Only ideas from the study of a GPL sticker solver were used (see the note
    available as a goal.
 4. **A pattern with free parts.** "Top face all white, rest don't care", or a
    chessboard on two faces only.
-5. **Moved centers (4x4 and up).** Today `--to` refuses them [M]:
-
-   ```
-   $ cubacle solve --size 4 --to "r" "R U"
-   error: the target has centers out of place; the solvers can only reach a target
-   whose centers are on their own faces (...)
-   ```
-
-   The cause is that the relative-state method needs every sticker to have its own
-   identity, and equal centers have none. A color target does not need identities:
-   "the up face shows white" is a statement about colors. Story 5 is therefore
-   solved by the same model as stories 1 to 4.
+5. **Moved centers (4x4 and up).** A complete target whose centers of one face show
+   different colors (an inner slice, `Rw`, an imported pattern) is handled today by
+   `solve --to`, by the route in `src/centers/` (`plan.rs`, `direct.rs`, `refine.rs`,
+   `prefix.rs`; user description: [Targets with mixed centers](../cli/solve.md#targets-with-mixed-centers)).
+   The relative-state step itself still refuses such a target
+   (`RelativeError::CentersMoved` in `src/puzzle/relative.rs`), because equal centers
+   have no identity and the relative state only tells a center which face to reach.
+   The centers module therefore aims the engine at a nearby target with uniform centers
+   and appends the moves that undo the difference (the center fix-up); when start and
+   target are at most 6 moves apart (`DIRECT_MOVES` in `direct.rs`) it first looks for
+   a direct route by a meet-in-the-middle search. What stays open: targets further
+   apart than that still take the fix-up route, and their answers are much longer than
+   solving to the solved cube and making the target's moves (7x7x7 with a target 10
+   moves away: 345 moves against 198, see the tables in the CLI page); a direct search
+   of 7 moves costs 6 s and 700 MB on the 7x7x7, so the 6x6x6 and 7x7x7 gap is open.
+   What is also open for this paper: a *partial* (X) target on 4x4 and up is still
+   refused (section 11); a color target with open stickers needs no identities and
+   would be solved by the same model as stories 1 to 4.
 
 Non-goals: partial *start* states (the start stays complete, as decided), and
 optimal solutions on sizes where the engine is not optimal today.
@@ -114,7 +120,7 @@ is the relative-state method, byte for byte (section 8).
 |---|---|---|
 | 2x2x2 | relative state, any orientation | **Exact.** Breadth-first search from the goal *set* (multi-source) over the 3,674,160 states gives exact distances to the nearest goal; the table is built per target, so no stored table changes. |
 | 3x3x3 min2phase | relative state, two-phase | Two routes. (a) **Few completions** (up to a threshold, for example 24 for a free whole-cube rotation, or a few free corners' twists): run min2phase once per completion, keep the shortest. Exact up to its usual two-phase caveat. (b) **Many completions** (cross, F2L, a face): the pattern search (`src/engines/pattern`) with projection tables as relaxed bounds, IDA* on the goal predicate. Exact for cross; best-effort with a node limit for F2L. |
-| 4x4x4, 5x5x5 | relative state; centers must be home | The engine's own stages are goals: centers only = stage one and two; centers + edges paired = reduction without the 3x3 finish. The stages already stop where a partial target stops. Other masks: best-effort search (below). |
+| 4x4x4, 5x5x5 | relative state on uniform centers; mixed centers by a nearby uniform target plus a center fix-up (`src/centers/`) | The engine's own stages are goals: centers only = stage one and two; centers + edges paired = reduction without the 3x3 finish. The stages already stop where a partial target stops. Other masks: best-effort search (below). |
 | 6x6x6, 7x7x7 (dwalton) | same | Stage-wise like 4x4/5x5 where the stage is a goal; otherwise refuse with a message naming the supported subsets. |
 | Pattern shortcut (4x4 and up) | tries known patterns, keeps the shorter | Only for complete targets that equal a library pattern; for a partial one it is skipped, not made to guess. |
 
@@ -287,12 +293,20 @@ in focused working hours, **[E]**.
 7. `feat(three): cross and F2L partial targets with relaxed tables`. 16 h, with the
    node limit and messages.
 8. `feat(four,five): centers-only and color targets for moved centers`. 12 h per
-   engine, including lifting the `CentersMoved` refusal for color targets only.
+   engine, for partial (X) color targets. Complete targets with moved centers are already handled by `src/centers/` (story 5); `relative_state` still returns `CentersMoved` and is not changed.
 9. `feat(server): target with X`, response field `reached`. 3 h.
 10. `docs: cli, api, engines pages and notes`. 3 h.
 
 Total **[E]** about 60 h. Steps 1 to 6 give stories 1 (cross on 2x2, partial on
 3x3 with few completions) and the syntax; 7 and 8 give stories 2, 3 and 5.
+
+### Decided (owner, week of 2026-10-26)
+
+- First slice: centers only on 4x4 to 7x7, reusing `src/centers/search.rs`.
+- Second: 3x3 masked IDA* with relaxed tables.
+- Third: REST and the `{WY}` syntax.
+- All of it is opt-in: output without an open sticker stays byte-identical.
+- The engine stays universal: a don't-care mask is a generic goal set. The calendar cube of wstein/cubistry needs it too (blank stickers are interchangeable, whole-cube rotations are free).
 
 ## 9. Risks and open questions
 
@@ -359,7 +373,7 @@ Measured in release on a quiet machine, fixed scrambles, one process at a time, 
 |---|---|---|
 | 2x2x2, any mask tried (U; U+R; U+R+F; 20 stickers; none) | tens of ms, 4 MB | 0.25 to 0.31 s wall, 30 to 35 MB (the plain solve is 0.08 s, 21 MB; the goal test of 3.67 million states and the 14 MB frontier are the difference) |
 | 3x3x3 cross (four edges, 190,080 states) | well under a second | 0.03 s, 4.5 MB; 4, 6, 6 moves on three scrambles, 5 for `cross-u`, all proven shortest |
-| 3x3x3 cross and one more edge (12P5 * 2^5 = 7,962,624 entries) | cross + 1 pair 37 MB, not built | 0.7 s, 25 MB |
+| 3x3x3 cross and one more edge (12^5 * 2^5 = 24^5 = 7,962,624 table entries; 12P5 * 2^5 = 3,041,280 of them are distinct states) | cross + 1 pair 37 MB, not built | 0.7 s, 25 MB |
 | 3x3x3 one or two corners open (1 and 3 completions) | threshold needs a measurement | 0.04 s; 20 moves, 16 with `--probes 3000` |
 | 3x3x3 F2L | seconds to minutes | not built |
 | 4x4x4 centers only | existing stage tables, about 12 MB | not built |
