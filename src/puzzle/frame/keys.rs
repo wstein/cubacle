@@ -36,7 +36,8 @@ impl Projection {
         self.rank(&poses[..self.encoded])
     }
 
-    /// Encodes tracked poses without inventing placements for untracked bodies.
+    /// Encodes tracked poses in ascending [`Projection::bodies`] order, without
+    /// inventing placements for untracked bodies.
     pub fn encode_poses(&self, print: &Print, poses: &[u8]) -> Result<u32, FrameError> {
         if poses.len() != self.bodies.len() {
             return Err(invalid("one pose is required per tracked body"));

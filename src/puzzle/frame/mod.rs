@@ -30,6 +30,9 @@ pub struct Sticker {
 }
 
 /// A complete reachable pose, indexed by physical body identity.
+///
+/// Pose codes are relative to their reference [`Print`]. Exchange or persist them
+/// with that print (or its hash); equality has meaning within the same print context.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct State {
     poses: [u8; 8],

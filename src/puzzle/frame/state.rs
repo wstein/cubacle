@@ -54,6 +54,7 @@ impl Print {
     }
 
     /// Expands a complete state to immutable sticker identities and current artwork frames.
+    /// The state must use this print's reference body and sticker identities.
     pub fn stickers(&self, state: &State) -> Result<[Sticker; 24], FrameError> {
         self.state_from_poses(state.poses)?;
         Ok(std::array::from_fn(|id| {
@@ -66,10 +67,12 @@ impl Print {
         }))
     }
 
+    /// Applies one HTM turn to a state interpreted in this print's reference context.
     pub fn apply(&self, state: &State, mv: Move) -> Result<State, FrameError> {
         self.apply_moves(state, &MoveSequence::new(vec![mv]))
     }
 
+    /// Applies a word while preserving identities in this print's reference context.
     pub fn apply_moves(&self, state: &State, moves: &MoveSequence) -> Result<State, FrameError> {
         self.state_from_poses(state.poses)?;
         let mut poses = state.poses;
