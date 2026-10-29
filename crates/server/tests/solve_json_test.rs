@@ -1,7 +1,7 @@
 //! The bytes of the `/v1/solve` body. `tests/solve_json_cli_test.rs` of the
 //! root crate compares `cubacle solve --json` with the same file
 //! (`elapsedMicros` masked to 0), for the equivalent request:
-//! `--fast --max-moves 21` is `{"maxMoves":21}`.
+//! `--fast --max-moves 21` is `{"maxMoves":21,"formatVersion":1}`.
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -39,7 +39,9 @@ async fn the_solve_body_is_the_shared_literal() {
     ));
     let request = Request::post("/v1/solve")
         .header(header::CONTENT_TYPE, "application/json")
-        .body(Body::from(r#"{"scramble":"R U","maxMoves":21}"#))
+        .body(Body::from(
+            r#"{"scramble":"R U","maxMoves":21,"formatVersion":1}"#,
+        ))
         .unwrap();
     let response = app.oneshot(request).await.unwrap();
     assert_eq!(response.status(), StatusCode::OK);
@@ -62,7 +64,9 @@ async fn the_solve_body_of_a_staged_engine_is_the_shared_literal() {
     ));
     let request = Request::post("/v1/solve")
         .header(header::CONTENT_TYPE, "application/json")
-        .body(Body::from(r#"{"scramble":"R U Rw Uw","size":4}"#))
+        .body(Body::from(
+            r#"{"scramble":"R U Rw Uw","size":4,"formatVersion":1}"#,
+        ))
         .unwrap();
     let response = app.oneshot(request).await.unwrap();
     assert_eq!(response.status(), StatusCode::OK);

@@ -39,6 +39,8 @@ fn json_is_the_rest_body_of_the_equivalent_request() {
         "--max-moves",
         "21",
         "--json",
+        "--json-format",
+        "1",
     ]);
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
@@ -105,6 +107,8 @@ fn json_of_a_staged_engine_ends_with_the_phases() {
         "4",
         "--fast",
         "--json",
+        "--json-format",
+        "1",
     ]);
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
@@ -117,7 +121,16 @@ fn json_of_a_staged_engine_ends_with_the_phases() {
 #[test]
 fn json_names_a_known_pattern_only_with_verbose() {
     let superflip = "U R2 F B R B2 R U2 L B2 R U' D' R2 F R' L B2 U2 F2";
-    let hinted = cubacle(&["solve", "-s", superflip, "--fast", "--json", "-v"]);
+    let hinted = cubacle(&[
+        "solve",
+        "-s",
+        superflip,
+        "--fast",
+        "--json",
+        "--json-format",
+        "1",
+        "-v",
+    ]);
     assert!(hinted.status.success());
     let stdout = String::from_utf8(hinted.stdout).unwrap();
     assert!(
