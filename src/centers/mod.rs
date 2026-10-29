@@ -21,11 +21,13 @@
 //! a beam search (see `refine`). The engine is used only through [`Solver`].
 
 mod direct;
+mod only;
 mod plan;
 mod prefix;
 mod refine;
 mod search;
 
+pub use only::{solve_to as solve_centers_only, CenterGoal};
 pub use plan::{Method, Plan, PlanError};
 use prefix::{frame_moves, from_engine, keeps_frame};
 
