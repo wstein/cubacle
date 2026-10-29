@@ -226,6 +226,8 @@ impl PatternShortcut {
             end: found.len(),
         }];
         answer.outcome = Ok(found);
+        // A substituted route has not inherited the engine's shortest-path proof.
+        answer.metrics.evidence = Default::default();
         answer.metrics = SolveMetrics {
             elapsed: started.elapsed(),
             ..answer.metrics

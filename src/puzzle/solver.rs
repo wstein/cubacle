@@ -99,6 +99,8 @@ pub struct SolveMetrics {
     pub elapsed: Duration,
     /// Final-phase probes, for engines that count them.
     pub probes: Option<u64>,
+    /// Typed evidence for this result, not inferred from requested CLI options.
+    pub evidence: super::SolveEvidence,
 }
 
 /// Why a solve ended without a solution.

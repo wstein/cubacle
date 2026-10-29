@@ -286,6 +286,7 @@ fn metrics(started: Instant, probes: Option<u64>) -> SolveMetrics {
     SolveMetrics {
         elapsed: started.elapsed(),
         probes,
+        ..SolveMetrics::default()
     }
 }
 

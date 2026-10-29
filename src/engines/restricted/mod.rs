@@ -258,6 +258,7 @@ impl SubsetSolver {
             metrics: SolveMetrics {
                 elapsed: started.elapsed(),
                 probes: None,
+                ..SolveMetrics::default()
             },
             stages: Vec::new(),
         }
@@ -287,6 +288,7 @@ impl SubsetSolver {
             metrics: SolveMetrics {
                 elapsed: started.elapsed(),
                 probes: None,
+                ..SolveMetrics::default()
             },
             stages: Vec::new(),
         }

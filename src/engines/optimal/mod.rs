@@ -252,9 +252,16 @@ impl Solver for OptimalSolver {
             time: options.time_budget,
             ..Limits::default()
         };
-        let (outcome, message) = match self.solve_report(facelets, options, &limits) {
-            Ok(report) => (Ok(report.solution), None),
-            Err((failure, message)) => (Err(failure), message),
+        let (outcome, message, evidence) = match self.solve_report(facelets, options, &limits) {
+            Ok(report) => {
+                let evidence = crate::puzzle::SolveEvidence {
+                    frame: crate::puzzle::SolveFrame::Fixed,
+                    proven: report.proven,
+                    lower_bound: Some(u32::from(report.lower_bound)),
+                };
+                (Ok(report.solution), None, evidence)
+            }
+            Err((failure, message)) => (Err(failure), message, Default::default()),
         };
         SolveResult {
             outcome,
@@ -262,6 +269,7 @@ impl Solver for OptimalSolver {
             metrics: SolveMetrics {
                 elapsed: start.elapsed(),
                 probes: None,
+                evidence,
             },
             stages: Vec::new(),
         }

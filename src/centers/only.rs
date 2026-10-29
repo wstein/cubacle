@@ -131,6 +131,7 @@ fn result(
         metrics: SolveMetrics {
             elapsed: started.elapsed(),
             probes: None,
+            ..SolveMetrics::default()
         },
         stages: Vec::new(),
     }

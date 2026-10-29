@@ -6,11 +6,11 @@
 use std::time::{Duration, Instant};
 
 use super::super::cubie::Cubie;
-use super::finish;
 use super::goal::{color_masks, Goal};
 use super::ida::{Bound, Ended, Search};
 use super::model::{Pos, Turns};
 use super::tables::{plan, CornerTable, EdgeTable};
+use super::{finish, proven};
 use crate::puzzle::{
     rotation_maps, Facelets, Failure, MoveSequence, PuzzleKind, SolveOptions, SolveResult, Target,
 };
@@ -37,10 +37,13 @@ pub(super) fn by_goal_set(
         );
     }
     let masks = color_masks(target.sets());
-    let goal = if options.free_orientation {
-        Goal::rotated(&masks, &rotation_maps(PuzzleKind::Cube3))
+    let (goal, frame) = if options.free_orientation {
+        (
+            Goal::rotated(&masks, &rotation_maps(PuzzleKind::Cube3)),
+            crate::puzzle::SolveFrame::AnyOrientation,
+        )
     } else {
-        Goal::new(&[masks])
+        (Goal::new(&[masks]), crate::puzzle::SolveFrame::Fixed)
     };
     if goal.is_impossible() {
         let why = if options.free_orientation {
@@ -54,7 +57,9 @@ pub(super) fn by_goal_set(
             format!("unreachable: {why}"),
         );
     }
-    solve_goal(started, &cube, &goal, options)
+    let mut result = solve_goal(started, &cube, &goal, options);
+    result.metrics.evidence.frame = frame;
+    result
 }
 
 /// Searches `goal` from `cube`.
@@ -67,9 +72,9 @@ pub(super) fn solve_goal(
     let turns = Turns::new();
     let start = Pos::from_cubie(cube);
     if goal.is_met(&start) {
-        return finish(
+        return proven(
             started,
-            Ok(MoveSequence::new(Vec::new())),
+            MoveSequence::new(Vec::new()),
             "shortest: 0 moves, the start already meets the target".into(),
         );
     }
@@ -114,9 +119,9 @@ pub(super) fn solve_goal(
     match ended {
         Ended::Found(path) => {
             let solution: MoveSequence = path.iter().map(|&m| turns.moves[m]).collect();
-            finish(
+            proven(
                 started,
-                Ok(solution),
+                solution,
                 format!(
                     "shortest: proved by an iterative-deepening search to the target set ({nodes} nodes; {table_note})"
                 ),

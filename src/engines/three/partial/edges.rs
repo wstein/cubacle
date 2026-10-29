@@ -3,7 +3,7 @@
 use std::time::Instant;
 
 use super::super::cubie::Cubie;
-use super::finish;
+use super::{finish, proven};
 use crate::puzzle::{
     Face, Facelets, Failure, Move, MoveSequence, PuzzleKind, SolveOptions, SolveResult, Turn,
 };
@@ -149,9 +149,9 @@ pub(super) fn edges_only(
         solution.push(Move::new(*face, 1, false, *turn));
         state = step(state, k, mv);
     }
-    finish(
+    proven(
         started,
-        Ok(solution.into_iter().collect()),
+        solution.into_iter().collect(),
         format!("shortest: proved by an exact search over the {k} edges the target names"),
     )
 }

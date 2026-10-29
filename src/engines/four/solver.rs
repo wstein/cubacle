@@ -155,6 +155,7 @@ impl FourSolver {
             metrics: SolveMetrics {
                 elapsed: started.elapsed(),
                 probes,
+                ..SolveMetrics::default()
             },
             stages: Vec::new(),
         };

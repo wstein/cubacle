@@ -14,7 +14,7 @@ use super::{
     TWISTS, UNSEEN,
 };
 use crate::notation::orbit64::{CORNER_COLORS, CORNER_FACELETS};
-use crate::puzzle::{destinations, Target};
+use crate::puzzle::{destinations, SolveEvidence, SolveFrame, Target};
 
 /// Sticker positions (2x2 index) of the three stickers of every corner slot.
 fn slot_positions() -> [[usize; 3]; 8] {
@@ -132,14 +132,21 @@ pub(super) fn solve_to(
     options: &SolveOptions,
 ) -> SolveResult {
     let started = Instant::now();
-    let finish = |outcome: Result<MoveSequence, Failure>, message: Option<String>| SolveResult {
-        outcome,
-        message,
-        metrics: SolveMetrics {
-            elapsed: started.elapsed(),
-            probes: None,
-        },
-        stages: Vec::new(),
+    let finish = |outcome: Result<MoveSequence, Failure>, message: Option<String>| {
+        let evidence = outcome.as_ref().map_or_else(
+            |_| SolveEvidence::default(),
+            |path| SolveEvidence::optimal(SolveFrame::AnyOrientation, path.len()),
+        );
+        SolveResult {
+            outcome,
+            message,
+            metrics: SolveMetrics {
+                elapsed: started.elapsed(),
+                probes: None,
+                evidence,
+            },
+            stages: Vec::new(),
+        }
     };
     if facelets.kind() != PuzzleKind::Cube2 || target.kind() != PuzzleKind::Cube2 {
         return finish(

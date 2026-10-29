@@ -115,6 +115,7 @@ impl Plan {
             metrics: SolveMetrics {
                 elapsed: self.spent,
                 probes: None,
+                ..SolveMetrics::default()
             },
             stages: Vec::new(),
         };
@@ -153,6 +154,7 @@ impl Plan {
     pub fn complete(&self, result: SolveResult) -> SolveResult {
         let mut result = result;
         result.metrics.elapsed += self.spent;
+        result.metrics.evidence = Default::default();
         let Ok(solution) = &result.outcome else {
             return result;
         };

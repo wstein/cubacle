@@ -15,6 +15,7 @@ mod mask;
 mod moves;
 mod orbits;
 mod order;
+mod proof;
 mod relative;
 mod rotation;
 mod solver;
@@ -37,6 +38,7 @@ pub use mask::Mask;
 pub use moves::{Move, MoveSequence, NotationError, Turn};
 pub(crate) use orbits::{center_orbits, wing_orbits};
 pub use order::{sticker_cycles, OrbitCycles, StickerCycles, StickerOrbit};
+pub use proof::{SolveEvidence, SolveFrame};
 #[cfg(test)]
 pub(crate) use relative::relative_by;
 pub use relative::{reaches, relative_state, RelativeError};
