@@ -24,6 +24,13 @@ pub struct SolveOptions {
     /// For engines that build on another reduction engine; the 4x4x4 and
     /// 5x5x5 honor it, the others ignore it.
     pub reduce_only: bool,
+    /// Stop when the centers are solved and answer with the moves that solve
+    /// them; edges and corners stay wherever those moves put them. Set with
+    /// [`SolveOptions::with_centers_only`], which also sets `reduce_only`: an
+    /// engine that has no earlier stop than its reduction answers with that.
+    /// The 6x6x6 and 7x7x7 honor it, the 4x4x4 and 5x5x5 read it as
+    /// `reduce_only`.
+    pub centers_only: bool,
 }
 
 impl SolveOptions {
@@ -49,6 +56,12 @@ impl SolveOptions {
 
     pub fn with_reduce_only(mut self, reduce_only: bool) -> SolveOptions {
         self.reduce_only = reduce_only;
+        self
+    }
+
+    pub fn with_centers_only(mut self, centers_only: bool) -> SolveOptions {
+        self.centers_only = centers_only;
+        self.reduce_only = centers_only;
         self
     }
 }

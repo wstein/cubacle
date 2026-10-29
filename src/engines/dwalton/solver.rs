@@ -9,8 +9,8 @@ use super::seven::Seven;
 use super::six::Six;
 use super::wings;
 use crate::puzzle::{
-    normalize, Face, Facelets, Failure, Move, MoveSequence, PuzzleKind, SolveMetrics, SolveOptions,
-    SolveResult, Solver,
+    center_orbits, normalize, Face, Facelets, Failure, Move, MoveSequence, PuzzleKind,
+    SolveMetrics, SolveOptions, SolveResult, Solver,
 };
 use crate::reduction::{improve, par};
 
@@ -44,6 +44,21 @@ type WingStage<'a> =
 struct Improve {
     probes: u64,
     within: Option<Duration>,
+}
+
+/// Whether every face of `cube` shows one color in each center orbit.
+fn centers_uniform(cube: &Facelets) -> bool {
+    let face_len = cube.kind().face_len();
+    center_orbits(cube.kind()).iter().all(|orbit| {
+        (0..6).all(|face| {
+            let mut on = orbit
+                .iter()
+                .filter(|&&s| s / face_len == face)
+                .map(|&s| cube.stickers()[s]);
+            let first = on.next();
+            on.all(|color| Some(color) == first)
+        })
+    })
 }
 
 /// The moves of each stage after the centers.
@@ -89,13 +104,19 @@ impl DwaltonSolver {
 
     /// Solves and reports the moves of each stage.
     pub fn solve_tallied(&self, cube: &Facelets) -> (SolveResult, StageTally) {
-        self.tallied(cube, None, None)
+        self.tallied(cube, None, None, false)
     }
 
     /// The stages after the centers (wing pairing, the 3x3x3), each with its
     /// moves. With `probes`, the wing stages keep that many reductions and
     /// the 3x3x3 stage makes that many probes at least.
-    fn tail(&self, cur: &Facelets, deadline: Option<Instant>, probes: Option<u64>) -> TailResult {
+    fn tail(
+        &self,
+        cur: &Facelets,
+        deadline: Option<Instant>,
+        probes: Option<u64>,
+        centers_only: bool,
+    ) -> TailResult {
         let stages: Vec<(&'static str, WingStage<'_>)> = if self.kind == PuzzleKind::Cube6 {
             vec![
                 (
@@ -143,6 +164,11 @@ impl DwaltonSolver {
                         .apply(&MoveSequence::new(staged.moves.clone()))
                         .expect("fits");
                     parts.push((name, staged));
+                    // The wing stages of the smaller engines finish the
+                    // centers; a centers-only solve stops there.
+                    if centers_only && centers_uniform(&cur) {
+                        break;
+                    }
                 }
                 Err(r) => {
                     return Err((
@@ -164,6 +190,7 @@ impl DwaltonSolver {
         cube: &Facelets,
         budget: Option<Duration>,
         better: Option<Improve>,
+        centers_only: bool,
     ) -> (SolveResult, StageTally) {
         let started = Instant::now();
         let deadline = budget.and_then(|budget| started.checked_add(budget));
@@ -239,11 +266,44 @@ impl DwaltonSolver {
             marks.push((name, all.len()));
         }
         cur = after;
+        if centers_only {
+            // The center stages leave the centers reduced; the first wing
+            // stages of the smaller engines finish them. Stop there: the wings
+            // and the 3x3x3 stay.
+            let parts = match self.tail(&cur, deadline, None, true) {
+                Ok(parts) => parts,
+                Err((failure, message)) => return fail(failure, message, &tally),
+            };
+            for (name, staged) in parts {
+                let base = all.len();
+                all.extend(staged.moves);
+                for end in staged.ends {
+                    marks.push((name, base + end));
+                }
+                if marks.last().is_none_or(|&(_, end)| end != all.len()) {
+                    marks.push((name, all.len()));
+                }
+            }
+            let solution = normalize(self.kind.size(), &all, false);
+            let stages = groups::stages(cube, &all, &marks, &solution);
+            return (
+                SolveResult {
+                    outcome: Ok(MoveSequence::new(solution)),
+                    message: None,
+                    metrics: SolveMetrics {
+                        elapsed: started.elapsed(),
+                        probes: None,
+                    },
+                    stages,
+                },
+                tally,
+            );
+        }
 
         // The first solution is probe 1; with a probe count, the same tail is
         // done again with more reductions and a stronger 3x3x3 stage, and the
         // shorter total wins (the first on a tie).
-        let first = match self.tail(&cur, deadline, None) {
+        let first = match self.tail(&cur, deadline, None, false) {
             Ok(parts) => parts,
             Err((failure, message)) => return fail(failure, message, &tally),
         };
@@ -262,7 +322,7 @@ impl DwaltonSolver {
             let before = total(&chosen);
             let limit = within.map_or(deadline, |w| Instant::now().checked_add(w));
             // A timeout here keeps the first solution.
-            if let Ok(better) = self.tail(&cur, limit, Some(n)) {
+            if let Ok(better) = self.tail(&cur, limit, Some(n), false) {
                 if total(&better) < before {
                     chosen = better;
                 }
@@ -334,7 +394,8 @@ impl Solver for DwaltonSolver {
             probes,
             within: None,
         });
-        self.tallied(facelets, options.time_budget, better).0
+        self.tallied(facelets, options.time_budget, better, options.centers_only)
+            .0
     }
 
     /// The first solution without a time limit, then the improving tail
@@ -346,7 +407,7 @@ impl Solver for DwaltonSolver {
             probes: improve::plan(budget).candidates as u64,
             within: Some(budget),
         };
-        self.tallied(facelets, None, Some(better)).0
+        self.tallied(facelets, None, Some(better), false).0
     }
 }
 

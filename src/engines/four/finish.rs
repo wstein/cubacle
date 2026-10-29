@@ -169,6 +169,7 @@ impl FourSolver {
             min_probes: options.min_probes.or(Some(self.hand_off_probes)),
             slices: false,
             reduce_only: false,
+            centers_only: false,
         };
         let finish = self.three.solve(&three, &hand_off);
         let probes = finish.metrics.probes;

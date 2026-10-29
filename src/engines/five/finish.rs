@@ -163,6 +163,7 @@ impl FiveSolver {
             min_probes: options.min_probes.or(Some(HAND_OFF_PROBES)),
             slices: false,
             reduce_only: false,
+            centers_only: false,
         };
         let finish = self.three.solve(&three_by_three(&reduced), &hand_off);
         let probes = finish.metrics.probes;
