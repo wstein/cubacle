@@ -41,6 +41,16 @@ fn app() -> Router {
     app_with(Config::default()).0
 }
 
+/// Factor for wall-clock budgets of tests that need a real search to finish:
+/// `CUBACLE_TEST_TIME_FACTOR` (default 1), for a loaded machine.
+fn time_factor() -> u32 {
+    std::env::var("CUBACLE_TEST_TIME_FACTOR")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .filter(|&f| f >= 1)
+        .unwrap_or(1)
+}
+
 async fn call(app: Router, request: Request<Body>) -> (StatusCode, axum::http::HeaderMap, Value) {
     let response = app.oneshot(request).await.unwrap();
     let status = response.status();
@@ -418,8 +428,13 @@ async fn a_6x6_and_a_7x7_are_solved_and_the_solutions_replay() {
         let cube = Facelets::solved(kind)
             .apply(&cubacle::generate::scramble(kind, 60))
             .unwrap();
+        // The default budget is the request timeout: scaled on a loaded machine.
+        let config = Config {
+            request_timeout: Config::default().request_timeout * time_factor(),
+            ..Config::default()
+        };
         let (status, _, body) = call(
-            app(),
+            app_with(config).0,
             post_json("/v1/solve", json!({"cube": cube.to_string()})),
         )
         .await;

@@ -35,6 +35,17 @@ fn cube(size: usize, moves: &str) -> Facelets {
     Facelets::solved(kind).apply(&moves).expect("moves fit")
 }
 
+/// A time budget in milliseconds for `-b`, times `CUBACLE_TEST_TIME_FACTOR`
+/// (default 1): the search needs real time to improve, more on a loaded machine.
+fn budget(ms: u64) -> String {
+    let factor: u64 = std::env::var("CUBACLE_TEST_TIME_FACTOR")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .filter(|&f| f >= 1)
+        .unwrap_or(1);
+    (ms * factor).to_string()
+}
+
 const START: &str = "R U F' D2 L B 2R' U2";
 const TARGET: &str = "2R 2U' 2F 2L2 2D";
 
@@ -138,7 +149,11 @@ fn a_time_limit_that_planning_uses_up_is_reported() {
 
 #[test]
 fn probes_and_improve_apply_to_the_solve_and_parallel_is_refused() {
-    for extra in [&["--probes", "50"][..], &["--improve", "-b", "1500"][..]] {
+    let improve_budget = budget(1500);
+    for extra in [
+        &["--probes", "50"][..],
+        &["--improve", "-b", improve_budget.as_str()][..],
+    ] {
         let (ok, answer, error) = solve4(extra);
         assert!(ok, "{extra:?}: {error}");
         replays(4, &answer);
