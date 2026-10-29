@@ -3,7 +3,9 @@
 
 use std::time::Duration;
 
-use cubacle::puzzle::{reaches, solves_by_color, Facelets, MoveSequence, PuzzleKind, SolveStage};
+use cubacle::puzzle::{
+    reaches, solves_by_color, Facelets, MoveSequence, PuzzleKind, SolveEvidence, SolveStage,
+};
 use cubacle::ranges::Optimize;
 use cubacle::report::SolveReport;
 
@@ -28,6 +30,7 @@ pub(crate) struct Solved<'a> {
     pub adopted: Option<String>,
     /// The time the search took, for `--json`.
     pub elapsed: Duration,
+    pub evidence: SolveEvidence,
 }
 
 /// Checks that the moves reach the target, then prints them as `args` ask.
@@ -160,12 +163,22 @@ fn print_json(solved: &Solved<'_>, elapsed: Duration) -> Result<(), String> {
     };
     let report = SolveReport::of(kind, solved.solution, args.notation, args.optimize, elapsed)
         .with_phases(solved.stages)
-        .with_pattern_hint(hint);
+        .with_pattern_hint(hint)
+        .with_evidence(solved.evidence);
     if let Some(compressed) = &report.compressed {
         eprintln!("compressed moves {}", compressed.length);
         let packed = cubacle::ranges::compress(kind, solved.solution);
         eprintln!("compressed {}", metrics_out::compressed_line(kind, &packed));
     }
-    println!("{}", report.to_json());
+    println!(
+        "{}",
+        report.to_json_format(
+            args.json_format
+                .as_deref()
+                .map(str::parse)
+                .transpose()?
+                .unwrap_or_default()
+        )
+    );
     Ok(())
 }

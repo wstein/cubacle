@@ -20,6 +20,12 @@ pub(crate) fn solve(args: SolveArgs) -> Result<(), String> {
     if args.pictures.icons && !args.group.is_empty() {
         return Err("--group cannot be combined with --icons: the pictures are already headed by the solver phases, and the dots (` · `) mark units in the written answer only".into());
     }
+    if args.json_format.is_some() && !args.json {
+        return Err("--json-format needs --json".into());
+    }
+    if let Some(format) = &args.json_format {
+        format.parse::<cubacle::report::JsonFormat>()?;
+    }
     if args.json && args.inverse {
         return Err("--json always carries the inverse; do not combine it with --inverse".into());
     }
@@ -263,6 +269,7 @@ pub(crate) fn solve(args: SolveArgs) -> Result<(), String> {
             oriented,
             adopted: adopted.as_ref().map(|a| a.line()),
             elapsed: result.metrics.elapsed,
+            evidence: result.metrics.evidence,
         }),
         Err(Failure::InvalidInput) if target.is_some() => Err(format!(
             "the start or the target state is impossible{}",

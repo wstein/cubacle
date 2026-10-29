@@ -256,6 +256,10 @@ pub(crate) struct SolveArgs {
     /// of the equivalent request only (defaults differ from the server's)
     #[arg(long, conflicts_with_all = ["now", "all", "count", "icons", "group", "every"])]
     pub(crate) json: bool,
+    /// Select the solve JSON body version: 1 preserves the original bytes; 2 (default)
+    /// appends frame and proof metadata. Requires --json.
+    #[arg(long, value_name = "1|2")]
+    pub(crate) json_format: Option<String>,
     /// Also look the cube up in the pattern library (built-in and the files of
     /// the config) and answer with the library route when it is strictly shorter
     /// than the solver's answer; the solver still runs, so the answer is never

@@ -7,7 +7,7 @@
 use std::process::exit;
 use std::time::Duration;
 
-use cubacle::puzzle::{Facelets, SolveStage, Target};
+use cubacle::puzzle::{Facelets, SolveEvidence, SolveFrame, SolveStage, Target};
 use cubacle::within::{self, Kit, Limit, Limits, Outcome};
 
 use crate::answer::{self, Solved};
@@ -139,6 +139,11 @@ pub(crate) fn run(
                 oriented: false,
                 adopted: None,
                 elapsed: report.stats.elapsed,
+                evidence: if metric == "htm" {
+                    SolveEvidence::optimal(SolveFrame::Fixed, solution.len())
+                } else {
+                    SolveEvidence::default()
+                },
             })?;
             Ok(Done::Printed)
         }

@@ -4,6 +4,7 @@
 //! through [`SolveReport::to_json`], so the bytes come from one place. The
 //! key names and their order are part of the API: new keys are appended.
 
+mod format;
 mod json;
 
 use std::time::Duration;
@@ -11,9 +12,10 @@ use std::time::Duration;
 use crate::metrics::{count, count_layer_moves, Metric};
 use crate::notation::Notation;
 use crate::phases::from_stages;
-use crate::puzzle::{LayerMove, MoveSequence, PuzzleKind, SolveStage};
+use crate::puzzle::{LayerMove, MoveSequence, PuzzleKind, SolveEvidence, SolveStage};
 use crate::ranges::{compress, write as write_ranges, Optimize};
 
+pub use format::JsonFormat;
 pub use json::{write_string, Object};
 
 /// The name of a cube kind in reports: `3x3x3`.
@@ -101,6 +103,7 @@ pub struct SolveReport {
     pub phases: Vec<PhaseCount>,
     /// The name of the known pattern the start matches, when asked for.
     pub pattern_hint: Option<String>,
+    pub evidence: SolveEvidence,
 }
 
 impl SolveReport {
@@ -131,6 +134,7 @@ impl SolveReport {
             elapsed_micros: u64::try_from(elapsed.as_micros()).unwrap_or(u64::MAX),
             phases: Vec::new(),
             pattern_hint: None,
+            evidence: SolveEvidence::default(),
         }
     }
 
@@ -157,12 +161,33 @@ impl SolveReport {
         self
     }
 
+    /// Adds evidence from the actual route/result. Inconsistent proof claims fail closed.
+    #[must_use]
+    pub fn with_evidence(mut self, mut evidence: SolveEvidence) -> Self {
+        if evidence.proven
+            && evidence
+                .lower_bound
+                .and_then(|bound| usize::try_from(bound).ok())
+                != Some(self.metrics.htm)
+        {
+            evidence.proven = false;
+            evidence.lower_bound = None;
+        }
+        self.evidence = evidence;
+        self
+    }
+
     /// Appends the report as one compact JSON object. Keys: `kind`,
     /// `solution`, `inverse`, `length`, `metrics`, then `compressed`,
     /// `compressedLength`, `compressedMetrics` when present, `elapsedMicros`,
     /// then `phases` (an array of `{name, moves}`) when the engine reports
     /// them and `patternHint` when it was asked for.
     pub fn write_json(&self, out: &mut String) {
+        self.write_json_format(out, JsonFormat::default());
+    }
+
+    /// Writes the selected format, retaining the exact field order of format 1.
+    pub fn write_json_format(&self, out: &mut String, format: JsonFormat) {
         let mut object = Object::open(out);
         object.string("kind", &self.kind);
         object.string("solution", &self.solution);
@@ -195,6 +220,26 @@ impl SolveReport {
         if let Some(name) = &self.pattern_hint {
             object.string("patternHint", name);
         }
+        if format == JsonFormat::V2 {
+            object.number("formatVersion", 2);
+            object.string("toolVersion", env!("CARGO_PKG_VERSION"));
+            object.value("gitCommit", |out| match format::git_commit() {
+                Some(commit) => write_string(out, commit),
+                None => out.push_str("null"),
+            });
+            object.string("frame", self.evidence.frame.as_str());
+            object.value("proven", |out| {
+                out.push_str(if self.evidence.proven {
+                    "true"
+                } else {
+                    "false"
+                })
+            });
+            object.value("lowerBound", |out| match self.evidence.lower_bound {
+                Some(bound) => out.push_str(&bound.to_string()),
+                None => out.push_str("null"),
+            });
+        }
         object.close();
     }
 
@@ -202,6 +247,13 @@ impl SolveReport {
     pub fn to_json(&self) -> String {
         let mut out = String::new();
         self.write_json(&mut out);
+        out
+    }
+
+    /// The report as one compact JSON object in the requested format.
+    pub fn to_json_format(&self, format: JsonFormat) -> String {
+        let mut out = String::new();
+        self.write_json_format(&mut out, format);
         out
     }
 }
@@ -225,7 +277,7 @@ mod tests {
     #[test]
     fn the_body_has_the_documented_keys_in_order() {
         assert_eq!(
-            report(None).to_json(),
+            report(None).to_json_format(JsonFormat::V1),
             "{\"kind\":\"3x3x3\",\"solution\":\"R U R'\",\"inverse\":\"R U' R'\",\"length\":3,\
              \"metrics\":{\"htm\":3,\"qtm\":3,\"stm\":3,\"etm\":3,\"obtm\":3,\"btm\":3,\"atm\":3},\
              \"elapsedMicros\":1234}"
@@ -264,7 +316,7 @@ mod tests {
             },
         ];
         full.pattern_hint = Some("superflip".into());
-        let text = full.to_json();
+        let text = full.to_json_format(JsonFormat::V1);
         assert!(
             text.ends_with(
                 "\"elapsedMicros\":1234,\"phases\":[{\"name\":\"centers\",\"moves\":2},\
@@ -286,5 +338,32 @@ mod tests {
         let mut report = report(None);
         report.solution = "a\"b\\".into();
         assert!(report.to_json().contains("\"solution\":\"a\\\"b\\\\\""));
+    }
+    #[test]
+    fn version_two_appends_metadata_after_every_original_field() {
+        let one = report(None).to_json_format(JsonFormat::V1);
+        let two = report(None).to_json();
+        assert!(two.starts_with(&one[..one.len() - 1]));
+        assert!(two.contains("\"formatVersion\":2,\"toolVersion\":"));
+        assert!(two.ends_with("\"frame\":\"fixed\",\"proven\":false,\"lowerBound\":null}"));
+        let proved = report(None).with_evidence(SolveEvidence::optimal(
+            crate::puzzle::SolveFrame::AnyOrientation,
+            3,
+        ));
+        assert!(proved
+            .to_json()
+            .ends_with("\"frame\":\"any-orientation\",\"proven\":true,\"lowerBound\":3}"));
+        assert_eq!(proved.to_json_format(JsonFormat::V1), one);
+    }
+
+    #[test]
+    fn inconsistent_or_incomplete_proof_evidence_is_not_promoted() {
+        let report =
+            report(None).with_evidence(SolveEvidence::optimal(crate::puzzle::SolveFrame::Fixed, 4));
+        assert!(!report.evidence.proven);
+        assert_eq!(report.evidence.lower_bound, None);
+        assert_eq!("1".parse::<JsonFormat>(), Ok(JsonFormat::V1));
+        assert_eq!("2".parse::<JsonFormat>(), Ok(JsonFormat::V2));
+        assert!("3".parse::<JsonFormat>().is_err());
     }
 }
