@@ -30,7 +30,9 @@ const RULES: [(&str, &[&str]); 24] = [
     ("src/ranges", &["puzzle", "notation", "ranges"]),
     (
         "src/report",
-        &["puzzle", "notation", "metrics", "ranges", "report"],
+        &[
+            "puzzle", "notation", "metrics", "ranges", "phases", "report",
+        ],
     ),
     ("src/patterns", &["puzzle", "meet", "patterns"]),
     ("src/reduction", &["puzzle", "reduction"]),

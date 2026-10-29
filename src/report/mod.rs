@@ -10,7 +10,8 @@ use std::time::Duration;
 
 use crate::metrics::{count, count_layer_moves, Metric};
 use crate::notation::Notation;
-use crate::puzzle::{LayerMove, MoveSequence, PuzzleKind};
+use crate::phases::from_stages;
+use crate::puzzle::{LayerMove, MoveSequence, PuzzleKind, SolveStage};
 use crate::ranges::{compress, write as write_ranges, Optimize};
 
 pub use json::{write_string, Object};
@@ -78,6 +79,13 @@ pub struct Compressed {
     pub metrics: Counts,
 }
 
+/// One phase of the answer: its name and how many moves it takes.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PhaseCount {
+    pub name: String,
+    pub moves: usize,
+}
+
 /// The answer to a solve request.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SolveReport {
@@ -89,6 +97,10 @@ pub struct SolveReport {
     pub metrics: Counts,
     pub compressed: Option<Compressed>,
     pub elapsed_micros: u64,
+    /// The engine's own phases; empty when it reports none.
+    pub phases: Vec<PhaseCount>,
+    /// The name of the known pattern the start matches, when asked for.
+    pub pattern_hint: Option<String>,
 }
 
 impl SolveReport {
@@ -117,12 +129,39 @@ impl SolveReport {
             metrics: Counts::of(solution, kind),
             compressed,
             elapsed_micros: u64::try_from(elapsed.as_micros()).unwrap_or(u64::MAX),
+            phases: Vec::new(),
+            pattern_hint: None,
         }
+    }
+
+    /// Adds the phases of the engine's `stages`; unchanged when they do not
+    /// cover the `length` moves of the solution exactly.
+    #[must_use]
+    pub fn with_phases(mut self, stages: &[SolveStage]) -> SolveReport {
+        if let Some(found) = from_stages(stages, self.length) {
+            self.phases = found
+                .into_iter()
+                .map(|phase| PhaseCount {
+                    name: phase.name.to_owned(),
+                    moves: phase.moves.len(),
+                })
+                .collect();
+        }
+        self
+    }
+
+    /// Adds the name of the known pattern the start matches.
+    #[must_use]
+    pub fn with_pattern_hint(mut self, name: Option<String>) -> SolveReport {
+        self.pattern_hint = name;
+        self
     }
 
     /// Appends the report as one compact JSON object. Keys: `kind`,
     /// `solution`, `inverse`, `length`, `metrics`, then `compressed`,
-    /// `compressedLength`, `compressedMetrics` when present, `elapsedMicros`.
+    /// `compressedLength`, `compressedMetrics` when present, `elapsedMicros`,
+    /// then `phases` (an array of `{name, moves}`) when the engine reports
+    /// them and `patternHint` when it was asked for.
     pub fn write_json(&self, out: &mut String) {
         let mut object = Object::open(out);
         object.string("kind", &self.kind);
@@ -138,6 +177,24 @@ impl SolveReport {
             });
         }
         object.number("elapsedMicros", self.elapsed_micros);
+        if !self.phases.is_empty() {
+            object.value("phases", |out| {
+                out.push('[');
+                for (at, phase) in self.phases.iter().enumerate() {
+                    if at > 0 {
+                        out.push(',');
+                    }
+                    let mut item = Object::open(out);
+                    item.string("name", &phase.name);
+                    item.number("moves", phase.moves);
+                    item.close();
+                }
+                out.push(']');
+            });
+        }
+        if let Some(name) = &self.pattern_hint {
+            object.string("patternHint", name);
+        }
         object.close();
     }
 
@@ -191,6 +248,37 @@ mod tests {
         ];
         let places: Vec<usize> = keys.iter().map(|k| text.find(k).unwrap()).collect();
         assert!(places.windows(2).all(|w| w[0] < w[1]), "{text}");
+    }
+
+    #[test]
+    fn phases_and_the_hint_come_after_the_elapsed_time() {
+        let mut full = report(None);
+        full.phases = vec![
+            PhaseCount {
+                name: "centers".into(),
+                moves: 2,
+            },
+            PhaseCount {
+                name: "edges".into(),
+                moves: 1,
+            },
+        ];
+        full.pattern_hint = Some("superflip".into());
+        let text = full.to_json();
+        assert!(
+            text.ends_with(
+                "\"elapsedMicros\":1234,\"phases\":[{\"name\":\"centers\",\"moves\":2},\
+                 {\"name\":\"edges\",\"moves\":1}],\"patternHint\":\"superflip\"}"
+            ),
+            "{text}"
+        );
+        assert!(!report(None).to_json().contains("phases"));
+    }
+
+    #[test]
+    fn stages_that_do_not_cover_the_moves_give_no_phases() {
+        let stage = SolveStage { name: "x", end: 2 };
+        assert!(report(None).with_phases(&[stage]).phases.is_empty());
     }
 
     #[test]

@@ -8,7 +8,7 @@ use cubacle::ranges::Optimize;
 use cubacle::report::SolveReport;
 
 use crate::cli::SolveArgs;
-use crate::{inverse, metrics_out, phase_dots, stage_phases, steps};
+use crate::{inverse, metrics_out, pattern_hint, phase_dots, stage_phases, steps};
 
 /// A solution and what it was found for.
 pub(crate) struct Solved<'a> {
@@ -153,7 +153,14 @@ pub(crate) fn print(solved: &Solved<'_>) -> Result<(), String> {
 fn print_json(solved: &Solved<'_>, elapsed: Duration) -> Result<(), String> {
     let args = solved.args;
     let kind = solved.facelets.kind();
-    let report = SolveReport::of(kind, solved.solution, args.notation, args.optimize, elapsed);
+    let hint = if args.verbose {
+        pattern_hint::start_name(args.config.as_deref(), solved.start)
+    } else {
+        None
+    };
+    let report = SolveReport::of(kind, solved.solution, args.notation, args.optimize, elapsed)
+        .with_phases(solved.stages)
+        .with_pattern_hint(hint);
     if let Some(compressed) = &report.compressed {
         eprintln!("compressed moves {}", compressed.length);
         let packed = cubacle::ranges::compress(kind, solved.solution);

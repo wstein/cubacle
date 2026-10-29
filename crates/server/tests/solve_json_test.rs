@@ -48,3 +48,28 @@ async fn the_solve_body_is_the_shared_literal() {
     let body = String::from_utf8(bytes.to_vec()).unwrap();
     assert_eq!(masked(&body), BODY.trim_end());
 }
+
+#[tokio::test]
+async fn the_solve_body_of_a_staged_engine_is_the_shared_literal() {
+    let dir = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join("five-tables");
+    let five = FiveSolver::new(Arc::new(Min2PhaseSolver::shared())).with_cache_dir(Some(dir));
+    let four = FourSolver::new(Arc::new(Min2PhaseSolver::shared())).with_threads(1);
+    let app = router(AppState::with_engines(
+        Config::default(),
+        Min2PhaseSolver::shared(),
+        five,
+        four,
+    ));
+    let request = Request::post("/v1/solve")
+        .header(header::CONTENT_TYPE, "application/json")
+        .body(Body::from(r#"{"scramble":"R U Rw Uw","size":4}"#))
+        .unwrap();
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = response.into_body().collect().await.unwrap().to_bytes();
+    let body = String::from_utf8(bytes.to_vec()).unwrap();
+    assert_eq!(
+        masked(&body),
+        include_str!("../../../tests/solve_json_body_four.txt").trim_end()
+    );
+}

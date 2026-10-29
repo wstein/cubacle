@@ -1,0 +1,1 @@
+{"kind":"4x4x4","solution":"Uw' Rw' U' R'","inverse":"R U Rw Uw","length":4,"metrics":{"htm":4,"qtm":4,"stm":6,"etm":4,"obtm":4,"btm":4,"atm":4},"elapsedMicros":0,"phases":[{"name":"centers staged","moves":2},{"name":"centers sorted, wings split","moves":0},{"name":"centers solved, wings paired","moves":0},{"name":"3x3 stage","moves":2}]}

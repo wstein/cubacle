@@ -5,6 +5,23 @@ use cubacle::notation::Notation;
 use cubacle::patterns;
 use cubacle::puzzle::Facelets;
 
+/// The lowercase name of the library pattern `state` matches, `None` when it
+/// is solved or nothing matches.
+fn name(state: &Facelets, library: &crate::patterns_config::Library) -> Option<String> {
+    if state.is_solved() {
+        return None;
+    }
+    let report = patterns::detect_with(state, &library.extra, 0);
+    Some(report.matches.first()?.name.to_lowercase())
+}
+
+/// The pattern name of `start` for `solve --json -v`; `None` when nothing
+/// matches or the configuration cannot be read.
+pub(crate) fn start_name(config: Option<&std::path::Path>, start: &Facelets) -> Option<String> {
+    let config = crate::patterns_config::load(config).ok()?;
+    name(start, &config.library())
+}
+
 /// The hint line for `state`, or `None` when it is solved or no library
 /// pattern matches.
 fn line(

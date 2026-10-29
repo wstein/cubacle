@@ -94,3 +94,37 @@ fn json_is_refused_with_text_layouts() {
         assert!(output.stdout.is_empty(), "{other}");
     }
 }
+
+#[test]
+fn json_of_a_staged_engine_ends_with_the_phases() {
+    let output = cubacle(&[
+        "solve",
+        "-s",
+        "R U Rw Uw",
+        "--size",
+        "4",
+        "--fast",
+        "--json",
+    ]);
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert_eq!(
+        masked(stdout.trim_end()),
+        include_str!("solve_json_body_four.txt").trim_end()
+    );
+}
+
+#[test]
+fn json_names_a_known_pattern_only_with_verbose() {
+    let superflip = "U R2 F B R B2 R U2 L B2 R U' D' R2 F R' L B2 U2 F2";
+    let hinted = cubacle(&["solve", "-s", superflip, "--fast", "--json", "-v"]);
+    assert!(hinted.status.success());
+    let stdout = String::from_utf8(hinted.stdout).unwrap();
+    assert!(
+        stdout.ends_with(",\"patternHint\":\"superflip\"}\n"),
+        "{stdout}"
+    );
+    let plain = cubacle(&["solve", "-s", superflip, "--fast", "--json"]);
+    let stdout = String::from_utf8(plain.stdout).unwrap();
+    assert!(!stdout.contains("patternHint"), "{stdout}");
+}

@@ -259,7 +259,8 @@ pub(crate) async fn solve(
     match &result.outcome {
         Ok(solution) => {
             let report =
-                SolveReport::of(kind, solution, notation, optimize, result.metrics.elapsed);
+                SolveReport::of(kind, solution, notation, optimize, result.metrics.elapsed)
+                    .with_phases(&result.stages);
             Ok(JsonText(report.to_json()))
         }
         Err(Failure::InvalidInput) => Err(ApiError::new(
