@@ -9,7 +9,7 @@
 use std::fmt;
 
 use super::relative::rotations;
-use super::{Face, Facelets, MoveSequence, PuzzleKind};
+use super::{Face, Facelets, Mask, MoveSequence, PuzzleKind};
 
 /// All six colors allowed: the sticker does not matter.
 const ANY: u8 = 0b11_1111;
@@ -99,8 +99,18 @@ impl Target {
         target
     }
 
+    /// `state` with only the stickers of `care` kept, the rest left open.
+    pub fn masked_by(state: &Facelets, care: &Mask) -> Target {
+        Target::masked(state, |position| care.contains(position))
+    }
+
     pub fn kind(&self) -> PuzzleKind {
         self.kind
+    }
+
+    /// The stickers this target constrains: the mask of its cared stickers.
+    pub fn care(&self) -> Mask {
+        Mask::from_fn(self.kind, |position| self.allowed[position] != ANY)
     }
 
     /// The allowed colors of every sticker as bit sets (bit `i` is `Face::ALL[i]`).
@@ -198,6 +208,13 @@ mod tests {
         assert!(!target.matches(&moved));
         let down = solved3().apply(&"D".parse().unwrap()).unwrap();
         assert!(target.matches(&down));
+    }
+
+    #[test]
+    fn the_care_mask_is_the_constrained_stickers() {
+        let target = Target::masked_by(&solved3(), &Mask::centers(PuzzleKind::Cube3));
+        assert_eq!(target.care(), Mask::centers(PuzzleKind::Cube3));
+        assert_eq!(target.care().len(), target.constrained());
     }
 
     #[test]
