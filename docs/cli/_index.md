@@ -6,7 +6,7 @@ weight: 3
 
 # Command-line guide
 
-The `cubacle` tool has eleven subcommands: `solve` (also the way back after a mistake, with `--now`), `convert`, `canon`, `scramble`, `random`, `facelets`, `moves`, `order`, `photo` (see [Photos of a cube](photo.md)), `template` (see "Check a template file") and `patterns` (see [Patterns](patterns.md); its actions are `list` (the same as `patterns` alone), `show`, `find`, `identify` for the structure of a state and `cycles` for its part cycles and order, `import` for pattern tables, `update` (alias `download`) to download the URL sources of the config, `sources` for the pattern files in use and `--tree` for the overview by category; `--icons` draws pictures of the list, `show`, `find` and `identify`, see [Patterns with icons](icons.md#patterns-with-icons); see "Importing pattern files"). Run `cubacle <command> --help` for the full option list.
+The `cubacle` tool has twelve subcommands: `solve` (also the way back after a mistake, with `--now`), `verify` (replay a certificate, see [Picture cubes](picture.md)), `convert`, `canon`, `scramble`, `random`, `facelets`, `moves`, `order`, `photo` (see [Photos of a cube](photo.md)), `template` (see "Check a template file") and `patterns` (see [Patterns](patterns.md); its actions are `list` (the same as `patterns` alone), `show`, `find`, `identify` for the structure of a state and `cycles` for its part cycles and order, `import` for pattern tables, `update` (alias `download`) to download the URL sources of the config, `sources` for the pattern files in use and `--tree` for the overview by category; `--icons` draws pictures of the list, `show`, `find` and `identify`, see [Patterns with icons](icons.md#patterns-with-icons); see "Importing pattern files"). Run `cubacle <command> --help` for the full option list.
 
 ## Reading the examples
 
@@ -15,6 +15,7 @@ An example shows the lines that the text around it discusses, in the order the p
 ## Pages
 
 - [Solve a cube](solve.md): Solve a cube, with targets and shorter or shortest solutions.
+- [Picture cubes](picture.md): Center twists, picture targets and certificates for a 3x3x3.
 - [Solve options](solve-options.md): Within, move counts, known patterns, restricted move sets, listing solutions and failures.
 - [Solve a 4x4x4 or 5x5x5](large-cubes.md): Solving the 4x4x4 and 5x5x5 from the command line.
 - [Recover a mistake](recover.md): Rescan the cube after a wrong move and solve from there.
