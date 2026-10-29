@@ -6,6 +6,7 @@ use crate::puzzle::{
     Face, Facelets, Failure, Move, MoveSequence, SolveOptions, SolveStage, Solver, Turn,
 };
 
+use super::search::Aim;
 use super::{refine, search, uniform, Pieces, PlanError, STAGE_NAME};
 
 /// The odd cube's face centers must be those of the start: the engines keep
@@ -80,9 +81,9 @@ pub(super) fn from_engine(
             "the engine's solution never leaves the centers uniform".into(),
         ));
     }
-    let sound = |state: &Facelets| keeps_frame(state, start);
+    let done = |state: &Facelets| uniform(state) && keeps_frame(state, start);
     let over = || refine::out_of_time(started, options.time_budget);
-    if let Some(cut) = refine::shorten(model, &states, &sound, &over) {
+    if let Some(cut) = refine::shorten(model, &states, Aim::Any, &done, &over) {
         let mut moves = solution.moves()[..cut.keep].to_vec();
         moves.extend_from_slice(cut.finish.moves());
         let mut pieces = vec![(STAGE_NAME.to_string(), cut.finish.len())];

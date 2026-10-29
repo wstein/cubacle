@@ -20,6 +20,39 @@ const SETS: usize = 10_626;
 
 type Binomials = [[usize; 5]; 25];
 
+/// Where the colors of the centers are to go.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Aim {
+    /// Every color to some face: the centers are uniform, in any frame.
+    Any,
+    /// Color `c` to the face `faces[c]` (colors and faces by index).
+    Faces([u8; 6]),
+}
+
+impl Aim {
+    /// Every color to the face of its own name: the centers solved.
+    pub(crate) const OWN: Aim = Aim::Faces([0, 1, 2, 3, 4, 5]);
+
+    /// The table that measures the distance of `color`.
+    fn table(self, color: usize) -> usize {
+        match self {
+            Aim::Any => 6,
+            Aim::Faces(faces) => usize::from(faces[color]),
+        }
+    }
+}
+
+impl From<bool> for Aim {
+    /// `true` is [`Aim::OWN`], `false` is [`Aim::Any`].
+    fn from(own: bool) -> Aim {
+        if own {
+            Aim::OWN
+        } else {
+            Aim::Any
+        }
+    }
+}
+
 /// The moves the search uses, as permutations of every orbit's places.
 pub(crate) struct Model {
     kind: PuzzleKind,
@@ -190,11 +223,11 @@ impl Model {
             .all(|colors| colors.iter().all(|mask| mask.count_ones() == 4))
     }
 
-    fn bound(&self, binom: &Binomials, masks: &[[u32; 6]], own: bool) -> usize {
+    fn bound(&self, binom: &Binomials, masks: &[[u32; 6]], aim: Aim) -> usize {
         let mut worst = 0;
         for (o, colors) in masks.iter().enumerate() {
             for (color, &mask) in colors.iter().enumerate() {
-                let table = if own { color } else { 6 };
+                let table = aim.table(color);
                 worst = worst.max(self.tables[o][table][rank(binom, mask)]);
             }
         }
@@ -207,18 +240,19 @@ impl Model {
     pub(crate) fn shortest(
         &self,
         state: &Facelets,
-        own: bool,
+        aim: impl Into<Aim>,
         deepest: usize,
         nodes: u64,
     ) -> Option<MoveSequence> {
+        let aim = aim.into();
         debug_assert_eq!(state.kind(), self.kind);
         let binom = binomials();
         let start = self.masks(state);
         let mut budget = nodes;
-        for limit in self.bound(&binom, &start, own)..=deepest {
+        for limit in self.bound(&binom, &start, aim)..=deepest {
             let mut walk = Walk {
                 binom: &binom,
-                own,
+                aim,
                 budget,
                 path: Vec::new(),
             };
@@ -243,17 +277,18 @@ impl Model {
     pub(crate) fn beam(
         &self,
         state: &Facelets,
-        own: bool,
+        aim: impl Into<Aim>,
         width: usize,
         deepest: usize,
     ) -> Option<MoveSequence> {
+        let aim = aim.into();
         let binom = binomials();
         let score = |masks: &[[u32; 6]]| -> (usize, usize) {
             let mut sum = 0;
             let mut worst = 0;
             for (o, colors) in masks.iter().enumerate() {
                 for (color, &mask) in colors.iter().enumerate() {
-                    let table = if own { color } else { 6 };
+                    let table = aim.table(color);
                     let d = usize::from(self.tables[o][table][rank(&binom, mask)]);
                     sum += d;
                     worst = worst.max(d);
@@ -320,7 +355,7 @@ impl Model {
         left: usize,
         last: usize,
     ) -> Option<bool> {
-        let bound = self.bound(walk.binom, masks, walk.own);
+        let bound = self.bound(walk.binom, masks, walk.aim);
         if bound == 0 {
             return Some(true);
         }
@@ -356,7 +391,7 @@ impl Model {
 /// The state of one deepening pass of the exact search.
 struct Walk<'a> {
     binom: &'a Binomials,
-    own: bool,
+    aim: Aim,
     budget: u64,
     path: Vec<usize>,
 }

@@ -18,8 +18,7 @@ use std::time::{Duration, Instant};
 
 use crate::puzzle::{Facelets, MoveSequence};
 
-use super::search::Model;
-use super::uniform;
+use super::search::{Aim, Model};
 
 /// Beam width of the finishing searches. 1000 keeps most of the gain at a
 /// third of the time, 16000 gains about one move more at three times it.
@@ -41,16 +40,18 @@ pub(super) struct Cut {
     pub finish: MoveSequence,
 }
 
-/// The best cut of a prefix that leaves the centers uniform, given the
-/// `states` after each of its moves (`states[0]` is the target, the last one
-/// is uniform); `None` when no finish beats the prefix. `sound` says whether
-/// the end of a finish is acceptable besides being uniform (the frame of the
-/// start). The scan walks back from the end, stops after a stretch of cuts
-/// that find nothing shorter, and stops when `over` says the time is up.
+/// The best cut of a prefix that ends in a goal, given the `states` after
+/// each of its moves (`states[0]` is where it starts, the last one is a goal);
+/// `None` when no finish beats the prefix. The finishes aim the colors at
+/// `aim`, and `done` says whether the end of a finish is a goal (for the
+/// fix-up: uniform centers in the frame of the start). The scan walks back
+/// from the end, stops after a stretch of cuts that find nothing shorter, and
+/// stops when `over` says the time is up.
 pub(super) fn shorten(
     model: &Model,
     states: &[Facelets],
-    sound: &dyn Fn(&Facelets) -> bool,
+    aim: Aim,
+    done: &dyn Fn(&Facelets) -> bool,
     over: &dyn Fn() -> bool,
 ) -> Option<Cut> {
     let len = states.len() - 1;
@@ -64,12 +65,8 @@ pub(super) fn shorten(
         let keep = len - back;
         // strictly shorter than the part it replaces
         let finish = model
-            .beam(&states[keep], false, WIDTH, back - 1)
-            .filter(|finish| {
-                states[keep]
-                    .apply(finish)
-                    .is_ok_and(|end| uniform(&end) && sound(&end))
-            });
+            .beam(&states[keep], aim, WIDTH, back - 1)
+            .filter(|finish| states[keep].apply(finish).is_ok_and(|end| done(&end)));
         match finish {
             Some(finish) if keep + finish.len() < best_total => {
                 best_total = keep + finish.len();
