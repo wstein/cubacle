@@ -310,7 +310,8 @@ Measured histograms [M] (distance: number of keys):
   10: 15,154,409, 11: 49,943. All 88,179,840 keys reached; maximum 11, the same diameter as
   the rotation quotient. Table SHA-256 for a print whose body `b` sits at position rank `b` (true
   of the Cubistry H/S/M prints [M]):
-  `caf69d83df6fd4c42a899cfd55c664bca87da01408a5aa4973c4eee6633825d9`.
+  `caf69d83df6fd4c42a899cfd55c664bca87da01408a5aa4973c4eee6633825d9`. This table is not
+  shipped; its hash is (D4, section 19).
 
 ## 4. Command line
 
@@ -320,7 +321,7 @@ subcommands `batch`, `distance` and `table` are decided (D1, section 14).
 ```text
 cubacle fixed-frame batch    [--tables DIR] [--max-memory MB] [--certificate] < requests.jsonl > records.jsonl
 cubacle fixed-frame distance --print PRINT.json --from STATE --display DISPLAY.json [--json]
-cubacle fixed-frame table    --print PRINT.json --display DISPLAY.json [--premise DISPLAY.json] --out TABLE.bin
+cubacle fixed-frame table    --print PRINT.json (--display DISPLAY.json [--premise DISPLAY.json] | --full) --out TABLE.bin
 ```
 
 - `batch` is the real interface (section 5). It reads JSON Lines on standard input and writes
@@ -333,7 +334,9 @@ cubacle fixed-frame table    --print PRINT.json --display DISPLAY.json [--premis
 - `distance` is one query for people: it prints `6` on standard error and the lex-least
   shortest word on standard output, as `solve` does; `--json` prints the one `distance` record
   instead. `--from` takes a move word, or `@FILE` for a state JSON.
-- `table` writes the sidecar for one goal (and premise) and prints the goal record.
+- `table` writes the sidecar for one goal (and premise) and prints the goal record. `--full`
+  takes the print's reference state, all 24 facelets, as the goal: the full-state table of
+  section 3, whose hash is published with every release (section 19).
 - Errors: text on standard error and exit status 1 for invalid input (print, state, display,
   JSON), 2 for an unsupported format version or puzzle, 3 for internal or I/O errors. In
   `batch` a bad request produces an `error` record and the run goes on, unless `--certificate`
@@ -525,7 +528,8 @@ lookups per key and can be split over threads or machines. Its cost is that of t
 is offered for independence of method, not for speed.
 
 Sidecar files are named `goal-<tableSha256>.u8` and are referenced by the goal record's
-`tableSha256`; the file name carries no meaning beyond that.
+`tableSha256`; the file name carries no meaning beyond that. They are local output of
+`--tables`; no release contains one (D4).
 
 ### 7.5 Eccentricity and universal bounds
 
@@ -603,7 +607,7 @@ or the JVM for Flix).
 | Per-body move tables (8 x 24 x 18 bytes) | negligible |
 | One goal table, k <= 4 | well under 10 ms [E] in release; the existing 3.67-million-state table builds in 64 ms [C, docs/engines/2x2.md] |
 | k = 5 | about 30 ms [E] |
-| k = 7 or 8 (full) | 1 to 4 s and 84 MB [E], scaled from the 64 ms build with 24 times the states and twice the moves; the C scratch program took 5 min 20 s of CPU on a heavily loaded two-core machine without any tuning [M] |
+| k = 7 or 8 (full) | 1 to 4 s and 84 MB [E], scaled from the 64 ms build with 24 times the states and twice the moves; the C scratch program took 5 min 20 s of CPU on a heavily loaded two-core machine without any tuning [M]. This is the table of D4: generated, hashed, never shipped (section 19.1) |
 | A batch of the 180 H/S/M displays plus their eccentricities | under 2 s [E] |
 | Memory | the tables in the cache plus one frontier; a full search keeps the layer in the table (scan per depth) so the peak stays near 90 MB [E] |
 | Certificate size, 180 goals of k = 4 with sidecars | 180 x 133 KB = 24 MB of sidecars [E]; without sidecars (mode R) a few hundred KB of JSON Lines |
@@ -782,6 +786,14 @@ is marked breaking for the changelog and is the reason the next tag is **v0.2.0*
 a breaking change raises the minor number). The details, the list of consumers found and the
 migration are in section 17, the pull request in row 6 of section 15.
 
+### D4. Releases do not ship the full-state distance table (DECIDED)
+
+A release does not contain the 84 MB table of 88,179,840 keys. The table is generated
+reproducibly, and only its SHA-256, per frame and print definition, is published: in the release
+notes and in a small checked-in file (section 19). A table that every correct implementation
+rebuilds in seconds adds nothing as a download except a larger release and a file to trust, while
+the hash lets anyone, and the independent checkers, confirm their own table.
+
 ### D6. A REST endpoint ships with the first fixed-frame release (DECIDED)
 
 `POST /v1/fixed-frame/batch` and `POST /v1/fixed-frame/distance` are part of v0.2.0, designed in
@@ -791,8 +803,6 @@ the consumers need (four bodies, 136,080 keys) build in milliseconds [E], which 
 is kept between requests.
 
 ### Still open from the first draft
-4. **Sidecar tables in releases.** Should a release also publish the full-frame table and its
-   hash as a reference artifact (84 MB), or only the hash?
 5. **Who owns the independent checker**: Cubistry Research (Python) first, the proof-checkers
    (Flix, Julia) later, or both from the start.
 7. **Release.** Is v0.2.0 the tag for this, and does it wait for the green `rust` job only, or
@@ -1004,3 +1014,60 @@ permit, runs the function on `spawn_blocking` and maps its outcome to a status. 
 `Limits` are the only public items of the module (`AGENTS.md`: default visibility is
 `pub(crate)`). The pages `docs/api.md` and `crates/server/README.md` get the rows of 18.1 and the
 flags of 18.3.
+
+## 19. Releases, table hashes and the v0.2.0 gate
+
+### 19.1 Table hashes instead of tables (D4)
+
+A release of cubacle ships what it ships today (archives, `SHA256SUMS`, build provenance) and no
+distance table. For every frame and print definition whose table is meant as a reference, the
+release publishes the hash of the table, in two places that must agree:
+
+1. **A small checked-in file**, `tests/fixtures/fixed_frame/table-hashes.json`, read by the
+   opt-in test `fixed_frame_full` (section 10.4) and attached to the release as an asset. It is
+   data, not output of a solver test, and is added once and changed only with a decision. The
+   first version holds one table, the full-state table (the hash and the histogram are the
+   measured values of section 3; `prints` is filled by the implementation with the
+   `printSha256` of every fixture print that has this layout, which this paper does not state):
+
+   ```json
+   {"formatVersion":1,"frame":"x=R,y=U,z=F;quarter=-90@outward","poseIndex":"pose24.v1","key":"key.v1","tableEncoding":"u8-dense-v1","tables":[{"goal":"reference","layout":"reference pose of body b is 3b","keyBodies":[0,1,2,3,4,5,6],"keys":88179840,"histogram":[1,18,243,2874,28000,205416,1168516,5402628,20776176,45391616,15154409,49943],"eccentricity":11,"tableSha256":"caf69d83df6fd4c42a899cfd55c664bca87da01408a5aa4973c4eee6633825d9","prints":[]}]}
+   ```
+
+2. **The release notes** of the tag, in a block "Fixed-frame tables" written by the release
+   workflow from the file (frame string, `key.v1`, `u8-dense-v1`, layout, number of keys, hash),
+   next to the Breaking changes block of section 17.2. The hash is a function of the problem only
+   (section 7.4), so it does not change from release to release unless the frame, the key or the
+   encoding changes, and then the format version changes.
+
+### 19.2 How to generate the table, and what it costs
+
+```sh
+cubacle fixed-frame table --print tests/fixtures/fixed_frame/blank.print.json --full --out full.u8
+sha256sum full.u8
+```
+
+`table` prints the goal record on one line; for the Cubistry prints it is the line below, which
+validates against the record schema, and `sha256sum` prints the same hash for the 88,179,840
+bytes of `full.u8`:
+
+```json
+{"record":"goal","goalId":"reference","trackedBodies":[0,1,2,3,4,5,6,7],"keys":88179840,"goalKeys":1,"deadRules":[],"histogram":[1,18,243,2874,28000,205416,1168516,5402628,20776176,45391616,15154409,49943],"eccentricity":11,"tableSha256":"caf69d83df6fd4c42a899cfd55c664bca87da01408a5aa4973c4eee6633825d9"}
+```
+
+(The file name `blank.print.json` is the name planned for the fixture copied in row 2 of
+section 15; the record is the value of the scratch run [M], not yet an output of cubacle.)
+
+| | Value | Mark |
+| --- | --- | --- |
+| Time, Rust, release, one thread | 1 to 4 s for the search, about 0.3 s more for the SHA-256 | [E] |
+| Peak memory | about 90 MB: the 84 MB table, a frontier by scan per depth | [E] |
+| Disk | 84 MB for `full.u8`, deleted after the check | |
+| Measured | the throwaway C program, no tuning, heavily loaded two-core machine: 5 min 20 s of CPU | [M] |
+
+The numbers of the first two rows are estimates until the pull request of row 5 measures them on
+a quiet machine and replaces them. The opt-in CI job has a 30-minute limit like the other full
+jobs, so even the untuned C figure would pass.
+
+Nobody has to download or trust the table: a consumer regenerates it, or runs an independent
+checker in mode R (section 7.4), and compares the hash with the notes.
