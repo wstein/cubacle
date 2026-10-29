@@ -34,7 +34,7 @@ The server binds to the local machine by default. It has no authentication, so d
 | `GET /v1/scramble?moves=25&size=3` | `moves`: 1 to 200; `size`: 2 to 7; `notation`?: `wca`, `sign` or `sse` | `{"scramble":"U' L2 F2 D U2"}` |
 | `GET /v1/random?size=3` | `size`: 2 to 7 (only 2 to 5 have engines) | `{"kind":"2x2x2","facelets":"...","token":"...","canonical":{"token":"...","schema":"..."}}` |
 | `POST /v1/convert` | `{"cube" or "scramble","size"?,"scheme"?}` | `{"kind","facelets","token"?,"canonical"?}` |
-| `POST /v1/solve` | `{"cube" or "scramble","size"?,"scheme"?,"maxMoves"?,"budgetMs"?,"minProbes"?,"improve"?,"slices"?,"notation"?,"optimize"?,"target"?}` | `{"kind","solution","inverse","length","metrics","compressed"?,"compressedLength"?,"compressedMetrics"?,"elapsedMicros"}` |
+| `POST /v1/solve` | `{"cube" or "scramble","size"?,"scheme"?,"maxMoves"?,"budgetMs"?,"minProbes"?,"improve"?,"slices"?,"notation"?,"optimize"?,"target"?,"formatVersion"?}` | `{"kind","solution","inverse","length","metrics","compressed"?,"compressedLength"?,"compressedMetrics"?,"elapsedMicros"}` |
 
 For `POST` requests, send the header `Content-Type: application/json`.
 
@@ -101,7 +101,7 @@ The solve request returns:
 {"kind":"3x3x3","solution":"B R L B L' U' D B D2 R2 F2 R2 L2 D R2 L2 U' L2 U' F2 R","inverse":"R' F2 U L2 U L2 R2 D' L2 R2 F2 R2 D2 B' D' U L B' L' R' B'","length":21,"metrics":{"htm":21,"qtm":30,"stm":21,"etm":21,"obtm":21,"btm":21,"atm":17},"elapsedMicros":776}
 ```
 
-The `elapsedMicros` value varies between runs. For the 4x4x4 to 7x7x7 the body ends with one more key after it, `phases`: an array of `{"name":"3x3 stage","moves":2}` objects, one per phase of the engine, in order (a phase can have `"moves":0`). The 2x2x2 and 3x3x3 engines report no phases, so their body has no `phases` key. The server has no option for the pattern hint, so it never sends `patternHint`, which `cubacle solve --json -v` can add.
+The `elapsedMicros` value varies between runs. For the 4x4x4 to 7x7x7 the original fields include one more key after it, `phases`: an array of `{"name":"3x3 stage","moves":2}` objects, one per phase of the engine, in order (a phase can have `"moves":0`). The 2x2x2 and 3x3x3 engines report no phases, so their body has no `phases` key. The server has no option for the pattern hint, so it never sends `patternHint`, which `cubacle solve --json -v` can add.
 
 The same body comes from `cubacle solve --json` for an equivalent request: both are written by one function of the library, `cubacle::report`. See [`--json`](cli/solve-options.md#--json).
 
@@ -179,6 +179,26 @@ curl -s -XPOST localhost:8080/v1/convert \
 ```
 
 The tokens differ, the canonical tokens are one. A stored identifier of a pattern is the canonical token together with the `schema`. See [Canonical token](cli/canon.md) for the command line.
+
+### Solve JSON versions (changed in 0.2.0)
+
+`POST /v1/solve` defaults to format 2 and appends `formatVersion`, `toolVersion`,
+`gitCommit`, `frame`, `proven`, and `lowerBound` after all original keys (including
+`phases` when present). Send `"formatVersion": 1` for the exact original body, or
+`"formatVersion": 2` explicitly. Unknown or non-integer versions return 400 `bad_input`
+before solver work. Other endpoint formats and error bodies are unchanged.
+
+The goal frame and HTM proof metadata come from the actual result, not requested flags.
+The ordinary 2x2 solver reports `"any-orientation"`; an unproved two-phase/reduction result
+has `proven: false` and no established lower bound. `gitCommit` is null for builds without
+release revision metadata. Both versions use the same library writer as the CLI; compare
+only equivalent requests and mask `elapsedMicros` when checking byte equality. See the
+[solve options](cli/solve-options.md#--json) and
+[solve-result schema](static/schema/v1/solve-result.schema.json).
+
+The existing recorded solve transcripts below show format 1, preserving their original
+solutions and timing measurements. Select `"formatVersion": 1` to reproduce that body shape;
+a request without the selector now also carries the six format-2 keys.
 
 ## Errors
 

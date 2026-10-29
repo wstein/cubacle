@@ -413,3 +413,9 @@ L' U2 F' L F U' D F B2 L B' D' L2 B2 D R2 B2 U
 The second run proves only that no solution has fewer than 14 moves, and prints the default engine's 18. The answer is never longer than the default one, and every answer is replayed on the cube before it is printed. The first run in a cache directory builds the tables, which takes a few minutes (Small: about 50 s of CPU; Large: about 6 minutes of CPU) and prints its progress on stderr.
 
 The tables depend on the memory this machine really has, read at run time (macOS, Linux and Windows alike, never assumed from the platform): without `--max-memory` the budget is half of the available memory (the total where the system does not report it), at most 16000 MB. The large set (555 MB) is used when it fits the budget, else the small one (86 MB), else an error. An explicit `--max-memory MB` wins. If the memory cannot be read, the small set is used and stderr says so. The first stderr line names the choice and the reason, for example `optimal search with the large pruning tables (555 MB): this machine has 17179 MB of memory, available: 9533 MB; budget 4766 MB (half of the available memory, at most 16000)`. `--optimal` needs the 3x3x3 and cannot be combined with `--fast`, `--probes`, `--improve`, `--parallel`, `--moves`, `--all` or `--count`; with `--to` it needs a target that has open stickers (see [Target sets](#target-sets-proven-shortest-answers)). **Random cubes are mostly out of reach on one core of a laptop:** a cube that needs 17 or 18 moves takes billions of nodes, minutes to hours. Measured numbers, by length, are on [3x3x3 performance](../engines/3x3.md#optimal-solutions).
+
+## Versioned JSON
+
+Changed in 0.2.0: `solve --json` defaults to format 2 with goal-frame and HTM-proof metadata.
+Use `--json --json-format 1` for the original body. The selector does not change the solution,
+text output, or move counts. See [the JSON contract](solve-options.md#--json).

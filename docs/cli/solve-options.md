@@ -53,6 +53,23 @@ The inverse of a solution of a scrambled cube is, on the 3x3x3, the scramble its
 
 `--json` prints the answer as one line of JSON on standard output, the object the [REST API](../api.md) sends for `POST /v1/solve`: `kind`, `solution`, `inverse`, `length`, `metrics` (all seven counts), `compressed`, `compressedLength` and `compressedMetrics` with `--optimize ranges`, and `elapsedMicros`. After `elapsedMicros` come two keys that appear only when there is something to say: `phases`, an array of `{"name", "moves"}` objects, one per phase the engine reports (the 4x4x4 to 7x7x7 engines; the empty phases are in it with `"moves":0`; the 2x2x2 and 3x3x3 engines report none, so the key is absent), and `patternHint`, the lowercase name of the known pattern the start cube matches (for example `"superflip"`), only with `-v`, the same opt-in as the `pattern:` line. The server and the command write it with the same function of the library (`cubacle::report`), so key names, key order and escaping are the same. Nothing else goes to standard output; the lines on standard error (`moves N`, `metrics:`, and with `-v` the statistics) stay as they are. Errors are text on standard error with the usual exit codes, not JSON.
 
+**Changed in 0.2.0:** format 2 is the default. After every existing key it appends
+`formatVersion` (2), `toolVersion`, `gitCommit` (the release source revision, or null),
+`frame`, `proven`, and `lowerBound`. `--json-format 1` preserves the original body byte for
+byte; `--json-format 2` selects the default explicitly. The selector needs `--json`, and an
+unknown version fails before solving (exit status 1). The corresponding REST selector is
+`"formatVersion": 1` or `2` in the request body; the endpoint remains `/v1/solve`.
+
+`frame` describes the goal actually searched: the ordinary 2x2 table solver uses
+`"any-orientation"`, while `--within` uses `"fixed"` even on a 2x2. `proven` means the
+returned path is shortest **in HTM for that goal and frame**. A requested `--optimal` or
+`--within` flag alone does not prove the returned answer: a budget-limited incumbent or
+`--within --then-solve` fallback carries its actual result's evidence. `lowerBound` is an
+established HTM bound, equal to the HTM length for a proven answer, or null when absent.
+Proofs in slices/blocks alphabets are not promoted to HTM proofs. Existing partial-target
+routes that refuse `--json` continue to refuse it. There is no general exact-physical
+optimality claim for a solution extended by a center fix-up or another composed route.
+
 <!-- example:json-fast -->
 ```sh
 cubacle solve -s "R U" --fast --max-moves 21 --json
