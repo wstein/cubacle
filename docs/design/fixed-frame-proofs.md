@@ -77,8 +77,11 @@ checked against the files named above; its run-time numbers were not repeated.
    can verify, not a claim on standard error.
 3. Other repositories pin only release tags with green CI. This work ships in a later tag
    (for example v0.2.0) once `develop` CI is green.
-4. `--json` may be extended **additively and versioned** (new fields, a batch mode in JSON
-   Lines with tables built once). Existing v1 consumers keep working.
+4. `--json` is extended and **versioned** (new fields, a batch mode in JSON Lines with tables
+   built once). The first draft promised that the version 1 bytes stay the default and that
+   existing consumers keep working unchanged; D3 (section 14) replaced that promise: format 2
+   is the default at once, format 1 stays behind a selector, and the change is breaking
+   (section 17).
 5. MIT repositories use cubacle only as an external process in optional tests, never linked
    or embedded.
 
@@ -88,8 +91,10 @@ Goals: exact fixed-frame semantics on the 2x2x2; identity-level display goals; e
 eccentricities and runs; certificates; JSON Lines batch; deterministic, byte-reproducible
 output.
 
-Non-goals: no change to `solve`, `solve --to`, Orbit64 or any default output (byte-identical,
-as the don't-care design requires); no print or layout search (that stays in Cubistry); no
+Non-goals: no change to the search or the text output of `solve` and `solve --to`, and none to
+Orbit64 (byte-identical, as the don't-care design requires); the one change to a default output
+is the body of `solve --json` and `POST /v1/solve`, which gets the format 2 keys (D3, section 17)
+and keeps every solution and length; no print or layout search (that stays in Cubistry); no
 claim about print optimality, whole-route optimality, intermediate animation frames or timing;
 no 3x3x3 or larger mode in this design (section 2.8 is a note only); no checker inside cubacle
 that would count as independent.
@@ -258,7 +263,9 @@ in place of the solved cube and an orientation filter added. The don't-care desi
 question "a certificate (the proof as a replayable record)" for slice 2 is answered here for the
 2x2x2.
 
-Default behavior is untouched: `solve --size 2` keeps the rotation quotient and its bytes. A
+Default behavior is untouched: `solve --size 2` keeps the rotation quotient and the bytes of its
+text output; only its `--json` body gains the format 2 keys (with `frame` set to
+`"any-orientation"`, section 6). A
 later, separate option `solve --size 2 --fixed-frame` (fixed frame, color cube, solved target)
 is possible but is not needed by the consumers and is not part of this plan.
 
@@ -393,34 +400,66 @@ error at any depth; unknown fields are errors in every object that the schema cl
 open (a sticker, so that a Cubistry `slot` passes). What the dependency decision means is in
 D2.
 
-## 6. Versioning and the additive `solve --json` change
+## 6. Versioning and the `solve --json` change
+
+This section is the technical part of D3 (section 14). The consequences for consumers are in
+section 17; the short form is that **this is a breaking change of the default output**.
 
 - **New formats** carry `format` (`cubacle.fixed-frame`) and `formatVersion` (1). They belong to
   schema family v1 and use `common.schema.json` for `formatVersion`. A later incompatible change
   is format version 2 with a new schema file; cubacle keeps reading version 1 requests for at
-  least one release after that.
+  least one release after that. `formatVersion` is a counter per format: the 2 of the solve body
+  below has nothing to do with the 1 of the fixed-frame lines or of the pattern search.
 - **`solve --json` today** has no version field and no schema file. Its contract is "keys are
-  appended, never reordered" (`docs/cli/solve-options.md`, `src/report/mod.rs`) [C].
-- **Additive change, opt-in.** `solve --json-format 2` on the command line, and
-  `"formatVersion": 2` in a `POST /v1/solve` request, append these keys after the existing ones:
+  appended, never reordered" (`docs/cli/solve-options.md`, `src/report/mod.rs`) [C]. The command
+  and `POST /v1/solve` write the body with one function (`SolveReport::to_json`), and the
+  documentation promises equal bytes for equivalent requests [C].
+- **Format 2 is the default.** From v0.2.0, `solve --json` and `POST /v1/solve` write format 2.
+  It appends these keys after all existing ones, so they come after `elapsedMicros` and after
+  `phases` and `patternHint` when those are present. The names are camelCase, like the existing
+  keys:
 
   | Key | Type | Meaning |
   | --- | --- | --- |
   | `formatVersion` | 2 | Marks the extended body. |
   | `toolVersion` | string | The crate version, `0.2.0`. |
   | `gitCommit` | string or null | Set by the release build from the environment; null otherwise. No build script is added. |
-  | `frame` | `"any-orientation"` or `"fixed"` | The 2x2x2 `solve` is `"any-orientation"`; fixed-frame records are `"fixed"`. Makes the rotation quotient visible to consumers. |
+  | `frame` | `"any-orientation"` or `"fixed"` | `"any-orientation"` for the 2x2x2 `solve`, which is optimal up to a whole-cube rotation; `"fixed"` for every other size and for fixed-frame records. Makes the rotation quotient visible to consumers. [A: confirmed engine by engine in the implementation PR] |
   | `proven` | Boolean | True only where the engine proves the answer shortest in HTM: 2x2x2 tables, `--optimal`, `--within`, exact partial routes; false for two-phase and reduction engines. |
   | `lowerBound` | integer or null | The proven lower bound: equal to `length` when `proven`; the depth searched out when a limit stopped an optimal search; null when nothing is proven. |
 
-  Without the option the body is byte-identical to today, so every v1 consumer and every
-  recorded example keeps working. A v1 reader that ignores unknown keys can also read a v2
-  body, since all v1 keys keep their place and meaning. Making version 2 the default is a later
-  owner decision (section 14).
-- **Schema for the existing body.** The implementation adds `solve-result.schema.json` (v1)
-  describing today's body, with the v2 keys as optional, so the contract has a file.
+  Every key of format 1 keeps its name, place, type and meaning. The only difference is the tail:
+  the `solve -s "R U" --json` example of `docs/cli/solve-options.md` is, in format 1 (as in
+  v0.1.0) and in format 2:
+
+  ```json
+  {"kind":"3x3x3","solution":"U' R'","inverse":"R U","length":2,"metrics":{"htm":2,"qtm":2,"stm":2,"etm":2,"obtm":2,"btm":2,"atm":2},"elapsedMicros":0}
+  {"kind":"3x3x3","solution":"U' R'","inverse":"R U","length":2,"metrics":{"htm":2,"qtm":2,"stm":2,"etm":2,"obtm":2,"btm":2,"atm":2},"elapsedMicros":0,"formatVersion":2,"toolVersion":"0.2.0","gitCommit":null,"frame":"fixed","proven":false,"lowerBound":null}
+  ```
+
+  (The second line is the first with the six keys appended, written by hand for this paper; the
+  implementation PR replaces it by recorded output, and `elapsedMicros` is masked to 0 as in
+  the existing tests.)
+- **Version 1 stays available by an explicit selector.** `solve --json-format 1` and
+  `"formatVersion": 1` in a `POST /v1/solve` request write the v0.1.0 body, byte for byte;
+  `--json-format 2` and `"formatVersion": 2` name the default. Any other value is an error (exit
+  status 1; 400 `bad_input`). `--json-format` without `--json` is an error. There is no
+  environment variable and no configuration key that changes the default, and no alias for the
+  old behavior: the project is alpha and `AGENTS.md` says to rename without alias or fallback.
+  The URL stays `/v1/solve`; the version of the body is negotiated in the request, not in the
+  path.
+- **Tests.** The recorded literals `tests/solve_json_body.txt` and `tests/solve_json_body_four.txt`
+  stay as they are and become the expectation of format 1: the existing tests only gain the
+  selector in their arguments. Format 2 gets literals of its own, and one property test states
+  the relation above: the body of format 2, with the six keys cut off its end, equals the body of
+  format 1 (`elapsedMicros` masked). `AGENTS.md` forbids editing recorded solver output to make
+  a change pass; this is the explicit decision it asks for (D3), and no solution or length
+  changes.
+- **Schema for the existing body.** `solve-result.schema.json` (v1, a draft is in this pull
+  request) describes both bodies: the keys of format 1, and the six keys of format 2 as optional
+  together, so the contract has a file.
 - **Pinning.** Consumers pin a release tag and the SHA-256 of the release tarball, record
-  `toolVersion` from the header, and refuse an unknown `formatVersion`.
+  `toolVersion`, and refuse an unknown `formatVersion` (a body without the key is format 1).
 
 ## 7. Certificate
 
@@ -727,10 +766,23 @@ What this means for dependencies:
 - **Placement.** The reader lives in the application layer (`src/fixed_frame_cmd/`), the server
   uses the same function, and the engines never see JSON.
 
-### Still open from the first draft
+### D3. Format 2 is the default of `solve --json` at once (DECIDED)
 
-3. **`solve --json` version 2 by default**, and when; and the key spelling: camelCase
-   (`lowerBound`, `toolVersion`, as the existing keys) is proposed instead of `lower_bound`.
+Format 2 (camelCase keys `formatVersion`, `toolVersion`, `gitCommit`, `frame`, `proven`,
+`lowerBound`, as drafted in section 6) is the default of `solve --json` from v0.2.0. The owner
+wants `proven` and the frame to be visible to every consumer without a flag that nobody sets, and
+the project is alpha, where `AGENTS.md` accepts breaking changes without alias or fallback.
+
+The first draft said that the version 1 bytes stay unchanged. That cannot hold together with this
+decision, and this paper does not pretend otherwise: the default body now has six more keys, so
+its bytes change. What is kept: every v1 key in its place and meaning, the solutions and lengths,
+and the old bytes exactly, behind `--json-format 1` (REST: `"formatVersion": 1`). What is done
+about it: existing consumers must be told (release notes, the docs page of `--json`), the change
+is marked breaking for the changelog and is the reason the next tag is **v0.2.0** (alpha semver:
+a breaking change raises the minor number). The details, the list of consumers found and the
+migration are in section 17, the pull request in row 6 of section 15.
+
+### Still open from the first draft
 4. **Sidecar tables in releases.** Should a release also publish the full-frame table and its
    hash as a reference artifact (84 MB), or only the hash?
 5. **Who owns the independent checker**: Cubistry Research (Python) first, the proof-checkers
@@ -751,7 +803,7 @@ including tests, [E].
 | 3 | `feat(two)`: fixed-frame goal tables: `FrameGoal`, tracked bodies, multi-source search over keys, lex-least walk, `u8-dense-v1` with SHA-256 (`sha2` to dependencies); k = 3 and k = 4 goldens | 500 | 2 |
 | 4 | `feat(cli)`: `fixed-frame batch`, `distance`, `table`; strict JSON reader (D2); records, header, summary; determinism test | 700 | 3 |
 | 5 | `feat(two)`: eccentricity with premises, `premiseClosed`, runs, `sample`; sidecars; ignored `fixed_frame_full` tests | 450 | 4 |
-| 6 | `feat(report)`: `solve --json-format 2` and REST `formatVersion: 2`; `solve-result.schema.json` | 300 | none (parallel) |
+| 6 | `feat(report)!`: `solve --json-format 1\|2`, format 2 the default for the command and for REST (`formatVersion`), `solve-result.schema.json`; the existing tests gain the selector, format 2 gets new literals, docs and marked examples are regenerated; breaking, section 17 | 300, plus about 150 of test and doc churn | none (parallel) |
 | 7 | `docs`: CLI page `docs/cli/fixed-frame.md` from measured behavior, engine page, notes, NOTICE for fixtures | docs | 4, 5 |
 | 8 | Outside cubacle: the Python checker in Cubistry Research, with the corrupted certificates of 10.3 | 400 | 4 |
 
@@ -781,3 +833,82 @@ after the CI of `develop` is green (decision 3).
   Python to k <= 5 and leaves the full table to a compiled checker or to mode R.
 - **Scope creep** toward 3x3x3 pictures and center twists: they need other certificates
   (section 2.8) and are a separate design.
+
+## 17. Compatibility
+
+**Breaking change.** From v0.2.0 the default body of `cubacle solve --json` and of
+`POST /v1/solve` is format 2 (section 6). That changes the bytes of the default output of two
+interfaces that v0.1.0 documents (D3). It is marked breaking for the changelog and it is the
+reason the next tag is v0.2.0: while the major version is 0, a breaking change raises the minor
+number. The release workflow requires the tag to equal the `version` of `Cargo.toml`
+(`.github/workflows/release.yml` [C]), so the release pull request (row 10 of section 15) sets
+`0.2.0` in the root crate and in `crates/server`.
+
+### 17.1 What changes and what does not
+
+| | v0.1.0 and `--json-format 1` | v0.2.0 default (format 2) |
+| --- | --- | --- |
+| Keys of the v1 body, their order, types, meaning | as documented | unchanged |
+| Keys at the end of the body | `elapsedMicros`, then `phases` and `patternHint` when present | the same, then `formatVersion`, `toolVersion`, `gitCommit`, `frame`, `proven`, `lowerBound` |
+| Bytes of the body | the v0.1.0 bytes | v1 bytes with the six keys appended (and `Content-Length` changes) |
+| Solutions, lengths, metrics, text output on standard output and error, exit status, error bodies, other endpoints | as before | unchanged |
+
+A consumer that reads the body as JSON and ignores keys it does not know keeps working without a
+change. A consumer breaks when it compares or hashes the whole body, checks it with a closed
+schema (`additionalProperties: false`), parses it positionally, or diffs recorded output.
+
+### 17.2 What has to change, and for whom
+
+- **Nothing**, for a consumer that ignores unknown keys. It may start to use `proven` and
+  `lowerBound`, and should refuse a `formatVersion` it does not know (a body without the key is
+  format 1).
+- **One argument or one field**, for a consumer that needs the old bytes during a transition:
+  `--json-format 1` on the command line, `"formatVersion": 1` in the request body.
+- Version 1 is not given an end date. Removing it would be a new breaking change, decided by the
+  owner and announced the same way.
+
+How consumers are told: the release notes of v0.2.0 start with a **Breaking changes** block
+that names the default change, the selector and the new keys (the release workflow creates its
+notes with `--generate-notes`; row 10 adds the block); the pull request of row 6 has a title with
+`!` and a `BREAKING CHANGE:` footer in its commit message; `docs/cli/solve-options.md` and
+`docs/api.md` get a paragraph "Changed in 0.2.0" with both bodies; the schema file names both
+formats.
+
+### 17.3 Consumers found
+
+In this repository (read from the branch of this pull request [C]; searched for `--json`,
+`elapsedMicros`, `/v1/solve`, `solve_json_body`, schemas, docs, tests and REST code):
+
+| Where | What | Needed in row 6 |
+| --- | --- | --- |
+| `src/report/mod.rs`, `src/report/json.rs` | the writer, `SolveReport::to_json` | takes the format; format 1 is today's code |
+| `src/answer.rs`, `src/solve_cmd.rs`, `src/partial_cmd.rs`, `src/cli.rs` | print the body for `--json`, refuse it with other layouts, define the option | `--json-format`, its refusal without `--json` |
+| `crates/server/src/solve.rs` (`report.to_json()`) | the REST body | read `formatVersion` from the request |
+| `tests/solve_json_cli_test.rs` with `tests/solve_json_body.txt`, `tests/solve_json_body_four.txt` | byte tests of the command | add the selector for format 1, add format 2 literals |
+| `crates/server/tests/solve_json_test.rs`, `api_test.rs`, `improve_test.rs` | byte and shape tests of the server | same |
+| `tests/centers_target_cli_test.rs` | only checks that `--json` is refused with `--to centers` | none |
+| `docs/cli/solve-options.md`, `docs/cli/solve.md`, `docs/examples.toml` (`json-fast`, `json-default`), `docs/api.md`, `crates/server/README.md`, `docs/contributing.md` | the contract, the marked examples that `cargo xtask docs` rewrites, the REST bodies | regenerate the examples, update the bodies, add "Changed in 0.2.0" |
+| `xtask/src/docs.rs` | masks `elapsedMicros` in examples | none (the key stays) |
+| `docs/specs/rest-json.md`, `search-result.schema.json` | the pattern search endpoint, its own `formatVersion` 1 | none |
+| `.github/workflows/release.yml` | smoke test greps the text line `moves ` | none |
+
+Outside this repository, read-only searches of `/home/claude/cubelab`, `/home/claude/cubistry`
+and `/home/claude/puzlwerk` for `cubacle` (case-insensitive) together with `--json`, `solve`,
+`/v1/solve`, `elapsedMicros` and `cubacle-server`:
+
+- **No consumer of the solve body was found.** `cubelab` mentions cubacle only as the producer
+  `rust/v1` of the synthetic photo (`cubacle photo`) in its fingerprint schema and page.
+  `cubistry` names Cubacle in its proof-checker documents (`proof-checkers/SPEC.md`,
+  `README.md`, `RESULTS.md`), in architecture and roadmap documents and in research data; none
+  of them calls `cubacle solve` or the server. `puzlwerk` names Cubacle in its README, ADRs and
+  `specs/001-core-foundation/contracts/solver.md`, which proposes a protocol of its own
+  (`puzlwerk.solver`) and says "No current Cubacle protocol support is asserted".
+- The search sees working trees as they are today; it cannot see scripts outside these three
+  repositories, other machines, or people who use the v0.1.0 release (the only tag [C]) or the
+  server. For those the release notes and the selector are the whole mitigation.
+
+### 17.4 What stays compatible on purpose
+
+The fixed-frame formats are new and have no earlier consumers. The batch and REST records use
+their own `formatVersion` 1 (section 5). The endpoints other than `POST /v1/solve` and the
+text output of every command are untouched.
