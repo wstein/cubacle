@@ -79,3 +79,17 @@ file names its origin; the license text is kept in
 | Font | Upstream | License | Copyright line | License text |
 | --- | --- | --- | --- | --- |
 | Quicksand (Bold, instance of the variable font) | <https://github.com/andrew-paglinawan/QuicksandFamily>, taken from [google/fonts](https://github.com/google/fonts) at commit `45e3d5269e4a17d823f6d84470bc084dc5ae46f6`, `ofl/quicksand/Quicksand[wght].ttf` | OFL-1.1, Reserved Font Name "Quicksand" | Copyright 2011 The Quicksand Project Authors | [`licenses/OFL-Quicksand.txt`](licenses/OFL-Quicksand.txt) |
+
+## Fixed-frame Cubistry print fixture (AGPL-3.0-or-later)
+
+`tests/fixtures/fixed_frame/blank.print.json` is the unmodified `printing` array
+extracted from [wstein/cubistry](https://github.com/wstein/cubistry),
+`research/hsm-counter/blank/witness.json` at commit
+`8a85fd8c93f6d0305174e63767bda366cae7544b`. Source SHA-256:
+`13eea2a1ad88561775158a70633b80e25d06f883e42d44aafb4e6808699be47b`.
+The source repository licenses this research data under AGPL-3.0-or-later.
+Only the JSON array was extracted and formatted; its sticker identities, body
+bindings, vectors, images and extra `slot` fields are unchanged. Extracted bytes
+SHA-256: `a80d1bed4b50651e0821d1a485194a94724db51669c6b2a4de757a30debc8029`.
+The fixture checks geometry and serialization interoperability; it is not a
+solver-output snapshot and does not assert proof acceptance.
