@@ -49,7 +49,7 @@ fn solve_rejects_mirrored_corners_on_every_size() {
             .env("HOME", std::env::temp_dir().join("cubacle-test-home"))
             .env(
                 "CUBACLE_CACHE_DIR",
-                concat!(env!("CARGO_TARGET_TMPDIR"), "/mirror-tables"),
+                concat!(env!("CARGO_TARGET_TMPDIR"), "/five-tables"),
             )
             .output()
             .expect("cubacle runs");
