@@ -1,6 +1,6 @@
 //! Turns the names in one term of a guard into variable indices and expands
 //! `*`: the same index in all arguments of the term, for every index that
-//! occurs, as a conjunction.
+//! occurs, as a conjunction. The index may be empty: `a*` also names `a`.
 
 use super::ast::{Cmp, Node, Operand};
 use super::error::{Source, TemplateError};
@@ -52,10 +52,7 @@ impl Resolver<'_> {
             let before = suffixes.len();
             for name in self.names {
                 if let Some(rest) = name.strip_prefix(var.name.as_str()) {
-                    if !rest.is_empty()
-                        && rest.chars().all(|c| c.is_ascii_digit())
-                        && !suffixes.contains(&rest)
-                    {
+                    if rest.chars().all(|c| c.is_ascii_digit()) && !suffixes.contains(&rest) {
                         suffixes.push(rest);
                     }
                 }
@@ -105,7 +102,7 @@ impl Resolver<'_> {
     fn any_match(&self, var: &VarRef) -> bool {
         self.names.iter().any(|name| {
             name.strip_prefix(var.name.as_str())
-                .is_some_and(|rest| !rest.is_empty() && rest.chars().all(|c| c.is_ascii_digit()))
+                .is_some_and(|rest| rest.chars().all(|c| c.is_ascii_digit()))
         })
     }
 

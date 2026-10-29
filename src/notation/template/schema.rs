@@ -9,8 +9,8 @@
 //! ```
 //!
 //! One-face form: a grid of at most N*N tokens in all is one face, the same
-//! on all six. Then `/` and newlines only break rows, a placeholder gets the
-//! index of its face (`a` is `a1` on U, `a2` on R, ...) and the center letter
+//! on all six. Then `/` and newlines only break rows, the placeholders are the
+//! same variables on every face (no index is appended) and the center letter
 //! of the U face stands for the letter of the face it is on.
 //!
 //! A lowercase token (`a`, `b12`) names a placeholder: all stickers with the
@@ -209,7 +209,6 @@ fn build(tokens: &[Token], kind: PuzzleKind, one_face: bool) -> Schema {
                     Slot::Fixed(Face::ALL[f])
                 }
                 Token::Fixed(face) => Slot::Fixed(*face),
-                Token::Var(name) if one_face => Slot::Var(intern(format!("{name}{}", f + 1))),
                 Token::Var(name) => Slot::Var(intern(name.clone())),
             });
         }

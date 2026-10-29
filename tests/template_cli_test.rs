@@ -80,7 +80,7 @@ fn a_grid_of_one_face_stands_for_all_six() {
     let text = "pattern-name: one-face\ncube-size: 3\nsticker-grid:\n  a b a\n  b U b\n  a b a\ncolor-constraints: unique(a*, b*)\n";
     let (ok, out, err) = check("template_one_face", text);
     assert!(ok, "{err}");
-    assert_eq!(out, "ok: one-face, size 3, 12 variables, guard ok");
+    assert_eq!(out, "ok: one-face, size 3, 2 variables, guard ok");
 }
 
 #[test]
@@ -104,7 +104,7 @@ fn the_shipped_examples_are_read() {
     for (name, expected) in [
         (
             "checkerboard-free-center",
-            "ok: checkerboard-free-center, size 3, 12 variables, guard ok",
+            "ok: checkerboard-free-center, size 3, 2 variables, guard ok",
         ),
         (
             "concentric-squares",
@@ -116,7 +116,7 @@ fn the_shipped_examples_are_read() {
         ),
         (
             "ring-symmetric",
-            "ok: ring-symmetric, size 3, 12 variables, guard ok",
+            "ok: ring-symmetric, size 3, 2 variables, guard ok",
         ),
     ] {
         let output = Command::new(env!("CARGO_BIN_EXE_cubacle"))

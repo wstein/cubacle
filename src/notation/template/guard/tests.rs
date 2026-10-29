@@ -160,3 +160,11 @@ fn long_guards_are_refused() {
     let text = "a1 == a1 && ".repeat(10_000);
     assert!(error(&text).contains("longer than 100000 characters"));
 }
+
+#[test]
+fn a_star_also_names_the_bare_variable() {
+    let names: Vec<String> = ["a", "b"].iter().map(|n| n.to_string()).collect();
+    let guard = Guard::parse("unique(a*, b*)", &names).unwrap();
+    assert!(guard.holds(&[0, 1]));
+    assert!(!guard.holds(&[2, 2]));
+}

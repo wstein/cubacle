@@ -145,13 +145,20 @@ fn error3(text: &str) -> String {
 fn a_grid_of_one_face_is_the_same_on_all_six() {
     let schema = parse2("a b b a").unwrap();
     assert_eq!(schema.slots.len(), 24);
-    assert_eq!(
-        schema.names,
-        ["a1", "b1", "a2", "b2", "a3", "b3", "a4", "b4", "a5", "b5", "a6", "b6"]
-    );
-    assert_eq!(schema.slots[4], Slot::Var(2));
-    assert_eq!(schema.slots[5], Slot::Var(3));
-    assert_eq!(schema.slots[7], Slot::Var(2));
+    // The faces share the variables: no face number is appended.
+    assert_eq!(schema.names, ["a", "b"]);
+    for face in 0..6 {
+        assert_eq!(schema.slots[face * 4], Slot::Var(0));
+        assert_eq!(schema.slots[face * 4 + 1], Slot::Var(1));
+    }
+}
+
+#[test]
+fn a_number_in_a_one_face_grid_names_a_further_variable() {
+    let schema = parse3("a a1 b1 / a1 . b1 / a a1 b1");
+    assert_eq!(schema.names, ["a", "a1", "b1"]);
+    assert_eq!(schema.slots[9], Slot::Var(0));
+    assert_eq!(schema.slots[9 + 2], Slot::Var(2));
 }
 
 #[test]
