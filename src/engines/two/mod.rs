@@ -12,6 +12,7 @@
 //! until it is. The solution then uses the faces that the rotation moved into
 //! the U, R and F positions, so that it solves the cube as it was given.
 
+pub mod fixed;
 mod partial;
 
 use std::sync::OnceLock;
