@@ -26,7 +26,7 @@ The server logs method, path, status and latency of every request (never bodies)
 | `GET /v1/scramble?moves=25&size=3` | moves 1..=200, size 2, 3, 4 or 5 | `{"scramble":"R U ..."}` |
 | `GET /v1/random?size=3` | size 2..=7 (only 2 to 5 have engines) | `{"kind":"3x3x3","facelets":"..."}` |
 | `POST /v1/convert` | `{"cube","scheme"?}` | `{"kind","facelets","token"?}` |
-| `POST /v1/solve` | `{"cube","scheme"?,"maxMoves"? (1..=25; 1..=255 for a 4x4x4 or 5x5x5),"budgetMs"? (1..=600000),"minProbes"? (3x3x3 only),"improve"? (3x3x3 only, needs budgetMs)}` | `{"kind","solution","inverse","length","elapsedMicros"}` |
+| `POST /v1/solve` | `{"cube","scheme"?,"maxMoves"? (1..=25; 1..=255 for a 4x4x4 or 5x5x5),"budgetMs"? (1..=600000),"minProbes"? (3x3x3 only),"improve"? (3x3x3 only, needs budgetMs),"formatVersion"? (1 or 2, default 2)}` | `{"kind","solution","inverse","length","elapsedMicros"}` |
 
 `cube` accepts Orbit64 tokens (every size, 2x2x2 to 7x7x7; `convert` answers the token too), URFDLB facelets (spaced or compact) or W/R/G/Y/O/B colors; `scheme` is `boy`, `jp` or six letters.
 
@@ -62,3 +62,12 @@ There is deliberately no CORS layer, and JSON-only bodies (415 otherwise) keep c
 ## Tests
 
 The server tests are not run by a plain `cargo test` at the repository root. Use `cargo test -p cubacle-server --release` or `cargo test --workspace --release`.
+
+### Solve JSON versioning
+
+Changed in 0.2.0: `/v1/solve` defaults to format 2, appending `formatVersion`, `toolVersion`,
+`gitCommit`, `frame`, `proven`, and `lowerBound` after the original fields. Send
+`"formatVersion": 1` to retain the original bytes. Unsupported versions return 400.
+The proof and goal frame describe the actual search result; neither a flag nor cube size
+alone establishes HTM optimality. Other endpoint and error formats do not change.
+See [the API reference](../../docs/api.md) for the complete contract.

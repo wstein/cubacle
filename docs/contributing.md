@@ -49,3 +49,11 @@ Open `$tmp/public/index.html` to read the result, or run `hugo server --source "
 ## License of contributions
 
 cubacle is licensed under AGPL-3.0-or-later. See [Credits and license](credits.md).
+
+Solve JSON compatibility tests keep `tests/solve_json_body.txt` and
+`tests/solve_json_body_four.txt` unchanged, selecting format 1 explicitly. Version-2 tests
+check appended-field order, actual goal frames, interrupted optimal search, fallback routes,
+and refusal to present non-HTM proofs as HTM optimality. A `SolveMetrics` value now carries
+typed `evidence`; builders without a proof use its default rather than inspecting CLI flags
+or parsing diagnostic messages. Release builds may set `CUBACLE_GIT_COMMIT` to the lowercase
+40-digit source SHA; ordinary builds report null.

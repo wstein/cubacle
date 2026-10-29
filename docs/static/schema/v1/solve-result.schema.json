@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://wstein.github.io/cubacle/schema/v1/solve-result.schema.json",
   "title": "cubacle solve result",
-  "description": "Draft, not implemented: the body of cubacle solve --json and of POST /v1/solve. Format 1 is the body of v0.1.0 (no formatVersion key). Format 2, the default from v0.2.0, appends formatVersion, toolVersion, gitCommit, frame, proven and lowerBound after all other keys; --json-format 1 or formatVersion 1 in the request selects format 1. See docs/design/fixed-frame-proofs.md, sections 6 and 17.",
+  "description": "The body of cubacle solve --json and of POST /v1/solve. Format 1 is the body of v0.1.0 (no formatVersion key). Format 2, the default from v0.2.0, appends formatVersion, toolVersion, gitCommit, frame, proven and lowerBound after all other keys; --json-format 1 or formatVersion 1 in the request selects format 1. See docs/design/fixed-frame-proofs.md, sections 6 and 17.",
   "type": "object",
   "$defs": {
     "metrics": {
