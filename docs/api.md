@@ -101,7 +101,7 @@ The solve request returns:
 {"kind":"3x3x3","solution":"B R L B L' U' D B D2 R2 F2 R2 L2 D R2 L2 U' L2 U' F2 R","inverse":"R' F2 U L2 U L2 R2 D' L2 R2 F2 R2 D2 B' D' U L B' L' R' B'","length":21,"metrics":{"htm":21,"qtm":30,"stm":21,"etm":21,"obtm":21,"btm":21,"atm":17},"elapsedMicros":776}
 ```
 
-The `elapsedMicros` value varies between runs.
+The `elapsedMicros` value varies between runs. For the 4x4x4 to 7x7x7 the body ends with one more key after it, `phases`: an array of `{"name":"3x3 stage","moves":2}` objects, one per phase of the engine, in order (a phase can have `"moves":0`). The 2x2x2 and 3x3x3 engines report no phases, so their body has no `phases` key. The server has no option for the pattern hint, so it never sends `patternHint`, which `cubacle solve --json -v` can add.
 
 The same body comes from `cubacle solve --json` for an equivalent request: both are written by one function of the library, `cubacle::report`. See [`--json`](cli/solve-options.md#--json).
 
