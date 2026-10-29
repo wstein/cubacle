@@ -1,0 +1,37 @@
+# Command examples of the docs pages, run by `cargo xtask docs` with the release binary.
+# A page holds the output between `<!-- example:ID -->` and `<!-- /example -->`; the task
+# rewrites everything between the markers (command and output). `cargo xtask docs --check`
+# fails when a block is stale.
+#
+# Keys: id, page (below docs/), args (of cubacle), lang (output fence, default text),
+# stderr (show standard error before standard output, default false), mask (JSON number
+# keys written as 0 because they change from run to run).
+# Only add commands whose output is the same on every run and machine.
+
+[[example]]
+id = "solve-token"
+page = "cli/solve.md"
+args = ["solve", "A4ib8aejxj4Y"]
+
+[[example]]
+id = "convert-facelets"
+page = "cli/convert.md"
+args = ["convert", "A4ib8aejxj4Y"]
+
+[[example]]
+id = "order-ru"
+page = "cli/order.md"
+args = ["order", "R U"]
+
+[[example]]
+id = "json-fast"
+page = "cli/solve-options.md"
+args = ["solve", "-s", "R U", "--fast", "--max-moves", "21", "--json"]
+stderr = true
+mask = ["elapsedMicros"]
+
+[[example]]
+id = "json-default"
+page = "cli/solve-options.md"
+args = ["solve", "-s", "R U", "--json"]
+mask = ["elapsedMicros"]

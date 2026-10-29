@@ -10,6 +10,7 @@ weight: 7
 
 `convert` translates any accepted notation into canonical URFDLB facelets.
 
+<!-- example:convert-facelets -->
 ```sh
 cubacle convert A4ib8aejxj4Y
 ```
@@ -17,6 +18,7 @@ cubacle convert A4ib8aejxj4Y
 ```text
 FUFUUFFFFUUUURRURURRRFFRRFRBDBBDDBBBDLDDLLDDDLBLBBLLLL
 ```
+<!-- /example -->
 
 `--to` picks the output: `facelets` (default), `token` or `color`. `color` (also spelled `color`) writes one W/R/G/Y/O/B letter per sticker, in the same order as the facelets output, through the color scheme named by `--scheme` (default: the scheme the input colors were read in, else `boy`, the western scheme, white up and yellow down; so a Japanese-scheme color cube with its centers converts back into Japanese letters, and tokens, facelets and scrambles come out western). `--scheme western` is another name for `boy`; `jp` and six letters in URFDLB order work too. The text reads back with `convert --scheme <same>`.
 

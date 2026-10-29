@@ -10,6 +10,7 @@ weight: 1
 
 `solve` reads a cube, prints a solution on standard output and exits with status 0.
 
+<!-- example:solve-token -->
 ```sh
 cubacle solve A4ib8aejxj4Y
 ```
@@ -17,6 +18,7 @@ cubacle solve A4ib8aejxj4Y
 ```text
 B R' D' R B U R U' B2 U' D B' R' B U
 ```
+<!-- /example -->
 
 You can also solve the cube produced by a scramble:
 
