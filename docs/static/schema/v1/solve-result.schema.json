@@ -52,10 +52,10 @@
       "oneOf": [{ "type": "string", "pattern": "^[0-9a-f]{40}$" }, { "type": "null" }]
     },
     "frame": {
-      "description": "Format 2 only: any-orientation for the 2x2x2 solve (optimal up to a rotation of the whole cube), fixed otherwise.",
+      "description": "Format 2 only: Derived from the actual route and target: any-orientation for the ordinary 2x2 table solve or a rotation-quotiented goal; fixed for exact-state routes, including 2x2 --within.",
       "enum": ["any-orientation", "fixed"]
     },
-    "proven": { "description": "Format 2 only: true only where the engine proves the answer shortest in HTM.", "type": "boolean" },
+    "proven": { "description": "Format 2 only: true only when actual result evidence proves the emitted answer shortest in HTM for its reported target and frame; never inferred from CLI flags or non-HTM search alphabets.", "type": "boolean" },
     "lowerBound": {
       "description": "Format 2 only: the proven lower bound; equal to length when proven, null when nothing is proven.",
       "oneOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }]
