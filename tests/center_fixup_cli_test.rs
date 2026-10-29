@@ -5,8 +5,14 @@
 use cubacle::notation::parse_expression;
 use cubacle::puzzle::{reaches, Facelets, MoveSequence, PuzzleKind};
 use std::process::Command;
+use std::sync::Mutex;
 
 fn cubacle(args: &[&str]) -> (bool, String, String) {
+    // CLI budgets include cold table preparation. Run children one at a time
+    // so parallel tests do not turn the 1.5 s functional case into a CPU
+    // contention benchmark. Budget and expiry assertions remain unchanged.
+    static CHILD: Mutex<()> = Mutex::new(());
+    let _child = CHILD.lock().expect("CLI test lock");
     let output = Command::new(env!("CARGO_BIN_EXE_cubacle"))
         .args(args)
         // never the user's real table cache
