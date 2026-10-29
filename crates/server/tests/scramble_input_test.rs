@@ -1,25 +1,17 @@
 //! The `scramble` and `size` fields of `/v1/convert` and `/v1/solve`: moves in
 //! WCA or SiGN notation, with layer ranges, groups and commutators.
 
+mod support;
+
 use axum::body::Body;
 use axum::http::{header, Request, StatusCode};
-use cubacle::engines::three::Min2PhaseSolver;
-use cubacle::engines::{five::FiveSolver, four::FourSolver};
-use cubacle_server::{router, AppState, Config};
+use cubacle_server::{router, Config};
 use http_body_util::BodyExt;
 use serde_json::{json, Value};
-use std::sync::Arc;
 use tower::ServiceExt;
 
 async fn post(path: &str, body: Value) -> (StatusCode, Value) {
-    let five = FiveSolver::new(Arc::new(Min2PhaseSolver::shared())).with_cache_dir(None);
-    let four = FourSolver::new(Arc::new(Min2PhaseSolver::shared())).with_threads(1);
-    let app = router(AppState::with_engines(
-        Config::default(),
-        Min2PhaseSolver::shared(),
-        five,
-        four,
-    ));
+    let app = router(support::state(Config::default()));
     let request = Request::post(path)
         .header(header::CONTENT_TYPE, "application/json")
         .body(Body::from(body.to_string()))

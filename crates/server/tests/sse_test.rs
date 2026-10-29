@@ -1,29 +1,19 @@
 //! SSE (Superset ENG) in the REST API: the `scramble` field reads it, the
 //! `notation` field (`sse`) writes it.
 
-use std::sync::Arc;
+mod support;
 
 use axum::body::Body;
 use axum::http::{header, Request, StatusCode};
-use cubacle::engines::five::FiveSolver;
-use cubacle::engines::four::FourSolver;
-use cubacle::engines::three::Min2PhaseSolver;
 use cubacle::notation::parse_expression;
 use cubacle::puzzle::{Facelets, PuzzleKind};
-use cubacle_server::{router, AppState, Config};
+use cubacle_server::{router, Config};
 use http_body_util::BodyExt;
 use serde_json::{json, Value};
 use tower::ServiceExt;
 
 async fn call(request: Request<Body>) -> (StatusCode, Value) {
-    let five = FiveSolver::new(Arc::new(Min2PhaseSolver::shared())).with_cache_dir(None);
-    let four = FourSolver::new(Arc::new(Min2PhaseSolver::shared())).with_threads(1);
-    let app = router(AppState::with_engines(
-        Config::default(),
-        Min2PhaseSolver::shared(),
-        five,
-        four,
-    ));
+    let app = router(support::state(Config::default()));
     let response = app.oneshot(request).await.unwrap();
     let status = response.status();
     let bytes = response.into_body().collect().await.unwrap().to_bytes();
