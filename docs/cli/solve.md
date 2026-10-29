@@ -82,8 +82,9 @@ cubacle solve --size 4 "R U" --to Rw
 ```
 
 ```text
-moves 3
-U' R' Rw
+moves 2
+metrics: obtm 3, qtm 3, stm 2, btm 2
+U' 3L'
 ```
 
 ### Known patterns
