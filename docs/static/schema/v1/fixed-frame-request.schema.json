@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wstein.github.io/cubacle/schema/v1/fixed-frame-request.schema.json",
+  "title": "cubacle fixed-frame batch request line",
+  "description": "Draft, not implemented: one line of the JSON Lines input of cubacle fixed-frame batch. See docs/design/fixed-frame-proofs.md. The first line is a print request; later lines refer to it.",
+  "oneOf": [
+    { "$ref": "#/$defs/printRequest" },
+    { "$ref": "#/$defs/goalRequest" },
+    { "$ref": "#/$defs/distanceRequest" },
+    { "$ref": "#/$defs/eccentricityRequest" },
+    { "$ref": "#/$defs/runRequest" },
+    { "$ref": "#/$defs/sampleRequest" }
+  ],
+  "$defs": {
+    "position": {
+      "description": "A corner position in {-1,+1}^3; x points to R, y to U, z to F.",
+      "type": "array",
+      "items": { "enum": [-1, 1] },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "axis": {
+      "description": "A signed axis vector: exactly one entry is -1 or +1, the others 0. Checked by the reader.",
+      "type": "array",
+      "items": { "enum": [-1, 0, 1] },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "stickerId": { "type": "integer", "minimum": 0, "maximum": 23 },
+    "bodyId": { "type": "integer", "minimum": 0, "maximum": 7 },
+    "id": {
+      "description": "A caller-chosen name, echoed in the answer.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]{1,64}$"
+    },
+    "sticker": {
+      "description": "One sticker: identity, body, frame and optional opaque image. Unknown extra fields (such as slot) are parsed and ignored.",
+      "type": "object",
+      "properties": {
+        "id": { "$ref": "#/$defs/stickerId" },
+        "cubie": { "$ref": "#/$defs/bodyId" },
+        "p": { "$ref": "#/$defs/position" },
+        "n": { "$ref": "#/$defs/axis" },
+        "up": { "$ref": "#/$defs/axis" },
+        "image": { "type": "string", "maxLength": 256 }
+      },
+      "required": ["id", "cubie", "p", "n", "up"]
+    },
+    "state": {
+      "description": "A physical state: a move word applied to the print, the 24 current sticker frames, or the eight body poses (pose24.v1).",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": { "moves": { "type": "string", "maxLength": 16384 } },
+          "required": ["moves"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "stickers": { "type": "array", "items": { "$ref": "#/$defs/sticker" }, "minItems": 24, "maxItems": 24 }
+          },
+          "required": ["stickers"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "poses": { "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 23 }, "minItems": 8, "maxItems": 8 }
+          },
+          "required": ["poses"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "rule": {
+      "description": "Accepted stickers of a cell, by id list or by exact image string; up, when present, must equal the sticker's current up vector (absent: any orientation, as for a blank).",
+      "type": "object",
+      "properties": {
+        "ids": { "type": "array", "items": { "$ref": "#/$defs/stickerId" }, "minItems": 1, "uniqueItems": true },
+        "image": { "type": "string", "maxLength": 256 },
+        "up": { "$ref": "#/$defs/axis" }
+      },
+      "oneOf": [
+        { "required": ["ids"], "not": { "required": ["image"] } },
+        { "required": ["image"], "not": { "required": ["ids"] } }
+      ],
+      "additionalProperties": false
+    },
+    "cell": {
+      "type": "object",
+      "properties": {
+        "p": { "$ref": "#/$defs/position" },
+        "n": { "$ref": "#/$defs/axis" },
+        "accept": { "type": "array", "items": { "$ref": "#/$defs/rule" }, "minItems": 1 }
+      },
+      "required": ["p", "n", "accept"],
+      "additionalProperties": false
+    },
+    "display": {
+      "description": "A goal: every cell must show an accepted sticker. Cells are distinct facelets; no cells means every state meets it.",
+      "type": "object",
+      "properties": {
+        "cells": { "type": "array", "items": { "$ref": "#/$defs/cell" }, "maxItems": 24 }
+      },
+      "required": ["cells"],
+      "additionalProperties": false
+    },
+    "printRequest": {
+      "type": "object",
+      "properties": {
+        "op": { "const": "print" },
+        "formatVersion": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/formatVersion" },
+        "puzzle": { "const": "2x2x2" },
+        "printing": { "type": "array", "items": { "$ref": "#/$defs/sticker" }, "minItems": 24, "maxItems": 24 }
+      },
+      "required": ["op", "formatVersion", "puzzle", "printing"],
+      "additionalProperties": false
+    },
+    "goalRequest": {
+      "type": "object",
+      "properties": {
+        "op": { "const": "goal" },
+        "goalId": { "$ref": "#/$defs/id" },
+        "display": { "$ref": "#/$defs/display" },
+        "premise": { "$ref": "#/$defs/display" }
+      },
+      "required": ["op", "goalId", "display"],
+      "additionalProperties": false
+    },
+    "distanceRequest": {
+      "type": "object",
+      "properties": {
+        "op": { "const": "distance" },
+        "id": { "$ref": "#/$defs/id" },
+        "from": { "$ref": "#/$defs/state" },
+        "goalId": { "$ref": "#/$defs/id" },
+        "display": { "$ref": "#/$defs/display" },
+        "stickers": { "description": "Also write the full wire state of the source and the reached state.", "type": "boolean" }
+      },
+      "required": ["op", "id", "from"],
+      "oneOf": [
+        { "required": ["goalId"], "not": { "required": ["display"] } },
+        { "required": ["display"], "not": { "required": ["goalId"] } }
+      ],
+      "additionalProperties": false
+    },
+    "eccentricityRequest": {
+      "type": "object",
+      "properties": {
+        "op": { "const": "eccentricity" },
+        "id": { "$ref": "#/$defs/id" },
+        "goalId": { "$ref": "#/$defs/id" },
+        "premise": { "$ref": "#/$defs/display" },
+        "witness": { "description": "Also write one source of maximum distance with its path.", "type": "boolean" }
+      },
+      "required": ["op", "id", "goalId", "premise"],
+      "additionalProperties": false
+    },
+    "runRequest": {
+      "type": "object",
+      "properties": {
+        "op": { "const": "run" },
+        "id": { "$ref": "#/$defs/id" },
+        "from": { "$ref": "#/$defs/state" },
+        "goals": { "type": "array", "items": { "$ref": "#/$defs/id" }, "minItems": 1, "maxItems": 100000 },
+        "maxSteps": { "type": "integer", "minimum": 1, "maximum": 100000000 }
+      },
+      "required": ["op", "id", "from", "goals", "maxSteps"],
+      "additionalProperties": false
+    },
+    "sampleRequest": {
+      "type": "object",
+      "properties": {
+        "op": { "const": "sample" },
+        "id": { "$ref": "#/$defs/id" },
+        "count": { "type": "integer", "minimum": 1, "maximum": 1000000 },
+        "seed": { "type": "integer", "minimum": 0, "maximum": 18446744073709551615 },
+        "goalId": { "$ref": "#/$defs/id" }
+      },
+      "required": ["op", "id", "count", "seed", "goalId"],
+      "additionalProperties": false
+    }
+  },
+  "examples": [
+    { "op": "goal", "goalId": "blank-H-34", "display": { "cells": [
+      { "p": [-1, 1, 1], "n": [0, 0, 1], "accept": [{ "image": "" }] },
+      { "p": [1, 1, 1], "n": [0, 0, 1], "accept": [{ "image": "H", "up": [0, 1, 0] }] },
+      { "p": [-1, -1, 1], "n": [0, 0, 1], "accept": [{ "image": "3", "up": [0, 1, 0] }] },
+      { "p": [1, -1, 1], "n": [0, 0, 1], "accept": [{ "image": "4", "up": [0, 1, 0] }] }
+    ] } },
+    { "op": "distance", "id": "cex", "from": { "moves": "U D2 B D'" }, "goalId": "blank-H-34" }
+  ]
+}
