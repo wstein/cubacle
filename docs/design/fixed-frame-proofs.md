@@ -556,29 +556,59 @@ lex-least shortest word to the next goal, until the pair (full state, goal index
 policy 13 or 1, so its runs are not expected to equal Cubistry's runs; the universal bounds of
 section 7.5 hold for every shortest policy, which is what the golden tests use.
 
-### 7.8 The independent checker
+### 7.8 The independent checkers (D5)
 
-The checker lives outside cubacle: in Cubistry Research (Python, standard library) and,
-optionally, in the Cubistry proof-checkers (Flix, Julia), under their own licenses and their own
-review. Contract:
+Two checkers, one in Flix and one in Julia, written without cubacle code and without each other's
+code. Python is a development aid only: it may generate expected data and help to find the
+difference between two verdicts, and no certificate is accepted on the strength of a Python
+checker.
 
-1. Read the certificate under the strict JSON rules of section 5.3; reject an unknown `format`
-   or `formatVersion`.
-2. Validate the print (section 2.2) and recompute `printSha256` over the canonical print bytes.
-3. Build its own move engine on sticker frames and its own `pose24.v1` and `key.v1`; self-test
-   them: the 18 moves are permutations of the 24 facelets, `X X'` is the identity, a quarter
-   turn has order 4, and the reference state has the poses `3 * positionRank`.
-4. For each goal record: tracked bodies, `goalKeys`, `deadRules` and the table by mode R or L;
-   then histogram and eccentricity.
-5. For each distance, eccentricity and run record: the checks of section 7.2.
-6. Recompute `chainSha256` and the record count.
-7. Report `VALID` or `INVALID` with the first failing record, exit 0 or 1, as the proof-checkers
-   interface does.
+**Where they live [C].** The Flix and Julia checkers are in the Cubistry repository
+(`/home/claude/cubistry`, read from `origin/main`, commit `35db0e1`), in `proof-checkers/flix/`
+(Flix 0.79.0 through the `flixw` wrapper, Java 21; Jackson Core only to tokenize JSON, all type
+policy and mathematics in Flix) and `proof-checkers/julia/` (Julia 1.13.3, JSON 1.13.0), under
+the contract `proof-checkers/SPEC.md` of Cubistry issue 74 and its shared `INTERFACE.md`. Two
+other places were looked at and are not checkers: `/home/claude/cube-solvers` is the Java and
+Gradle solver family `wstein/cube-solvers` (engines 2x2 to 5x5 and a replay conformance suite;
+no Flix or Julia code) and `/home/claude/wstein/flix-cube-solvers` is a Flix solver package (cube
+model, a 2x2 Datalog distance table over a pocket cube that turns three faces, 3x3
+coordinates). They
+are solvers; they may serve as extra producers of test data, and a checker must not import
+either of them.
 
-Expected effort [E]: about 400 lines of Python. Mode R for k <= 4 runs in seconds in CPython
-(the 136,080-key searches of this paper took about 20 s each on a loaded shared machine [M]);
-k = 5 took about 90 s [M]; k >= 6 and mode L on large tables need a compiled checker (Julia,
-or the JVM for Flix).
+**What the contract already gives us.** The SPEC fixes the same world frame as section 2.1 (a
+quarter turn of R, U, F is -90 degrees about +x, +y, +z), the same wire state, the same strict
+JSON policy as section 5.3 (raw UTF-8 bytes, duplicate keys, NaN and `1.0` rejected, 16 MiB, depth
+64, 128-byte numeric tokens), a corpus pinned by hash, unknown formats failing closed, a verdict
+object with `valid` and `status` (`VALID`, `INVALID`, `INVALID_JSON`, `UNSUPPORTED`, `ERROR`)
+and the exit codes 0, 1, 2 and 3. It says that a future Cubacle producer "must declare its own
+twist order/direction/reference frame": this paper does, in sections 2.1 and 2.4 and in the
+`frame` string of the header. Today both checkers implement the counter certificate (Group 1) and
+marked 3x3x3 states (Group 2); a fixed-frame certificate is `UNSUPPORTED` for them until the SPEC
+has a Group 3. Strictly speaking the Cubistry coordinator owns that SPEC, so the Group 3 text is a
+Cubistry pull request.
+
+**How they consume the certificate.** Each checker gets a new command, `fixedframe FILE
+[TABLES_DIR]`, next to `counter` and `state3`. It reads the certificate of section 7.2 (a JSON
+Lines file, plus sidecars for mode L) as raw bytes, parses every line strictly, and:
+
+1. rejects an unknown `format` or `formatVersion`;
+2. validates the print (section 2.2) and recomputes `printSha256` over the canonical print bytes;
+3. builds its own move engine on sticker frames and its own `pose24.v1` and `key.v1`, and
+   self-tests them: the 18 moves are permutations of the 24 facelets, `X X'` is the identity, a
+   quarter turn has order 4, the reference state has the poses `3 * positionRank`;
+4. for each goal record checks the tracked bodies, `goalKeys`, `deadRules` and the table by mode
+   R or mode L, then the histogram and the eccentricity;
+5. for each distance, eccentricity and run record makes the checks of section 7.2;
+6. recomputes `chainSha256` and the record count;
+7. prints the verdict object and exits 0, 1, 2 or 3 as the SPEC says.
+
+The mode R search (a breadth-first search over up to 1.6 million keys, 14.7 million at most for
+the REST limit) is fast in Julia and acceptable in Flix on the JVM; mode L over the 88-million-key
+table is a job for both, not for CPython. The scratch Python searches of this paper took about
+20 s for 136,080 keys and about 90 s for 1,632,960 on a loaded machine [M]; that is the reason
+Python is not the authority, not a reason to avoid it for development. Expected effort per
+checker [E]: 400 to 600 lines plus the corpus entries.
 
 ## 8. Determinism and reproducibility
 
@@ -663,8 +693,9 @@ itself does not judge them.
 - `#[ignore]`, filter `fixed_frame_full`: the full 88-million-key table and its hash, k = 5 and
   k = 6 goldens, the 180-display H/S/M batch. Run on request, or in an opt-in CI job like
   `four-full`, never in the default `rust` job, which already times out on `develop`.
-- The independent checker runs in Cubistry, in optional tests that download the pinned release,
-  never in cubacle's CI.
+- The independent checkers (Flix and Julia) run in Cubistry, in optional tests that use the
+  pinned release, never in cubacle's CI. They are not part of the release gate (section 19.3);
+  they follow the tag and pin it.
 
 ## 11. Performance, memory and CI
 
@@ -794,6 +825,16 @@ notes and in a small checked-in file (section 19). A table that every correct im
 rebuilds in seconds adds nothing as a download except a larger release and a file to trust, while
 the hash lets anyone, and the independent checkers, confirm their own table.
 
+### D5. Two independent checkers, in Flix and in Julia (DECIDED)
+
+The consumers of the certificate are two checkers that share no code with cubacle and none with
+each other: one in Flix and one in Julia, which already exist as the proof checkers of Cubistry
+(section 7.8). Python may stay as a development aid (expected data, differential debugging) and
+is not an authority. Two languages and runtimes (the JVM and Julia) make an agreed verdict much
+stronger than one checker, and Cubistry already has their contract, build and review process.
+The question who owns the checker is closed: Cubistry owns them, cubacle owns the certificate;
+the plan is in section 15 (rows C1 to C3).
+
 ### D6. A REST endpoint ships with the first fixed-frame release (DECIDED)
 
 `POST /v1/fixed-frame/batch` and `POST /v1/fixed-frame/distance` are part of v0.2.0, designed in
@@ -803,8 +844,6 @@ the consumers need (four bodies, 136,080 keys) build in milliseconds [E], which 
 is kept between requests.
 
 ### Still open from the first draft
-5. **Who owns the independent checker**: Cubistry Research (Python) first, the proof-checkers
-   (Flix, Julia) later, or both from the start.
 7. **Release.** Is v0.2.0 the tag for this, and does it wait for the green `rust` job only, or
    for all jobs?
 
@@ -839,15 +878,21 @@ after the CI of `develop` is green (decision 3).
   digit). Mitigation: the frame string in the header, the checker's self-tests, goldens with real
   prints, and the counterexample replayed by both sides.
 - **False independence.** A checker that reuses cubacle code or tables proves nothing. Mitigation:
-  the contract forbids it; the checker lives in another repository with its own review.
+  the contract forbids it; the checkers live in another repository with its own review; there
+  are two of them in two languages, and the corpus runs the same cases through both, so a
+  disagreement shows at once.
 - **Strict JSON** rests on `serde_json` plus our duplicate-key check (D2). A gap in the check
   would let a duplicate key through; the negative controls of section 10.3 cover it, and the
   independent checkers read the same bytes with their own parsers.
 - **CI.** The `rust` job times out on `develop` now; the new default tests must stay small, and
   the heavy ones stay ignored. A release waits for green CI, so this work can be blocked by an
   unrelated job.
-- **Large tables in a checker.** Mode L on 88 million keys is slow in CPython; the plan keeps
-  Python to k <= 5 and leaves the full table to a compiled checker or to mode R.
+- **Large tables in a checker.** Mode L on 88 million keys is a compiled-checker job (Julia, Flix
+  on the JVM); Python is a development aid only (D5) and is kept to k <= 5.
+- **The checkers depend on another repository's SPEC.** A fixed-frame certificate is
+  `UNSUPPORTED` for both checkers until Cubistry accepts a Group 3 (section 20). Mitigation:
+  the Group 3 text and corpus are the first Cubistry pull request (row C1), and the tag does not
+  wait for it.
 - **Scope creep** toward 3x3x3 pictures and center twists: they need other certificates
   (section 2.8) and are a separate design.
 
