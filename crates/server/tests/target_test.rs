@@ -1,27 +1,20 @@
 //! The `target` field of `/v1/solve`: the moves lead from the start to a state
 //! other than the solved cube.
 
+mod support;
+
 use axum::body::Body;
 use axum::http::{header, Request, StatusCode};
-use cubacle::engines::three::Min2PhaseSolver;
-use cubacle::engines::{five::FiveSolver, four::FourSolver};
 use cubacle::notation::parse_expression;
 use cubacle::puzzle::{reaches, Facelets, MoveSequence, PuzzleKind};
-use cubacle_server::{router, AppState, Config};
+use cubacle_server::{router, Config};
 use http_body_util::BodyExt;
 use serde_json::{json, Value};
 use std::sync::Arc;
 use tower::ServiceExt;
 
 async fn post(path: &str, body: Value) -> (StatusCode, Value) {
-    let five = FiveSolver::new(Arc::new(Min2PhaseSolver::shared())).with_cache_dir(None);
-    let four = FourSolver::new(Arc::new(Min2PhaseSolver::shared())).with_threads(1);
-    let app = router(AppState::with_engines(
-        Config::default(),
-        Min2PhaseSolver::shared(),
-        five,
-        four,
-    ));
+    let app = router(support::state(Config::default()));
     let request = Request::post(path)
         .header(header::CONTENT_TYPE, "application/json")
         .body(Body::from(body.to_string()))
@@ -38,6 +31,24 @@ async fn post(path: &str, body: Value) -> (StatusCode, Value) {
 fn cube(kind: PuzzleKind, moves: &str) -> Facelets {
     let moves = parse_expression(moves, kind).unwrap();
     Facelets::solved(kind).apply(&moves).unwrap()
+}
+
+#[test]
+fn sharing_test_tables_does_not_share_request_limits() {
+    let first = support::state(Config {
+        max_concurrency: 1,
+        ..Config::default()
+    });
+    let second = support::state(Config {
+        max_concurrency: 2,
+        ..Config::default()
+    });
+    assert!(!Arc::ptr_eq(first.permits(), second.permits()));
+    let permit = first.permits().try_acquire().unwrap();
+    assert!(first.permits().try_acquire().is_err());
+    assert_eq!(second.permits().available_permits(), 2);
+    drop(permit);
+    assert_eq!(first.permits().available_permits(), 1);
 }
 
 /// Solves `scramble` to `target` and checks by replay that the answer ends there.
