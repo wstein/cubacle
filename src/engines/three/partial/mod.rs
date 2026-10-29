@@ -25,7 +25,7 @@ use crate::puzzle::{
 use completions::by_completions;
 use edges::edges_only;
 
-/// The most whole edges the exact search tracks: 12P5 * 2^5 = 7,962,624 table entries.
+/// The most whole edges the exact search tracks: 12^5 * 2^5 = 24^5 = 7,962,624 table entries (12P5 * 2^5 = 3,041,280 distinct states).
 const MAX_EDGES: usize = 5;
 /// The most complete cubes a target may allow for the second route.
 const MAX_COMPLETIONS: usize = 24;
