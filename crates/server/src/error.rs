@@ -62,6 +62,22 @@ impl IntoResponse for ApiError {
     }
 }
 
+/// A body already written as JSON text, sent as `application/json`.
+pub(crate) struct JsonText(pub(crate) String);
+
+impl IntoResponse for JsonText {
+    fn into_response(self) -> Response {
+        (
+            [(
+                header::CONTENT_TYPE,
+                HeaderValue::from_static("application/json"),
+            )],
+            self.0,
+        )
+            .into_response()
+    }
+}
+
 pub(crate) type ApiResult<T> = Result<Json<T>, ApiError>;
 
 pub(crate) async fn method_not_allowed(method: Method) -> ApiError {

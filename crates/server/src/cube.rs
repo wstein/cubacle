@@ -66,7 +66,7 @@ pub(crate) struct CubeBody {
 impl CubeBody {
     async fn of(facelets: &Facelets) -> CubeBody {
         CubeBody {
-            kind: kind_name(facelets.kind()),
+            kind: cubacle::report::kind_name(facelets.kind()),
             facelets: facelets.to_string(),
             token: orbit64::encode(facelets).ok(),
             canonical: Canonical::of(facelets).await,

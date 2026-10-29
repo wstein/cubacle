@@ -6,7 +6,6 @@ use axum::body::Bytes;
 use axum::extract::rejection::BytesRejection;
 use axum::extract::State;
 use axum::http::{HeaderMap, StatusCode};
-use axum::Json;
 use cubacle::centers;
 use cubacle::engines::two::PocketSolver;
 use cubacle::notation::parse_expression;
@@ -14,11 +13,11 @@ use cubacle::puzzle::{
     oriented_by_centers, reaches, relative_state, solves_by_color, Facelets, Failure, PuzzleKind,
     RelativeError, SolveOptions, Solver,
 };
-use cubacle::ranges::{compress, write as write_ranges, Optimize};
-use serde::{Deserialize, Serialize};
+use cubacle::ranges::Optimize;
+use cubacle::report::SolveReport;
+use serde::Deserialize;
 
-use crate::counts::Counts;
-use crate::error::{ApiError, ApiResult};
+use crate::error::{ApiError, JsonText};
 use crate::input::{read_input, read_target};
 use crate::request::*;
 use crate::state::*;
@@ -55,24 +54,6 @@ pub(crate) struct SolveRequest {
     pub(crate) target: Option<String>,
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct SolveBody {
-    pub(crate) kind: String,
-    pub(crate) solution: String,
-    /// The moves that undo `solution`, in the same notation.
-    pub(crate) inverse: String,
-    pub(crate) length: usize,
-    pub(crate) metrics: Counts,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) compressed: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) compressed_length: Option<usize>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) compressed_metrics: Option<Counts>,
-    pub(crate) elapsed_micros: u64,
-}
-
 /// Failure statuses:
 ///
 /// * `BudgetExhausted` -> 504. 408 means the client was too slow sending its
@@ -87,7 +68,7 @@ pub(crate) async fn solve(
     State(state): State<AppState>,
     headers: HeaderMap,
     body: Result<Bytes, BytesRejection>,
-) -> ApiResult<SolveBody> {
+) -> Result<JsonText, ApiError> {
     let request: SolveRequest = read_body(&headers, body)?;
     let notation = read_notation(request.notation.as_deref())?;
     let optimize: Option<Optimize> = request
@@ -277,21 +258,9 @@ pub(crate) async fn solve(
     };
     match &result.outcome {
         Ok(solution) => {
-            let packed = optimize.map(|_| compress(kind, solution));
-            Ok(Json(SolveBody {
-                kind: kind_name(kind),
-                solution: notation.write(kind, solution),
-                inverse: notation.write(kind, &solution.inverse()),
-                length: solution.len(),
-                metrics: Counts::of(solution, kind),
-                compressed: packed
-                    .as_ref()
-                    .map(|moves| write_ranges(notation, kind, moves)),
-                compressed_length: packed.as_ref().map(Vec::len),
-                compressed_metrics: packed.as_ref().map(|moves| Counts::of_ranges(moves, kind)),
-                elapsed_micros: u64::try_from(result.metrics.elapsed.as_micros())
-                    .unwrap_or(u64::MAX),
-            }))
+            let report =
+                SolveReport::of(kind, solution, notation, optimize, result.metrics.elapsed);
+            Ok(JsonText(report.to_json()))
         }
         Err(Failure::InvalidInput) => Err(ApiError::new(
             StatusCode::UNPROCESSABLE_ENTITY,

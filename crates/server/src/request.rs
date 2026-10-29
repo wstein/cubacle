@@ -8,11 +8,6 @@ use cubacle::puzzle::{Facelets, PuzzleKind};
 
 use crate::error::ApiError;
 
-pub(crate) fn kind_name(kind: PuzzleKind) -> String {
-    let size = kind.size();
-    format!("{size}x{size}x{size}")
-}
-
 /// The `notation` field of a request: `wca` when absent.
 pub(crate) fn read_notation(text: Option<&str>) -> Result<Notation, ApiError> {
     text.map_or(Ok(Notation::Wca), str::parse)

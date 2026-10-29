@@ -31,7 +31,6 @@ use serde::Serialize;
 use tower_http::catch_panic::CatchPanicLayer;
 
 mod canonical;
-mod counts;
 mod cube;
 mod error;
 mod input;
