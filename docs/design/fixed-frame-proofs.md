@@ -23,6 +23,12 @@ open (20). Marks used below:
 - **[E]**: estimate, not measured.
 - **[A]**: assumption that the implementation or the owner must confirm.
 
+> **Implementation-time audit (2026-10-29).** The full-state histogram reported by the
+> uncommitted scratch program is inconsistent with the established rotation-quotient bound
+> (section 13.1). Its histogram is withdrawn as a golden, and its associated hash remains
+> unverified until checked recomputation. The independently reproduced k = 3 and k = 4
+> goldens are unaffected. This does not change decisions D1 to D7 or authorize a release.
+
 ## 1. Problem
 
 ### 1.1 What the consumers need
@@ -154,8 +160,9 @@ it is; extra fields such as `slot` are ignored but still parsed.
 
 A body moves rigidly, so its placement is one of 24 proper rotations of its reference frames
 (8 positions times 3 twists). A physical state is the placement of all eight bodies. The states
-reachable from the print are 8! x 3^7 = 88,179,840 [M: a breadth-first search over all of them,
-section 3]. Every state has a unique full sticker list; the corner twist sum is the only
+reachable from the print are 8! x 3^7 = 88,179,840 (the corner invariant and the 24-fold
+rotation lift; the historical scratch report is audited in section 13.1). Every state has
+a unique full sticker list; the corner twist sum is the only
 invariant.
 
 Input forms of a state:
@@ -344,13 +351,15 @@ Measured histograms [M] (distance: number of keys):
   6: 53,528, 7: 3,144. Maximum 7. (Not reported by Cubistry; a new golden value.)
 - k = 5, one target: 0: 1, 1: 18, 2: 243, 3: 2,874, 4: 27,380, 5: 178,562, 6: 645,104,
   7: 717,990, 8: 60,788. Maximum 8.
-- Full fixed frame (k = 7 key, from the reference state): 0: 1, 1: 18, 2: 243, 3: 2,874,
+- Historical full fixed-frame report (**withdrawn histogram**, k = 7 reference key):
+  0: 1, 1: 18, 2: 243, 3: 2,874,
   4: 28,000, 5: 205,416, 6: 1,168,516, 7: 5,402,628, 8: 20,776,176, 9: 45,391,616,
   10: 15,154,409, 11: 49,943. All 88,179,840 keys reached; maximum 11, the same diameter as
   the rotation quotient. Table SHA-256 for a print whose body `b` sits at position rank `b` (true
   of the Cubistry H/S/M prints [M]):
   `caf69d83df6fd4c42a899cfd55c664bca87da01408a5aa4973c4eee6633825d9`. This table is not
-  shipped; its hash is (D4, section 19).
+  shipped; D4 still requires publishing a verified hash (section 19). This particular reported
+  histogram is contradictory, and the candidate hash is not accepted evidence (section 13.1).
 
 ## 4. Command line
 
@@ -745,7 +754,7 @@ checker [E]: 400 to 600 lines plus the corpus entries.
 | k = 4 blank corner, three twists | 136,080 keys, 3 goal keys; maximum 6 (blank print, SHA-256 `13eea2a1ad88561775158a70633b80e25d06f883e42d44aafb4e6808699be47b`) |
 | k = 4 blank premise | 810 sources; 3, 9, 27, 99, 273, 363, 36 |
 | Blank counterexample | from `U D2 B D'` (blank/H/00) to blank/H/34: distance 6; key 114083 of bodies 1, 3, 6, 7; lex-least word `U B R2 B2 U' L`; Cubistry's `R F' D F2 R' D` also replays to the display; table SHA-256 `0a3f73e6d95731fe778d47d5a8bdd092d925a3514f2936f60557899d38d81c1c` |
-| Full fixed frame from the reference | the histogram of section 3, diameter 11, SHA-256 `caf69d83df6fd4c42a899cfd55c664bca87da01408a5aa4973c4eee6633825d9` |
+| Full fixed frame from the reference | Recompute the complete table and verify the quotient-ball bounds of section 13.1. The old histogram, diameter claim and candidate SHA-256 `caf69d83df6fd4c42a899cfd55c664bca87da01408a5aa4973c4eee6633825d9` remain unverified; do not freeze them as a fixture. |
 | HSM witness (`research/hsm-counter/witness.json`, SHA-256 `7ec93660867a367ad79d7af28acb2b0f1035450bcac76d0c1afaa7bcdac93cd5`) | for every saved forward step, setup and reset, `dist(source, display)` equals the saved word length (the Cubistry checker's claim [R], not repeated for this paper; cubacle must reproduce it) |
 
 The print files are AGPL data of Cubistry, the same license as cubacle; they are copied into
@@ -824,7 +833,10 @@ changes license terms: `serde_json` and `serde` (both MIT or Apache-2.0) join th
 Verified for this paper:
 
 - [M] Pose bijection, key counts N_3 = 9,072, N_4 = 136,080, N_5 = 1,632,960 by search, and
-  N_7 = 8! x 3^7 = 88,179,840 by a full search; the histograms of section 3.
+  N_7 = 8! x 3^7 = 88,179,840 was reported by the scratch full search. The four Cubistry
+  reference histograms for 9,072 / 378 and 136,080 / 810 keys were independently reproduced.
+  Other new numerical goldens still need implementation checks; the full histogram is withdrawn
+  (section 13.1).
 - [M] All [R] numbers used as goldens: the k = 3 and k = 4 histograms, 378 and 810 premise
   sources, maxima 6, 5 and 6.
 - [M] The blank-print counterexample (distance 6, both words replay to blank/H/34) on the real
@@ -863,6 +875,29 @@ Assumed:
 - [A] Cubistry's displays need at most 24 cells and only the predicates of section 2.5 (exact
   sticker, optional exact `up`); "any rotation of the glyph by 180 degrees" would be two rules,
   which works, but is untested.
+
+### 13.1 Full-table audit: a contradictory reported histogram
+
+The existing pocket-table regression (`src/engines/two/tests.rs`) has 2,644 rotation-quotient
+states at distance 11 and 3,671,516 within distance 10. The 24 proper whole-cube rotations act
+freely on full physical states and conjugate outer-face HTM moves to outer-face HTM moves.
+Normalizing the fixed corner after an opposite-face move gives one of the U/R/F quotient moves.
+Thus every fixed-frame word projects to a quotient word of no greater length, and
+`|B_fixed(r)| <= 24 * |B_quotient(r)|` for every radius r.
+
+The reported full histogram violates this necessary condition at radius 10:
+`88,129,897 > 24 * 3,671,516 = 88,116,384`, an excess of 13,513. Equivalently, at least
+`24 * 2,644 = 63,456` full states have distance at least 11, whereas the old report claims
+only 49,943 and a diameter of 11. Those claims cannot all hold. An independent reviewer
+confirmed this argument in [PR #6](https://github.com/wstein/cubacle/pull/6#issuecomment-6510472080).
+
+The full histogram is therefore withdrawn as acceptance data. This counting argument alone
+neither establishes a replacement histogram nor disproves the candidate hash: actual complete
+bytes must be regenerated and checked. Do not alter the engine or an existing recorded fixture
+to fit the contradictory report. The implementation's ignored full test records actual counts
+and the hash, checks reachability and the quotient-ball inequalities, and leaves the immutable
+release hash fixture pending measured evidence and review. The v0.2.0 gate is incomplete until
+that fixture is verified; small projection goldens remain required and unchanged.
 
 ## 14. Decisions of the owner
 
@@ -1211,7 +1246,9 @@ release publishes the hash of the table, in two places that must agree:
    data, not output of a solver test, and is added once and changed only with a decision. The
    first version holds one table, the full-state table (the hash and the histogram are the
    measured values of section 3; `prints` is filled by the implementation with the
-   `printSha256` of every fixture print that has this layout, which this paper does not state):
+   `printSha256` of every fixture print that has this layout, which this paper does not state).
+   **Historical candidate only:** the example below preserves the withdrawn report for audit.
+   It must not be copied into the release fixture until recomputed and corrected (section 13.1):
 
    ```json
    {"formatVersion":1,"frame":"x=R,y=U,z=F;quarter=-90@outward","poseIndex":"pose24.v1","key":"key.v1","tableEncoding":"u8-dense-v1","tables":[{"goal":"reference","layout":"reference pose of body b is 3b","keyBodies":[0,1,2,3,4,5,6],"keys":88179840,"histogram":[1,18,243,2874,28000,205416,1168516,5402628,20776176,45391616,15154409,49943],"eccentricity":11,"tableSha256":"caf69d83df6fd4c42a899cfd55c664bca87da01408a5aa4973c4eee6633825d9","prints":[]}]}
@@ -1219,7 +1256,7 @@ release publishes the hash of the table, in two places that must agree:
 
 2. **The release notes** of the tag, in a block "Fixed-frame tables" written by the release
    workflow from the file (frame string, `key.v1`, `u8-dense-v1`, layout, number of keys, hash),
-   next to the Breaking changes block of section 17.2. The hash is a function of the problem only
+   next to the Breaking changes block of section 17.2. Once verified, the hash is a function of the problem only
    (section 7.4), so it does not change from release to release unless the frame, the key or the
    encoding changes, and then the format version changes.
 
@@ -1231,16 +1268,18 @@ sha256sum full.u8
 ```
 
 `table` prints the goal record on one line, including the complete 24-cell reference `display`.
-The line below is an excerpt with that display omitted (not a complete schema-valid record);
-`sha256sum` prints the same hash for the 88,179,840
-bytes of `full.u8`:
+The line below is a historical, unverified excerpt with that display omitted (not a complete
+schema-valid or accepted proof record; section 13.1);
+the reproduction must compare the newly computed hash for all 88,179,840 bytes of `full.u8`
+with separately verified acceptance data, rather than assume that this old candidate matches:
 
 ```json
 {"record":"goal","goalId":"reference","trackedBodies":[0,1,2,3,4,5,6,7],"keys":88179840,"goalKeys":1,"deadRules":[],"histogram":[1,18,243,2874,28000,205416,1168516,5402628,20776176,45391616,15154409,49943],"eccentricity":11,"tableSha256":"caf69d83df6fd4c42a899cfd55c664bca87da01408a5aa4973c4eee6633825d9"}
 ```
 
-(The file name `blank.print.json` is the name planned for the fixture copied in row 2 of
-section 15; the record is the value of the scratch run [M], not yet an output of cubacle.)
+(The file name `blank.print.json` is the fixture planned in row 2 of section 15. The displayed
+record is the historical scratch report, not a verified cubacle output. Its histogram is
+contradictory; the claimed hash comparison above remains a reproduction task, not a result.)
 
 | | Value | Mark |
 | --- | --- | --- |
