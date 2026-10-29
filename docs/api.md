@@ -72,8 +72,8 @@ curl -s -XPOST localhost:8080/v1/solve -H 'Content-Type: application/json' \
 ```
 
 ```json
-{"kind":"3x3x3","solution":"L' U' F B' R U D' F L2 D2 F' U2 F' R2 L2 F' R2 F2 U2 L","length":20,"metrics":{"htm":20,"qtm":28,"stm":20,"etm":20,"obtm":20,"btm":20,"atm":17},"elapsedMicros":299}
-{"kind":"3x3x3","solution":"U R U R F2 R L' U2 R' B2 R' D2 R' L F2","length":15,"metrics":{"htm":15,"qtm":20,"stm":15,"etm":15,"obtm":15,"btm":15,"atm":13},"elapsedMicros":49}
+{"kind":"3x3x3","solution":"L' U' F B' R U D' F L2 D2 F' U2 F' R2 L2 F' R2 F2 U2 L","inverse":"L' U2 F2 R2 F L2 R2 F U2 F D2 L2 F' D U' R' B F' U L","length":20,"metrics":{"htm":20,"qtm":28,"stm":20,"etm":20,"obtm":20,"btm":20,"atm":17},"elapsedMicros":521}
+{"kind":"3x3x3","solution":"U R U R F2 R L' U2 R' B2 R' D2 R' L F2","inverse":"F2 L' R D2 R B2 R U2 L R' F2 R' U' R' U'","length":15,"metrics":{"htm":15,"qtm":20,"stm":15,"etm":15,"obtm":15,"btm":15,"atm":13},"elapsedMicros":22}
 {"error":{"code":"bad_input","message":"the start is a 3x3x3 but the target is a 2x2x2"}}
 ```
 
@@ -98,10 +98,12 @@ curl -s -XPOST localhost:8080/v1/solve \
 The solve request returns:
 
 ```json
-{"kind":"3x3x3","solution":"B R L B L' U' D B D2 R2 F2 R2 L2 D R2 L2 U' L2 U' F2 R","length":21,"metrics":{"htm":21,"qtm":30,"stm":21,"etm":21,"obtm":21,"btm":21,"atm":17},"elapsedMicros":616}
+{"kind":"3x3x3","solution":"B R L B L' U' D B D2 R2 F2 R2 L2 D R2 L2 U' L2 U' F2 R","inverse":"R' F2 U L2 U L2 R2 D' L2 R2 F2 R2 D2 B' D' U L B' L' R' B'","length":21,"metrics":{"htm":21,"qtm":30,"stm":21,"etm":21,"obtm":21,"btm":21,"atm":17},"elapsedMicros":776}
 ```
 
 The `elapsedMicros` value varies between runs.
+
+The same body comes from `cubacle solve --json` for an equivalent request: both are written by one function of the library, `cubacle::report`. See [`--json`](cli/solve-options.md#--json).
 
 ### Move counts
 
@@ -117,14 +119,13 @@ Every solve answer carries `metrics`: the length of `solution` in all seven metr
 
 The server has no endpoint for `solve --now`, so there is no route variant to count; `/v1/solve` is the only answer with moves.
 
-Before and after, the same request (`{"cube":"A4ib8aejxj4Y","maxMoves":21,"budgetMs":2000,"optimize":"ranges"}`), run against the server:
+The same request with `"optimize":"ranges"` (`{"cube":"A4ib8aejxj4Y","maxMoves":21,"budgetMs":2000,"optimize":"ranges"}`), run against the server:
 
 ```json
-{"kind":"3x3x3","solution":"B R L B L' U' D B D2 R2 F2 R2 L2 D R2 L2 U' L2 U' F2 R","length":21,"compressed":"B R L B L' U' D B D2 R2 F2 R2 L2 D R2 L2 U' L2 U' F2 R","compressedLength":21,"elapsedMicros":1062}
-{"kind":"3x3x3","solution":"B R L B L' U' D B D2 R2 F2 R2 L2 D R2 L2 U' L2 U' F2 R","length":21,"metrics":{"htm":21,"qtm":30,"stm":21,"etm":21,"obtm":21,"btm":21,"atm":17},"compressed":"B R L B L' U' D B D2 R2 F2 R2 L2 D R2 L2 U' L2 U' F2 R","compressedLength":21,"compressedMetrics":{"htm":21,"qtm":30,"stm":21,"etm":21,"obtm":21,"btm":21,"atm":17},"elapsedMicros":616}
+{"kind":"3x3x3","solution":"B R L B L' U' D B D2 R2 F2 R2 L2 D R2 L2 U' L2 U' F2 R","inverse":"R' F2 U L2 U L2 R2 D' L2 R2 F2 R2 D2 B' D' U L B' L' R' B'","length":21,"metrics":{"htm":21,"qtm":30,"stm":21,"etm":21,"obtm":21,"btm":21,"atm":17},"compressed":"B R L B L' U' D B D2 R2 F2 R2 L2 D R2 L2 U' L2 U' F2 R","compressedLength":21,"compressedMetrics":{"htm":21,"qtm":30,"stm":21,"etm":21,"obtm":21,"btm":21,"atm":17},"elapsedMicros":737}
 ```
 
-The first line is the answer before the counts were added, the second after. Plain solve options are unchanged: the server uses the default `SolveOptions` (no probe minimum) unless the request sets `minProbes`, whereas the command line makes 3000 probes on a plain 3x3x3 solve.
+Here the compression saves nothing, so the compressed counts equal the plain ones. Plain solve options are unchanged: the server uses the default `SolveOptions` (no probe minimum) unless the request sets `minProbes`, whereas the command line makes 3000 probes on a plain 3x3x3 solve.
 
 `convert` also answers the Orbit64 token of the cube (`token`), left out when the stickers are not a cube. Tokens of every size from 2x2x2 to 7x7x7 are accepted. A 4x4x4 token converts and solves. A 6x6x6 or 7x7x7 token converts and solves:
 
@@ -137,7 +138,7 @@ curl -s -XPOST localhost:8080/v1/solve \
 
 ```json
 {"kind":"4x4x4","facelets":"DLLDLLDLBFLFLRBRDRDLFBRLUURUUDDUFUUFLDFDRBUFURRLLBDFFFDFFFBRFBFRRDDDBLUUBURBRULBBFBBUDRURBLLBRDU","token":"BJStkD4cayBhsWj6eHgDZLTP1th"}
-{"kind":"4x4x4","solution":"D' Uw Rw' Bw' R' F' Uw' U' F' D Bw' D2 B R' L B2 D' Fw2 L Dw2 L' Lw2 F2 Bw2 D Fw2 F' U' D R D2 B2 L F' R' U2 B' R2 F2 D2 F2 U2 L2 B2 U'","length":45,"metrics":{"htm":45,"qtm":63,"stm":55,"etm":45,"obtm":45,"btm":45,"atm":38},"elapsedMicros":256354}
+{"kind":"4x4x4","solution":"D' Uw Rw' Bw' R' F' Uw' U' F' D Bw' D2 B R' L B2 D' Fw2 L Dw2 L' Lw2 F2 Bw2 D Fw2 F' U' D R D2 B2 L F' R' U2 B' R2 F2 D2 F2 U2 L2 B2 U'","inverse":"U B2 L2 U2 F2 D2 F2 R2 B U2 R F L' B2 D2 R' D' U F Fw2 D' Bw2 F2 Lw2 L Dw2 L' Fw2 D B2 L' R B' D2 Bw D' F U Uw F R Bw Rw Uw' D","length":45,"metrics":{"htm":45,"qtm":63,"stm":55,"etm":45,"obtm":45,"btm":45,"atm":38},"elapsedMicros":88735}
 ```
 
 A 4x4x4 solution has about 48 moves. Its last wide turns (`Rw Lw'` and the like, at most four) turn the whole cube back to the standard orientation, because a 4x4x4 has no fixed centers; the cube is solved exactly after them. The tables (12 MB) are built at startup, and each solve uses one thread, so concurrent requests do not compete for cores.
@@ -156,10 +157,10 @@ curl -s -XPOST localhost:8080/v1/solve \
 ```
 
 ```json
-{"kind":"5x5x5","solution":"Fw' D F' Rw U B' Uw' Lw' U Bw ...","length":67,"elapsedMicros":28246}
+{"kind":"5x5x5","solution":"Fw' D F' Rw U B' Uw' Lw' U Bw ...","inverse":"...","length":67,"metrics":{...},"elapsedMicros":28246}
 ```
 
-The solution is shortened here, and the `metrics` object is left out; it has 67 moves; the time is that of the command-line run of the same cube with warm tables and will differ.
+The `solution` is shortened here, and the `inverse` and `metrics` values are left out (`...`); it has 67 moves; the time is that of the command-line run of the same cube with warm tables and will differ.
 
 ### The canonical field
 

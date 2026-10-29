@@ -49,6 +49,43 @@ L' B L U2 R2 F2 L' B2 R' D2 · L2 F2 U' F D2 B2 L2 U' B' U' · Rw2 U' R' Dw2 F2 
 
 The inverse of a solution of a scrambled cube is, on the 3x3x3, the scramble itself when the solver found no shorter way; the REST field `inverse` is the same text (see the [REST API](../api.md)).
 
+#### --json
+
+`--json` prints the answer as one line of JSON on standard output, the object the [REST API](../api.md) sends for `POST /v1/solve`: `kind`, `solution`, `inverse`, `length`, `metrics` (all seven counts), `compressed`, `compressedLength` and `compressedMetrics` with `--optimize ranges`, and `elapsedMicros`. The server and the command write it with the same function of the library (`cubacle::report`), so key names, key order and escaping are the same. Nothing else goes to standard output; the lines on standard error (`moves N`, `metrics:`, and with `-v` the statistics) stay as they are. Errors are text on standard error with the usual exit codes, not JSON.
+
+```sh
+cubacle solve -s "R U" --fast --max-moves 21 --json
+```
+
+```text
+moves 13
+metrics: htm 13, qtm 18, stm 13
+{"kind":"3x3x3","solution":"U R F2 R F2 R' L D2 R' D2 L' U2 R'","inverse":"R U2 L D2 R D2 L' R F2 R' F2 R' U'","length":13,"metrics":{"htm":13,"qtm":18,"stm":13,"etm":13,"obtm":13,"btm":13,"atm":12},"elapsedMicros":48068}
+```
+
+The first two lines are standard error. The server, asked for the equivalent request, answers the same bytes:
+
+```sh
+curl -s -XPOST localhost:8080/v1/solve -H 'Content-Type: application/json' \
+  -d '{"scramble":"R U","maxMoves":21}'
+```
+
+```json
+{"kind":"3x3x3","solution":"U R F2 R F2 R' L D2 R' D2 L' U2 R'","inverse":"R U2 L D2 R D2 L' R F2 R' F2 R' U'","length":13,"metrics":{"htm":13,"qtm":18,"stm":13,"etm":13,"obtm":13,"btm":13,"atm":12},"elapsedMicros":39}
+```
+
+Byte equality holds only for equivalent requests, and `elapsedMicros` differs from run to run (the test suite masks it). `--json` uses the defaults of the command line, which are not those of the server: a plain 3x3x3 `solve` makes 3000 probes for a shorter answer and limits it to 21 moves, while the server makes no extra probes and sets no move limit. `--fast --max-moves 21` is the server's `{"maxMoves":21}`. Without `--fast` the same cube gives a shorter solution:
+
+```sh
+cubacle solve -s "R U" --json 2>/dev/null
+```
+
+```text
+{"kind":"3x3x3","solution":"U' R'","inverse":"R U","length":2,"metrics":{"htm":2,"qtm":2,"stm":2,"etm":2,"obtm":2,"btm":2,"atm":2},"elapsedMicros":48}
+```
+
+The 4x4x4 and larger cubes also differ: the command wraps the engine in the pattern shortcut and the server does not. `inverse` is always in the body, so `--json` with `--inverse` is refused (`error: --json always carries the inverse; do not combine it with --inverse`, exit status 1); `--now`, `--all`, `--count`, `--group`, `--every` and `--icons` are refused too, because they print something other than one solution. `canon --format json` is another shape and is unchanged. New keys of later versions are appended after the existing ones.
+
 ### A nearly solved cube: --within
 
 `--within K` is for a cube that is only slightly scrambled: it finds an optimal route of at most K moves (K from 1 to 7; write `--within=5`, plain `--within` means 6). The search starts at the cube and at the target and meets in the middle on the colors of the stickers, so it needs no relative state and works for every size from the 2x2x2 to the 7x7x7 and for every target: the solved cube, `--to` as a move expression or as a state text, also a state with mixed center colors (made with slice moves). Every route is replayed color by color before it is printed.
