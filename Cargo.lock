@@ -248,6 +248,8 @@ dependencies = [
  "clap",
  "rand",
  "rustix",
+ "serde",
+ "serde_json",
  "sha2",
  "sysinfo",
  "toml",

@@ -27,3 +27,4 @@ Raw-material notes, category architecture.
 - [[The toml crate reads the config without serde derive]]
 - [[State pictures lie on a faint translucent panel instead of a frame line]]
 - [[A synthetic photo is pinned by golden hashes of its own, not by the bytes of the prototype]]
+- [[Fixed-frame input uses serde with bounded duplicate-aware parsing]]
