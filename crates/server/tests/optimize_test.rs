@@ -1,13 +1,10 @@
 //! The `optimize` field of `/v1/solve`: opt-in layer ranges.
 
-use std::path::PathBuf;
-use std::sync::Arc;
+mod shared;
 
 use axum::body::Body;
 use axum::http::{header, Request, StatusCode};
 use axum::Router;
-use cubacle::engines::five::FiveSolver;
-use cubacle::engines::four::FourSolver;
 use cubacle::engines::three::Min2PhaseSolver;
 use cubacle::notation::parse_moves;
 use cubacle::puzzle::{Facelets, PuzzleKind};
@@ -17,10 +14,8 @@ use serde_json::{json, Value};
 use tower::ServiceExt;
 
 fn app() -> Router {
-    // never the user's real table cache
-    let dir = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join("five-tables");
-    let five = FiveSolver::new(Arc::new(Min2PhaseSolver::shared())).with_cache_dir(Some(dir));
-    let four = FourSolver::new(Arc::new(Min2PhaseSolver::shared())).with_threads(1);
+    let five = shared::five();
+    let four = shared::four();
     router(AppState::with_engines(
         Config::default(),
         Min2PhaseSolver::shared(),
