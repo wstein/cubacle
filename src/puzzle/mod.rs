@@ -9,6 +9,7 @@ mod axis;
 mod centers;
 mod cubies;
 mod facelets;
+pub mod frame;
 mod kind;
 mod layer_move;
 mod mask;
