@@ -12,7 +12,10 @@
 //!   solves the way to each and the shortest answer is kept. That answer is
 //!   the best found, not proven shortest, as for a plain `solve`.
 //!
-//! Anything else says so and names what is supported.
+//! Anything else says so and names what is supported, unless the caller asks
+//! for the **exact** route (`SolveOptions::exact` or a free orientation): an
+//! iterative-deepening search to the whole set of states the target allows,
+//! with multi-goal pruning tables, proven shortest (see `exact`).
 
 use std::time::Instant;
 
@@ -73,6 +76,9 @@ pub(super) fn solve_to(
     let mut cube = Cubie::new();
     if cube.set_from_facelet(&start.to_string()) != 0 || cube.verify() != 0 {
         return fail(Failure::InvalidInput, "the start cube state is impossible");
+    }
+    if options.exact || options.free_orientation {
+        return exact::by_goal_set(started, start, target, options);
     }
     let sets = target.sets();
     // The centers never move: a target that wants another color there cannot be met.
@@ -143,5 +149,12 @@ fn whole_edges(sets: &[u8]) -> Result<Option<Wanted>, String> {
 
 mod completions;
 mod edges;
+mod exact;
+#[cfg(test)]
+mod exact_tests;
+mod goal;
+mod ida;
+mod model;
+mod tables;
 #[cfg(test)]
 mod tests;
