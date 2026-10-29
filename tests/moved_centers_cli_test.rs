@@ -10,7 +10,7 @@ fn solve(size: &str, scramble: &str) -> (Option<i32>, String, String) {
         .env("HOME", std::env::temp_dir().join("cubacle-test-home"))
         .env(
             "CUBACLE_CACHE_DIR",
-            concat!(env!("CARGO_TARGET_TMPDIR"), "/moved-centers-tables"),
+            concat!(env!("CARGO_TARGET_TMPDIR"), "/five-tables"),
         )
         .output()
         .expect("cubacle runs");

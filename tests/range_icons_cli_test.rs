@@ -12,7 +12,7 @@ fn cubacle(args: &[&str]) -> (bool, String, String) {
         // never the user's real table cache
         .env(
             "CUBACLE_CACHE_DIR",
-            concat!(env!("CARGO_TARGET_TMPDIR"), "/range-icons-tables"),
+            concat!(env!("CARGO_TARGET_TMPDIR"), "/five-tables"),
         )
         .output()
         .expect("cubacle runs");
