@@ -38,6 +38,7 @@
 pub mod canonical;
 pub mod centers;
 pub mod engines;
+mod fixed_frame_cmd;
 pub mod generate;
 mod meet;
 pub mod metrics;
