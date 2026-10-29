@@ -6,6 +6,8 @@
 //! is created from `cubacle.example.toml` on the first run. URL sources are
 //! downloaded only by `cubacle patterns update` (or by `auto_fetch = true`).
 //!
+//! The built-in library is always loaded; `files` adds sources and cannot drop it.
+//!
 //! ```toml
 //! [patterns]
 //! files = ["builtin", "tables/3x3.txt", { path = "mine.txt", size = 3, name_prefix = "my-" }]
@@ -306,15 +308,17 @@ impl Config {
             .and_then(Path::parent)
             .map(Path::to_owned)
             .unwrap_or_default();
-        let mut library = Library::default();
+        // The built-in library is always loaded; the list only adds to it.
+        let mut library = Library {
+            builtin: true,
+            ..Library::default()
+        };
+        library
+            .notes
+            .push("builtin: the built-in library".to_owned());
         for entry in &self.files {
             match entry {
-                Entry::Builtin => {
-                    library.builtin = true;
-                    library
-                        .notes
-                        .push("builtin: the built-in library".to_owned());
-                }
+                Entry::Builtin => {}
                 Entry::Source {
                     location,
                     size,
@@ -460,6 +464,17 @@ mod tests {
         let config = parse_text(text).unwrap();
         assert_eq!(config.files, vec![Entry::Builtin]);
         assert!(text.contains("# \"https://raw.githubusercontent.com/wrandelshofer/CubeTwister/"));
+    }
+
+    #[test]
+    fn the_builtin_library_is_loaded_without_being_listed() {
+        let config = parse_text("[patterns]\nfiles = []\n").unwrap();
+        let library = config.library();
+        assert!(library.builtin);
+        assert_eq!(library.notes, vec!["builtin: the built-in library"]);
+        assert!(library.all().count() > 0);
+        let listed = parse_text("[patterns]\nfiles = [\"builtin\"]\n").unwrap();
+        assert_eq!(listed.library().notes, library.notes);
     }
 
     #[test]

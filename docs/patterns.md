@@ -459,7 +459,7 @@ Without `--dry-run` the verified patterns are written in our own format to `~/.c
 
 **Catalog ids.** Every pattern has an id of at most 12 characters, `xx:code`: a two-letter source and a code of up to 9 characters from letters, digits, `.` and `-`. The built-ins use `cu:` with a short readable code (`cu:checker`, `cu:sixspot`, `cu:sixcentre`, `cu:foursp`, `cu:fourcen`, `cu:cubecube`, `cu:ccc`, `cu:superflip`, `cu:cenopp`, `cu:cencyc`); imported patterns keep the author's code (`ct:A200.01`). `show` takes a name, an alias, the short id or the catalog id (case is not significant), and `#n` after it selects the generator with that number: `cubacle patterns show ct:X1.01#2`. The group path is separate from the id.
 
-**Configuration.** `cubacle.toml` lists the pattern sources. It is looked up as `--config FILE`, then `$CUBACLE_CONFIG`, then `./cubacle.toml`, then the global file `~/.config/cubacle/config.toml` (`$XDG_CONFIG_HOME/cubacle/config.toml` when set). On the first run, when none of these exists, cubacle creates the global file from [`cubacle.example.toml`](https://github.com/wstein/cubacle/blob/develop/cubacle.example.toml) and prints one line on stderr saying so; if the location is not writable it says that instead and carries on with the built-in library. The created file has the built-in entry active and the six CubeTwister URLs (folders `2xPocket` to `7xVCube7`) commented out: that data belongs to its author, so check his terms first, then uncomment the entries you want. Enabling an entry is your consent to download it: cubacle fetches only URLs that are listed (uncommented) in your config, never a built-in list, and nothing at all until you run `cubacle patterns update` or set `auto_fetch = true`.
+**Configuration.** The built-in library is always loaded, for `--to`, `patterns` and `solve --pattern-aware` alike. `cubacle.toml` lists further pattern sources; it cannot drop the built-in library (a `"builtin"` entry is accepted and changes nothing). It is looked up as `--config FILE`, then `$CUBACLE_CONFIG`, then `./cubacle.toml`, then the global file `~/.config/cubacle/config.toml` (`$XDG_CONFIG_HOME/cubacle/config.toml` when set). On the first run, when none of these exists, cubacle creates the global file from [`cubacle.example.toml`](https://github.com/wstein/cubacle/blob/develop/cubacle.example.toml) and prints one line on stderr saying so; if the location is not writable it says that instead and carries on with the built-in library. The created file has the built-in entry active and the six CubeTwister URLs (folders `2xPocket` to `7xVCube7`) commented out: that data belongs to its author, so check his terms first, then uncomment the entries you want. Enabling an entry is your consent to download it: cubacle fetches only URLs that are listed (uncommented) in your config, never a built-in list, and nothing at all until you run `cubacle patterns update` or set `auto_fetch = true`.
 
 ```text
 $ cubacle patterns sources        # first run, XDG_CONFIG_HOME=/tmp/cbx/h
@@ -473,7 +473,7 @@ When the location cannot be written, the line reads `cubacle: could not create P
 
 ```toml
 [patterns]
-files = ["builtin", "tables/3xDemo/demo.txt"]   # paths are relative to this file
+files = ["tables/3xDemo/demo.txt"]   # paths are relative to this file
 # cache_dir = "~/.cache/cubacle/patterns"
 auto_fetch = false   # true: a patterns command downloads missing URL sources by itself
 ```
