@@ -3,6 +3,11 @@
 # The msrv job builds with the rust-version of Cargo.toml (1.95, forced by sysinfo 0.39).
 # The spelling job runs typos --locale en-us (American English, see AGENTS.md).
 # The notes job validates notes/ with the pinned ChartScribe release (checksum and build attestation verified when pinning).
+# The changes job classifies a pull request: when every changed path is documentation
+# (docs/ except docs/static/ and docs/examples.toml, notes/, site/, top-level *.md),
+# the Rust jobs rust, five-full, four-full and msrv are skipped. Pushes and manual runs
+# always run everything. The ci-result job always runs and fails unless every job passed
+# or was skipped by that rule: it is the one check to require for merging.
 name: ci
 on:
   push:
@@ -18,8 +23,51 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
 jobs:
+  changes:
+    name: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.classify.outputs.code }}
+    steps:
+      # the pull request merge commit and its first parent, the base it is tested on
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: github.event_name == 'pull_request'
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Classify the changed paths
+        id: classify
+        shell: bash
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          code=true
+          if [ "$EVENT" = pull_request ] && git rev-parse --verify --quiet HEAD^2 >/dev/null; then
+            # --no-renames lists both sides of a move; -z keeps unusual names intact
+            git diff --no-renames --name-only -z HEAD^1 HEAD > "$RUNNER_TEMP/changed"
+            code=false
+            count=0
+            while IFS= read -r -d '' path; do
+              count=$((count + 1))
+              case "$path" in
+                docs/static/* | docs/examples.toml) kind=code ;;
+                docs/* | notes/* | site/*) kind=docs ;;
+                */*) kind=code ;;
+                *.md) kind=docs ;;
+                *) kind=code ;;
+              esac
+              echo "$kind $path"
+              [ "$kind" = docs ] || code=true
+            done < "$RUNNER_TEMP/changed"
+            [ "$count" -gt 0 ] || code=true
+          fi
+          echo "code=$code" | tee -a "$GITHUB_OUTPUT"
   rust:
     name: rust
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -36,6 +84,8 @@ jobs:
         run: cargo test --workspace --release
   five-full:
     name: five-full
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -55,6 +105,8 @@ jobs:
         run: cargo test --release -- --ignored five_full
   four-full:
     name: four-full
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -66,6 +118,8 @@ jobs:
         run: cargo test --release --lib --test four_test -- --ignored four_full
   msrv:
     name: msrv
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -135,3 +189,44 @@ jobs:
         uses: crate-ci/typos@7f9d0819ca1c008ade73f4b41fa9d258d48f605b # v1.51.1
         with:
           args: --locale en-us
+  ci-result:
+    name: ci-result
+    needs: [changes, rust, five-full, four-full, msrv, docs, notes, spelling]
+    # always(): a skipped or cancelled aggregate would count as passing for a required check
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every job passed, or was skipped for a documentation-only change
+        shell: bash
+        env:
+          CODE: ${{ needs.changes.outputs.code }}
+          CHANGES: ${{ needs.changes.result }}
+          RUST: ${{ needs.rust.result }}
+          FIVE_FULL: ${{ needs.five-full.result }}
+          FOUR_FULL: ${{ needs.four-full.result }}
+          MSRV: ${{ needs.msrv.result }}
+          DOCS: ${{ needs.docs.result }}
+          NOTES: ${{ needs.notes.result }}
+          SPELLING: ${{ needs.spelling.result }}
+        run: |
+          set -euo pipefail
+          status=0
+          check() { # name result allowed...
+            local name=$1 result=$2 ok
+            shift 2
+            for ok in "$@"; do [ "$result" = "$ok" ] && { echo "$name: $result"; return 0; }; done
+            echo "::error::$name: $result"
+            status=1
+          }
+          check changes "$CHANGES" success
+          for name in docs notes spelling; do
+            var=${name^^}
+            check "$name" "${!var}" success
+          done
+          if [ "$CHANGES" = success ] && [ "$CODE" = false ]; then heavy=(success skipped); else heavy=(success); fi
+          check rust "$RUST" "${heavy[@]}"
+          check five-full "$FIVE_FULL" "${heavy[@]}"
+          check four-full "$FOUR_FULL" "${heavy[@]}"
+          check msrv "$MSRV" "${heavy[@]}"
+          exit "$status"
