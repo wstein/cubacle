@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use super::{Facelets, MoveSequence, PuzzleKind, SolveStage, Target};
+use super::{CenterTwist, Facelets, MoveSequence, PuzzleKind, SolveStage, Target};
 
 /// Limits for one solve. The defaults impose none beyond the engine's own.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -42,6 +42,10 @@ pub struct SolveOptions {
     /// A cap on the memory of the pruning tables, in megabytes, for the
     /// engines that build tables for a target (`exact`).
     pub max_memory_mb: Option<usize>,
+    /// 3x3x3, target with a twist condition: the twist of the start's face
+    /// centers (see [`CenterTwist`]). Implies `exact`. Without it the
+    /// pictures of the start count as upright.
+    pub start_twist: Option<CenterTwist>,
 }
 
 impl SolveOptions {
@@ -78,6 +82,12 @@ impl SolveOptions {
     pub fn with_free_orientation(mut self, free: bool) -> SolveOptions {
         self.free_orientation = free;
         self.exact |= free;
+        self
+    }
+
+    pub fn with_start_twist(mut self, twist: CenterTwist) -> SolveOptions {
+        self.start_twist = Some(twist);
+        self.exact = true;
         self
     }
 
