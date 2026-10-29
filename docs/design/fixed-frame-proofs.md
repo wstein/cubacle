@@ -932,6 +932,13 @@ move types. The tag is cut by the owner when the gate of section 19.3 holds.
   `UNSUPPORTED` for both checkers until Cubistry accepts a Group 3 (section 20). Mitigation:
   the Group 3 text and corpus are the first Cubistry pull request (row C1), and the tag does not
   wait for it.
+- **Breaking default output** (D3). Consumers that compare or hash the whole `solve --json` body
+  break on v0.2.0, and the search of section 17.3 cannot see every consumer. Mitigation: the
+  selector `--json-format 1`, the Breaking changes block of the release notes, v1 bytes kept
+  under test, and the v0.2.0 number.
+- **A costly endpoint without authentication** (D6). A client can hold every permit for the
+  timeout. Mitigation: the limits of section 18.3, local binding by default, the documented
+  rule not to expose the server to untrusted networks, as for `solve`.
 - **Scope creep** toward 3x3x3 pictures and center twists: they need other certificates
   (section 2.8) and are a separate design.
 
