@@ -22,6 +22,16 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --release
 ```
 
+## Command examples
+
+Some command examples in `docs/` are generated. A block between `<!-- example:ID -->` and `<!-- /example -->` is rewritten from the command listed under that `id` in `docs/examples.toml`, which is run with the release `cubacle` binary. After a change that alters the output of such a command, run:
+
+```sh
+cargo xtask docs
+```
+
+`cargo xtask docs --check` changes nothing; it prints a diff and exits with status 1 when a block is stale. Add only commands whose output is the same on every run: the file lists the options (`stderr` to show standard error, `mask` for JSON numbers such as `elapsedMicros`, which are written as 0).
+
 ## Docs site
 
 The pages in `docs/` are built with [Hugo](https://gohugo.io/) using the layouts in `site/`. The workflow in `.github/workflows/pages.yml` pins the Hugo version. To build locally with that same version, copy the config, layouts and pages into a scratch directory and run Hugo there:
