@@ -1,8 +1,11 @@
 //! The solution `solve` prints: the replay check, the counts on standard
 //! error and the text or pictures on standard output.
 
+use std::time::Duration;
+
 use cubacle::puzzle::{reaches, solves_by_color, Facelets, MoveSequence, PuzzleKind, SolveStage};
 use cubacle::ranges::Optimize;
+use cubacle::report::SolveReport;
 
 use crate::cli::SolveArgs;
 use crate::{inverse, metrics_out, phase_dots, stage_phases, steps};
@@ -23,6 +26,8 @@ pub(crate) struct Solved<'a> {
     pub oriented: bool,
     /// The line that says a known pattern was adopted.
     pub adopted: Option<String>,
+    /// The time the search took, for `--json`.
+    pub elapsed: Duration,
 }
 
 /// Checks that the moves reach the target, then prints them as `args` ask.
@@ -33,6 +38,7 @@ pub(crate) fn print(solved: &Solved<'_>) -> Result<(), String> {
         facelets,
         solution,
         stages,
+        elapsed,
         ..
     } = *solved;
     let mut target = solved.target.clone();
@@ -55,6 +61,9 @@ pub(crate) fn print(solved: &Solved<'_>) -> Result<(), String> {
     eprintln!("{}", metrics_out::line(facelets.kind(), solution));
     if let Some(adopted) = &solved.adopted {
         eprintln!("{adopted}");
+    }
+    if args.json {
+        return print_json(solved, elapsed);
     }
     // With `--inverse` everything below shows the moves that undo the solution,
     // starting from the cube the solution ends in; the counts above stay those
@@ -136,5 +145,20 @@ pub(crate) fn print(solved: &Solved<'_>) -> Result<(), String> {
         }
     }
     println!("{text}");
+    Ok(())
+}
+
+/// `--json`: the body the REST server sends for an equivalent request, alone on
+/// standard output. The compressed counts stay on standard error as in the text.
+fn print_json(solved: &Solved<'_>, elapsed: Duration) -> Result<(), String> {
+    let args = solved.args;
+    let kind = solved.facelets.kind();
+    let report = SolveReport::of(kind, solved.solution, args.notation, args.optimize, elapsed);
+    if let Some(compressed) = &report.compressed {
+        eprintln!("compressed moves {}", compressed.length);
+        let packed = cubacle::ranges::compress(kind, solved.solution);
+        eprintln!("compressed {}", metrics_out::compressed_line(kind, &packed));
+    }
+    println!("{}", report.to_json());
     Ok(())
 }

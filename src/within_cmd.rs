@@ -138,6 +138,7 @@ pub(crate) fn run(
                 stages: &stages,
                 oriented: false,
                 adopted: None,
+                elapsed: report.stats.elapsed,
             })?;
             Ok(Done::Printed)
         }

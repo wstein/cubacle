@@ -28,6 +28,9 @@ fn check(args: &SolveArgs) -> Result<(), String> {
     if args.pictures.icons {
         return refuse("--icons");
     }
+    if args.json {
+        return refuse("--json");
+    }
     if args.improve || args.parallel {
         return refuse("--improve and --parallel");
     }

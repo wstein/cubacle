@@ -20,6 +20,9 @@ pub(crate) fn solve(args: SolveArgs) -> Result<(), String> {
     if args.pictures.icons && !args.group.is_empty() {
         return Err("--group cannot be combined with --icons: the pictures are already headed by the solver phases, and the dots (` · `) mark units in the written answer only".into());
     }
+    if args.json && args.inverse {
+        return Err("--json always carries the inverse; do not combine it with --inverse".into());
+    }
     within_cmd::check(&args)?;
     if let Some(now) = &args.now {
         let depth = args.depth.unwrap_or(3);
@@ -249,6 +252,7 @@ pub(crate) fn solve(args: SolveArgs) -> Result<(), String> {
             stages: &result.stages,
             oriented,
             adopted: adopted.as_ref().map(|a| a.line()),
+            elapsed: result.metrics.elapsed,
         }),
         Err(Failure::InvalidInput) if target.is_some() => Err(format!(
             "the start or the target state is impossible{}",

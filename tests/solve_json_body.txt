@@ -1,0 +1,1 @@
+{"kind":"3x3x3","solution":"U R F2 R F2 R' L D2 R' D2 L' U2 R'","inverse":"R U2 L D2 R D2 L' R F2 R' F2 R' U'","length":13,"metrics":{"htm":13,"qtm":18,"stm":13,"etm":13,"obtm":13,"btm":13,"atm":12},"elapsedMicros":0}

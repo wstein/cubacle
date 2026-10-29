@@ -240,6 +240,12 @@ pub(crate) struct SolveArgs {
     /// of the solution
     #[arg(long, conflicts_with_all = ["now", "all", "count"])]
     pub(crate) inverse: bool,
+    /// Print the answer as the JSON object the REST server sends for /v1/solve
+    /// (kind, solution, inverse, length, metrics, elapsedMicros) on stdout and
+    /// nothing else there; the lines on stderr stay. The solution is the one
+    /// of the equivalent request only (defaults differ from the server's)
+    #[arg(long, conflicts_with_all = ["now", "all", "count", "icons", "group", "every"])]
+    pub(crate) json: bool,
     /// Also look the cube up in the pattern library (built-in and the files of
     /// the config) and answer with the library route when it is strictly shorter
     /// than the solver's answer; the solver still runs, so the answer is never
