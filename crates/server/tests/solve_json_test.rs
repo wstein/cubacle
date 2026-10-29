@@ -3,13 +3,10 @@
 //! (`elapsedMicros` masked to 0), for the equivalent request:
 //! `--fast --max-moves 21` is `{"maxMoves":21,"formatVersion":1}`.
 
-use std::path::PathBuf;
-use std::sync::Arc;
+mod shared;
 
 use axum::body::Body;
 use axum::http::{header, Request, StatusCode};
-use cubacle::engines::five::FiveSolver;
-use cubacle::engines::four::FourSolver;
 use cubacle::engines::three::Min2PhaseSolver;
 use cubacle_server::{router, AppState, Config};
 use http_body_util::BodyExt;
@@ -27,10 +24,8 @@ fn masked(body: &str) -> String {
 
 #[tokio::test]
 async fn the_solve_body_is_the_shared_literal() {
-    // never the user's real table cache
-    let dir = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join("five-tables");
-    let five = FiveSolver::new(Arc::new(Min2PhaseSolver::shared())).with_cache_dir(Some(dir));
-    let four = FourSolver::new(Arc::new(Min2PhaseSolver::shared())).with_threads(1);
+    let five = shared::five();
+    let four = shared::four();
     let app = router(AppState::with_engines(
         Config::default(),
         Min2PhaseSolver::shared(),
@@ -53,9 +48,8 @@ async fn the_solve_body_is_the_shared_literal() {
 
 #[tokio::test]
 async fn the_solve_body_of_a_staged_engine_is_the_shared_literal() {
-    let dir = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join("five-tables");
-    let five = FiveSolver::new(Arc::new(Min2PhaseSolver::shared())).with_cache_dir(Some(dir));
-    let four = FourSolver::new(Arc::new(Min2PhaseSolver::shared())).with_threads(1);
+    let five = shared::five();
+    let four = shared::four();
     let app = router(AppState::with_engines(
         Config::default(),
         Min2PhaseSolver::shared(),

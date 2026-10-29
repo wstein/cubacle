@@ -1,5 +1,7 @@
 //! The `inverse` field of `/v1/solve`: the moves that undo `solution`.
 
+mod shared;
+
 use axum::body::Body;
 use axum::http::{header, Request, StatusCode};
 use cubacle::engines::three::Min2PhaseSolver;
@@ -14,9 +16,8 @@ async fn call(body: Value) -> (StatusCode, Value) {
     let app = router(AppState::with_engines(
         Config::default(),
         Min2PhaseSolver::shared(),
-        cubacle::engines::five::FiveSolver::new(std::sync::Arc::new(Min2PhaseSolver::shared())),
-        cubacle::engines::four::FourSolver::new(std::sync::Arc::new(Min2PhaseSolver::shared()))
-            .with_threads(1),
+        shared::five(),
+        shared::four(),
     ));
     let request = Request::post("/v1/solve")
         .header(header::CONTENT_TYPE, "application/json")
