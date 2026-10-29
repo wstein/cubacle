@@ -24,12 +24,25 @@
       "description": "The eight body poses (pose24.v1), by body id.",
       "type": "object",
       "properties": {
-        "poses": { "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 23 }, "minItems": 8, "maxItems": 8 },
+        "poses": {"type": "array", "items": {"type": "integer", "minimum": 0, "maximum": 23}, "minItems": 8, "maxItems": 8},
         "stickers": {
           "description": "Full wire state, id-sorted [id, cubie, p, n, up, image]; only when asked for.",
           "type": "array",
           "minItems": 24,
-          "maxItems": 24
+          "maxItems": 24,
+          "items": {
+            "type": "array",
+            "prefixItems": [
+              {"type": "integer", "minimum": 0, "maximum": 23},
+              {"type": "integer", "minimum": 0, "maximum": 7},
+              {"$ref": "https://wstein.github.io/cubacle/schema/v1/fixed-frame-request.schema.json#/$defs/position"},
+              {"$ref": "https://wstein.github.io/cubacle/schema/v1/fixed-frame-request.schema.json#/$defs/axis"},
+              {"$ref": "https://wstein.github.io/cubacle/schema/v1/fixed-frame-request.schema.json#/$defs/axis"},
+              {"type": ["string", "null"]}
+            ],
+            "minItems": 6,
+            "maxItems": 6
+          }
         }
       },
       "required": ["poses"],
@@ -44,112 +57,165 @@
     "header": {
       "type": "object",
       "properties": {
-        "record": { "const": "header" },
-        "format": { "const": "cubacle.fixed-frame" },
-        "formatVersion": { "$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/formatVersion" },
-        "toolVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?$" },
-        "gitCommit": { "oneOf": [{ "type": "string", "pattern": "^[0-9a-f]{40}$" }, { "type": "null" }] },
-        "puzzle": { "const": "2x2x2" },
-        "frame": { "const": "x=R,y=U,z=F;quarter=-90@outward" },
-        "metric": { "const": "htm" },
-        "moveOrder": { "const": "U U2 U' R R2 R' F F2 F' D D2 D' L L2 L' B B2 B'" },
-        "poseIndex": { "const": "pose24.v1" },
-        "key": { "const": "key.v1" },
-        "tableEncoding": { "const": "u8-dense-v1" },
-        "printSha256": { "$ref": "#/$defs/sha256" },
-        "printing": { "description": "The complete print, id-sorted, fields of section 2.2 only.", "type": "array", "minItems": 24, "maxItems": 24 }
+        "record": {"const": "header"},
+        "format": {"const": "cubacle.fixed-frame"},
+        "formatVersion": {"$ref": "https://wstein.github.io/cubacle/schema/v1/common.schema.json#/$defs/formatVersion"},
+        "toolVersion": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?$"},
+        "gitCommit": {"oneOf": [{"type": "string", "pattern": "^[0-9a-f]{40}$"}, {"type": "null"}]},
+        "puzzle": {"const": "2x2x2"},
+        "frame": {"const": "x=R,y=U,z=F;quarter=-90@outward"},
+        "metric": {"const": "htm"},
+        "moveOrder": {"const": "U U2 U' R R2 R' F F2 F' D D2 D' L L2 L' B B2 B'"},
+        "poseIndex": {"const": "pose24.v1"},
+        "key": {"const": "key.v1"},
+        "tableEncoding": {"const": "u8-dense-v1"},
+        "printSha256": {"$ref": "#/$defs/sha256"},
+        "printing": {
+          "description": "The complete print, id-sorted, fields of section 2.2 only.",
+          "type": "array",
+          "minItems": 24,
+          "maxItems": 24,
+          "items": {"$ref": "https://wstein.github.io/cubacle/schema/v1/fixed-frame-request.schema.json#/$defs/sticker"}
+        }
       },
-      "required": ["record", "format", "formatVersion", "toolVersion", "gitCommit", "puzzle", "frame", "metric", "moveOrder", "poseIndex", "key", "tableEncoding", "printSha256", "printing"],
+      "required": [
+        "record",
+        "format",
+        "formatVersion",
+        "toolVersion",
+        "gitCommit",
+        "puzzle",
+        "frame",
+        "metric",
+        "moveOrder",
+        "poseIndex",
+        "key",
+        "tableEncoding",
+        "printSha256",
+        "printing"
+      ],
       "additionalProperties": false
     },
     "goal": {
       "type": "object",
       "properties": {
-        "record": { "const": "goal" },
-        "goalId": { "$ref": "#/$defs/id" },
-        "trackedBodies": { "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 7 }, "uniqueItems": true },
-        "keys": { "description": "N_k, the size of the key space.", "type": "integer", "minimum": 1 },
-        "goalKeys": { "description": "Keys that meet the display; 0 means unsatisfiable, and then no histogram, eccentricity or table follows.", "type": "integer", "minimum": 0 },
+        "record": {"const": "goal"},
+        "goalId": {"$ref": "#/$defs/id"},
+        "display": {"$ref": "https://wstein.github.io/cubacle/schema/v1/fixed-frame-request.schema.json#/$defs/display"},
+        "premise": {"$ref": "https://wstein.github.io/cubacle/schema/v1/fixed-frame-request.schema.json#/$defs/display"},
+        "trackedBodies": {"type": "array", "items": {"type": "integer", "minimum": 0, "maximum": 7}, "uniqueItems": true, "maxItems": 8},
+        "keys": {"description": "N_k, the size of the key space.", "type": "integer", "minimum": 1},
+        "goalKeys": {
+          "description": "Keys that meet the display; 0 means unsatisfiable, and then no histogram, eccentricity or table follows.",
+          "type": "integer",
+          "minimum": 0
+        },
         "deadRules": {
           "description": "Rules that no state can meet at their cell, as [cell index, rule index].",
           "type": "array",
-          "items": { "type": "array", "items": { "type": "integer", "minimum": 0 }, "minItems": 2, "maxItems": 2 }
+          "items": {"type": "array", "items": {"type": "integer", "minimum": 0}, "minItems": 2, "maxItems": 2}
         },
-        "histogram": { "$ref": "#/$defs/histogram" },
-        "eccentricity": { "type": "integer", "minimum": 0 },
-        "premiseClosed": { "description": "With a premise: whether every goal key also meets the premise.", "type": "boolean" },
-        "tableSha256": { "$ref": "#/$defs/sha256" },
-        "tableFile": { "description": "Sidecar file name, goal-<tableSha256>.u8, with --tables.", "type": "string", "pattern": "^goal-[0-9a-f]{64}\\.u8$" }
+        "histogram": {"$ref": "#/$defs/histogram"},
+        "eccentricity": {"type": "integer", "minimum": 0},
+        "premiseClosed": {"description": "With a premise: whether every goal key also meets the premise.", "type": "boolean"},
+        "tableSha256": {"$ref": "#/$defs/sha256"},
+        "tableFile": {"description": "Sidecar file name, goal-<tableSha256>.u8, with --tables.", "type": "string", "pattern": "^goal-[0-9a-f]{64}\\.u8$"}
       },
-      "required": ["record", "goalId", "trackedBodies", "keys", "goalKeys", "deadRules"],
-      "additionalProperties": false
+      "required": ["record", "goalId", "display", "trackedBodies", "keys", "goalKeys", "deadRules"],
+      "additionalProperties": false,
+      "dependentRequired": {"premiseClosed": ["premise"]},
+      "allOf": [
+        {
+          "if": {"properties": {"goalKeys": {"const": 0}}},
+          "then": {
+            "not": {
+              "anyOf": [{"required": ["histogram"]}, {"required": ["eccentricity"]}, {"required": ["tableSha256"]}, {"required": ["tableFile"]}]
+            }
+          },
+          "else": {"required": ["histogram", "eccentricity", "tableSha256"]}
+        }
+      ]
     },
     "distance": {
       "type": "object",
       "properties": {
-        "record": { "const": "distance" },
-        "id": { "$ref": "#/$defs/id" },
-        "goalId": { "$ref": "#/$defs/id" },
-        "seed": { "description": "Only for records of a sample request.", "type": "integer", "minimum": 0 },
-        "from": { "$ref": "#/$defs/poses" },
-        "key": { "type": "integer", "minimum": 0 },
-        "distance": { "type": "integer", "minimum": 0 },
-        "proven": { "const": true },
-        "path": { "$ref": "#/$defs/word" },
-        "pathRule": { "const": "lex-least-shortest" },
-        "reached": { "$ref": "#/$defs/poses" }
+        "record": {"const": "distance"},
+        "id": {"$ref": "#/$defs/id"},
+        "goalId": {"$ref": "#/$defs/id"},
+        "display": {"$ref": "https://wstein.github.io/cubacle/schema/v1/fixed-frame-request.schema.json#/$defs/display"},
+        "seed": {"description": "Only for records of a sample request.", "type": "integer", "minimum": 0},
+        "from": {"$ref": "#/$defs/poses"},
+        "key": {"type": "integer", "minimum": 0},
+        "distance": {"type": "integer", "minimum": 0},
+        "proven": {"const": true},
+        "path": {"$ref": "#/$defs/word"},
+        "pathRule": {"const": "lex-least-shortest"},
+        "reached": {"$ref": "#/$defs/poses"}
       },
-      "required": ["record", "id", "goalId", "from", "key", "distance", "proven", "path", "pathRule", "reached"],
-      "additionalProperties": false
+      "required": ["record", "id", "from", "key", "distance", "proven", "path", "pathRule", "reached"],
+      "additionalProperties": false,
+      "oneOf": [{"required": ["goalId"], "not": {"required": ["display"]}}, {"required": ["display"], "not": {"required": ["goalId"]}}]
     },
     "eccentricity": {
       "type": "object",
       "properties": {
-        "record": { "const": "eccentricity" },
-        "id": { "$ref": "#/$defs/id" },
-        "goalId": { "$ref": "#/$defs/id" },
-        "sources": { "description": "Keys that meet the premise.", "type": "integer", "minimum": 0 },
-        "histogram": { "$ref": "#/$defs/histogram" },
-        "eccentricity": { "type": "integer", "minimum": 0 },
+        "record": {"const": "eccentricity"},
+        "id": {"$ref": "#/$defs/id"},
+        "goalId": {"$ref": "#/$defs/id"},
+        "premise": {"$ref": "https://wstein.github.io/cubacle/schema/v1/fixed-frame-request.schema.json#/$defs/display"},
+        "sourceBodies": {"type": "array", "items": {"type": "integer", "minimum": 0, "maximum": 7}, "uniqueItems": true, "maxItems": 8},
+        "sourceKeys": {"type": "integer", "minimum": 1},
+        "sources": {"description": "Keys that meet the premise.", "type": "integer", "minimum": 0},
+        "histogram": {"type": "array", "items": {"type": "integer", "minimum": 0}},
+        "eccentricity": {"type": ["integer", "null"], "minimum": 0},
         "witness": {
           "type": "object",
-          "properties": {
-            "key": { "type": "integer", "minimum": 0 },
-            "path": { "$ref": "#/$defs/word" }
-          },
-          "required": ["key", "path"],
+          "properties": {"key": {"type": "integer", "minimum": 0}, "from": {"$ref": "#/$defs/poses"}, "path": {"$ref": "#/$defs/word"}},
+          "required": ["key", "from", "path"],
           "additionalProperties": false
         }
       },
-      "required": ["record", "id", "goalId", "sources", "histogram", "eccentricity"],
-      "additionalProperties": false
+      "required": ["record", "id", "goalId", "premise", "sourceBodies", "sourceKeys", "sources", "histogram", "eccentricity"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {"properties": {"sources": {"const": 0}}},
+          "then": {"properties": {"histogram": {"maxItems": 0}, "eccentricity": {"type": "null"}}, "not": {"required": ["witness"]}},
+          "else": {"properties": {"histogram": {"minItems": 1}, "eccentricity": {"type": "integer"}}}
+        }
+      ]
     },
     "run": {
       "type": "object",
       "properties": {
-        "record": { "const": "run" },
-        "id": { "$ref": "#/$defs/id" },
-        "from": { "$ref": "#/$defs/poses" },
+        "record": {"const": "run"},
+        "id": {"$ref": "#/$defs/id"},
+        "from": {"$ref": "#/$defs/poses"},
+        "goals": {"type": "array", "items": {"$ref": "#/$defs/id"}, "minItems": 1, "maxItems": 100000},
+        "maxSteps": {"type": "integer", "minimum": 1, "maximum": 100000000},
         "steps": {
           "type": "array",
           "items": {
             "type": "object",
-            "properties": {
-              "goalId": { "$ref": "#/$defs/id" },
-              "distance": { "type": "integer", "minimum": 0 },
-              "path": { "$ref": "#/$defs/word" }
-            },
+            "properties": {"goalId": {"$ref": "#/$defs/id"}, "distance": {"type": "integer", "minimum": 0}, "path": {"$ref": "#/$defs/word"}},
             "required": ["goalId", "distance", "path"],
             "additionalProperties": false
           }
         },
-        "closed": { "type": "boolean" },
-        "preperiod": { "type": "integer", "minimum": 0 },
-        "period": { "type": "integer", "minimum": 1 },
-        "maxDistance": { "type": "integer", "minimum": 0 }
+        "closed": {"type": "boolean"},
+        "preperiod": {"type": "integer", "minimum": 0},
+        "period": {"type": "integer", "minimum": 1},
+        "maxDistance": {"type": "integer", "minimum": 0}
       },
-      "required": ["record", "id", "from", "steps", "closed", "maxDistance"],
-      "additionalProperties": false
+      "required": ["record", "id", "from", "goals", "maxSteps", "steps", "closed", "maxDistance"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {"properties": {"closed": {"const": true}}},
+          "then": {"required": ["preperiod", "period"]},
+          "else": {"not": {"anyOf": [{"required": ["preperiod"]}, {"required": ["period"]}]}}
+        }
+      ]
     },
     "error": {
       "type": "object",
@@ -175,7 +241,36 @@
     }
   },
   "examples": [
-    { "record": "goal", "goalId": "blank-H-34", "trackedBodies": [1, 3, 6, 7], "keys": 136080, "goalKeys": 3, "deadRules": [], "histogram": [3, 45, 594, 6015, 39849, 79143, 10431], "eccentricity": 6, "tableSha256": "0a3f73e6d95731fe778d47d5a8bdd092d925a3514f2936f60557899d38d81c1c" },
-    { "record": "distance", "id": "cex", "goalId": "blank-H-34", "from": { "poses": [5, 19, 7, 12, 2, 17, 23, 11] }, "key": 114083, "distance": 6, "proven": true, "path": "U B R2 B2 U' L", "pathRule": "lex-least-shortest", "reached": { "poses": [2, 4, 14, 17, 18, 8, 23, 11] } }
+    {
+      "record": "goal",
+      "goalId": "blank-H-34",
+      "trackedBodies": [1, 3, 6, 7],
+      "keys": 136080,
+      "goalKeys": 3,
+      "deadRules": [],
+      "histogram": [3, 45, 594, 6015, 39849, 79143, 10431],
+      "eccentricity": 6,
+      "tableSha256": "0a3f73e6d95731fe778d47d5a8bdd092d925a3514f2936f60557899d38d81c1c",
+      "display": {
+        "cells": [
+          {"p": [-1, 1, 1], "n": [0, 0, 1], "accept": [{"image": ""}]},
+          {"p": [1, 1, 1], "n": [0, 0, 1], "accept": [{"image": "H", "up": [0, 1, 0]}]},
+          {"p": [-1, -1, 1], "n": [0, 0, 1], "accept": [{"image": "3", "up": [0, 1, 0]}]},
+          {"p": [1, -1, 1], "n": [0, 0, 1], "accept": [{"image": "4", "up": [0, 1, 0]}]}
+        ]
+      }
+    },
+    {
+      "record": "distance",
+      "id": "cex",
+      "goalId": "blank-H-34",
+      "from": {"poses": [5, 19, 7, 12, 2, 17, 23, 11]},
+      "key": 114083,
+      "distance": 6,
+      "proven": true,
+      "path": "U B R2 B2 U' L",
+      "pathRule": "lex-least-shortest",
+      "reached": {"poses": [2, 4, 14, 17, 18, 8, 23, 11]}
+    }
   ]
 }
