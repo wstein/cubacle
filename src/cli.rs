@@ -33,6 +33,11 @@ pub(crate) enum Command {
     Patterns(patterns_cmd::PatternsArgs),
     /// Work with .cubacle template files: check that a schema and guard parse
     Template(template_cmd::TemplateArgs),
+    /// Replay a certificate written by solve --certificate (a file, or - for stdin)
+    Verify {
+        /// The certificate file
+        file: String,
+    },
     /// Print a random scramble
     Scramble {
         /// Number of moves
@@ -233,6 +238,33 @@ pub(crate) struct SolveArgs {
     /// --max-memory apply; stderr says "not proven" when the limit ends the search)
     #[arg(long, requires = "to", conflicts_with_all = ["moves", "all", "count", "now", "within"])]
     pub(crate) any_orientation: bool,
+    /// 3x3x3 picture cube: the target is the solved cube with every face center
+    /// turned upright again (twist 0 on all six). The start twist comes from the
+    /// scramble, or from --center-twist for a cube given as stickers. Solved by
+    /// the exact search with the twists as a coordinate (-b, -m and --max-memory
+    /// apply): a typical random picture cube needs over 30 moves, so expect
+    /// "not proven" unless the scramble is short; --certificate records the proof
+    #[arg(long, conflicts_with_all = ["to", "twist_target", "moves", "all", "count", "now", "within"])]
+    pub(crate) picture: bool,
+    /// 3x3x3: the twist of the six face centers of the given cube, six numbers 0
+    /// to 3 for U,R,F,D,L,B (clockwise quarter turns of each picture seen from
+    /// outside, from the solved orientation), like 0,1,2,0,3,0. A move expression
+    /// as the cube derives it. The sum must have the parity of the corner permutation
+    #[arg(long, value_name = "T")]
+    pub(crate) center_twist: Option<String>,
+    /// 3x3x3: also require these twists of the face centers in the target: six
+    /// items for U,R,F,D,L,B, each a twist 0 to 3, several joined by | (0|2), or
+    /// X for any, like 0,X,2|3,X,X,X. Works with or without --to; solved by the
+    /// exact search, with --any-orientation the conditions turn with the cube
+    #[arg(long, value_name = "T", conflicts_with_all = ["moves", "all", "count", "now", "within"])]
+    pub(crate) twist_target: Option<String>,
+    /// With an exact search (--optimal, --any-orientation, --picture,
+    /// --twist-target): print a replayable record on stdout after the moves
+    /// (also when no answer is proven): start, twist, target, moves, rotations
+    /// (zero cost), end state, the lower bound at the start, the nodes of every
+    /// depth searched out and a digest of every table. `cubacle verify` replays it
+    #[arg(long)]
+    pub(crate) certificate: bool,
     /// Mark hand units in the answer with " · ": phases (the solver phases; a
     /// solution of one phase, the 2x2x2, has no dot), axis (turns about one
     /// axis on disjoint layers, as in ATM) or both, "phases,axis" (a unit

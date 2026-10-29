@@ -1,5 +1,6 @@
 mod answer;
 mod canon_cmd;
+mod certificate;
 mod cli;
 mod engine;
 mod enumerate_cmd;
@@ -22,6 +23,7 @@ mod patterns_import_cmd;
 mod patterns_update;
 mod phase_dots;
 mod photo_cmd;
+mod picture_cmd;
 mod png_out;
 mod ram;
 mod recover_cmd;
@@ -112,6 +114,19 @@ fn run(cli: Cli) -> Result<(), String> {
                     println!("{}", scheme.paint(&cube));
                 }
             }
+            Ok(())
+        }
+        Command::Verify { file } => {
+            let text = if file == "-" {
+                let mut text = String::new();
+                std::io::Read::read_to_string(&mut std::io::stdin(), &mut text)
+                    .map_err(|error| format!("cannot read stdin: {error}"))?;
+                text
+            } else {
+                std::fs::read_to_string(&file)
+                    .map_err(|error| format!("cannot read {file}: {error}"))?
+            };
+            println!("{}", certificate::verify(&text)?);
             Ok(())
         }
         Command::Scramble {
