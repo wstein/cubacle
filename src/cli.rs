@@ -185,8 +185,11 @@ pub(crate) struct SolveArgs {
     /// engine's answer comes first and stays the fallback; a large pruning table (cached in
     /// the cache directory) drives the search. Limited by -b (default 60000 ms) and --nodes;
     /// when the limit ends the search, the default answer is printed and stderr says "not
-    /// proven shortest"
-    #[arg(long, conflicts_with_all = ["fast", "probes", "improve", "parallel", "moves", "to", "all", "count"])]
+    /// proven shortest". With --to and a target that has open stickers (X): a proven
+    /// shortest answer to any state the target allows, from multi-goal tables built for the
+    /// target (there is no default answer to fall back on: a limit ends in an error that
+    /// names the proven depth); with a target that has no open sticker --optimal is refused
+    #[arg(long, conflicts_with_all = ["fast", "probes", "improve", "parallel", "moves", "all", "count"])]
     pub(crate) optimal: bool,
     /// With --optimal: stop after this many search nodes (the same on every machine)
     #[arg(long, value_name = "N", requires = "optimal")]
@@ -223,6 +226,13 @@ pub(crate) struct SolveArgs {
     /// reach any such state. The moves printed take the start to the target.
     #[arg(long, value_name = "TARGET")]
     pub(crate) to: Option<String>,
+    /// 3x3x3 with --to: the target counts after any of the 24 whole-cube
+    /// orientations (turning the whole cube costs no moves). Needs a target
+    /// with open stickers (X) to be useful; a proven shortest answer is searched
+    /// as for --optimal with such a target (-b, default 60000 ms, and
+    /// --max-memory apply; stderr says "not proven" when the limit ends the search)
+    #[arg(long, requires = "to", conflicts_with_all = ["moves", "all", "count", "now", "within"])]
+    pub(crate) any_orientation: bool,
     /// Mark hand units in the answer with " · ": phases (the solver phases; a
     /// solution of one phase, the 2x2x2, has no dot), axis (turns about one
     /// axis on disjoint layers, as in ATM) or both, "phases,axis" (a unit

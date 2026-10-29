@@ -78,8 +78,18 @@ pub(crate) fn solve(args: SolveArgs) -> Result<(), String> {
     // A target with open stickers is a set of states, not one: the engine
     // searches for the set. Every other target is a state and keeps the
     // relative-state path below.
-    if let Some(partial) = target.as_ref().filter(|t| t.as_state().is_none()) {
+    // --any-orientation also takes a complete target: some orientation of it.
+    if let Some(partial) = target
+        .as_ref()
+        .filter(|t| t.as_state().is_none() || args.any_orientation)
+    {
         return partial_cmd::run(&args, &start, partial);
+    }
+    if args.optimal && target.is_some() {
+        return Err(
+            "--optimal with --to needs a target with open stickers (X) or --any-orientation; a complete target is solved with a plain solve"
+                .into(),
+        );
     }
     let target = target.and_then(|t| t.as_state());
     // The cube to solve: the start itself, or what is left of it after the

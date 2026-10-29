@@ -9,7 +9,7 @@
 use std::time::Duration;
 
 use cubacle::centers::{self, CenterGoal};
-use cubacle::puzzle::{Facelets, Failure, SolveOptions, Target};
+use cubacle::puzzle::{Facelets, Failure, PuzzleKind, SolveOptions, Target};
 
 use crate::cli::SolveArgs;
 use crate::engine::{default_options, solver_for};
@@ -37,6 +37,9 @@ fn check(args: &SolveArgs) -> Result<(), String> {
     if args.improve || args.parallel {
         return refuse("--improve and --parallel");
     }
+    if args.nodes.is_some() {
+        return refuse("--nodes");
+    }
     Ok(())
 }
 
@@ -44,6 +47,18 @@ fn check(args: &SolveArgs) -> Result<(), String> {
 pub fn run(args: &SolveArgs, start: &Facelets, target: &Target) -> Result<(), String> {
     check(args)?;
     let kind = start.kind();
+    let exact = args.optimal || args.any_orientation;
+    if exact && kind != PuzzleKind::Cube3 {
+        return Err(format!(
+            "{} with a --to target works on the 3x3x3 only, not the {1}x{1}x{1}",
+            if args.optimal {
+                "--optimal"
+            } else {
+                "--any-orientation"
+            },
+            kind.size()
+        ));
+    }
     // The reduction engines solve one subset: the centers. Say so before their
     // tables are built when the target is another one.
     let centers = kind.size() >= 4;
@@ -59,6 +74,14 @@ pub fn run(args: &SolveArgs, start: &Facelets, target: &Target) -> Result<(), St
         options = options.with_time_budget(Duration::from_millis(millis));
     }
     options = options.with_slices(args.slices);
+    if exact {
+        options = options
+            .with_exact(true)
+            .with_free_orientation(args.any_orientation);
+    }
+    if let Some(megabytes) = args.max_memory {
+        options = options.with_max_memory(megabytes);
+    }
     // Targets that need the two-phase search take its counted improvement when asked.
     if let Some(probes) = args.probes {
         options = options.with_min_probes(probes);
@@ -73,7 +96,12 @@ pub fn run(args: &SolveArgs, start: &Facelets, target: &Target) -> Result<(), St
     }
     match result.outcome {
         Ok(solution) => {
-            if !target.reached_by(start, &solution) {
+            let reached = if args.any_orientation {
+                target.reached_by_any_rotation(start, &solution)
+            } else {
+                target.reached_by(start, &solution)
+            };
+            if !reached {
                 return Err("internal error: solution does not reach the target".into());
             }
             eprintln!("moves {}", solution.len());
