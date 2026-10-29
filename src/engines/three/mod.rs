@@ -19,6 +19,7 @@ mod stats;
 mod tables;
 mod twist_flip;
 
+pub use partial::{SearchRecord, TableDigest};
 pub use solver::Min2PhaseSolver;
 
 #[cfg(test)]

@@ -7,6 +7,7 @@ use super::engine::{
     solve_batch, solve_parallel_with_time_limits, solve_pattern, solve_pattern_parallel,
     solve_with_limits, solve_with_time_limits,
 };
+use super::partial::SearchRecord;
 use super::stats::{SolveOutcome, SolveStats};
 use super::tables::{self, SharedTables};
 use crate::puzzle::{
@@ -174,6 +175,20 @@ impl Min2PhaseSolver {
         }
         let stats = run(&from.to_string(), &to.to_string(), max_moves(options));
         into_result(stats, started)
+    }
+}
+
+impl Min2PhaseSolver {
+    /// Like [`Solver::solve_to`], and when the exact search ran (an exact or
+    /// free-orientation request, or a twist condition) also its record: the
+    /// bound at the start, the work per depth and a digest of every table.
+    pub fn solve_to_recorded(
+        &self,
+        start: &Facelets,
+        target: &Target,
+        options: &SolveOptions,
+    ) -> (SolveResult, Option<SearchRecord>) {
+        super::partial::solve_recorded(self, start, target, options)
     }
 }
 

@@ -8,6 +8,7 @@
 
 use super::goal::Goal;
 use super::model::{Pos, Turns, TURNS};
+use super::record::fnv1a;
 
 const CORNER_PERMS: usize = 40320;
 const CORNER_TWISTS: usize = 2187;
@@ -183,6 +184,11 @@ impl CornerTable {
         })
     }
 
+    /// FNV-1a 64 of the distances.
+    pub(super) fn digest(&self) -> u64 {
+        fnv1a(&self.dist.0)
+    }
+
     pub(super) fn index(pos: &Pos) -> (u16, u16) {
         (perm_rank(&pos.cp) as u16, twist_rank(&pos.co) as u16)
     }
@@ -355,6 +361,16 @@ impl EdgeTable {
     #[inline]
     pub(super) fn bound(&self, at: u32) -> u8 {
         self.dist.get(at as usize)
+    }
+
+    /// FNV-1a 64 of the distances.
+    pub(super) fn digest(&self) -> u64 {
+        fnv1a(&self.dist.0)
+    }
+
+    /// The number of cells (arrangements of the tracked edges times flips).
+    pub(super) fn cells(&self) -> usize {
+        arrangements(self.k) << self.k
     }
 
     pub(super) fn tracked(&self) -> usize {

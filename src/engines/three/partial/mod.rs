@@ -27,6 +27,7 @@ use crate::puzzle::{
 };
 use completions::by_completions;
 use edges::edges_only;
+pub use record::{SearchRecord, TableDigest};
 
 /// The most whole edges the exact search tracks: 12^5 * 2^5 = 24^5 = 7,962,624 table entries (12P5 * 2^5 = 3,041,280 distinct states).
 const MAX_EDGES: usize = 5;
@@ -68,8 +69,23 @@ pub(super) fn solve_to(
     target: &Target,
     options: &SolveOptions,
 ) -> SolveResult {
+    solve_recorded(engine, start, target, options).0
+}
+
+/// Like [`solve_to`], with the record of the exact search when there was one.
+pub(super) fn solve_recorded(
+    engine: &Min2PhaseSolver,
+    start: &Facelets,
+    target: &Target,
+    options: &SolveOptions,
+) -> (SolveResult, Option<SearchRecord>) {
     let started = Instant::now();
-    let fail = |failure, message: &str| finish(started, Err(failure), message.to_owned());
+    let fail = |failure, message: &str| {
+        (
+            finish(started, Err(failure), message.to_owned()),
+            None::<SearchRecord>,
+        )
+    };
     if start.kind() != PuzzleKind::Cube3 || target.kind() != PuzzleKind::Cube3 {
         return fail(Failure::InvalidInput, "expected a 3x3x3 start and target");
     }
@@ -77,7 +93,8 @@ pub(super) fn solve_to(
     if cube.set_from_facelet(&start.to_string()) != 0 || cube.verify() != 0 {
         return fail(Failure::InvalidInput, "the start cube state is impossible");
     }
-    if options.exact || options.free_orientation {
+    // A twist condition lives in the exact search only.
+    if options.exact || options.free_orientation || target.has_twist_condition() {
         return exact::by_goal_set(started, start, target, options);
     }
     let sets = target.sets();
@@ -92,12 +109,15 @@ pub(super) fn solve_to(
     }
     match whole_edges(sets) {
         Ok(Some(wanted)) if wanted.len() <= MAX_EDGES => {
-            return edges_only(started, &cube, &wanted, options)
+            return (edges_only(started, &cube, &wanted, options), None)
         }
         Ok(_) => {}
         Err(message) => return fail(Failure::Exhausted, &message),
     }
-    by_completions(engine, started, start, target, options)
+    (
+        by_completions(engine, started, start, target, options),
+        None,
+    )
 }
 
 /// Slot, piece and flip of every whole edge a target fixes.
@@ -155,6 +175,8 @@ mod exact_tests;
 mod goal;
 mod ida;
 mod model;
+mod record;
 mod tables;
 #[cfg(test)]
 mod tests;
+mod twist;

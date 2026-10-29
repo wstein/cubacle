@@ -47,7 +47,7 @@ pub use stages::SolveStage;
 pub(crate) use stages::{interned, stage_ends, stage_parts, PHASE_MOVES};
 pub use target::{Target, TargetError};
 pub(crate) use threads::threads;
-pub(crate) use twist::center_rotations;
+pub(crate) use twist::{center_rotations, CenterRotation};
 pub use twist::{
     parse_twist_masks, rotation_moves, rotation_words, track_moves, twist_masks_text, CenterTwist,
     Tracked, TwistError, TwistMasks, FREE as FREE_TWIST, TWIST_CONVENTION,

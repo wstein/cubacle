@@ -1,7 +1,8 @@
 //! The exact route: a proven shortest answer to a target set.
 //!
-//! Used on request (`SolveOptions::exact`) and always for a free orientation.
-//! See `docs/design/dont-care-targets.md`, "Target sets on the 3x3x3".
+//! Used on request (`SolveOptions::exact`), always for a free orientation and
+//! for a target with a condition on the center twists (a picture cube). See
+//! `docs/design/dont-care-targets.md`, "Target sets on the 3x3x3".
 
 use std::time::{Duration, Instant};
 
@@ -10,9 +11,12 @@ use super::finish;
 use super::goal::{color_masks, Goal};
 use super::ida::{Bound, Ended, Search};
 use super::model::{Pos, Turns};
+use super::record::{SearchRecord, TableDigest};
 use super::tables::{plan, CornerTable, EdgeTable};
+use super::twist::TwistTable;
 use crate::puzzle::{
-    rotation_maps, Facelets, Failure, MoveSequence, PuzzleKind, SolveOptions, SolveResult, Target,
+    center_rotations, rotation_maps, CenterTwist, Facelets, Failure, MoveSequence, PuzzleKind,
+    SolveOptions, SolveResult, Target,
 };
 
 /// Megabytes for the tables when the caller sets no cap.
@@ -22,25 +26,34 @@ const DEFAULT_BUDGET_MS: u64 = 60_000;
 /// The deepest answer looked for when the caller sets no move limit.
 const DEFAULT_MAX_MOVES: usize = 21;
 
+type Recorded = (SolveResult, Option<SearchRecord>);
+
 pub(super) fn by_goal_set(
     started: Instant,
     start: &Facelets,
     target: &Target,
     options: &SolveOptions,
-) -> SolveResult {
+) -> Recorded {
+    let refuse = |failure, message: String| (finish(started, Err(failure), message), None);
     let mut cube = Cubie::new();
     if cube.set_from_facelet(&start.to_string()) != 0 || cube.verify() != 0 {
-        return finish(
-            started,
-            Err(Failure::InvalidInput),
+        return refuse(
+            Failure::InvalidInput,
             "the start cube state is impossible".into(),
         );
     }
     let masks = color_masks(target.sets());
-    let goal = if options.free_orientation {
+    let twist = target.twist_masks();
+    let goal = if options.free_orientation && target.has_twist_condition() {
+        let rotations: Vec<_> = rotation_maps(PuzzleKind::Cube3)
+            .into_iter()
+            .zip(center_rotations())
+            .collect();
+        Goal::rotated_twisted(&masks, twist, &rotations)
+    } else if options.free_orientation {
         Goal::rotated(&masks, &rotation_maps(PuzzleKind::Cube3))
     } else {
-        Goal::new(&[masks])
+        Goal::with_twists(&[(masks, *twist)])
     };
     if goal.is_impossible() {
         let why = if options.free_orientation {
@@ -48,29 +61,71 @@ pub(super) fn by_goal_set(
         } else {
             "the target wants another color on a center, and the centers of a 3x3x3 never move"
         };
-        return finish(
-            started,
-            Err(Failure::Exhausted),
-            format!("unreachable: {why}"),
+        return refuse(Failure::Exhausted, format!("unreachable: {why}"));
+    }
+    let twist_start = options.start_twist.unwrap_or(CenterTwist::UPRIGHT);
+    let twisted = options.start_twist.is_some() || target.has_twist_condition();
+    if twisted && twist_start.sum_is_even() != corner_parity_even(&cube) {
+        return refuse(
+            Failure::InvalidInput,
+            "the center twist does not belong to this cube: the sum of the six twists must have the parity of the corner permutation (even for an even permutation)".into(),
         );
     }
-    solve_goal(started, &cube, &goal, options)
+    let pos = Pos::from_cubie(&cube).with_twist(twist_start);
+    solve_goal_recorded(started, pos, &goal, options)
 }
 
-/// Searches `goal` from `cube`.
+/// Whether the corner permutation of `cube` is even.
+fn corner_parity_even(cube: &Cubie) -> bool {
+    let perm: Vec<usize> = cube.ca.iter().map(|&c| usize::from(c & 7)).collect();
+    let mut seen = [false; 8];
+    let mut swaps = 0;
+    for i in 0..8 {
+        let (mut j, mut length) = (i, 0);
+        while !seen[j] {
+            seen[j] = true;
+            j = perm[j];
+            length += 1;
+        }
+        swaps += length.max(1) - 1;
+    }
+    swaps % 2 == 0
+}
+
+/// Searches `goal` from `cube` (the entry of the tests).
+#[cfg(test)]
 pub(super) fn solve_goal(
     started: Instant,
     cube: &Cubie,
     goal: &Goal,
     options: &SolveOptions,
 ) -> SolveResult {
+    solve_goal_recorded(started, Pos::from_cubie(cube), goal, options).0
+}
+
+/// Searches `goal` from `start`, and keeps the record of the search.
+pub(super) fn solve_goal_recorded(
+    started: Instant,
+    start: Pos,
+    goal: &Goal,
+    options: &SolveOptions,
+) -> Recorded {
     let turns = Turns::new();
-    let start = Pos::from_cubie(cube);
     if goal.is_met(&start) {
-        return finish(
-            started,
-            Ok(MoveSequence::new(Vec::new())),
-            "shortest: 0 moves, the start already meets the target".into(),
+        let record = SearchRecord {
+            start_bound: 0,
+            completed: Vec::new(),
+            found: Some((0, 0)),
+            tables: Vec::new(),
+            views: goal.views.len(),
+        };
+        return (
+            finish(
+                started,
+                Ok(MoveSequence::new(Vec::new())),
+                "shortest: 0 moves, the start already meets the target".into(),
+            ),
+            Some(record),
         );
     }
     let budget_mb = options.max_memory_mb.unwrap_or(DEFAULT_MEMORY_MB);
@@ -86,10 +141,11 @@ pub(super) fn solve_goal(
     } else {
         EdgeTable::build(goal, &turns, &pieces)
     };
+    let twist = TwistTable::build(goal);
     let table_bytes = corners.as_ref().map_or(0, |_| CornerTable::bytes())
         + edges.as_ref().map_or(0, |t| EdgeTable::bytes(t.tracked()));
     let table_note = format!(
-        "{} MB of tables: {}, {}, built in {:.1} s",
+        "{} MB of tables: {}, {}{}, built in {:.1} s",
         table_bytes >> 20,
         if corners.is_some() {
             "all corners".to_owned()
@@ -100,9 +156,40 @@ pub(super) fn solve_goal(
             Some(t) => format!("{} edges", t.tracked()),
             None => "no edge table".to_owned(),
         },
+        if twist.is_some() {
+            ", the center twists"
+        } else {
+            ""
+        },
         built.elapsed().as_secs_f64()
     );
-    let bound = Bound { corners, edges };
+    let mut digests = Vec::new();
+    if let Some(t) = &corners {
+        digests.push(TableDigest {
+            name: "corners".into(),
+            cells: 40320 * 2187,
+            fnv1a64: t.digest(),
+        });
+    }
+    if let Some(t) = &edges {
+        digests.push(TableDigest {
+            name: format!("edges{}", t.tracked()),
+            cells: t.cells(),
+            fnv1a64: t.digest(),
+        });
+    }
+    if let Some(t) = &twist {
+        digests.push(TableDigest {
+            name: "twist".into(),
+            cells: 4096,
+            fnv1a64: super::record::fnv1a(t.bytes()),
+        });
+    }
+    let bound = Bound {
+        corners,
+        edges,
+        twist,
+    };
     let budget = options
         .time_budget
         .unwrap_or(Duration::from_millis(DEFAULT_BUDGET_MS));
@@ -111,7 +198,14 @@ pub(super) fn solve_goal(
     let from = search.start_bound(&start);
     let ended = search.run(&start, from, max);
     let nodes = search.nodes;
-    match ended {
+    let record = SearchRecord {
+        start_bound: from,
+        completed: search.levels.clone(),
+        found: search.found,
+        tables: digests,
+        views: goal.views.len(),
+    };
+    let result = match ended {
         Ended::Found(path) => {
             let solution: MoveSequence = path.iter().map(|&m| turns.moves[m]).collect();
             finish(
@@ -129,15 +223,14 @@ pub(super) fn solve_goal(
                 "no solution within {depth} moves: searched out, so the shortest answer is longer ({nodes} nodes; {table_note}); raise --max-moves"
             ),
         ),
-        Ended::Stopped(depth) => {
-            finish(
-                started,
-                Err(Failure::BudgetExhausted),
-                format!(
-                    "not proven: no solution has fewer than {depth} moves, but the search of {depth} moves did not finish in {} ms ({nodes} nodes; {table_note}); the target may be too loose for the tables: give more time with -b or more memory with --max-memory",
-                    budget.as_millis()
-                ),
-            )
-        }
-    }
+        Ended::Stopped(depth) => finish(
+            started,
+            Err(Failure::BudgetExhausted),
+            format!(
+                "not proven: no solution has fewer than {depth} moves, but the search of {depth} moves did not finish in {} ms ({nodes} nodes; {table_note}); the target may be too loose for the tables: give more time with -b or more memory with --max-memory",
+                budget.as_millis()
+            ),
+        ),
+    };
+    (result, Some(record))
 }

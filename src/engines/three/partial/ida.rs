@@ -3,8 +3,9 @@
 use std::time::Instant;
 
 use super::goal::Goal;
-use super::model::{Pos, Turns};
+use super::model::{twist_step, Pos, Turns};
 use super::tables::{CornerTable, EdgeTable};
+use super::twist::TwistTable;
 
 /// How a search ended.
 pub(super) enum Ended {
@@ -20,12 +21,15 @@ pub(super) enum Ended {
 pub(super) struct Bound {
     pub(super) corners: Option<CornerTable>,
     pub(super) edges: Option<EdgeTable>,
+    /// Present when a view conditions the center twists.
+    pub(super) twist: Option<TwistTable>,
 }
 
 #[derive(Clone, Copy)]
 struct Coords {
     corner: (u16, u16),
     edge: u32,
+    tw: u16,
 }
 
 impl Bound {
@@ -36,6 +40,7 @@ impl Bound {
                 .as_ref()
                 .map_or((0, 0), |_| CornerTable::index(pos)),
             edge: self.edges.as_ref().map_or(0, |t| t.index(pos)),
+            tw: pos.tw,
         }
     }
 
@@ -47,6 +52,11 @@ impl Bound {
                 .as_ref()
                 .map_or((0, 0), |t| t.step(at.corner, m)),
             edge: self.edges.as_ref().map_or(0, |t| t.step(at.edge, m)),
+            tw: if self.twist.is_some() {
+                twist_step(at.tw, m)
+            } else {
+                0
+            },
         }
     }
 
@@ -54,7 +64,8 @@ impl Bound {
     fn value(&self, at: Coords) -> u8 {
         let c = self.corners.as_ref().map_or(0, |t| t.bound(at.corner));
         let e = self.edges.as_ref().map_or(0, |t| t.bound(at.edge));
-        c.max(e)
+        let w = self.twist.as_ref().map_or(0, |t| t.bound(at.tw));
+        c.max(e).max(w)
     }
 }
 
@@ -71,6 +82,10 @@ pub(super) struct Search<'a> {
     pub(super) bound: &'a Bound,
     pub(super) deadline: Instant,
     pub(super) nodes: u64,
+    /// Depths searched out without an answer, with the nodes of each.
+    pub(super) levels: Vec<(usize, u64)>,
+    /// The depth of the answer and the nodes of its iteration.
+    pub(super) found: Option<(usize, u64)>,
     stopped: bool,
     path: Vec<usize>,
 }
@@ -88,6 +103,8 @@ impl<'a> Search<'a> {
             bound,
             deadline,
             nodes: 0,
+            levels: Vec::new(),
+            found: None,
             stopped: false,
             path: Vec::new(),
         }
@@ -103,12 +120,15 @@ impl<'a> Search<'a> {
         let coords = self.bound.coords(start);
         for depth in from..=max {
             self.path.clear();
+            let before = self.nodes;
             if self.dfs(start, coords, depth, usize::MAX) {
+                self.found = Some((depth, self.nodes - before));
                 return Ended::Found(self.path.clone());
             }
             if self.stopped {
                 return Ended::Stopped(depth);
             }
+            self.levels.push((depth, self.nodes - before));
         }
         Ended::Empty(max)
     }
