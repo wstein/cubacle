@@ -21,6 +21,7 @@ mod solver;
 mod stages;
 mod target;
 mod threads;
+mod twist;
 
 pub use alphabet::Alphabet;
 pub(crate) use alphabet::{inner_layer_set, layer_set};
@@ -46,3 +47,8 @@ pub use stages::SolveStage;
 pub(crate) use stages::{interned, stage_ends, stage_parts, PHASE_MOVES};
 pub use target::{Target, TargetError};
 pub(crate) use threads::threads;
+pub(crate) use twist::center_rotations;
+pub use twist::{
+    parse_twist_masks, rotation_moves, rotation_words, track_moves, twist_masks_text, CenterTwist,
+    Tracked, TwistError, TwistMasks, FREE as FREE_TWIST, TWIST_CONVENTION,
+};
