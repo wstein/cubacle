@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://wstein.github.io/cubacle/schema/v1/fixed-frame-record.schema.json",
   "title": "cubacle fixed-frame record line",
-  "description": "Draft, not implemented: one line of the JSON Lines output of cubacle fixed-frame batch. With --certificate the lines form a certificate: a header, the answer records, a summary. Keys are written in the order of properties. See docs/design/fixed-frame-proofs.md.",
+  "description": "Draft, not implemented: one line of the JSON Lines output of cubacle fixed-frame batch and of the response of POST /v1/fixed-frame/batch (application/x-ndjson, the same bytes); POST /v1/fixed-frame/distance answers one distance record as application/json. With --certificate (query certificate=true) the lines form a certificate: a header, the answer records, a summary. Keys are written in the order of properties. See docs/design/fixed-frame-proofs.md, sections 5, 7 and 18.",
   "oneOf": [
     { "$ref": "#/$defs/header" },
     { "$ref": "#/$defs/goal" },
