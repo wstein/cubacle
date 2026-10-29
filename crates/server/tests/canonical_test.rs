@@ -1,27 +1,17 @@
 //! The `canonical` field of the state descriptions (`/v1/convert`,
 //! `/v1/random`): the canonical Orbit64 token and its schema name.
 
-use std::sync::Arc;
+mod support;
 
 use axum::body::Body;
 use axum::http::{header, Request, StatusCode};
-use cubacle::engines::five::FiveSolver;
-use cubacle::engines::four::FourSolver;
-use cubacle::engines::three::Min2PhaseSolver;
-use cubacle_server::{router, AppState, Config};
+use cubacle_server::{router, Config};
 use http_body_util::BodyExt;
 use serde_json::{json, Value};
 use tower::ServiceExt;
 
 async fn call(request: Request<Body>) -> (StatusCode, Value) {
-    let five = FiveSolver::new(Arc::new(Min2PhaseSolver::shared())).with_cache_dir(None);
-    let four = FourSolver::new(Arc::new(Min2PhaseSolver::shared())).with_threads(1);
-    let app = router(AppState::with_engines(
-        Config::default(),
-        Min2PhaseSolver::shared(),
-        five,
-        four,
-    ));
+    let app = router(support::state(Config::default()));
     let response = app.oneshot(request).await.unwrap();
     let status = response.status();
     let bytes = response.into_body().collect().await.unwrap().to_bytes();
