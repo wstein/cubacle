@@ -12,5 +12,5 @@ composition does not inherit a shortest-path claim. The CLI and HTTP server shar
 - [[2x2 solver]]
 
 Source: src/report/mod.rs, lines 1-260
-Source: src/puzzle/proof.rs, lines 1-38
+Source: src/puzzle/proof.rs, lines 1-37
 Source: owner decision of 2026-10-29, lines 1-1

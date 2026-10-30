@@ -26,7 +26,7 @@ The server logs method, path, status and latency of every request (never bodies)
 | `GET /v1/scramble?moves=25&size=3` | moves 1..=200, size 2, 3, 4 or 5 | `{"scramble":"R U ..."}` |
 | `GET /v1/random?size=3` | size 2..=7 (only 2 to 5 have engines) | `{"kind":"3x3x3","facelets":"..."}` |
 | `POST /v1/convert` | `{"cube","scheme"?}` | `{"kind","facelets","token"?}` |
-| `POST /v1/solve` | `{"cube","scheme"?,"maxMoves"? (1..=25; 1..=255 for a 4x4x4 or 5x5x5),"budgetMs"? (1..=600000),"minProbes"? (3x3x3 only),"improve"? (3x3x3 only, needs budgetMs),"formatVersion"? (1 or 2, default 2)}` | `{"kind","solution","inverse","length","elapsedMicros"}` |
+| `POST /v1/solve` | `{"cube","scheme"?,"maxMoves"? (1..=25; 1..=255 for a 4x4x4 or 5x5x5),"budgetMs"? (1..=600000),"minProbes"? (3x3x3 only),"improve"? (3x3x3 only, needs budgetMs),"formatVersion"? (1 or 2, default 2)}` | `{"kind","solution","inverse","length","elapsedMicros","formatVersion","toolVersion","gitCommit","frame","proven","lowerBound"}` |
 
 `cube` accepts Orbit64 tokens (every size, 2x2x2 to 7x7x7; `convert` answers the token too), URFDLB facelets (spaced or compact) or W/R/G/Y/O/B colors; `scheme` is `boy`, `jp` or six letters.
 
