@@ -34,7 +34,7 @@ The server binds to the local machine by default. It has no authentication, so d
 | `GET /v1/scramble?moves=25&size=3` | `moves`: 1 to 200; `size`: 2 to 7; `notation`?: `wca`, `sign` or `sse` | `{"scramble":"U' L2 F2 D U2"}` |
 | `GET /v1/random?size=3` | `size`: 2 to 7 (only 2 to 5 have engines) | `{"kind":"2x2x2","facelets":"...","token":"...","canonical":{"token":"...","schema":"..."}}` |
 | `POST /v1/convert` | `{"cube" or "scramble","size"?,"scheme"?}` | `{"kind","facelets","token"?,"canonical"?}` |
-| `POST /v1/solve` | `{"cube" or "scramble","size"?,"scheme"?,"maxMoves"?,"budgetMs"?,"minProbes"?,"improve"?,"slices"?,"notation"?,"optimize"?,"target"?,"formatVersion"?}` | `{"kind","solution","inverse","length","metrics","compressed"?,"compressedLength"?,"compressedMetrics"?,"elapsedMicros"}` |
+| `POST /v1/solve` | `{"cube" or "scramble","size"?,"scheme"?,"maxMoves"?,"budgetMs"?,"minProbes"?,"improve"?,"slices"?,"notation"?,"optimize"?,"target"?,"formatVersion"?}` | `{"kind","solution","inverse","length","metrics","compressed"?,"compressedLength"?,"compressedMetrics"?,"elapsedMicros","formatVersion","toolVersion","gitCommit","frame","proven","lowerBound"}` |
 
 For `POST` requests, send the header `Content-Type: application/json`.
 
@@ -196,7 +196,7 @@ only equivalent requests and mask `elapsedMicros` when checking byte equality. S
 [solve options](cli/solve-options.md#--json) and
 [solve-result schema](static/schema/v1/solve-result.schema.json).
 
-The existing recorded solve transcripts below show format 1, preserving their original
+The earlier recorded solve transcripts on this page show format 1, preserving their original
 solutions and timing measurements. Select `"formatVersion": 1` to reproduce that body shape;
 a request without the selector now also carries the six format-2 keys.
 

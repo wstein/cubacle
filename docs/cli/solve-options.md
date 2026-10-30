@@ -78,7 +78,7 @@ cubacle solve -s "R U" --fast --max-moves 21 --json
 ```text
 moves 13
 metrics: htm 13, qtm 18, stm 13
-{"kind":"3x3x3","solution":"U R F2 R F2 R' L D2 R' D2 L' U2 R'","inverse":"R U2 L D2 R D2 L' R F2 R' F2 R' U'","length":13,"metrics":{"htm":13,"qtm":18,"stm":13,"etm":13,"obtm":13,"btm":13,"atm":12},"elapsedMicros":0}
+{"kind":"3x3x3","solution":"U R F2 R F2 R' L D2 R' D2 L' U2 R'","inverse":"R U2 L D2 R D2 L' R F2 R' F2 R' U'","length":13,"metrics":{"htm":13,"qtm":18,"stm":13,"etm":13,"obtm":13,"btm":13,"atm":12},"elapsedMicros":0,"formatVersion":2,"toolVersion":"0.1.0","gitCommit":null,"frame":"fixed","proven":false,"lowerBound":null}
 ```
 <!-- /example -->
 
@@ -90,7 +90,7 @@ curl -s -XPOST localhost:8080/v1/solve -H 'Content-Type: application/json' \
 ```
 
 ```json
-{"kind":"3x3x3","solution":"U R F2 R F2 R' L D2 R' D2 L' U2 R'","inverse":"R U2 L D2 R D2 L' R F2 R' F2 R' U'","length":13,"metrics":{"htm":13,"qtm":18,"stm":13,"etm":13,"obtm":13,"btm":13,"atm":12},"elapsedMicros":39}
+{"kind":"3x3x3","solution":"U R F2 R F2 R' L D2 R' D2 L' U2 R'","inverse":"R U2 L D2 R D2 L' R F2 R' F2 R' U'","length":13,"metrics":{"htm":13,"qtm":18,"stm":13,"etm":13,"obtm":13,"btm":13,"atm":12},"elapsedMicros":0,"formatVersion":2,"toolVersion":"0.1.0","gitCommit":null,"frame":"fixed","proven":false,"lowerBound":null}
 ```
 
 Byte equality holds only for equivalent requests, and `elapsedMicros` differs from run to run (the test suite masks it, and these pages show it as 0). `--json` uses the defaults of the command line, which are not those of the server: a plain 3x3x3 `solve` makes 3000 probes for a shorter answer and limits it to 21 moves, while the server makes no extra probes and sets no move limit. `--fast --max-moves 21` is the server's `{"maxMoves":21}`. Without `--fast` the same cube gives a shorter solution:
@@ -101,7 +101,7 @@ cubacle solve -s "R U" --json
 ```
 
 ```text
-{"kind":"3x3x3","solution":"U' R'","inverse":"R U","length":2,"metrics":{"htm":2,"qtm":2,"stm":2,"etm":2,"obtm":2,"btm":2,"atm":2},"elapsedMicros":0}
+{"kind":"3x3x3","solution":"U' R'","inverse":"R U","length":2,"metrics":{"htm":2,"qtm":2,"stm":2,"etm":2,"obtm":2,"btm":2,"atm":2},"elapsedMicros":0,"formatVersion":2,"toolVersion":"0.1.0","gitCommit":null,"frame":"fixed","proven":false,"lowerBound":null}
 ```
 <!-- /example -->
 
