@@ -6,8 +6,15 @@ weight: 45
 
 # Fixed-frame proofs
 
-Status: design for the owner's review. Nothing on this page is built. The owner decided the
-direction on 2026-10-29 (section 1.3) and the open questions of the first draft on the same day:
+Status: approved design with partial implementation on `develop`. Plan row 6 is implemented:
+`solve --json` and `POST /v1/solve` support formats 1 and 2 and report actual-result frame and
+proof metadata. See [Solve options](../cli/solve-options.md#--json) for the implemented contract.
+The fixed-frame engine, commands, certificates and REST routes remain planned until their
+implementation stages pass review and are merged. Neither this design nor the reporting
+implementation certifies the withdrawn full-state histogram or its unverified hash.
+
+The owner decided the direction on 2026-10-29 (section 1.3) and the open questions of the first
+draft on the same day:
 they are recorded as DECIDED D1 to D7 in section 14, and the sections that depend on them
 follow the decisions. Sections 17 to 20 were added with them: Compatibility (17), the REST
 endpoint (18), releases, table hashes and the v0.2.0 gate (19), and the questions that are still
