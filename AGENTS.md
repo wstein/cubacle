@@ -56,6 +56,11 @@ cargo test --workspace --release
   full run on its final tree; the gate does not repeat the work after a rebase
   without conflicts, and runs it once after a rebase with conflicts.
 
+For the two load-sensitive positive CLI/REST test cases, a positive integer
+`CUBACLE_TEST_TIME_FACTOR` scales their functional budgets (default 1, capped at
+600,000 ms). Both use `tests/support/time_factor.rs`; invalid values fall back to 1.
+This does not scale explicit expiration tests, CI job timeouts or production limits.
+
 CI also runs `typos --locale en-us` (config in `_typos.toml`); run it too after writing prose.
 
 Tests that record solver output (`tests/fixtures/`) must not be edited to make a
