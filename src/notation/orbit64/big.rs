@@ -53,6 +53,55 @@ impl Big {
         rest as u32
     }
 
+    /// `self = self + other`.
+    pub(super) fn add(&mut self, other: &Big) {
+        let mut carry = 0u64;
+        for (index, &limb) in other.limbs.iter().enumerate() {
+            if index == self.limbs.len() {
+                self.limbs.push(0);
+            }
+            let value = u64::from(self.limbs[index]) + u64::from(limb) + carry;
+            self.limbs[index] = value as u32;
+            carry = value >> 32;
+        }
+        let mut index = other.limbs.len();
+        while carry != 0 {
+            if index == self.limbs.len() {
+                self.limbs.push(0);
+            }
+            let value = u64::from(self.limbs[index]) + carry;
+            self.limbs[index] = value as u32;
+            carry = value >> 32;
+            index += 1;
+        }
+    }
+
+    /// `self = self - other`. `other` is at most `self`.
+    pub(super) fn sub(&mut self, other: &Big) {
+        debug_assert!(*self >= *other);
+        let mut borrow = 0i64;
+        for (index, limb) in self.limbs.iter_mut().enumerate() {
+            let take = other.limbs.get(index).copied().map_or(0, i64::from);
+            let value = i64::from(*limb) - take - borrow;
+            *limb = value.rem_euclid(1 << 32) as u32;
+            borrow = i64::from(value < 0);
+        }
+        while self.limbs.last() == Some(&0) {
+            self.limbs.pop();
+        }
+    }
+
+    /// The base-2 logarithm to about 50 bits of precision; zero for zero.
+    #[cfg(test)]
+    pub(super) fn log2(&self) -> f64 {
+        let Some(&top) = self.limbs.last() else {
+            return 0.0;
+        };
+        let below = self.limbs.len().checked_sub(2).map(|i| self.limbs[i]);
+        let lead = f64::from(top) + f64::from(below.unwrap_or(0)) / 4_294_967_296.0;
+        lead.log2() + 32.0 * (self.limbs.len() - 1) as f64
+    }
+
     /// `self - 1`; a zero stays zero.
     fn decrement(&mut self) {
         for limb in &mut self.limbs {
@@ -107,9 +156,44 @@ impl Big {
     }
 }
 
+impl Ord for Big {
+    fn cmp(&self, other: &Big) -> std::cmp::Ordering {
+        self.limbs
+            .len()
+            .cmp(&other.limbs.len())
+            .then_with(|| self.limbs.iter().rev().cmp(other.limbs.iter().rev()))
+    }
+}
+
+impl PartialOrd for Big {
+    fn partial_cmp(&self, other: &Big) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn add_sub_and_order_agree_across_limbs() {
+        let mut big = Big::one();
+        for _ in 0..70 {
+            big.mul_add(2, 0);
+        }
+        let mut other = Big::from_base64("-_-_-_").unwrap();
+        let before = other.clone();
+        other.add(&big);
+        assert!(other > big && big > before);
+        other.sub(&big);
+        assert_eq!(other, before);
+        let mut carry = Big::from_base64("____").unwrap();
+        carry.add(&Big::one());
+        assert_eq!(carry.to_base64(5).as_deref(), Some("BAAAA"));
+        carry.sub(&Big::one());
+        assert_eq!(carry.to_base64(4).as_deref(), Some("____"));
+        assert!((big.log2() - 70.0).abs() < 1e-9);
+    }
 
     #[test]
     fn mul_add_and_div_rem_are_inverse() {
