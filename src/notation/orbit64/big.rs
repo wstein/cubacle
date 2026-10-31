@@ -168,6 +168,10 @@ impl Big {
     }
 }
 
+/// Compares by value. This relies on the limbs being normalized (no leading
+/// zero limb), which every constructor and mutator of `Big` keeps: with that,
+/// a longer number is a greater one, and equal lengths compare limb by limb
+/// from the top. A `Big` built any other way would compare wrongly.
 impl Ord for Big {
     fn cmp(&self, other: &Big) -> std::cmp::Ordering {
         self.limbs
@@ -205,6 +209,20 @@ mod tests {
         carry.sub(&Big::one());
         assert_eq!(carry.to_base64(4).as_deref(), Some("____"));
         assert!((big.log2() - 70.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn order_follows_value_for_normalized_limbs() {
+        let zero = Big::zero();
+        let one = Big::one();
+        let mut wide = Big::one();
+        wide.mul_add(1 << 31, 0);
+        wide.mul_add(4, 0); // 2^33, two limbs
+        let mut near = Big::one();
+        near.mul_add(1 << 31, 0);
+        near.mul_add(2, 0); // 2^32, two limbs
+        assert!(zero < one && one < near && near < wide);
+        assert_eq!(wide.cmp(&wide.clone()), std::cmp::Ordering::Equal);
     }
 
     #[test]
