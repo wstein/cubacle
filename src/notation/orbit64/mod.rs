@@ -27,6 +27,7 @@ mod coords;
 mod frame;
 mod layout;
 mod pieces;
+pub mod v2;
 
 use big::Big;
 use coords::{radices, Coords};
