@@ -208,6 +208,15 @@ fn malformed_tokens_are_errors_not_panics() {
     assert_eq!(decode(&"_".repeat(42)), Err(V2Error::UnknownToken));
 }
 
+/// What `encode` returns for a state that breaks the rule `why`.
+fn invalid(why: &str) -> Result<String, V2Error> {
+    Err(V2Error::Invalid(why.to_string()))
+}
+
+const CORNER_PIECES: &str = "corner pieces are not a permutation of 8";
+const MIDGE_PIECES: &str =
+    "midge pieces must be a permutation of 12 on odd cubes and empty otherwise";
+
 #[test]
 fn malformed_states_are_errors_not_panics() {
     let solved = |n, model| Cube::solved(n, model).unwrap();
@@ -224,37 +233,58 @@ fn malformed_states_are_errors_not_panics() {
     for cut in 0..8 {
         let mut cube = ok.clone();
         cube.corner_pieces.truncate(cut);
-        assert!(matches!(encode(color3, &cube), Err(V2Error::Invalid(_))));
+        assert_eq!(encode(color3, &cube), invalid(CORNER_PIECES), "cut {cut}");
     }
-    assert!(encode(color3, &Cube::default()).is_err());
-    assert!(encode(framed_color_id(4), &ok).is_err());
-    assert!(encode(framed_color_id(2), &ok).is_err());
+    assert_eq!(encode(color3, &Cube::default()), invalid(CORNER_PIECES));
+    // An odd cube's midges are not part of an even or a 2x2x2 entry.
+    assert_eq!(encode(framed_color_id(4), &ok), invalid(MIDGE_PIECES));
+    assert_eq!(encode(framed_color_id(2), &ok), invalid(MIDGE_PIECES));
 
     type Damage = fn(&mut Cube);
-    let broken: [(&str, Damage); 9] = [
-        ("twist sum", |c| c.corner_twists[0] = 1),
-        ("twist range", |c| c.corner_twists[0] = 3),
-        ("flip sum", |c| c.midge_flips[0] = 1),
-        ("duplicate piece", |c| c.midge_pieces[0] = 1),
-        ("piece range", |c| c.corner_pieces[0] = 99),
-        ("parity", |c| c.corner_pieces.swap(0, 1)),
-        ("frame", |c| c.frame = 24),
-        ("short flips", |c| c.midge_flips.truncate(11)),
-        ("extra wing", |c| c.wings.push((0..24).collect())),
+    let broken: [(&str, &str, Damage); 9] = [
+        ("twist sum", "corner twists must sum to 0 mod 3", |c| {
+            c.corner_twists[0] = 1
+        }),
+        (
+            "twist range",
+            "corner twists must be 8 values in 0..2",
+            |c| c.corner_twists[0] = 3,
+        ),
+        ("flip sum", "midge flips must sum to 0 mod 2", |c| {
+            c.midge_flips[0] = 1
+        }),
+        ("duplicate piece", MIDGE_PIECES, |c| c.midge_pieces[0] = 1),
+        ("piece range", CORNER_PIECES, |c| c.corner_pieces[0] = 99),
+        ("parity", "midge parity must equal corner parity", |c| {
+            c.corner_pieces.swap(0, 1)
+        }),
+        (
+            "frame",
+            "frame must be 0..23 on odd framed cubes and 0 otherwise",
+            |c| c.frame = 24,
+        ),
+        (
+            "short flips",
+            "midge flips must be 12 values in 0..1 on odd cubes and empty otherwise",
+            |c| c.midge_flips.truncate(11),
+        ),
+        ("extra wing", "expected 0 wing permutations of 24", |c| {
+            c.wings.push((0..24).collect())
+        }),
     ];
-    for (what, damage) in broken {
+    for (what, why, damage) in broken {
         let mut cube = ok.clone();
         damage(&mut cube);
-        assert!(
-            matches!(encode(color3, &cube), Err(V2Error::Invalid(_))),
-            "{what}"
-        );
+        assert_eq!(encode(color3, &cube), invalid(why), "{what}");
     }
 
     // Unbalanced colors, wrong parities of a picture cube, DBL not home.
     let mut cube = solved(5, Model::Color);
     cube.centers[0][0] = 1;
-    assert!(encode(framed_color_id(5), &cube).is_err());
+    assert_eq!(
+        encode(framed_color_id(5), &cube),
+        invalid("a center orbit is not a valid color multiset or permutation of 24")
+    );
     let picture = entries()
         .iter()
         .find(|e| e.n == 5 && e.model == Model::Picture && e.pose == Pose::Canonical)
@@ -262,23 +292,44 @@ fn malformed_states_are_errors_not_panics() {
     let mut cube = solved(5, Model::Picture);
     assert!(encode(picture.id, &cube).is_ok());
     cube.centers[0].swap(0, 1);
-    assert!(encode(picture.id, &cube).is_err());
+    assert_eq!(
+        encode(picture.id, &cube),
+        invalid("a center orbit parity breaks the picture relation")
+    );
     let mut cube = solved(5, Model::Picture);
     cube.rotations[0] = 1;
-    assert!(encode(picture.id, &cube).is_err());
+    assert_eq!(
+        encode(picture.id, &cube),
+        invalid("fixed-center rotation parity must equal corner parity")
+    );
     let canonical4 = entries()
         .iter()
         .find(|e| e.n == 4 && e.pose == Pose::Canonical)
         .unwrap();
+    let dbl = "a canonical even cube has its DBL corner home with twist 0";
     let mut cube = solved(4, Model::Color);
     assert!(encode(canonical4.id, &cube).is_ok());
     cube.corner_twists[6] = 1;
     cube.corner_twists[0] = 2;
-    assert!(encode(canonical4.id, &cube).is_err());
+    assert_eq!(encode(canonical4.id, &cube), invalid(dbl));
     let mut cube = solved(4, Model::Color);
     cube.corner_pieces.swap(6, 7);
     cube.corner_pieces.swap(0, 1);
-    assert!(encode(canonical4.id, &cube).is_err());
+    assert_eq!(encode(canonical4.id, &cube), invalid(dbl));
+}
+
+#[test]
+fn layout_is_checked_before_the_laws_so_malformed_input_never_panics() {
+    // A canonical 4x4x4 with the DBL slot missing breaks the layout first; the
+    // DBL law indexes slot 6 and would panic if it ran before the layout check.
+    let canonical4 = entries()
+        .iter()
+        .find(|e| e.n == 4 && e.pose == Pose::Canonical)
+        .unwrap();
+    let mut cube = Cube::solved(4, Model::Color).unwrap();
+    cube.corner_pieces.truncate(6);
+    cube.corner_twists.truncate(6);
+    assert_eq!(encode(canonical4.id, &cube), invalid(CORNER_PIECES));
 }
 
 #[test]
