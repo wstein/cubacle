@@ -1,3 +1,7 @@
+//! Origin: Rust tests of the V2 registry and ranking. The `BITS` column and the
+//! state counts come from `FORMAT-V2.md` and its proof report (flix-orbit64,
+//! Apache-2.0, Werner Stein); the checks themselves are written for cubacle.
+
 use super::*;
 
 /// The `Bits` column of the registry table in `FORMAT-V2.md`.
@@ -73,28 +77,99 @@ fn the_fullest_length_is_42_with_both_5x5x5_color_entries() {
     assert!((ratio.exp2() - 0.9772).abs() < 0.0001, "{ratio}");
 }
 
+/// The state count of a type from the layout table of `FORMAT-V2.md`, written
+/// out from the table and not from `digits::radices`, as the product of its
+/// factors: a factorial is the product of `1..=k`, and `/ 2` and `/ (4!)^6`
+/// are exact divisions.
+fn spec_count(n: usize, model: Model, pose: Pose) -> Big {
+    fn times_factorial(count: &mut Big, k: u32) {
+        (2..=k).for_each(|factor| count.mul_add(factor, 0));
+    }
+    let odd = n % 2 == 1;
+    let even_canonical = !odd && pose == Pose::Canonical;
+    let mut count = Big::one();
+    // Digit 1 and 2: corner permutation (8! or 7!) and twists (3^7 or 3^6).
+    times_factorial(&mut count, if even_canonical { 7 } else { 8 });
+    (0..if even_canonical { 6 } else { 7 }).for_each(|_| count.mul_add(3, 0));
+    if odd {
+        // Digit 3 and 4: midge permutation 12!/2 and flips 2^11.
+        times_factorial(&mut count, 12);
+        assert_eq!(count.div_rem(2), 0);
+        (0..11).for_each(|_| count.mul_add(2, 0));
+    }
+    // Digit 5: one 24! per wing orbit, floor((n - 2) / 2) of them.
+    for _ in 0..(n - 2) / 2 {
+        times_factorial(&mut count, 24);
+    }
+    // Digit 6: one center digit per orbit, floor((n - 2)^2 / 4) of them.
+    for _ in 0..(n - 2) * (n - 2) / 4 {
+        times_factorial(&mut count, 24);
+        match model {
+            Model::Color => (0..6).for_each(|_| assert_eq!(count.div_rem(24), 0)),
+            Model::Picture => assert_eq!(count.div_rem(2), 0),
+        }
+    }
+    if odd && model == Model::Picture {
+        // Digit 7: fixed-center rotations, 4^5 * 2 = 2^11.
+        (0..11).for_each(|_| count.mul_add(2, 0));
+    }
+    if odd && pose == Pose::Framed {
+        count.mul_add(24, 0); // Digit 8: the frame.
+    }
+    count
+}
+
 #[test]
-fn every_state_count_is_the_product_of_the_radices_of_its_digits() {
+fn every_state_count_matches_the_layout_table_and_the_extreme_ranks_split() {
     for entry in entries() {
-        let digits = digits::split(entry.n, entry.model, entry.pose, Big::zero());
-        assert!(digits.iter().all(|&digit| digit == 0));
+        let (n, model, pose) = (entry.n, entry.model, entry.pose);
+        let radices = digits::radices(n, model, pose);
+        // The registry count is the product of the radices by definition, so
+        // only `spec_count` is an independent check of it: it is written out
+        // from the layout table of the format, not from `digits::radices`.
+        assert_eq!(
+            spec_count(n, model, pose),
+            entry.count,
+            "entry {}",
+            entry.id
+        );
+        // `split` is checked against `radices`, which it shares with the count:
+        // the lowest rank splits into all zeros and the highest, count - 1,
+        // into every radix less one.
+        let lowest = digits::split(n, model, pose, Big::zero());
+        assert!(lowest.iter().all(|&digit| digit == 0), "entry {}", entry.id);
         let mut last = entry.count.clone();
         last.sub(&Big::one());
-        let split = digits::split(entry.n, entry.model, entry.pose, last.clone());
-        assert_eq!(digits::rank(entry.n, entry.model, entry.pose, &split), last);
+        let highest = digits::split(n, model, pose, last.clone());
+        let maxima: Vec<u32> = radices.iter().map(|&radix| radix - 1).collect();
+        assert_eq!(highest, maxima, "entry {}", entry.id);
+        assert_eq!(digits::rank(n, model, pose, &highest), last);
+        assert_eq!(digits::rank(n, model, pose, &lowest), Big::zero());
     }
 }
 
 #[test]
 fn the_highest_and_the_lowest_rank_of_every_entry_round_trip() {
     for entry in entries() {
-        let mut last = entry.count.clone();
-        last.sub(&Big::one());
-        let split = digits::split(entry.n, entry.model, entry.pose, last);
-        let cube = digits::from_digits(entry.n, entry.model, entry.pose, &split);
-        let token = encode(entry.id, &cube).unwrap();
-        let (found, back) = decode(&token).unwrap();
-        assert_eq!((found.id, back), (entry.id, cube));
+        let mut highest = entry.count.clone();
+        highest.sub(&Big::one());
+        for (which, rank) in [("lowest", Big::zero()), ("highest", highest)] {
+            let split = digits::split(entry.n, entry.model, entry.pose, rank.clone());
+            let cube = digits::from_digits(entry.n, entry.model, entry.pose, &split);
+            let token = encode(entry.id, &cube).unwrap();
+            assert_eq!(token.len(), entry.length, "entry {} {which}", entry.id);
+            // The token is the rank at the entry's offset.
+            let mut value = rank;
+            value.add(&entry.offset);
+            assert_eq!(Big::from_base64(&token).unwrap(), value, "{which}");
+            let (found, back) = decode(&token).unwrap();
+            assert_eq!(
+                (found.id, back),
+                (entry.id, cube),
+                "entry {} {which}",
+                entry.id
+            );
+        }
     }
 }
 
