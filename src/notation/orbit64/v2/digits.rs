@@ -86,7 +86,7 @@ fn part_radices(n: usize, model: Model, pose: Pose, part: Part) -> Vec<u32> {
 }
 
 /// The radix of every digit of a state of the type, most significant first.
-fn radices(n: usize, model: Model, pose: Pose) -> Vec<u32> {
+pub(super) fn radices(n: usize, model: Model, pose: Pose) -> Vec<u32> {
     parts(n, model, pose)
         .into_iter()
         .flat_map(|part| part_radices(n, model, pose, part))
