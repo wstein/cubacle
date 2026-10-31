@@ -26,7 +26,7 @@ pub(super) struct Coords {
     pub(super) centers: Vec<Vec<usize>>,
 }
 
-fn choose(n: usize, k: usize) -> u32 {
+pub(super) fn choose(n: usize, k: usize) -> u32 {
     if k > n {
         return 0;
     }
@@ -61,7 +61,7 @@ pub(super) fn radices(n: usize) -> Vec<u32> {
     out
 }
 
-fn parity(permutation: &[usize]) -> usize {
+pub(super) fn parity(permutation: &[usize]) -> usize {
     let inversions: usize = (0..permutation.len())
         .map(|i| {
             permutation[i + 1..]
@@ -73,7 +73,7 @@ fn parity(permutation: &[usize]) -> usize {
     inversions % 2
 }
 
-fn is_permutation(values: &[usize], n: usize) -> bool {
+pub(super) fn is_permutation(values: &[usize], n: usize) -> bool {
     let mut seen = vec![false; n];
     values.len() == n
         && values
@@ -81,7 +81,7 @@ fn is_permutation(values: &[usize], n: usize) -> bool {
             .all(|&v| v < n && !std::mem::replace(&mut seen[v], true))
 }
 
-fn lehmer(permutation: &[usize], free: usize, out: &mut Vec<u32>) {
+pub(super) fn lehmer(permutation: &[usize], free: usize, out: &mut Vec<u32>) {
     for i in 0..free {
         let smaller = permutation[i + 1..]
             .iter()
@@ -93,7 +93,11 @@ fn lehmer(permutation: &[usize], free: usize, out: &mut Vec<u32>) {
 
 /// Rebuilds a permutation of `n` from `free` Lehmer digits. With `wanted`
 /// the last two entries are the order that gives that parity.
-fn unlehmer(digits: &mut impl Iterator<Item = u32>, n: usize, wanted: Option<usize>) -> Vec<usize> {
+pub(super) fn unlehmer(
+    digits: &mut impl Iterator<Item = u32>,
+    n: usize,
+    wanted: Option<usize>,
+) -> Vec<usize> {
     let mut available: Vec<usize> = (0..n).collect();
     let free = if wanted.is_some() { n - 2 } else { n };
     let mut out = Vec::with_capacity(n);
@@ -110,7 +114,7 @@ fn unlehmer(digits: &mut impl Iterator<Item = u32>, n: usize, wanted: Option<usi
     out
 }
 
-fn orientation_value(values: &[usize], radix: usize) -> u32 {
+pub(super) fn orientation_value(values: &[usize], radix: usize) -> u32 {
     let free = values.len() - 1;
     values[..free]
         .iter()
@@ -118,7 +122,7 @@ fn orientation_value(values: &[usize], radix: usize) -> u32 {
         .fold(0, |acc, &v| acc * radix as u32 + v as u32)
 }
 
-fn orientations(mut value: u32, count: usize, radix: u32) -> Vec<usize> {
+pub(super) fn orientations(mut value: u32, count: usize, radix: u32) -> Vec<usize> {
     let mut out = Vec::with_capacity(count + 1);
     for _ in 0..count {
         out.push((value % radix) as usize);
@@ -129,7 +133,7 @@ fn orientations(mut value: u32, count: usize, radix: u32) -> Vec<usize> {
     out
 }
 
-fn center_digits(colors: &[usize], out: &mut Vec<u32>) -> Result<(), Impossible> {
+pub(super) fn center_digits(colors: &[usize], out: &mut Vec<u32>) -> Result<(), Impossible> {
     let counts_ok = (0..6).all(|c| colors.iter().filter(|&&x| x == c).count() == 4);
     if colors.len() != 24 || !counts_ok {
         return Err(Impossible::CenterColors);
@@ -150,7 +154,7 @@ fn center_digits(colors: &[usize], out: &mut Vec<u32>) -> Result<(), Impossible>
     Ok(())
 }
 
-fn unrank_centers(digits: &mut impl Iterator<Item = u32>) -> Vec<usize> {
+pub(super) fn unrank_centers(digits: &mut impl Iterator<Item = u32>) -> Vec<usize> {
     let mut colors = vec![5; 24];
     let mut remaining: Vec<usize> = (0..24).collect();
     for color in 0..5 {
