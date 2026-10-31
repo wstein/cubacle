@@ -99,6 +99,40 @@ fn the_highest_and_the_lowest_rank_of_every_entry_round_trip() {
 }
 
 #[test]
+fn a_cube_below_the_2x2x2_has_no_solved_state_and_no_orbits() {
+    for model in [Model::Color, Model::Picture] {
+        assert_eq!(Cube::solved(0, model), None);
+        assert_eq!(Cube::solved(1, model), None);
+        assert!(Cube::solved(2, model).is_some());
+        // Only a cube of fewer than two layers has none: the solved state is
+        // defined beyond the registry's sizes too.
+        assert!(Cube::solved(16, model).is_some());
+    }
+    for n in 0..2 {
+        assert_eq!(cube::wing_orbits(n), 0);
+        assert!(cube::center_orbits(n).is_empty());
+    }
+}
+
+#[test]
+fn the_orbit_counts_are_the_known_ones_for_every_size() {
+    // Written out by hand for n = 2..=15: wing orbits floor((n - 2) / 2) and
+    // center orbits floor((n - 2)^2 / 4), as in the layout table of FORMAT-V2.md.
+    let wings = [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6];
+    let centers = [0, 0, 1, 2, 4, 6, 9, 12, 16, 20, 25, 30, 36, 42];
+    for (index, n) in (2..=15).enumerate() {
+        assert_eq!(cube::wing_orbits(n), wings[index], "wings, n = {n}");
+        assert_eq!(
+            cube::center_orbits(n).len(),
+            centers[index],
+            "centers, n = {n}"
+        );
+    }
+    let seven: Vec<_> = [(1, 1), (1, 2), (1, 3), (1, 4), (2, 2), (2, 3)].to_vec();
+    assert_eq!(cube::center_orbits(7), seven);
+}
+
+#[test]
 fn neighbors_of_a_range_are_not_tokens_of_the_entry() {
     // One past the 4-character range of entry 0 is no token at all.
     let mut end = entries()[0].count.clone();
