@@ -37,6 +37,10 @@ impl Big {
         if carry != 0 {
             self.limbs.push(carry as u32);
         }
+        // A zero factor leaves zero limbs on top; keep the form normalized.
+        while self.limbs.last() == Some(&0) {
+            self.limbs.pop();
+        }
     }
 
     /// `self = self / divisor`, returning the remainder. `divisor` is not zero.
@@ -201,6 +205,17 @@ mod tests {
         carry.sub(&Big::one());
         assert_eq!(carry.to_base64(4).as_deref(), Some("____"));
         assert!((big.log2() - 70.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn mul_add_by_zero_leaves_the_normalized_zero() {
+        let mut wide = Big::one();
+        wide.mul_add(1 << 31, 0);
+        wide.mul_add(4, 0); // 2^33, two limbs
+        wide.mul_add(0, 0);
+        assert!(wide.is_zero());
+        assert_eq!(wide, Big::zero());
+        assert!(wide < Big::one());
     }
 
     #[test]
