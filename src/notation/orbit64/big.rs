@@ -76,9 +76,17 @@ impl Big {
         }
     }
 
-    /// `self = self - other`. `other` is at most `self`.
+    /// `self = self - other`.
+    ///
+    /// # Panics
+    ///
+    /// When `other` is greater than `self`, in release builds too: an unsigned
+    /// result would otherwise wrap into a wrong value without any sign of it.
     pub(super) fn sub(&mut self, other: &Big) {
-        debug_assert!(*self >= *other);
+        assert!(
+            *self >= *other,
+            "Big::sub would go below zero: the subtrahend exceeds the minuend"
+        );
         let mut borrow = 0i64;
         for (index, limb) in self.limbs.iter_mut().enumerate() {
             let take = other.limbs.get(index).copied().map_or(0, i64::from);
@@ -193,6 +201,28 @@ mod tests {
         carry.sub(&Big::one());
         assert_eq!(carry.to_base64(4).as_deref(), Some("____"));
         assert!((big.log2() - 70.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn sub_to_exactly_zero_leaves_the_normalized_zero() {
+        let mut value = Big::from_base64("_____").unwrap();
+        value.sub(&Big::from_base64("_____").unwrap());
+        assert!(value.is_zero());
+        assert_eq!(value, Big::zero());
+    }
+
+    #[test]
+    #[should_panic(expected = "below zero")]
+    fn sub_of_a_greater_value_panics_with_a_message() {
+        let mut small = Big::one();
+        small.sub(&Big::from_base64("AAC").unwrap());
+    }
+
+    #[test]
+    #[should_panic(expected = "below zero")]
+    fn sub_of_a_greater_value_of_equal_length_panics() {
+        let mut value = Big::from_base64("AAB").unwrap();
+        value.sub(&Big::from_base64("AAC").unwrap());
     }
 
     #[test]
