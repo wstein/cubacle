@@ -41,27 +41,36 @@ pub(super) fn drops_corner(n: usize, pose: Pose) -> bool {
     !is_odd(n) && pose == Pose::Canonical
 }
 
+/// The number of wing orbits; zero below the 4x4x4, and for any `n < 2`.
 pub(super) fn wing_orbits(n: usize) -> usize {
-    (n - 2) / 2
+    n.saturating_sub(2) / 2
 }
 
 /// The `(row, column)` names of the center orbits, ordered by lowest facelet.
+/// Empty below the 4x4x4, and for any `n < 2`.
 pub(super) fn center_orbits(n: usize) -> Vec<(usize, usize)> {
-    (1..n - 1)
-        .flat_map(|r| (r..n - 1 - r).map(move |c| (r, c)))
+    let last = n.saturating_sub(1);
+    (1..last)
+        .flat_map(|r| (r..last - r).map(move |c| (r, c)))
         .collect()
 }
 
 impl Cube {
-    /// The solved state of a type: every digit is zero.
-    pub fn solved(n: usize, model: Model) -> Cube {
+    /// The solved state of an `n x n x n` cube in the given model: every digit
+    /// is zero. `None` when `n < 2`, a cube of fewer than two layers; the
+    /// solved state is defined for every larger `n`, also beyond the sizes of
+    /// the registry. The pose does not change the state.
+    pub fn solved(n: usize, model: Model) -> Option<Cube> {
+        if n < 2 {
+            return None;
+        }
         let odd = is_odd(n);
         let identity = |k: usize| (0..k).collect::<Vec<_>>();
         let center = match model {
             Model::Color => (0..24).map(|slot| slot / 4).collect(),
             Model::Picture => identity(24),
         };
-        Cube {
+        Some(Cube {
             corner_pieces: identity(8),
             corner_twists: vec![0; 8],
             midge_pieces: if odd { identity(12) } else { Vec::new() },
@@ -74,7 +83,7 @@ impl Cube {
                 Vec::new()
             },
             frame: 0,
-        }
+        })
     }
 
     /// The parity `W_k` of the wing orbit at depth `k`; zero without one.

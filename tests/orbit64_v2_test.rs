@@ -210,7 +210,7 @@ fn malformed_tokens_are_errors_not_panics() {
 
 #[test]
 fn malformed_states_are_errors_not_panics() {
-    let solved = |n, model| Cube::solved(n, model);
+    let solved = |n, model| Cube::solved(n, model).unwrap();
     let color3 = framed_color_id(3);
     let ok = solved(3, Model::Color);
     assert_eq!(encode(color3, &ok).as_deref(), Ok("AAAAAAAAAAAA"));
@@ -284,11 +284,11 @@ fn malformed_states_are_errors_not_panics() {
 #[test]
 fn solved_states_are_the_zero_ranks() {
     for entry in entries() {
-        let token = encode(entry.id, &Cube::solved(entry.n, entry.model)).unwrap();
+        let token = encode(entry.id, &Cube::solved(entry.n, entry.model).unwrap()).unwrap();
         assert_eq!(token.len(), entry.length);
         let (found, cube) = decode(&token).unwrap();
         assert_eq!(found.id, entry.id);
-        assert_eq!(cube, Cube::solved(entry.n, entry.model));
+        assert_eq!(cube, Cube::solved(entry.n, entry.model).unwrap());
         if ![11, 17, 21, 25, 39, 53].contains(&entry.id) {
             assert!(token.bytes().all(|b| b == b'A'), "entry {}", entry.id);
         }
