@@ -3,11 +3,16 @@
 //!
 //! The facelet bridge of Orbit64 V2: a cube state to its stickers and back.
 //!
-//! A facelet string writes the `6 n^2` stickers as the letters `U R F D L B`,
-//! one per facelet, in six face fields in that order separated by one space,
-//! in the layout of `FORMAT.md` (facelet `face * n^2 + row * n + col`).
-//! Reading ignores spaces and nothing else: a tab or a newline is a bad
-//! letter. Only the color model has letters; a picture entry is an error.
+//! A facelet string writes the `6 n^2` stickers one per facelet, in six face
+//! fields in the order `U R F D L B` separated by one space, in the layout of
+//! `FORMAT.md` (facelet `face * n^2 + row * n + col`). Reading ignores spaces
+//! and nothing else: a tab or a newline is a bad symbol.
+//!
+//! The color model writes the letters `U R F D L B`. The picture model, where
+//! every sticker is distinct, writes one base64url symbol per facelet: the
+//! sticker's index among the stickers of its class (corner `3 p + j`, midge
+//! and wing `2 p + j`, center orbit `p`, fixed center `4 p + r`), see
+//! "Picture facelets" in `FORMAT-V2.md`. The picture model has no 2x2x2.
 //!
 //! The slot tables are those of V1 (`layout.rs`), which extend to every
 //! `n = 2..=15` by the rule of `FORMAT-V2.md`; `FORMAT-V2-SLOTS.md` is
@@ -21,10 +26,13 @@
 //! orientation as `Cube::frame`; of an even cube it stays in the corners.
 
 use super::cube::{is_odd, Cube};
-use super::geometry::{rotate, unrotate, FRAME_COUNT, FRAME_FACES};
+use super::geometry::{rotate, rotate_picture, unrotate, FRAME_COUNT, FRAME_FACES};
 use super::registry::{Entry, Model, Pose};
 use super::{digits, entry, V2Error};
 use crate::notation::orbit64::layout::Layout;
+use crate::notation::orbit64::ALPHABET;
+
+mod picture;
 
 const LETTERS: [char; 6] = ['U', 'R', 'F', 'D', 'L', 'B'];
 
@@ -39,13 +47,15 @@ fn malformed(why: String) -> V2Error {
     V2Error::Facelets(why)
 }
 
-/// Why a type has no facelet letters, if it has none.
+/// Why a type has no facelet string, if it has none.
 fn type_fault(n: usize, model: Model) -> Result<(), V2Error> {
     if !(2..=15).contains(&n) {
         return Err(unsupported(format!("no V2 type for the {n}x{n}x{n}")));
     }
-    if model == Model::Picture {
-        return Err(unsupported("the picture model has no letters".to_string()));
+    if n == 2 && model == Model::Picture {
+        return Err(unsupported(
+            "the 2x2x2 has no picture entry: its picture model is the color model".to_string(),
+        ));
     }
     Ok(())
 }
@@ -55,10 +65,30 @@ fn face_of(n: usize, facelet: usize) -> usize {
     facelet / (n * n)
 }
 
+/// The written form of a sticker value: a letter in the color model, a
+/// base64url symbol in the picture model.
+fn symbol(model: Model, value: usize) -> char {
+    match model {
+        Model::Color => LETTERS[value],
+        Model::Picture => char::from(ALPHABET[value]),
+    }
+}
+
 // ------------------------------------------------------------ cube to stickers
+
+/// What the `j`-th sticker of the piece `piece` in a table of slots with `m`
+/// stickers shows: the color of its home facelet, or in the picture model its
+/// index `m p + j`.
+fn shown(n: usize, model: Model, table: &[Vec<usize>], piece: usize, j: usize) -> usize {
+    match model {
+        Model::Color => face_of(n, table[piece][j]),
+        Model::Picture => table[piece].len() * piece + j,
+    }
+}
 
 fn write_oriented(
     n: usize,
+    model: Model,
     sticker: &mut [usize],
     table: &[Vec<usize>],
     pieces: &[usize],
@@ -66,34 +96,34 @@ fn write_oriented(
 ) {
     for (slot, facelets) in table.iter().enumerate() {
         let m = facelets.len();
-        let home = &table[pieces[slot]];
         let twist = twists.map_or(0, |t| t[slot]);
         for (k, &at) in facelets.iter().enumerate() {
-            sticker[at] = face_of(n, home[(k + m - twist) % m]);
+            sticker[at] = shown(n, model, table, pieces[slot], (k + m - twist) % m);
         }
     }
 }
 
-/// The stickers of a canonical-pose cube; fixed centers are home.
-fn paint(n: usize, layout: &Layout, cube: &Cube) -> Vec<usize> {
+/// The stickers of a canonical-pose cube. The fixed centers of an odd cube sit
+/// at home, showing their face, or in the picture model their piece and
+/// rotation `4 p + r`.
+fn paint(n: usize, model: Model, layout: &Layout, cube: &Cube) -> Vec<usize> {
     let mut sticker = vec![0; 6 * n * n];
     for (face, &at) in layout.fixed.iter().enumerate() {
-        sticker[at] = face;
+        sticker[at] = match model {
+            Model::Color => face,
+            Model::Picture => 4 * face + cube.rotations[face],
+        };
     }
     let twists = Some(&cube.corner_twists[..]);
-    write_oriented(
-        n,
-        &mut sticker,
-        &layout.corners,
-        &cube.corner_pieces,
-        twists,
-    );
+    let corners = &layout.corners;
+    write_oriented(n, model, &mut sticker, corners, &cube.corner_pieces, twists);
     if is_odd(n) {
         let flips = Some(&cube.midge_flips[..]);
-        write_oriented(n, &mut sticker, &layout.midges, &cube.midge_pieces, flips);
+        let (midges, pieces) = (&layout.midges, &cube.midge_pieces);
+        write_oriented(n, model, &mut sticker, midges, pieces, flips);
     }
     for (table, wing) in layout.wings.iter().zip(&cube.wings) {
-        write_oriented(n, &mut sticker, table, wing, None);
+        write_oriented(n, model, &mut sticker, table, wing, None);
     }
     for (table, colors) in layout.centers.iter().zip(&cube.centers) {
         for (&at, &color) in table.iter().zip(colors) {
@@ -107,46 +137,57 @@ fn paint(n: usize, layout: &Layout, cube: &Cube) -> Vec<usize> {
 ///
 /// A canonical cube is written in its reference pose. A framed cube of an odd
 /// size is that picture rotated by `cube.frame`; a framed cube of an even size
-/// shows its pose in its corners already. A cube that is not a state of the
-/// type is an error, and so is a picture entry or a size outside `2..=15`.
+/// shows its pose in its corners already. The color model writes letters and
+/// the picture model base64url symbols. A cube that is not a state of the
+/// type is an error, and so is a size outside `2..=15` or a picture 2x2x2.
 pub fn to_facelets(n: usize, model: Model, pose: Pose, cube: &Cube) -> Result<String, V2Error> {
     type_fault(n, model)?;
     cube.validate(n, model, pose)?;
     digits::digits(n, model, pose, cube)?;
-    let stickers = paint(n, &Layout::new(n), cube);
-    let stickers = if is_odd(n) {
-        rotate(n, cube.frame, &stickers)
-    } else {
-        stickers
+    let stickers = paint(n, model, &Layout::new(n), cube);
+    let stickers = match (is_odd(n), model) {
+        (false, _) => stickers,
+        (true, Model::Color) => rotate(n, cube.frame, &stickers),
+        (true, Model::Picture) => rotate_picture(n, cube.frame, &stickers),
     };
-    Ok(spell(n, &stickers))
+    Ok(spell(n, model, &stickers))
 }
 
-fn spell(n: usize, stickers: &[usize]) -> String {
+fn spell(n: usize, model: Model, stickers: &[usize]) -> String {
     stickers
         .chunks(n * n)
-        .map(|face| face.iter().map(|&color| LETTERS[color]).collect::<String>())
+        .map(|face| face.iter().map(|&v| symbol(model, v)).collect::<String>())
         .collect::<Vec<_>>()
         .join(" ")
 }
 
 // ------------------------------------------------------------ stickers to cube
 
-/// The stickers of a facelet string as face indices, or why it is no string
-/// of `n^2` letters per face.
-fn parse(n: usize, text: &str) -> Result<Vec<usize>, V2Error> {
-    // Every letter is checked, so the first bad one is reported before the
+/// The value of a letter or symbol, or why it is none.
+fn value_of(model: Model, c: char) -> Result<usize, V2Error> {
+    let found = match model {
+        Model::Color => LETTERS.iter().position(|&letter| letter == c),
+        Model::Picture => ALPHABET.iter().position(|&byte| char::from(byte) == c),
+    };
+    found.ok_or_else(|| {
+        malformed(match model {
+            Model::Color => format!("facelet '{c}' is not one of U R F D L B"),
+            Model::Picture => format!("facelet '{c}' is not a base64url symbol"),
+        })
+    })
+}
+
+/// The values of a facelet string, or why it is no string of `n^2` per face.
+fn parse(n: usize, model: Model, text: &str) -> Result<Vec<usize>, V2Error> {
+    // Every character is checked, so the first bad one is reported before the
     // length; only the first 6 n^2 are kept, so a huge input costs no memory.
     let wanted = 6 * n * n;
-    let mut stickers = Vec::with_capacity(wanted);
+    let mut values = Vec::with_capacity(wanted);
     let mut count = 0usize;
     for c in text.chars().filter(|&c| c != ' ') {
-        let face = LETTERS
-            .iter()
-            .position(|&letter| letter == c)
-            .ok_or_else(|| malformed(format!("facelet '{c}' is not one of U R F D L B")))?;
+        let value = value_of(model, c)?;
         if count < wanted {
-            stickers.push(face);
+            values.push(value);
         }
         count += 1;
     }
@@ -155,9 +196,8 @@ fn parse(n: usize, text: &str) -> Result<Vec<usize>, V2Error> {
             "expected {wanted} facelets for the {n}x{n}x{n}, got {count}"
         )));
     }
-    Ok(stickers)
+    Ok(values)
 }
-
 fn check_counts(n: usize, stickers: &[usize]) -> Result<(), V2Error> {
     for (face, letter) in LETTERS.iter().enumerate() {
         let count = stickers.iter().filter(|&&s| s == face).count();
@@ -187,8 +227,8 @@ fn read_piece(n: usize, table: &[Vec<usize>], seen: &[usize]) -> Option<(usize, 
     })
 }
 
-fn no_piece(what: &str, slot: usize, seen: &[usize]) -> V2Error {
-    let shown: String = seen.iter().map(|&f| LETTERS[f]).collect();
+fn no_piece(model: Model, what: &str, slot: usize, seen: &[usize]) -> V2Error {
+    let shown: String = seen.iter().map(|&v| symbol(model, v)).collect();
     malformed(format!(
         "{what} slot {slot} shows {shown}, which is no {what} of this cube"
     ))
@@ -203,7 +243,7 @@ fn read_oriented(
     (0..table.len())
         .map(|slot| {
             let seen = seen_at(table, slot, stickers);
-            read_piece(n, table, &seen).ok_or_else(|| no_piece(what, slot, &seen))
+            read_piece(n, table, &seen).ok_or_else(|| no_piece(Model::Color, what, slot, &seen))
         })
         .collect::<Result<Vec<_>, _>>()
         .map(|found| found.into_iter().unzip())
@@ -222,7 +262,7 @@ fn read_wings(n: usize, table: &[Vec<usize>], stickers: &[usize]) -> Result<Vec<
             homes
                 .iter()
                 .position(|home| *home == seen)
-                .ok_or_else(|| no_piece("wing", slot, &seen))
+                .ok_or_else(|| no_piece(Model::Color, "wing", slot, &seen))
         })
         .collect()
 }
@@ -299,14 +339,18 @@ fn posed(
 
 /// The cube state shown by a facelet string, in the pose of `pose`.
 ///
-/// Anything that is no reachable cube is an error: a letter outside
-/// `U R F D L B`, a wrong length, wrong color counts, a slot that shows no
-/// piece, fixed centers that are not a right-handed frame, a piece twice, a
-/// twisted corner, a flipped midge or a broken parity. Never panics.
+/// Anything that is no reachable cube is an error: a letter or symbol outside
+/// the alphabet of the model, a wrong length, wrong color counts or a sticker
+/// of the wrong class or twice (picture), a slot that shows no piece, fixed
+/// centers that are not a right-handed frame, a piece twice, a twisted
+/// corner, a flipped midge or a broken parity. Never panics.
 pub fn from_facelets(n: usize, model: Model, pose: Pose, facelets: &str) -> Result<Cube, V2Error> {
     type_fault(n, model)?;
+    if model == Model::Picture {
+        return picture::read(n, pose, facelets);
+    }
     let layout = Layout::new(n);
-    let stickers = parse(n, facelets)?;
+    let stickers = parse(n, model, facelets)?;
     check_counts(n, &stickers)?;
     let (frame, stickers) = posed(&layout, pose, stickers)?;
     let cube = read_cube(n, &layout, frame, &stickers)?;

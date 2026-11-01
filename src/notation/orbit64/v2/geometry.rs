@@ -124,6 +124,81 @@ pub(super) fn unrotate(n: usize, frame: usize, stickers: &[usize]) -> Vec<usize>
         .collect()
 }
 
+// ------------------------------------------------- fixed center rotations
+
+fn cross([ax, ay, az]: Vec3, [bx, by, bz]: Vec3) -> Vec3 {
+    [ay * bz - az * by, az * bx - ax * bz, ax * by - ay * bx]
+}
+
+/// The reference direction of a face: toward row 0 of the face, so toward `B`
+/// on `U` and toward `F` on `D`.
+fn reference(face: usize) -> Vec3 {
+    match face {
+        0 => [0, 0, -1],
+        3 => [0, 0, 1],
+        _ => [0, 1, 0],
+    }
+}
+
+/// A direction on a face turned `k` clockwise quarter turns, seen from outside.
+fn spin(normal: Vec3, direction: Vec3, k: usize) -> Vec3 {
+    (0..k).fold(direction, |current, _| cross(current, normal))
+}
+
+/// The clockwise quarter turns from the reference direction of `face` to
+/// `direction`, which lies in the plane of the face.
+fn quarter_turns(face: usize, direction: Vec3) -> usize {
+    (0..4)
+        .find(|&k| spin(NORMALS[face], reference(face), k) == direction)
+        .expect("a direction in the plane of a face is a quarter turn from its reference")
+}
+
+fn face_of_normal(normal: Vec3) -> usize {
+    NORMALS
+        .iter()
+        .position(|&candidate| candidate == normal)
+        .expect("a turned face normal is one of the six face normals")
+}
+
+/// `permuted` is `before` with its facelets moved by `movement`; the fixed
+/// centers also carry their rotation `value mod 4` to the face they land on,
+/// measured there against that face's reference direction.
+fn turn_fixed(
+    n: usize,
+    movement: impl Fn(Vec3) -> Vec3,
+    before: &[usize],
+    mut permuted: Vec<usize>,
+) -> Vec<usize> {
+    let fixed = |face: usize| face * n * n + (n * n - 1) / 2;
+    for face in 0..6 {
+        let value = before[fixed(face)];
+        let own = spin(NORMALS[face], reference(face), value % 4);
+        let landed = face_of_normal(movement(NORMALS[face]));
+        permuted[fixed(landed)] = value / 4 * 4 + quarter_turns(landed, movement(own));
+    }
+    permuted
+}
+
+/// The picture after the cube is rotated by `frame`: stickers move to their
+/// facelets and the six fixed centers, whose value is `4 p + r`, keep their
+/// piece `p` and have `r` measured again at the facelet they land on. An odd
+/// cube only.
+pub(super) fn rotate_picture(n: usize, frame: usize, symbols: &[usize]) -> Vec<usize> {
+    let turn = turn_of(frame);
+    turn_fixed(n, |v| forward(turn, v), symbols, rotate(n, frame, symbols))
+}
+
+/// The picture of the cube rotated back: the inverse of [`rotate_picture`].
+pub(super) fn unrotate_picture(n: usize, frame: usize, symbols: &[usize]) -> Vec<usize> {
+    let turn = turn_of(frame);
+    turn_fixed(
+        n,
+        |v| backward(turn, v),
+        symbols,
+        unrotate(n, frame, symbols),
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -149,6 +224,29 @@ mod tests {
                     numbered,
                     "{n} {r}"
                 );
+            }
+        }
+    }
+
+    #[test]
+    fn unrotate_picture_inverts_rotate_picture_for_every_frame_and_rotation() {
+        for n in [3usize, 5, 9] {
+            for shift in 0..4 {
+                let mut symbols: Vec<usize> = (0..6 * n * n).map(|i| i % 24).collect();
+                for face in 0..6 {
+                    symbols[face * n * n + (n * n - 1) / 2] = 4 * face + (face + shift) % 4;
+                }
+                for r in 0..FRAME_COUNT {
+                    let turned = rotate_picture(n, r, &symbols);
+                    assert_eq!(unrotate_picture(n, r, &turned), symbols, "{n} {shift} {r}");
+                    // The stickers move as in `rotate`; only the fixed centers differ.
+                    let plain = rotate(n, r, &symbols);
+                    let differs: Vec<usize> = (0..symbols.len())
+                        .filter(|&i| turned[i] != plain[i])
+                        .collect();
+                    assert!(differs.iter().all(|i| i % (n * n) == (n * n - 1) / 2));
+                    assert!(differs.iter().all(|&i| turned[i] / 4 == plain[i] / 4));
+                }
             }
         }
     }
