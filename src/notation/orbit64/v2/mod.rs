@@ -7,8 +7,9 @@
 //! color or picture model, canonical or framed), and the rest of the value is
 //! the rank of the state among that entry's states.
 //!
-//! This module works on orbit coordinates only ([`Cube`]); it has no facelet
-//! bridge. The color framed entries of the 2x2x2, 3x3x3, 4x4x4, 6x6x6 and
+//! [`Cube`] holds orbit coordinates. The [`facelets`] module is the bridge to
+//! and from facelet strings (`U R F D L B`, six face fields) for the color
+//! model, canonical and framed; the picture model has no letters. The color framed entries of the 2x2x2, 3x3x3, 4x4x4, 6x6x6 and
 //! 7x7x7 start at offset 0 at the widths of V1's state tokens and share V1's
 //! digit order, so a V1 state token of those sizes is also the V2 token of the
 //! same state. A V1 5x5x5 token (43 characters) is rejected.
@@ -23,6 +24,8 @@ use super::ALPHABET;
 
 mod cube;
 mod digits;
+pub mod facelets;
+mod geometry;
 mod registry;
 
 pub use cube::Cube;
@@ -39,6 +42,10 @@ pub enum V2Error {
     UnknownToken,
     /// The coordinates are not a state of the entry, for the reason given.
     Invalid(String),
+    /// The facelet string is no cube, for the reason given.
+    Facelets(String),
+    /// The type has no facelet letters (a picture entry, or a size without an entry).
+    Unsupported(String),
 }
 
 impl fmt::Display for V2Error {
@@ -51,6 +58,8 @@ impl fmt::Display for V2Error {
             ),
             V2Error::UnknownToken => write!(f, "not a known V2 state token"),
             V2Error::Invalid(why) => write!(f, "not a state of this entry ({why})"),
+            V2Error::Facelets(why) => write!(f, "not a cube ({why})"),
+            V2Error::Unsupported(why) => write!(f, "no facelets for this entry ({why})"),
         }
     }
 }
