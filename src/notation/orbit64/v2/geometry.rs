@@ -63,7 +63,7 @@ fn facelet_at(n: i32, [x, y, z]: Vec3, normal: Vec3) -> usize {
     let face = NORMALS
         .iter()
         .position(|&candidate| candidate == normal)
-        .unwrap_or(0);
+        .expect("a facelet normal is one of the six face normals");
     let (a, b) = match face {
         0 => (x, z),
         1 => (-z, -y),
@@ -83,7 +83,12 @@ fn dot(a: Vec3, b: Vec3) -> i32 {
 /// onto slot `i`.
 fn turn_of(frame: usize) -> Turn {
     let faces = &FRAME_FACES[frame];
-    let slot_of = |face: usize| NORMALS[faces.iter().position(|&f| f == face).unwrap_or(0)];
+    let slot_of = |face: usize| {
+        NORMALS[faces
+            .iter()
+            .position(|&f| f == face)
+            .expect("a frame lists all six faces")]
+    };
     [slot_of(1), slot_of(0), slot_of(2)]
 }
 
