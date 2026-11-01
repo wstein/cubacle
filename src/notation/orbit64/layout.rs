@@ -76,7 +76,7 @@ const WING_FACELETS: [[usize; 2]; 24] = [
     [94, 61],
 ];
 
-/// The slot tables of an `n x n x n` cube, `2 <= n <= 7`.
+/// The slot tables of an `n x n x n` cube, `2 <= n <= 15`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct Layout {
     pub(super) n: usize,

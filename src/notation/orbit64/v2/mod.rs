@@ -9,9 +9,10 @@
 //!
 //! [`Cube`] holds orbit coordinates. The [`facelets`] module is the bridge to
 //! and from facelet strings (`U R F D L B`, six face fields) for the color
-//! model, canonical and framed; the picture model has no letters. The color framed entries of the 2x2x2, 3x3x3, 4x4x4, 6x6x6 and
-//! 7x7x7 start at offset 0 at the widths of V1's state tokens and share V1's
-//! digit order, so a V1 state token of those sizes is also the V2 token of the
+//! model, canonical and framed; the picture model has no letters.
+//!
+//! The color framed entries of the 2x2x2, 3x3x3, 4x4x4, 6x6x6 and 7x7x7 start
+//! at offset 0 at the widths of V1's state tokens and share V1's digit order, so a V1 state token of those sizes is also the V2 token of the
 //! same state. A V1 5x5x5 token (43 characters) is rejected.
 //!
 //! Origin: Rust re-implementation of `Orbit64.V2` (flix-orbit64, Apache-2.0,
