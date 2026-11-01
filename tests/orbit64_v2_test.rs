@@ -351,3 +351,6 @@ mod facelets;
 
 #[path = "orbit64_v2/picture_facelets.rs"]
 mod picture_facelets;
+
+#[path = "orbit64_v2/picture_errors.rs"]
+mod picture_errors;
