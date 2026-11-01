@@ -31,7 +31,7 @@ function main(path)
     # Every chunk of rows is defined once and used once by the aggregate that lists it.
     for name in unique(m.match for m in eachmatch(r"rows\d+p\d+", text))
         count(Regex("\\b$name\\b"), text) == 2 ||
-error("$name is not defined and used exactly once")
+            error("$name is not defined and used exactly once")
     end
     println("# Orbit64 V2 picture facelet vectors: registry entry id | moves | facelets | token |")
     println("# canonical facelets. Copied from test/TestV2FaceletPictureData.flix of")
