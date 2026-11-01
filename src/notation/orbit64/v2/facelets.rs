@@ -198,6 +198,7 @@ fn parse(n: usize, model: Model, text: &str) -> Result<Vec<usize>, V2Error> {
     }
     Ok(values)
 }
+
 fn check_counts(n: usize, stickers: &[usize]) -> Result<(), V2Error> {
     for (face, letter) in LETTERS.iter().enumerate() {
         let count = stickers.iter().filter(|&&s| s == face).count();
