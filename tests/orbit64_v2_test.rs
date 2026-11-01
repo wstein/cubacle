@@ -348,3 +348,6 @@ fn solved_states_are_the_zero_ranks() {
 
 #[path = "orbit64_v2/facelets.rs"]
 mod facelets;
+
+#[path = "orbit64_v2/picture_facelets.rs"]
+mod picture_facelets;

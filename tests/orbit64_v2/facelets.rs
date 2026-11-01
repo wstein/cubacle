@@ -547,38 +547,7 @@ fn a_mirrored_cube_is_an_error_for_every_row() {
 
 #[test]
 fn an_unsupported_type_is_an_error() {
-    let picture = "the picture model has no letters";
     let unsupported = |why: &str| Err(V2Error::Unsupported(why.to_string()));
-    for pose in [Pose::Canonical, Pose::Framed] {
-        assert_eq!(
-            from_facelets(3, Model::Picture, pose, SOLVED3),
-            unsupported(picture)
-        );
-        let solved = Cube::solved(3, Model::Picture).unwrap();
-        assert_eq!(
-            to_facelets(3, Model::Picture, pose, &solved),
-            Err(V2Error::Unsupported(picture.to_string()))
-        );
-    }
-    // The picture entries of the registry, by id, and their tokens.
-    let pictures: Vec<_> = entries()
-        .iter()
-        .filter(|e| e.model == Model::Picture)
-        .collect();
-    assert_eq!(pictures.len(), 26);
-    for e in pictures {
-        assert_eq!(
-            encode(e.id, SOLVED3),
-            Err(V2Error::Unsupported(picture.to_string()))
-        );
-        let token =
-            cubacle::notation::orbit64::v2::encode(e.id, &Cube::solved(e.n, e.model).unwrap())
-                .unwrap();
-        assert_eq!(
-            decode(&token),
-            Err(V2Error::Unsupported(picture.to_string()))
-        );
-    }
     let no_type = |n: usize| unsupported(&format!("no V2 type for the {n}x{n}x{n}"));
     assert_eq!(
         from_facelets(16, Model::Color, Pose::Framed, SOLVED3),
