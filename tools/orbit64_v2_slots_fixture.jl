@@ -8,6 +8,15 @@
 # line `n|label|facelets` (for example `4|W1 0|1 82`, `5|Z[1,2]|7 11 ...`). The sentence
 # "The fixed centers are `face * K + M`" of an odd size becomes `n|fixed|f0 ... f5`.
 
+# The lines of a size: 8 corners, 12 midges and the fixed centers (odd), 24 per wing orbit,
+# one per center orbit.
+function expected_lines(n)
+    odd = isodd(n)
+    wings = (n - 2) ÷ 2
+    centers = sum(max(0, n - 1 - 2r) for r in 1:(n - 2); init=0)
+    8 + (odd ? 12 + 1 : 0) + 24 * wings + centers
+end
+
 function main(path)
     # Collect and check everything first, then print (see orbit64_v2_fixture.jl).
     out = String[]
@@ -43,6 +52,12 @@ function main(path)
     isempty(out) && error("no slots found in $path")
     fixed_sizes == 7 || error("expected fixed centers for the 7 odd sizes, found $fixed_sizes")
     length(out) == candidates + fixed_sizes || error("$candidates slot-shaped lines, only $(length(out) - fixed_sizes) parsed")
+    # Every size must have exactly the slots its orbits have: a deleted line is an error.
+    for size in 2:15
+        got = count(l -> startswith(l, string(size, "|")), out)
+        want = expected_lines(size)
+        got == want || error("$(size)x$(size)x$(size): $got slot lines, expected $want")
+    end
     sizes == collect(2:15) || error("expected the sizes 2..15, found $sizes")
     println("# Orbit64 V2 slot tables: n | slot | facelets, reference sticker first.")
     println("# Copied from FORMAT-V2-SLOTS.md of https://github.com/wstein/flix-orbit64")
