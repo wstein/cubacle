@@ -504,14 +504,29 @@ fn mirrored(n: usize, text: &str) -> String {
 #[test]
 fn a_mirrored_cube_is_an_error_for_every_row() {
     let mut checked = 0;
-    for row in rows().iter().filter(|r| entry(r.id).unwrap().n <= 7) {
+    for row in rows() {
         let e = entry(row.id).unwrap();
         let text = mirrored(e.n, row.facelets);
-        let read = from_facelets(e.n, e.model, e.pose, &text);
-        assert!(read.is_err(), "entry {} after {:?}", row.id, row.moves);
+        let why = match from_facelets(e.n, e.model, e.pose, &text) {
+            Err(V2Error::Facelets(why)) => why,
+            other => panic!("entry {} after {:?}: {other:?}", row.id, row.moves),
+        };
+        let expected = if e.n % 2 == 1 {
+            "the six fixed centers are not a right-handed whole-cube frame"
+        } else if e.pose == Pose::Canonical {
+            "no whole-cube rotation puts the DBL corner home"
+        } else {
+            "corner slot "
+        };
+        assert!(
+            why.starts_with(expected),
+            "entry {} after {:?}: {why}",
+            row.id,
+            row.moves
+        );
         checked += 1;
     }
-    assert!(checked > 200, "{checked}");
+    assert_eq!(checked, 448);
     // Odd cubes fail at the fixed centers; even cubes at the first corner.
     let text = mirrored(3, SOLVED3);
     assert_eq!(
@@ -588,8 +603,17 @@ fn a_cube_that_is_no_state_of_the_type_has_no_facelets() {
     // A canonical cube has frame 0 only.
     let mut cube = Cube::solved(3, Model::Color).unwrap();
     cube.frame = 4;
-    assert!(to_facelets(3, Model::Color, Pose::Canonical, &cube).is_err());
-    assert!(to_facelets(3, Model::Color, Pose::Framed, &cube).is_ok());
+    assert_eq!(
+        to_facelets(3, Model::Color, Pose::Canonical, &cube),
+        Err(V2Error::Invalid(
+            "frame must be 0..23 on odd framed cubes and 0 otherwise".to_string()
+        ))
+    );
+    // Frame 4 is the solved cube after `x`: F R D B L U.
+    assert_eq!(
+        to_facelets(3, Model::Color, Pose::Framed, &cube).as_deref(),
+        Ok("FFFFFFFFF RRRRRRRRR DDDDDDDDD BBBBBBBBB LLLLLLLLL UUUUUUUUU")
+    );
 }
 
 #[test]
