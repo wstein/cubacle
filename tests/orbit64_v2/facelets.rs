@@ -121,19 +121,147 @@ fn cube_and_facelets_agree_in_both_directions_for_every_row() {
 }
 
 #[test]
-fn a_canonical_read_accepts_any_whole_cube_orientation() {
-    // The odd framed rows are the same cubes in 24 orientations; the canonical
-    // entry of the same size reads them all as one state.
-    for row in rows().iter().filter(|r| {
-        let e = entry(r.id).unwrap();
-        e.pose == Pose::Framed
-    }) {
+fn a_canonical_read_of_a_framed_row_is_the_canonical_row_of_the_same_moves() {
+    // Every framed row has a canonical row of the same size and moves (the
+    // entry before it). The two show the same cube, possibly in another
+    // orientation; the canonical row's token and canonical facelets are
+    // generated independently of this code.
+    let rows = rows();
+    let mut checked = 0;
+    for row in rows
+        .iter()
+        .filter(|r| entry(r.id).unwrap().pose == Pose::Framed)
+    {
         let e = entry(row.id).unwrap();
-        let canonical = from_facelets(e.n, e.model, Pose::Canonical, row.facelets).unwrap();
-        let again = from_facelets(e.n, e.model, Pose::Canonical, row.canonical).unwrap();
-        assert_eq!(canonical, again, "entry {} after {:?}", row.id, row.moves);
-        if e.n % 2 == 1 {
-            assert_eq!(canonical.frame, 0);
+        let twin = rows
+            .iter()
+            .find(|r| r.id + 1 == row.id && r.moves == row.moves)
+            .unwrap_or_else(|| {
+                panic!(
+                    "no canonical row for entry {} after {:?}",
+                    row.id, row.moves
+                )
+            });
+        let cube = from_facelets(e.n, e.model, Pose::Canonical, row.facelets).unwrap();
+        assert_eq!(
+            cube,
+            state_of(twin.id, twin.facelets),
+            "entry {} after {:?}",
+            row.id,
+            row.moves
+        );
+        assert_eq!(
+            to_facelets(e.n, e.model, Pose::Canonical, &cube).as_deref(),
+            Ok(twin.canonical),
+            "entry {} after {:?}",
+            row.id,
+            row.moves
+        );
+        assert_eq!(
+            cubacle::notation::orbit64::v2::encode(twin.id, &cube).as_deref(),
+            Ok(twin.token),
+            "entry {} after {:?}",
+            row.id,
+            row.moves
+        );
+        checked += 1;
+    }
+    assert!(checked > 200, "{checked}");
+}
+
+type Vec3 = [i32; 3];
+
+/// Position (doubled grid) and outward normal of facelet `i`, from the
+/// geometry of FORMAT.md, written here independently of the library.
+fn sticker(n: usize, i: usize) -> (Vec3, Vec3) {
+    let m = n as i32 - 1;
+    let (face, row, col) = (i / (n * n), (i / n % n) as i32, (i % n) as i32);
+    let (a, b) = (2 * col - m, 2 * row - m);
+    match face {
+        0 => ([a, m, b], [0, 1, 0]),
+        1 => ([m, -b, -a], [1, 0, 0]),
+        2 => ([a, -b, m], [0, 0, 1]),
+        3 => ([a, -m, -b], [0, -1, 0]),
+        4 => ([-m, -b, a], [-1, 0, 0]),
+        _ => ([-a, -b, -m], [0, 0, -1]),
+    }
+}
+
+/// All 24 proper rotations, as the closure of two quarter turns.
+fn rotations() -> Vec<[Vec3; 3]> {
+    let x = [[1, 0, 0], [0, 0, -1], [0, 1, 0]];
+    let y = [[0, 0, 1], [0, 1, 0], [-1, 0, 0]];
+    let mut found = vec![[[1, 0, 0], [0, 1, 0], [0, 0, 1]]];
+    let mut next = 0;
+    while next < found.len() {
+        let current = found[next];
+        next += 1;
+        for turn in [x, y] {
+            // The product turn * current, row by row.
+            let product: [Vec3; 3] = std::array::from_fn(|k| {
+                let column = |c: usize| {
+                    turn[k][0] * current[0][c]
+                        + turn[k][1] * current[1][c]
+                        + turn[k][2] * current[2][c]
+                };
+                [column(0), column(1), column(2)]
+            });
+            if !found.contains(&product) {
+                found.push(product);
+            }
+        }
+    }
+    found
+}
+
+/// The facelet string with the whole cube turned: every sticker moves to the
+/// facelet its position and normal are carried to.
+fn turned(n: usize, text: &str, rotation: &[Vec3; 3]) -> String {
+    let at = |v: Vec3| -> Vec3 {
+        std::array::from_fn(|k| {
+            rotation[k][0] * v[0] + rotation[k][1] * v[1] + rotation[k][2] * v[2]
+        })
+    };
+    let letters: Vec<char> = text.chars().filter(|&c| c != ' ').collect();
+    let index: std::collections::HashMap<(Vec3, Vec3), usize> =
+        (0..letters.len()).map(|i| (sticker(n, i), i)).collect();
+    let mut out = vec![' '; letters.len()];
+    for (i, &letter) in letters.iter().enumerate() {
+        let (p, q) = sticker(n, i);
+        out[index[&(at(p), at(q))]] = letter;
+    }
+    out.chunks(n * n)
+        .map(|f| f.iter().collect::<String>())
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+#[test]
+fn a_canonical_read_accepts_every_whole_cube_orientation() {
+    let turns = rotations();
+    assert_eq!(turns.len(), 24);
+    for row in rows()
+        .iter()
+        .filter(|r| entry(r.id).unwrap().pose == Pose::Canonical)
+    {
+        let e = entry(row.id).unwrap();
+        let expected = state_of(row.id, row.canonical);
+        let mut texts = std::collections::HashSet::new();
+        for turn in &turns {
+            let text = turned(e.n, row.canonical, turn);
+            texts.insert(text.clone());
+            assert_eq!(
+                from_facelets(e.n, e.model, Pose::Canonical, &text),
+                Ok(expected.clone()),
+                "entry {} after {:?}",
+                row.id,
+                row.moves
+            );
+            assert_eq!(encode(row.id, &text).as_deref(), Ok(row.token));
+        }
+        // A scrambled cube looks different in every orientation.
+        if !row.moves.is_empty() && e.n > 2 {
+            assert_eq!(texts.len(), 24, "entry {} after {:?}", row.id, row.moves);
         }
     }
 }
