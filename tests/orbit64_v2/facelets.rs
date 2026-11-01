@@ -511,19 +511,21 @@ fn a_mirrored_cube_is_an_error_for_every_row() {
             Err(V2Error::Facelets(why)) => why,
             other => panic!("entry {} after {:?}: {other:?}", row.id, row.moves),
         };
+        // Slot 0, the URF corner, is the first one read and always mirrored.
+        let letters: Vec<char> = text.chars().filter(|&c| c != ' ').collect();
+        let n2 = e.n * e.n;
+        let shown: String = [n2 - 1, n2, 2 * n2 + e.n - 1]
+            .iter()
+            .map(|&at| letters[at])
+            .collect();
         let expected = if e.n % 2 == 1 {
-            "the six fixed centers are not a right-handed whole-cube frame"
+            "the six fixed centers are not a right-handed whole-cube frame".to_string()
         } else if e.pose == Pose::Canonical {
-            "no whole-cube rotation puts the DBL corner home"
+            "no whole-cube rotation puts the DBL corner home".to_string()
         } else {
-            "corner slot "
+            format!("corner slot 0 shows {shown}, which is no corner of this cube")
         };
-        assert!(
-            why.starts_with(expected),
-            "entry {} after {:?}: {why}",
-            row.id,
-            row.moves
-        );
+        assert_eq!(why, expected, "entry {} after {:?}", row.id, row.moves);
         checked += 1;
     }
     assert_eq!(checked, 448);
