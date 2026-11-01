@@ -8,8 +8,9 @@
 //! the rank of the state among that entry's states.
 //!
 //! [`Cube`] holds orbit coordinates. The [`facelets`] module is the bridge to
-//! and from facelet strings (`U R F D L B`, six face fields) for the color
-//! model, canonical and framed; the picture model has no letters.
+//! and from facelet strings, canonical and framed: the letters `U R F D L B`
+//! in the color model, one base64url symbol per sticker in the picture model,
+//! in six face fields either way.
 //!
 //! The color framed entries of the 2x2x2, 3x3x3, 4x4x4, 6x6x6 and 7x7x7 start
 //! at offset 0 at the widths of V1's state tokens and share V1's digit order,
@@ -46,7 +47,7 @@ pub enum V2Error {
     Invalid(String),
     /// The facelet string is no cube, for the reason given.
     Facelets(String),
-    /// The type has no facelet letters (a picture entry, or a size without an entry).
+    /// The type has no facelet string (a size without an entry, or a picture 2x2x2).
     Unsupported(String),
 }
 
