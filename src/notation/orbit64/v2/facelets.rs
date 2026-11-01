@@ -135,21 +135,24 @@ fn spell(n: usize, stickers: &[usize]) -> String {
 /// The stickers of a facelet string as face indices, or why it is no string
 /// of `n^2` letters per face.
 fn parse(n: usize, text: &str) -> Result<Vec<usize>, V2Error> {
-    let stickers = text
-        .chars()
-        .filter(|&c| c != ' ')
-        .map(|c| {
-            LETTERS
-                .iter()
-                .position(|&letter| letter == c)
-                .ok_or_else(|| malformed(format!("facelet '{c}' is not one of U R F D L B")))
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-    if stickers.len() != 6 * n * n {
+    // Every letter is checked, so the first bad one is reported before the
+    // length; only the first 6 n^2 are kept, so a huge input costs no memory.
+    let wanted = 6 * n * n;
+    let mut stickers = Vec::with_capacity(wanted);
+    let mut count = 0usize;
+    for c in text.chars().filter(|&c| c != ' ') {
+        let face = LETTERS
+            .iter()
+            .position(|&letter| letter == c)
+            .ok_or_else(|| malformed(format!("facelet '{c}' is not one of U R F D L B")))?;
+        if count < wanted {
+            stickers.push(face);
+        }
+        count += 1;
+    }
+    if count != wanted {
         return Err(malformed(format!(
-            "expected {} facelets for the {n}x{n}x{n}, got {}",
-            6 * n * n,
-            stickers.len()
+            "expected {wanted} facelets for the {n}x{n}x{n}, got {count}"
         )));
     }
     Ok(stickers)
