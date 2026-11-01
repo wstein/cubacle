@@ -345,3 +345,6 @@ fn solved_states_are_the_zero_ranks() {
         }
     }
 }
+
+#[path = "orbit64_v2/facelets.rs"]
+mod facelets;
