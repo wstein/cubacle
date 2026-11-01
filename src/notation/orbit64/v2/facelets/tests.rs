@@ -32,6 +32,9 @@ fn computed(n: usize) -> Vec<(String, Vec<usize>)> {
     let layout = Layout::new(n);
     let mut lines = Vec::new();
     let mut add = |label: String, facelets: &[usize]| lines.push((label, facelets.to_vec()));
+    if !layout.fixed.is_empty() {
+        add("fixed".to_string(), &layout.fixed);
+    }
     for (slot, facelets) in layout.corners.iter().enumerate() {
         add(format!("C {slot}"), facelets);
     }
@@ -46,7 +49,13 @@ fn computed(n: usize) -> Vec<(String, Vec<usize>)> {
     // Center orbits are named Z[row,col] by their lowest cell, in this order.
     let last = n.saturating_sub(1);
     let names = (1..last).flat_map(|r| (r..last - r).map(move |c| format!("Z[{r},{c}]")));
-    for (name, facelets) in names.zip(&layout.centers) {
+    let names: Vec<String> = names.collect();
+    assert_eq!(
+        names.len(),
+        layout.centers.len(),
+        "{n}x{n}x{n} center orbits"
+    );
+    for (name, facelets) in names.into_iter().zip(&layout.centers) {
         add(name, facelets);
     }
     lines
@@ -64,19 +73,7 @@ fn the_slot_tables_are_those_of_format_v2_slots_for_n_2_to_15() {
         assert!(!expected.is_empty(), "{n}x{n}x{n} missing from the spec");
         assert_eq!(computed(n), expected, "{n}x{n}x{n}");
     }
-    assert_eq!(spec.len(), 1407);
-}
-
-#[test]
-fn the_fixed_centers_are_the_middle_facelets_of_odd_cubes() {
-    for n in 2..=15 {
-        let expected: Vec<usize> = if n % 2 == 1 {
-            (0..6).map(|face| face * n * n + (n * n - 1) / 2).collect()
-        } else {
-            Vec::new()
-        };
-        assert_eq!(Layout::new(n).fixed, expected, "{n}");
-    }
+    assert_eq!(spec.len(), 1414);
 }
 
 #[test]
