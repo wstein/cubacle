@@ -327,3 +327,6 @@ pub fn decode(token: &str) -> Result<(&'static Entry, String), V2Error> {
     let text = to_facelets(entry.n, entry.model, entry.pose, &cube)?;
     Ok((entry, text))
 }
+
+#[cfg(test)]
+mod tests;
