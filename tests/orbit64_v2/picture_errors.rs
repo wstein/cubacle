@@ -170,7 +170,7 @@ fn a_repeated_sticker_is_an_error() {
     );
     // Two fixed centers that differ only in rotation are still the same piece.
     assert_eq!(
-        rejected(3, &put(SOLVED3, &[(4, 'B'), (13, 'B')])),
+        rejected(3, &put(SOLVED3, &[(4, 'B'), (13, 'A')])),
         twice('B', "fixed center")
     );
     let solved4 = solved(4);
@@ -258,6 +258,37 @@ fn the_laws_of_the_format_are_checked_in_their_order() {
     assert_eq!(
         rejected(3, &both),
         invalid("midge parity must equal corner parity")
+    );
+}
+
+#[test]
+fn repeats_are_reported_in_class_order_and_fixed_centers_by_piece() {
+    let twice = |c: char, what: &str| {
+        facelets_error(&format!("{what} sticker '{c}' occurs more than once"))
+    };
+    // Wing orbits go outermost first: a 6x6x6 with a repeat in two orbits
+    // reports the outer one ('T'), not the inner one ('K').
+    let wings = [
+        "TuuffXlXXXWslWXWWsqVVUVLqVUUULIBBooK QmmddUVTTpSkVSTSSkiRRQRriRQQQrFFFggH ",
+        "VeevvSPPPPOcPOPOOcaNNMNnaNMMMnMXXYYP NWWZZRNLLLQUNKLKKUSJJIJjSJIIIjCHHKQE ",
+        // The symbols are split here only to keep the spelling check quiet.
+        "WOObbO",
+        "tHHHGMtGHGGMKFFEFTKFEEETLDDIIB AGGRRDJDDDCEJCDCCECBBABhCBAAAhJTpAAG",
+    ]
+    .concat();
+    assert_eq!(encode(16, &wings), Err(twice('T', "wing")));
+    // Center orbits go in orbit order: 'P' repeats in the first orbit that does.
+    let centers = "EQGHCjIAJSRFSGXUKDLNRZCWN OMWTBbGVEIFQBTNOHWFDWtUKL PYDXMnMINaACKBEcOLPPSvLeV \
+                   TuKfXlXMWsTSERVqVAULIBOoK FiQVQFRKTmJHNEBgQJSdHrSkU AGHRDJDUCEMNWOICBXPhJpPAG";
+    assert_eq!(encode(12, centers), Err(twice('P', "center")));
+    // A fixed center repeats by piece `v div 4`, whatever its rotation: 'T' is
+    // piece 4 (rotation 3), the piece of the L center 'Q'.
+    let fixed = "GGJEAADCA BBLRTXOJW EDCSIQRLN PKMMMISOV HFFVQTUNQ KHIWUUXPT";
+    assert_eq!(encode(5, fixed), Err(twice('T', "fixed center")));
+    // The U center turned a quarter and the R center at rotation 0 are piece 0 twice.
+    assert_eq!(
+        rejected(3, &put(SOLVED3, &[(4, 'B'), (13, 'A')])),
+        twice('B', "fixed center")
     );
 }
 
