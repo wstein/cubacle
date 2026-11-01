@@ -5,7 +5,8 @@
 #         > tests/fixtures/orbit64_v2_slots.txt
 #
 # Needs only Julia's standard library. Each slot line of the markdown tables becomes one
-# line `n|label|facelets` (for example `4|W1 0|1 82`, `5|Z[1,2]|7 11 ...`).
+# line `n|label|facelets` (for example `4|W1 0|1 82`, `5|Z[1,2]|7 11 ...`). The sentence
+# "The fixed centers are `face * K + M`" of an odd size becomes `n|fixed|f0 ... f5`.
 
 function main(path)
     # Collect and check everything first, then print (see orbit64_v2_fixture.jl).
@@ -14,11 +15,19 @@ function main(path)
     n = 0
     in_block = false
     candidates = 0
+    fixed_sizes = 0
     for line in eachline(path)
         m = match(r"^## (\d+)x\1x\1$", line)
         if m !== nothing
             n = parse(Int, m[1])
             push!(sizes, n)
+            continue
+        end
+        m = match(r"^Facelets `0\.\.\d+`\. The fixed centers are `face \* (\d+) \+ (\d+)`\.$", line)
+        if m !== nothing
+            k, offset = parse(Int, m[1]), parse(Int, m[2])
+            push!(out, string(n, "|fixed|", join((f * k + offset for f in 0:5), " ")))
+            fixed_sizes += 1
             continue
         end
         startswith(line, "```text") && (in_block = true; continue)
@@ -32,7 +41,8 @@ function main(path)
         push!(out, string(n, "|", m[1], "|", m[2]))
     end
     isempty(out) && error("no slots found in $path")
-    length(out) == candidates || error("$candidates slot-shaped lines, only $(length(out)) parsed")
+    fixed_sizes == 7 || error("expected fixed centers for the 7 odd sizes, found $fixed_sizes")
+    length(out) == candidates + fixed_sizes || error("$candidates slot-shaped lines, only $(length(out) - fixed_sizes) parsed")
     sizes == collect(2:15) || error("expected the sizes 2..15, found $sizes")
     println("# Orbit64 V2 slot tables: n | slot | facelets, reference sticker first.")
     println("# Copied from FORMAT-V2-SLOTS.md of https://github.com/wstein/flix-orbit64")
