@@ -114,9 +114,9 @@ mechanics, sticker identity/orientation and codecs. The shared viewer package is
 [Cubistry #111](https://github.com/wstein/cubistry/issues/111) (CubeScene model).
 The viewer depends on the core; applications depend on the viewer. Cubacle never
 depends on the viewer; a future Cubacle frontend (not decided) would be a consumer
-of the package. This is the
-target architecture, not a migration approval: each migration needs its own owner approval,
-and rendering stays in the existing applications until then.
+of the package. This is the target architecture, not a migration approval: each
+migration needs its own owner approval, and rendering stays in the existing
+applications until then.
 This does not alter Cubacle's separate Rust role.
 **Cubacle is the existing independent Rust solver project**. Integrating it as
 an optional provider requires a versioned adapter for goals, moves, capabilities,
