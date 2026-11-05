@@ -115,14 +115,15 @@ mechanics, sticker identity/orientation and codecs. The shared viewer package is
 The viewer depends on the core; applications depend on the viewer. Cubacle never
 depends on the viewer; a future Cubacle frontend (not decided) would be a consumer
 of the package. This is the target architecture, not a migration approval: each
-migration needs its own owner approval, and rendering stays in the existing
-applications until then.
+migration needs its own owner approval. CLI rendering (text, SVG icons and
+terminal images via Kitty) belongs to Cubacle and is developed here, including
+orientation drawing ([#28](https://github.com/wstein/cubacle/issues/28)).
 This does not alter Cubacle's separate Rust role.
 **Cubacle is the existing independent Rust solver project**. Integrating it as
 an optional provider requires a versioned adapter for goals, moves, capabilities,
 frames, replay and errors. Do not add a Rust project or Rust package to PuzlWerk.
 Cubacle's efficient internal search representations remain its responsibility;
-do not create a competing public shared cube core or renderer here.
+do not create a public, reusable web viewer or shared cube core here.
 
 Preserve AGPL licensing, upstream notices, the `develop` workflow, existing tests
 and solver correctness. Shared-core ownership does not authorize moving or deleting
