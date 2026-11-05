@@ -112,9 +112,10 @@ mechanics, sticker identity/orientation and codecs. The shared viewer package is
 `@puzlwerk/viewer`, a separate package in the PuzlWerk monorepo (owner decision of
 2026-11-05): scene and rendering without application knowledge, contract
 [Cubistry #111](https://github.com/wstein/cubistry/issues/111) (CubeScene model).
-Dependencies point from core to viewer to applications. Cubacle never depends on the
-viewer; a future Cubacle frontend would be a consumer of the package. This is the
-target architecture, not a migration approval: each migration needs its own approval,
+The viewer depends on the core; applications depend on the viewer. Cubacle never
+depends on the viewer; a future Cubacle frontend (not decided) would be a consumer
+of the package. This is the
+target architecture, not a migration approval: each migration needs its own owner approval,
 and rendering stays in the existing applications until then.
 This does not alter Cubacle's separate Rust role.
 **Cubacle is the existing independent Rust solver project**. Integrating it as
