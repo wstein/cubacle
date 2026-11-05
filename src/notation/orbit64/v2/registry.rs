@@ -24,11 +24,18 @@ pub enum Model {
 }
 
 /// Whether the whole-cube orientation is part of the state.
+///
+/// Both poses describe the orientation of the puzzle, which is part of its
+/// state. Neither is a camera or display orientation: nothing here says from
+/// where a cube is looked at or how a viewer draws it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Pose {
-    /// The state is read after turning the cube to the reference pose.
+    /// The state is read after turning the whole cube to the reference pose:
+    /// the whole-cube orientation is normalized away, so cubes that differ only
+    /// by a whole-cube rotation have one state and one token.
     Canonical,
-    /// The whole-cube orientation is stored with the state.
+    /// The whole-cube orientation is stored with the state and kept by a read
+    /// and a write (of an even cube it stays in the corners).
     Framed,
 }
 
