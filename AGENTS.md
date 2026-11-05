@@ -10,14 +10,12 @@ sizes planned), with a lightweight CLI and a stateless REST backend
 
 ## Git
 
-- History is linear. Rebase onto `develop` and fast-forward; never create merge commits.
-- `main` mirrors the upstream repository (`cs0x7f/min2phase_rust`). Do not commit to it.
-  Work on `develop` or on short-lived branches from it.
+- Agent collaboration (roles, review, Ready, merge, rewrite, stacks, labels, identity, reports) follows the global agent rules, not this file.
+- History is linear; no merge commits. `develop` is the default branch. `main` mirrors the upstream repository (`cs0x7f/min2phase_rust`); do not commit to it.
 - Commits are conventional (`feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `build`,
   `ci`, `chore`; `!` for breaking changes), atomic and focused: one concern per commit,
   the branch builds and passes the checks on its final tree (see Checks).
-- Commits written with AI assistance carry a `Co-Authored-By:` trailer naming the model.
-- Do not push, tag or change repository settings unless the owner asks.
+- Tags and settings: owner only.
 - Move code with `git mv` in its own commit, before changing it, so history follows.
 
 ## Checks
@@ -47,9 +45,6 @@ cargo test --workspace --release
   starts the slow compiler again.
 - A branch that changes only `docs/`, `*.md` or CI files skips clippy and the
   tests; it still passes `fmt --check` and `typos`.
-- Several finished branches may be rebased and merged one after the other and checked
-  together: run the full suite once on the merged tree before pushing. A longer stack
-  costs only a few more test runs, not one per commit.
 - Use `nice` and run one heavy job at a time. Agents hand a branch back after one
   full run on its final tree; the gate does not repeat the work after a rebase
   without conflicts, and runs it once after a rebase with conflicts.
