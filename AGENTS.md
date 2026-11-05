@@ -108,13 +108,15 @@ migration. See [Cubistry #21](https://github.com/wstein/cubistry/issues/21) for 
 cross-project architecture; verify the current contract before adding dependencies.
 
 PuzlWerk owns the shared **ReScript** cube core: reusable state, coordinates,
-mechanics, sticker identity/orientation and codecs. **TypeScript viewer package
-ownership remains unresolved:** [Cubistry #21](https://github.com/wstein/cubistry/issues/21)
-originally proposed a PuzlWerk viewer, while the current [PuzlWerk README](https://github.com/wstein/puzlwerk/blob/main/README.md#ecosystem-boundary)
-excludes viewers and [Cubistry #60](https://github.com/wstein/cubistry/issues/60)
-assigns the renderer to Cubistry. Do not assume either contract silently
-supersedes the other; leave rendering in existing applications pending an
-explicit owner decision. This does not alter Cubacle's separate Rust role.
+mechanics, sticker identity/orientation and codecs. The shared viewer package is
+`@puzlwerk/viewer`, a separate package in the PuzlWerk monorepo (owner decision of
+2026-11-05): scene and rendering without application knowledge, contract
+[Cubistry #111](https://github.com/wstein/cubistry/issues/111) (CubeScene model).
+Dependencies point from core to viewer to applications. Cubacle never depends on the
+viewer; a future Cubacle frontend would be a consumer of the package. This is the
+target architecture, not a migration approval: each migration needs its own approval,
+and rendering stays in the existing applications until then.
+This does not alter Cubacle's separate Rust role.
 **Cubacle is the existing independent Rust solver project**. Integrating it as
 an optional provider requires a versioned adapter for goals, moves, capabilities,
 frames, replay and errors. Do not add a Rust project or Rust package to PuzlWerk.
