@@ -943,7 +943,7 @@ What this means for dependencies:
   the reasons for a dependency in a decision note (for example the `toml` crate), and the
   PuzlWerk section of `AGENTS.md` says that a name or scope does not authorize a dependency.
 - **Approval needed.** D2 is the owner's approval for exactly these edges and no others. The pull
-  request that adds them (row 4a of section 15) carries a ChartScribe decision note in `notes/`
+  request that adds them (row 4a of section 15) carries a decision note
   and is merged only after the owner's review; any other crate (a faster hasher, a parallel
   library) needs its own approval.
 - **Strictness actually provided [M].** A scratch crate (serde_json 1.0.154 with a duplicate-key
@@ -1308,7 +1308,7 @@ The owner cuts the tag (`AGENTS.md`: no tag unless the owner asks) from a commit
 which all of the following hold.
 
 1. **All required CI jobs are green, `ci-result` included.** The jobs today are `rust`,
-   `five-full`, `four-full`, `msrv`, `docs`, `notes` and `spelling`. The aggregate `ci-result`
+   `five-full`, `four-full`, `msrv`, `docs` and `spelling`. The aggregate `ci-result`
    and the classifier job `changes` are on the branch `ci/skip-rust-for-docs-only` (commit
    `ec7e3d9`) and not yet on `develop` [C]; the gate presumes that branch is merged. The two jobs
    of this work, `fixed-frame-golden` and `fixed-frame-full`, are added to the `needs` of

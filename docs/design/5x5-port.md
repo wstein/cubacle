@@ -318,12 +318,11 @@ Notes on the differences from the plan.
 - **Memory.** 237 MB are pruning tables and about 70 MB are move and symmetry tables.
   Storing small tables as 16-bit values saves about 3 MB; dropping the 10 MB
   wing table and recomputing it made solving about five times slower and was
-  reverted. Going below 300 MB needs a smaller pruning-table format (see the note
-  `5x5 memory above target`).
+  reverted. Going below 300 MB needs a smaller pruning-table format.
 - **No greedy fallback.** The greedy engine was deleted; `solve` builds the tables
   first when they are missing, and the budget message says so.
 - **Java's skip-mask shift bug** is reproduced on purpose, because without it the
-  answers differ from Java's (note `5x5 skip masks keep a Java shift bug`).
+  answers differ from Java's.
 - **Worker pool.** The search uses scoped threads in `reduction::par`; the pool
   of the 3x3x3 engine was not moved.
 - **Move limit.** A tight `-m` gives the 3x3x3 hand-off a 10 s default budget and
