@@ -939,8 +939,7 @@ What this means for dependencies:
   `rust-version` (1.95) is what the `msrv` job measures, so the `msrv` job must stay green with
   the new edges. There is no `deny.toml`, no `cargo-deny` or `cargo-audit` job, and no sentence
   in `AGENTS.md` that requires an approval for a dependency; Dependabot proposes updates weekly
-  in one group, and `CODEOWNERS` asks `@wstein` to review everything. The repository does record
-  the reasons for a dependency in a decision note (for example the `toml` crate), and the
+  in one group, and `CODEOWNERS` asks `@wstein` to review everything. The
   PuzlWerk section of `AGENTS.md` says that a name or scope does not authorize a dependency.
 - **Approval needed.** D2 is the owner's approval for exactly these edges and no others. The pull
   request that adds them (row 4a of section 15) carries a decision note
@@ -1020,7 +1019,7 @@ The decisions D1 to D7 (section 14) are built in as shown in the last column.
 | 1 | `docs(design)`: this paper and the three draft schemas (request, record, solve result) | docs only | none | D1 to D7 |
 | 2 | `feat(puzzle)`: frame model: print validation, sticker-frame moves, `pose24.v1`, `key.v1`, state input forms; the fixture prints copied from Cubistry with their hashes in `NOTICE.md`; golden poses of the blank counterexample | 450 | 1 | |
 | 3 | `feat(two)`: fixed-frame goal tables: `FrameGoal`, tracked bodies, multi-source search over keys, lex-least walk, `u8-dense-v1` with SHA-256; the goldens without premise (three bodies, blank print) in `fixed_frame_golden_test` | 500 | 2, 4a | D2 |
-| 4a | `build(deps)` and `feat`: `serde_json`, `serde` (std only), `sha2` as dependencies; the strict reader with duplicate-key check and bounds; negative controls named after the strict-only cases of the Cubistry corpus; a ChartScribe decision note; owner review of the dependency edges | 350 | none | D2 |
+| 4a | `build(deps)` and `feat`: `serde_json`, `serde` (std only), `sha2` as dependencies; the strict reader with duplicate-key check and bounds; negative controls named after the strict-only cases of the Cubistry corpus; a decision note; owner review of the dependency edges | 350 | none | D2 |
 | 4b | `feat(cli)`: `fixed-frame batch`, `distance`, `table` (with `--full`); the public `run_batch` and `Limits`; records, header, summary; determinism test | 450 | 3, 4a | D1 |
 | 5 | `feat(two)`: eccentricity with premises, `premiseClosed`, runs, `sample`; sidecars; the goldens with premise (378 and 810 sources, counterexample); ignored `fixed_frame_full` tests; the measured time and memory of the full table replace the estimates of section 19.2 | 450 | 4b | D4, D7 |
 | 6 | `feat(report)!`: `solve --json-format 1\|2`, format 2 the default for the command and for REST (`formatVersion`), `solve-result.schema.json`; the existing tests gain the selector, format 2 gets new literals, docs and marked examples are regenerated; title with `!` and a `BREAKING CHANGE:` footer, section 17 | 300, plus about 150 of test and doc churn | none (parallel) | D3 |
