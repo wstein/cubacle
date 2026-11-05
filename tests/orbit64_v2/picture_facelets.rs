@@ -6,9 +6,11 @@
 
 use cubacle::notation::orbit64::v2::facelets::{decode, encode, from_facelets, to_facelets};
 use cubacle::notation::orbit64::v2::{entries, entry, Cube, Model, Pose};
+use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 
 const ROWS: &str = include_str!("../fixtures/orbit64_v2_picture_facelets.txt");
+const PROVENANCE: &str = include_str!("../fixtures/orbit64_v2_picture_facelets.provenance");
 const SLOTS: &str = include_str!("../fixtures/orbit64_v2_slots.txt");
 
 /// The solved 3x3x3 as written in `FORMAT-V2.md`, "Picture facelets".
@@ -66,6 +68,30 @@ pub(super) fn solved(n: usize) -> &'static str {
         .find(|r| r.id == 4 * (n - 2) && r.moves.is_empty())
         .unwrap()
         .facelets
+}
+
+/// The recorded value of a key in the provenance file.
+fn recorded(key: &str) -> &'static str {
+    PROVENANCE
+        .lines()
+        .find_map(|line| line.strip_prefix(key)?.strip_prefix('='))
+        .unwrap_or_else(|| panic!("no {key} in the provenance file"))
+}
+
+#[test]
+fn the_fixture_is_the_recorded_output() {
+    // The bytes the generator wrote from the Flix file named there, at that commit.
+    let found: String = Sha256::digest(ROWS.as_bytes())
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect();
+    assert_eq!(
+        found,
+        recorded("output_sha256"),
+        "regenerate per the Julia tool"
+    );
+    assert_eq!(recorded("flix_commit").len(), 40);
+    assert_eq!(recorded("input_sha256").len(), 64);
 }
 
 #[test]
