@@ -24,6 +24,13 @@
 //! fixed centers of an odd cube, the DBL corner of an even one), so it accepts
 //! any whole-cube orientation. A framed read of an odd cube keeps the
 //! orientation as `Cube::frame`; of an even cube it stays in the corners.
+//!
+//! Both poses are about the orientation of the puzzle, a part of its state, and
+//! not about a camera or a display: the canonical pose normalizes the whole-cube
+//! orientation away (picture strings of rotated cubes give one state), the framed
+//! pose preserves it (the same cube in two orientations gives two states). The
+//! facelet string says which sticker sits where on the six faces, never from
+//! where it is viewed.
 
 use super::cube::{is_odd, Cube};
 use super::geometry::{rotate, rotate_picture, unrotate, FRAME_COUNT, FRAME_FACES};
