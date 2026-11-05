@@ -1,0 +1,284 @@
+#!/usr/bin/env python3
+"""Differential harness for the Orbit64 V2 picture facelet reader.
+
+It compares the Rust reader of this repository with the Flix reference
+(`Orbit64.V2.Facelets.encode` and `decode` of wstein/flix-orbit64) on mutated
+picture facelet strings. The mutations are drawn from the vectors of
+`tests/fixtures/orbit64_v2_picture_facelets.txt` by a fixed seed, so a run
+is the same on every machine.
+
+Per case the harness records one line, `index|ok|token|facelets` when `encode`
+accepts the string and `decode` of that token answers `facelets`, or
+`index|err|text` with the error text of the failing call. Characters outside
+ASCII are written as `?` on both sides, as Flix stdout may lose them.
+
+  cases   --seed S --count N            write the cases (`index|entry|facelets`)
+  compare RUST_OUT FLIX_OUT             exit 1 on the first differing line
+  run     --seed S --count N [--flix-dir DIR]
+                                         Rust always; Flix only with --flix-dir
+                                         (a flix-orbit64 checkout, needs Java)
+  check-sample                          the committed sample is the output of
+                                         `cases --seed 1 --count 200`
+  provenance FLIX_DIR                    the fixture's recorded origin is true
+
+Needs only the Python standard library. `run` without `--flix-dir` and
+`check-sample` need no Flix and no network. The full comparison is
+`run --seed 1 --count 9456 --flix-dir PATH/TO/flix-orbit64`; it is not part of
+any automatic check.
+"""
+import argparse
+import hashlib
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FIXTURES = os.path.join(ROOT, "tests", "fixtures")
+PICTURES = os.path.join(FIXTURES, "orbit64_v2_picture_facelets.txt")
+SLOTS = os.path.join(FIXTURES, "orbit64_v2_slots.txt")
+SAMPLE = os.path.join(FIXTURES, "orbit64_v2_picture_diff_cases.txt")
+PROVENANCE = os.path.join(FIXTURES, "orbit64_v2_picture_facelets.provenance")
+ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+BAD = "#@*?!$%&"
+KINDS = 10
+SAMPLE_SEED, SAMPLE_COUNT = 1, 200
+
+
+class Lcg:
+    """The generator of tests/orbit64_v2/picture_errors.rs, so seeds are portable."""
+
+    def __init__(self, seed):
+        self.state = seed & (2**64 - 1)
+
+    def next(self, bound):
+        self.state = (self.state * 6364136223846793005 + 1442695040888963407) & (2**64 - 1)
+        return (self.state >> 33) % bound
+
+
+def data_lines(path):
+    with open(path, encoding="utf-8") as f:
+        return [l.rstrip("\n") for l in f if l.strip() and not l.startswith("#")]
+
+
+def rows():
+    out = []
+    for line in data_lines(PICTURES):
+        id_, _moves, facelets, _token, _canon = line.split("|")
+        out.append((int(id_), facelets))
+    return out
+
+
+def slots():
+    table = {}
+    for line in data_lines(SLOTS):
+        n, label, facelets = line.split("|")
+        table[(int(n), label)] = [int(x) for x in facelets.split(" ")]
+    return table
+
+
+def size_of(facelets):
+    return round((len(facelets.replace(" ", "")) / 6) ** 0.5)
+
+
+def spaced(symbols, n):
+    step = n * n
+    return " ".join("".join(symbols[i:i + step]) for i in range(0, len(symbols), step))
+
+
+def make_case(rng, index, base, table):
+    id_, facelets = base
+    n = size_of(facelets)
+    s = list(facelets.replace(" ", ""))
+    i, j = rng.next(len(s)), rng.next(len(s))
+    kind = index % KINDS
+    if kind == 0:
+        s[i], s[j] = s[j], s[i]
+    elif kind == 1:
+        s[i] = s[j]
+    elif kind == 2:
+        s[i] = ALPHABET[rng.next(64)]
+    elif kind in (3, 4):
+        corners = sorted(l for (m, l) in table if m == n and l[0] in "CM")
+        a = table[(n, corners[rng.next(len(corners))])]
+        if kind == 3:  # a slot cycled: the piece twisted in place
+            old = [s[x] for x in a]
+            for k, x in enumerate(a):
+                s[x] = old[(k + 1) % len(a)]
+        else:  # two slots of the same length exchanged
+            same = [table[(n, l)] for l in corners if len(table[(n, l)]) == len(a)]
+            b = same[rng.next(len(same))]
+            for x, y in zip(a, b):
+                s[x], s[y] = s[y], s[x]
+    elif kind == 5:
+        s = s[:i]
+    elif kind == 6:
+        s.insert(i, ALPHABET[rng.next(64)])
+    elif kind == 7:
+        s[i] = BAD[rng.next(len(BAD))]
+    elif kind == 8:  # spaces are ignored by the reader
+        text = spaced(s, n)
+        cut = rng.next(len(text))
+        return id_, text[:cut] + " " * (1 + rng.next(3)) + text[cut:]
+    return id_, spaced(s, n)  # kind 9 keeps the vector as it is
+
+
+def make_cases(seed, count):
+    rng, table, base = Lcg(seed), slots(), rows()
+    return [make_case(rng, i, base[rng.next(len(base))], table) for i in range(count)]
+
+
+def cases_text(seed, count):
+    lines = [
+        "# Orbit64 V2 picture facelet cases: index | entry id | facelets.",
+        f"# Generated by tools/orbit64_v2_picture_diff.py cases --seed {seed} --count {count};",
+        "# mutations of tests/fixtures/orbit64_v2_picture_facelets.txt; do not edit by hand.",
+    ]
+    for i, (id_, text) in enumerate(make_cases(seed, count)):
+        lines.append(f"{i}|{id_}|{text}")
+    return "\n".join(lines) + "\n"
+
+
+def read_cases(path):
+    return [l.split("|", 2) for l in data_lines(path)]
+
+
+def ascii_only(text):
+    return "".join(c if ord(c) < 128 else "?" for c in text)
+
+
+def compare(rust_path, flix_path):
+    rust = [ascii_only(l) for l in data_lines(rust_path)]
+    flix = [ascii_only(l) for l in data_lines(flix_path)]
+    bad = 0
+    for k in range(max(len(rust), len(flix))):
+        a = rust[k] if k < len(rust) else "<missing>"
+        b = flix[k] if k < len(flix) else "<missing>"
+        if a != b:
+            bad += 1
+            if bad <= 5:
+                print(f"differs at line {k}:\n  rust: {a}\n  flix: {b}", file=sys.stderr)
+    print(f"compared {max(len(rust), len(flix))} cases: {bad} disagreements")
+    return 1 if bad else 0
+
+
+def run_rust(cases_path, out_path):
+    env = dict(os.environ, ORBIT64_PICTURE_DIFF_CASES=cases_path, ORBIT64_PICTURE_DIFF_OUT=out_path)
+    subprocess.run(
+        ["cargo", "test", "--release", "--test", "orbit64_v2_test", "picture_diff", "--", "--exact",
+         "picture_diff::the_reader_answers_every_case"],
+        cwd=ROOT, env=env, check=True)
+
+
+FLIX_MAIN = """
+def answer(i: Int32, id: Int32, text: String): String =
+    match Orbit64.V2.Facelets.encode(id, text) {
+        case Err(why) => "${i}|err|${why}"
+        case Ok(token) => match Orbit64.V2.Facelets.decode(token) {
+            case Ok((_, back)) => "${i}|ok|${token}|${back}"
+            case Err(why) => "${i}|err|${why}"
+        }
+    }
+
+def main(): Unit \\ IO =
+    PictureDiffCases.cases() |> List.forEach(match (i, id, text) -> println(answer(i, id, text)))
+
+mod PictureDiffCases {
+    pub def cases(): List[(Int32, Int32, String)] =
+%s
+        Nil
+}
+"""
+
+
+def run_flix(cases, flix_dir, out_path):
+    """Runs the reference in a copy of the checkout; the checkout stays untouched."""
+    with tempfile.TemporaryDirectory() as tmp:
+        work = os.path.join(tmp, "flix-orbit64")
+        shutil.copytree(flix_dir, work, ignore=shutil.ignore_patterns(".git"))
+        items = "\n".join(f'        ({i}, {id_}, "{text}") :: ' for i, id_, text in cases)
+        with open(os.path.join(work, "src", "PictureDiffMain.flix"), "w", encoding="utf-8") as f:
+            f.write(FLIX_MAIN % items)
+        done = subprocess.run([os.path.join(work, "flixw"), "run"], cwd=work, capture_output=True,
+                              text=True, encoding="utf-8", errors="replace")
+        if done.returncode != 0:
+            sys.exit(f"flixw run failed:\n{done.stderr}")
+        with open(out_path, "w", encoding="utf-8") as f:
+            f.write(done.stdout)
+
+
+def sha256(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def provenance_record():
+    record = {}
+    for line in data_lines(PROVENANCE):
+        key, _, value = line.partition("=")
+        record[key] = value
+    return record
+
+
+def check_provenance(flix_dir):
+    record = provenance_record()
+    commit = record["flix_commit"]
+    with open(PICTURES, "rb") as f:
+        output = sha256(f.read())
+    shown = subprocess.run(["git", "-C", flix_dir, "show", f"{commit}:{record['input_path']}"],
+                           capture_output=True, check=True).stdout
+    problems = []
+    if sha256(shown) != record["input_sha256"]:
+        problems.append(f"input sha256 is {sha256(shown)}, recorded {record['input_sha256']}")
+    if output != record["output_sha256"]:
+        problems.append(f"fixture sha256 is {output}, recorded {record['output_sha256']}")
+    for p in problems:
+        print(p, file=sys.stderr)
+    print("provenance:", "differs" if problems else "ok")
+    return 1 if problems else 0
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    for name in ("cases", "run"):
+        p = sub.add_parser(name)
+        p.add_argument("--seed", type=int, default=SAMPLE_SEED)
+        p.add_argument("--count", type=int, default=SAMPLE_COUNT)
+        if name == "run":
+            p.add_argument("--flix-dir")
+    p = sub.add_parser("compare")
+    p.add_argument("rust_out")
+    p.add_argument("flix_out")
+    sub.add_parser("check-sample")
+    p = sub.add_parser("provenance")
+    p.add_argument("flix_dir")
+    args = ap.parse_args()
+    if args.cmd == "cases":
+        sys.stdout.write(cases_text(args.seed, args.count))
+    elif args.cmd == "compare":
+        sys.exit(compare(args.rust_out, args.flix_out))
+    elif args.cmd == "check-sample":
+        with open(SAMPLE, encoding="utf-8") as f:
+            same = f.read() == cases_text(SAMPLE_SEED, SAMPLE_COUNT)
+        print("sample:", "ok" if same else "differs from the generator")
+        sys.exit(0 if same else 1)
+    elif args.cmd == "provenance":
+        sys.exit(check_provenance(args.flix_dir))
+    else:
+        with tempfile.TemporaryDirectory() as tmp:
+            cases_path = os.path.join(tmp, "cases.txt")
+            rust_out = os.path.join(tmp, "rust.txt")
+            with open(cases_path, "w", encoding="utf-8") as f:
+                f.write(cases_text(args.seed, args.count))
+            run_rust(cases_path, rust_out)
+            if not args.flix_dir:
+                print("flix: not run (no --flix-dir); Rust answers are in", rust_out)
+                return
+            flix_out = os.path.join(tmp, "flix.txt")
+            run_flix([(int(i), int(e), t) for i, e, t in read_cases(cases_path)], args.flix_dir, flix_out)
+            sys.exit(compare(rust_out, flix_out))
+
+
+if __name__ == "__main__":
+    main()
