@@ -77,7 +77,7 @@ change pass; a change that alters solver output needs an explicit decision.
 - Compute-heavy work never runs on async threads in the server.
 - The server is stateless and binds to `127.0.0.1` by default.
 
-## Documentation and notes
+## Documentation
 
 - Describe verified behavior only; run the commands you document.
 - Write American English everywhere: texts, docs, notes, comments, identifiers, JSON
