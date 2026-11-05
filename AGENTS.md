@@ -10,8 +10,11 @@ sizes planned), with a lightweight CLI and a stateless REST backend
 
 ## Git
 
-- Agent collaboration (roles, review, Ready, merge, rewrite, stacks, labels, identity, reports) follows the global agent rules, not this file.
-- History is linear; no merge commits. `develop` is the default branch. `main` mirrors the upstream repository (`cs0x7f/min2phase_rust`); do not commit to it.
+- Agent collaboration (roles, review, Ready, merge, rewrite, stacks, labels, identity,
+  reports) follows the global agent rules, not this file.
+- History is linear. Merge: rebase and merge only (the owner merges). `develop` is the
+  default branch. `main` mirrors the upstream repository (`cs0x7f/min2phase_rust`); do
+  not commit to it.
 - Commits are conventional (`feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `build`,
   `ci`, `chore`; `!` for breaking changes), atomic and focused: one concern per commit,
   the branch builds and passes the checks on its final tree (see Checks).

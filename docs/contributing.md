@@ -8,7 +8,7 @@ weight: 7
 
 ## Workflow
 
-- Work on `develop` or on a short-lived branch from it. `main` mirrors the upstream repository; do not commit to it.
+- `develop` is the default branch. `main` mirrors the upstream repository; do not commit to it.
 - Write commit messages in the [Conventional Commits](https://www.conventionalcommits.org/) format, for example `fix(server): bound shutdown` or `docs: add CLI guide`.
 - Keep each commit atomic: one logical change per commit.
 
