@@ -1,0 +1,7 @@
+# Origin of tests/fixtures/orbit64_v2_picture_facelets.txt. Checked by the test
+# `the_fixture_is_the_recorded_output` and by `tools/orbit64_v2_picture_diff.py provenance`.
+flix_repository=https://github.com/wstein/flix-orbit64
+flix_commit=a046e34adcdc212a69ce3dcc24b2e47b7fabfbe5
+input_path=test/TestV2FaceletPictureData.flix
+input_sha256=1fc5373a4fd5c56480846fe80a19d7de22eb9963b1430b08d9a7e7736624133b
+output_sha256=a2c1417639fb10038e3978ae597e8cf975a2955b31188a31944244d396182e92
