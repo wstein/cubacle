@@ -6,9 +6,7 @@ Rules for anyone, human or automated, who changes this repository.
 
 cubacle is a solver and generator for Rubik's cubes (2x2, 3x3, 4x4 and 5x5 now, other
 sizes planned), with a lightweight CLI and a stateless REST backend
-(`crates/server`). Documentation is in `docs/` (Hugo, published from `develop`);
-decision notes are in `notes/` (ChartScribe format) and are raw material, not
-user documentation.
+(`crates/server`). Documentation is in `docs/` (Hugo, published from `develop`).
 
 ## Git
 
@@ -47,8 +45,8 @@ cargo test --workspace --release
   staged: use `git commit --fixup <commit>` and `git rebase -i --autosquash` for them.
   Only for commits that are not pushed yet. Use `git bisect` only when that fails: every bisect step
   starts the slow compiler again.
-- A branch that changes only `docs/`, `notes/`, `*.md` or CI files skips clippy and the
-  tests; it still passes `fmt --check`, `typos` and, for notes, `cscribe validate`.
+- A branch that changes only `docs/`, `*.md` or CI files skips clippy and the
+  tests; it still passes `fmt --check` and `typos`.
 - Several finished branches may be rebased and merged one after the other and checked
   together: run the full suite once on the merged tree before pushing. A longer stack
   costs only a few more test runs, not one per commit.
@@ -87,7 +85,6 @@ change pass; a change that alters solver output needs an explicit decision.
   license, labeled). British spellings are mistakes. Rename without alias or fallback;
   the project is alpha, breaking is fine. `tests/fixtures` stay untouched except where
   the owner orders a change.
-- Notes stay short, one idea each. Check whether docs pages need updating when notes change.
 
 ## License
 

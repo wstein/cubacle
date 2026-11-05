@@ -75,8 +75,7 @@ reads colors, not pieces, so no representative has to be picked:
 
 - **Wings.** Orbit64 reads a wing from the ordered pair of colors in its slot
   (reference sticker first), one table of 24 wings per depth, so wings are not
-  ambiguous and a wing of one depth never trades with another. This agrees with
-  the note "Equal pieces are matched fixed points first".
+  ambiguous and a wing of one depth never trades with another.
 - **Centers.** An orbit of 24 centers holds each color four times and is stored
   as five combination ranks of colors. Swapping two same-colored centers does not
   change the token.

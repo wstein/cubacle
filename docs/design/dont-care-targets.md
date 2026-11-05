@@ -8,8 +8,7 @@ weight: 40
 
 Status: the eight decisions below were approved by the owner on 2026-10-24 as recommended; the first release is partly built, see section 11 for what is done and what is not. Numbers marked
 **[E]** are estimates, not measurements; numbers marked **[M]** were run for this
-paper. Only ideas from the study of a GPL sticker solver were used (see the note
-"A study of stickersolve shows what to adopt and what not"); no code or text.
+paper. Only ideas from the study of a GPL sticker solver were used; no code or text.
 
 ## 1. Goal and user stories
 
@@ -47,8 +46,7 @@ optimal solutions on sizes where the engine is not optimal today.
 
 ## 2. Input syntax
 
-Decided (notes "Don't-care stickers are written X or named as a subset" and
-"A partial target is a map from slots to allowed colors"): `X` marks a sticker
+Decided: `X` marks a sticker
 that does not matter; `?` is accepted on input and `X` is written back; only
 uppercase `X` counts because lowercase `x` is the cube rotation; an Orbit64 token
 cannot express it. Today both are rejected [M]:
@@ -103,7 +101,7 @@ the set. The start is never greyed.
 
 ### Why `T^-1 * S` no longer works
 
-The relative-state method (note "A target is solved as a relative state") gives
+The relative-state method gives
 each sticker the identity of its place on the solved cube, builds `R = T^-1 S` and
 solves `R` as an ordinary cube. It needs `T` to be one definite permutation. A
 partial target is a *set* of definite targets `{T_1 .. T_n}` (its completions).
@@ -138,7 +136,7 @@ tables over the slots that have a cared sticker, and each table is seeded from
 *every* allowed assignment so the bound never exceeds the true distance
 (admissible). A table is the distance to the nearest allowed state of a projection
 (a subset of pieces); with the "layer set projection" idea of the pattern engine
-(note "Pattern states are projections onto layer sets") the projection of a
+the projection of a
 partial target onto the pieces it cares about is again a smaller cube. With nothing
 cared there is nothing to look up: the bound is zero, which is correct and slow,
 so such a search takes a depth and node limit and says so.
@@ -188,7 +186,7 @@ only where the table above says yes, "best found in N nodes" otherwise.
   engine, from `solve` start-up output [M]) are reused.
 - 5x5 and above: only stage goals, using the existing tables and the 5x5 cache.
 - Memory: every table respects the 1.5 GB cap (project figure; the 5x5 is already
-  above its target, see note "5x5 memory above target"). Per-target tables are
+  above its target). Per-target tables are
   built under a hard budget; exceeding it falls back to a looser bound, never to
   an allocation failure.
 
@@ -200,8 +198,7 @@ only where the table above says yes, "best found in N nodes" otherwise.
   *shorter* answer than a complete target would; it is never a way to get a longer
   one. Where a route gives more than one answer, the shortest wins.
 - **Fingertrick ranking.** Only orders solutions of the shortest length, after the
-  search (note "Fingertrick ranking only orders solutions of the shortest
-  length"). Partial targets have many more equal-length solutions, so ranking
+  search. Partial targets have many more equal-length solutions, so ranking
   gains more here, but it comes after enumeration and changes nothing in this
   design.
 - **`--moves` and `--all`** (restricted move sets and enumeration of all
