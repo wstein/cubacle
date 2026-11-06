@@ -216,3 +216,60 @@ fn neighbors_of_a_range_are_not_tokens_of_the_entry() {
     end.sub(&Big::one());
     assert_eq!(decode(&end.to_base64(4).unwrap()).map(|(e, _)| e.id), Ok(0));
 }
+
+mod center_twists {
+    use super::super::facelets::{from_facelets, to_facelets};
+    use super::*;
+    use crate::puzzle::{CenterTwists, Face, PuzzleKind};
+
+    fn twisted(n: usize, rotations: [usize; 6]) -> Cube {
+        let mut cube = Cube::solved(n, Model::Picture).unwrap();
+        cube.rotations = rotations.to_vec();
+        cube
+    }
+
+    #[test]
+    fn a_solved_odd_picture_cube_reads_as_untwisted() {
+        for n in [3, 5, 7] {
+            let cube = Cube::solved(n, Model::Picture).unwrap();
+            let kind = PuzzleKind::of_size(n).unwrap();
+            assert_eq!(cube.center_twists(n), CenterTwists::untwisted(kind));
+        }
+    }
+
+    #[test]
+    fn the_rotations_become_twists_in_urfdlb_order() {
+        let twists = twisted(5, [1, 0, 3, 2, 0, 2]).center_twists(5).unwrap();
+        let seen: Vec<u8> = Face::ALL.into_iter().map(|f| twists.twist(f)).collect();
+        assert_eq!(seen, [1, 0, 3, 2, 0, 2]);
+        assert_eq!(twists.kind(), PuzzleKind::Cube5);
+    }
+
+    #[test]
+    fn a_picture_string_with_a_turned_center_gives_that_twist() {
+        let cube = twisted(3, [0, 0, 1, 0, 0, 1]);
+        let text = to_facelets(3, Model::Picture, Pose::Canonical, &cube).unwrap();
+        let read = from_facelets(3, Model::Picture, Pose::Canonical, &text).unwrap();
+        let twists = read.center_twists(3).unwrap();
+        assert_eq!(twists.twist(Face::F), 1);
+        assert_eq!(twists.twist(Face::B), 1);
+        assert_eq!(twists.twist(Face::U), 0);
+    }
+
+    #[test]
+    fn states_without_fixed_center_twists_give_none() {
+        let color = Cube::solved(3, Model::Color).unwrap();
+        assert_eq!(color.center_twists(3), None);
+        for n in [2, 4, 6] {
+            let cube = Cube::solved(n, Model::Picture).unwrap();
+            assert_eq!(cube.center_twists(n), None);
+        }
+        // a size without a PuzzleKind
+        assert_eq!(
+            Cube::solved(9, Model::Picture).unwrap().center_twists(9),
+            None
+        );
+        // a twist the format does not allow
+        assert_eq!(twisted(3, [4, 0, 0, 0, 0, 0]).center_twists(3), None);
+    }
+}
