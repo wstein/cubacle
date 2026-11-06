@@ -188,3 +188,5 @@ cargo test --workspace --release
 ## HTTP server
 
 `crates/server` holds `cubacle-server`, a stateless REST backend (solve, convert, scramble, random) for the 2x2x2, 3x3x3, 4x4x4 and 5x5x5. See [crates/server/README.md](crates/server/README.md).
+
+`crates/wasm` holds `cubacle-wasm`, a browser WebAssembly facade for the 2x2x2 and 3x3x3 and the G1 size/time/memory measurement. See [docs/wasm.md](docs/wasm.md).

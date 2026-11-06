@@ -1,0 +1,23 @@
+[package]
+name = "cubacle-wasm"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.95"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Browser WebAssembly facade of the cubacle 2x2x2 and 3x3x3 solvers (gate G1 measurement)"
+
+[lib]
+name = "cubacle_wasm"
+path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+cubacle = { path = "../..", default-features = false }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+# Only to name the error type of the custom backend (see `.cargo/config.toml`).
+getrandom = "0.4"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(getrandom_backend, values("custom"))'] }
