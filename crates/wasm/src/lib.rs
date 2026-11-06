@@ -7,11 +7,11 @@
 //! (a length, one status byte, then UTF-8 text), and release both buffers with
 //! [`cubacle_free`].
 //!
-//! The one host import is `cubacle_host_random` (module `env`), which fills a
-//! buffer with random bytes; the dependency `getrandom` needs it. The solvers
-//! read the clock through `std::time::Instant`, which the
-//! `wasm32-unknown-unknown` target does not implement; the clock calls in the
-//! engines are the measured blocker described in `docs/wasm.md`.
+//! The module imports two functions from `env`. `cubacle_host_random` fills a
+//! buffer with random bytes; the dependency `getrandom` needs it.
+//! `cubacle_host_now` returns the clock in milliseconds; the solvers read it
+//! through `cubacle::puzzle::Instant`, because `std::time::Instant` panics on
+//! `wasm32-unknown-unknown`. See `docs/wasm.md`.
 
 use cubacle::engines::three::Min2PhaseSolver;
 use cubacle::engines::two::PocketSolver;
