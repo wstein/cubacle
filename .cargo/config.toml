@@ -1,2 +1,7 @@
 [alias]
 xtask = "run --release --package xtask --"
+
+# The browser target has no operating system: `getrandom` takes its bytes from
+# the host import `cubacle_host_random` (crates/wasm).
+[target.wasm32-unknown-unknown]
+rustflags = ["--cfg", "getrandom_backend=\"custom\""]

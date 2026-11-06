@@ -41,6 +41,7 @@ src/
                   injected 3x3x3 Solver
   main.rs         the cubacle command line
 crates/server/    the cubacle-server HTTP backend
+crates/wasm/      the cubacle-wasm browser WebAssembly facade (2x2x2 and 3x3x3)
 ```
 
 ## Dependency rules
