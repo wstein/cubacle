@@ -63,7 +63,7 @@ Commands, from the repository root (`playwright-core` is not a dependency of thi
 node tools/wasm/browser.mjs target/wasm32-unknown-unknown/release/cubacle_wasm.wasm <path to playwright-core>
 ```
 
-Setup: the module built from revision `1ac33d5` (162,079 bytes, the same size as above), Playwright 1.64.1, headless Chromium 156.0.8078.4, the same machine as above. The page is served from `127.0.0.1` with cross-origin isolation (timer resolution about 5 microseconds). Each of the 7 runs uses a new browser context; the module is fetched with `WebAssembly.compileStreaming`. Three runs of the command; the ranges are the lowest and highest of the three medians. Every answer equals the golden file.
+Setup: the module built from revision `6ab5dba` of `develop` (tree equal to the former `1ac33d5`; 162,079 bytes, the same size as above), Playwright 1.64.1, headless Chromium 156.0.8078.4, the same machine as above. The page is served from `127.0.0.1` with cross-origin isolation (timer resolution about 5 microseconds). Each of the 7 runs uses a new browser context; the module is fetched with `WebAssembly.compileStreaming`. Three runs of the command; the ranges are the lowest and highest of the three medians. Every answer equals the golden file.
 
 | Quantity | Result |
 | --- | --- |
@@ -80,7 +80,7 @@ The first 3x3x3 solve takes about 21 ms longer in Chromium than in Node (53.6 to
 
 ## Comparison with the current Cubing.js bundles
 
-The consuming project is [Cubistry](https://github.com/wstein/cubistry). Revision `fb19f8f17b6d28c359280ddfa285c9585d8c8ac2` (`origin/main`; its previous revision `09d865a` does not build, because its Vite configuration uses the object form of `manualChunks`). Cubing.js 0.66.1. Build, in a scratch copy of `git archive`, with Node v22.23.4 (the project asks for Node 24 or newer; `npm` printed an engine warning and the build succeeded):
+The consuming project is [Cubistry](https://github.com/wstein/cubistry). Revision `fb19f8f17b6d28c359280ddfa285c9585d8c8ac2` (`origin/main`). Revision `09d865a`, 29 commits earlier, did not build in the same way (Vite 8 reported `manualChunks is not a function`, because its configuration uses the object form); the parent of `fb19f8f` was not built. Cubing.js 0.66.1. Build, in a scratch copy of `git archive`, with Node v22.23.4 (the project asks for Node 24 or newer; `npm` printed an engine warning and the build succeeded):
 
 ```sh
 node scripts/prepare-puzlwerk.mjs && node scripts/prepare-puzlwerk.mjs --picture
@@ -89,17 +89,25 @@ npm run build
 node tools/wasm/bundle-size.mjs <scratch copy>/dist/assets '^calendar-solver-vendor-.*\.js$'
 ```
 
-The build output has two Calendar vendor bundles (one per worker). The WebAssembly module of Cubing.js (the twips solver) is not a separate file: it is embedded as base64 text in each bundle and measured here after decoding.
+The build output has two Calendar vendor bundles (one per worker). Reading the installed Cubing.js 0.66.1 source (`node_modules/cubing/dist/lib/cubing/chunks`) shows two different solvers:
+
+- 3x3x3: `solve333` calls a JavaScript solver, `solvePattern` of the chunk `search-dynamic-solve-3x3x3-*.js`, whose header names its source `src/cubing/vendor/mit/cs0x7f/min2phase/3x3x3-min2phase.ts`. It is plain JavaScript inside both vendor bundles (`solvePattern` is found in each). Its size inside a bundle is UNKNOWN, because the bundles are minified and have no boundary for it. The unbundled npm chunk is 64,588 bytes raw, 13,770 gzip, 12,223 brotli (a different, unminified form; `tools/wasm/bundle-size.mjs` on that directory).
+- 2x2x2: `solve222` runs the twips WebAssembly module (`wasmTwips`, generators U, F, L, R). The module is not a separate file in the build: it is embedded as base64 text in each vendor bundle and measured here after decoding. It is loaded lazily on its first use.
 
 | File | Raw | gzip (level 9) | brotli (quality 11) |
 | --- | --- | --- | --- |
 | Vendor bundle `calendar-solver-vendor-BkB0rmtE.js` | 1,233,958 | 337,874 | 277,564 |
 | Vendor bundle `calendar-solver-vendor-CNbo6oql.js` | 1,256,504 | 344,378 | 282,937 |
 | Both vendor bundles | 2,490,462 | 682,252 | 560,501 |
-| Embedded twips module (identical in both, 670,540 base64 characters) | 502,904 | 152,781 | 126,646 |
+| Embedded twips module, used for the 2x2x2 only (identical in both, 670,540 base64 characters) | 502,904 | 152,781 | 126,646 |
 | `cubacle_wasm.wasm` (for comparison) | 162,079 | 61,134 | 50,241 |
 
-The cubacle module is 32 percent of the twips module and 13 percent of one vendor bundle by raw size (40 and 18 percent by gzip and by brotli, against the module and one bundle respectively). The comparison is not like for like: a vendor bundle is the whole vendor chunk of a worker, not only the solver code, and the contents of the twips module beyond the 2x2x2 and 3x3x3 solvers were not inspected. The cubacle module solves only the 2x2x2 and 3x3x3 and offers no pattern or transformation interface. The memory of Cubing.js was not measured (UNKNOWN).
+The cubacle module solves the 2x2x2 and the 3x3x3. Against the two parts of Cubing.js it stands as follows:
+
+- (a) Against a whole vendor bundle, an upper bound for the Cubing.js code of one worker (the bundle holds more than the solvers): 13 percent by raw size (162,079 of 1,233,958 or 1,256,504 bytes), 18 percent by gzip and by brotli.
+- (b) Against the twips module, which serves the 2x2x2 only: 32 percent raw, 40 percent by gzip and by brotli. The cubacle figure covers both sizes; the 3x3x3 part of Cubing.js is the JavaScript solver above, whose size inside a bundle is UNKNOWN, so no size ratio of the two 3x3x3 solvers is given.
+
+Cubing.js offers more than a solve call (patterns and transformations as a KPuzzle interface); the cubacle module has none. The memory of Cubing.js was not measured (UNKNOWN).
 
 Time and move count, from the 24 golden scrambles:
 
@@ -107,7 +115,7 @@ Time and move count, from the 24 golden scrambles:
 node tools/wasm/cubing-moves.mjs <scratch copy> 5
 ```
 
-Cubing.js calls `experimentalSolve3x3x3IgnoringCenters` and `experimentalSolve2x2x2` in Node v22.23.4 (the library chooses its search and worker); 5 rounds, so 59 later calls per size; three runs, ranges over the three runs. Every solution, applied to its scramble, gives a solved cube with whole-cube rotation and center orientation ignored. The target definitions of the two solvers were not compared.
+Cubing.js calls `experimentalSolve3x3x3IgnoringCenters` and `experimentalSolve2x2x2` in Node v22.23.4 (the library chooses its search and worker); 5 rounds, so 59 later calls per size; three runs, ranges over the three runs. Every solution of every round (120 per run), applied to its scramble, gives a solved cube with whole-cube rotation and center orientation ignored. The target definitions of the two solvers were not compared.
 
 | Quantity | Cubing.js | cubacle (this module) |
 | --- | --- | --- |
@@ -118,7 +126,7 @@ Cubing.js calls `experimentalSolve3x3x3IgnoringCenters` and `experimentalSolve2x
 | 3x3x3, later calls, Node | median 4.39 to 4.59 ms, p90 13.3 ms, maximum 14.3 to 14.6 ms | median 0.199 to 0.203 ms, p90 0.473 to 0.477 ms |
 | 2x2x2, later calls, Node | median 2.44 to 2.47 ms, p90 3.8 to 3.9 ms, maximum 9.8 to 10.9 ms | median 0.004 to 0.005 ms, p90 0.005 ms |
 
-The cubacle 3x3x3 answers are 0.33 moves longer on average than those of Cubing.js on these 12 scrambles. Cubing.js starts faster on the 2x2x2, because cubacle builds its tables on the first solve (about 93 ms in Node, 109 ms in Chromium). Cubing.js times include the library's own call overhead and, for the first call, its lazy loading; cubacle times are the `cubacle_solve` call only. This is a hint for gate G2, not a parity result.
+The cubacle 3x3x3 answers are 0.33 moves longer on average than those of Cubing.js on these 12 scrambles. Cubing.js is faster on the first 2x2x2 call (16.6 to 20.3 ms against 92.7 to 94.2 ms): cubacle builds its tables on the first solve (about 93 ms in Node, 109 ms in Chromium). That Cubing.js call comes after the 3x3x3 calls, so its worker already runs; the lazy load of the twips module falls into this call. Cubing.js times include the library's own call overhead and, for the first call, its lazy loading; cubacle times are the `cubacle_solve` call only. This is a hint for gate G2, not a parity result.
 
 ## What this does not show
 
