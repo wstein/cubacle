@@ -1,18 +1,35 @@
 version: 2
 updates:
-  # One workspace lockfile covers the root crate and crates/server.
+  # One workspace lockfile covers the root crate, crates/server and xtask.
   - package-ecosystem: cargo
     directory: /
     schedule:
       interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: build(deps)
+      prefix-development: build(deps-dev)
     groups:
+      cargo-dev:
+        dependency-type: development
+        update-types: [minor, patch]
       cargo:
-        patterns: ["*"]
+        dependency-type: production
+        update-types: [minor, patch]
   # Actions are pinned by commit SHA with a version comment; Dependabot keeps both current.
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: build(deps)
     groups:
       actions:
         patterns: ["*"]
