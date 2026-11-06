@@ -4,9 +4,10 @@
 //   node tools/wasm/cubing-moves.mjs <checkout with node_modules/cubing> [rounds]
 //
 // 3x3x3: experimentalSolve3x3x3IgnoringCenters; 2x2x2: experimentalSolve2x2x2.
-// Moves are counted as written (R2 is one move). Every solution is applied to
-// its scramble and must give a solved cube (whole-cube rotation and center
-// orientation ignored); otherwise the script exits 1. Times are per call in
+// Moves are counted as written (R2 is one move). Every solution of every round
+// is applied to its scramble and must give a solved cube (whole-cube rotation
+// and center orientation ignored); otherwise the script exits 1. A missing
+// argument or a rounds value that is not a positive integer exits 2. Times are per call in
 // Node, including the library's own overhead; "first" is the first call of
 // each size in this process.
 import fs from 'node:fs';
@@ -15,7 +16,7 @@ import { pathToFileURL } from 'node:url';
 
 const root = process.argv[2];
 const rounds = Number(process.argv[3] ?? 5);
-if (!root) {
+if (!root || !Number.isInteger(rounds) || rounds < 1) {
   console.error('usage: node tools/wasm/cubing-moves.mjs <checkout with node_modules/cubing> [rounds]');
   process.exit(2);
 }
@@ -52,10 +53,8 @@ for (const size of [3, 2]) {
       const millis = performance.now() - started;
       if (r === 0 && i === 0) first = millis;
       else times.push(millis);
-      if (r === 0) {
-        lengths.push([...solution.childAlgNodes()].length);
-        if (!pattern.applyAlg(solution).experimentalIsSolved({ ignorePuzzleOrientation: true, ignoreCenterOrientation: true })) unsolved++;
-      }
+      if (r === 0) lengths.push([...solution.childAlgNodes()].length);
+      if (!pattern.applyAlg(solution).experimentalIsSolved({ ignorePuzzleOrientation: true, ignoreCenterOrientation: true })) unsolved++;
     }
   }
   out[`${size}x${size}`] = {
@@ -66,6 +65,7 @@ for (const size of [3, 2]) {
     later_calls: { n: times.length, median_ms: round(percentile(times, 50)), p90_ms: round(percentile(times, 90)), max_ms: round(Math.max(...times)) },
   };
 }
+out.solutions_checked = rounds * lines.length;
 out.unsolved = unsolved;
 console.log(JSON.stringify(out, null, 2));
 process.exit(unsolved === 0 ? 0 : 1);

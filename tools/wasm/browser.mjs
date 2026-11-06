@@ -8,7 +8,9 @@
 // resolution), then loads a fresh page per cold run and prints one JSON object:
 // compile (`WebAssembly.compileStreaming`), instantiate, first solve per size,
 // warm time per solve, and linear memory. Exits 1 when an answer differs from
-// golden.txt, a solve fails, or a figure is missing.
+// golden.txt, a solve fails, the page is not cross-origin isolated, or a figure is
+// not a finite number. A missing argument or a runs value that is not a positive
+// integer exits 2.
 import fs from 'node:fs';
 import http from 'node:http';
 import { createRequire } from 'node:module';
@@ -19,6 +21,10 @@ if (!wasmPath || !playwrightPath) {
   process.exit(2);
 }
 const runs = Number(runsArg ?? 7);
+if (!Number.isInteger(runs) || runs < 1) {
+  console.error('runs must be a positive integer');
+  process.exit(2);
+}
 const require = createRequire(import.meta.url);
 const { chromium } = require(require.resolve(playwrightPath, { paths: [process.cwd()] }));
 
@@ -160,4 +166,8 @@ const out = {
   mismatches: failures,
 };
 console.log(JSON.stringify(out, null, 2));
-process.exit(failures === 0 ? 0 : 1);
+const numbers = JSON.stringify(out, (key, value) => (typeof value === 'number' && !Number.isFinite(value) ? 'NaN' : value));
+const missing = numbers.includes('"NaN"') || out.mean_moves_3x3 === undefined || out.mean_moves_2x2 === undefined;
+if (!out.cross_origin_isolated) console.error('page is not cross-origin isolated');
+if (missing) console.error('a figure is missing or not finite');
+process.exit(failures === 0 && out.cross_origin_isolated && !missing ? 0 : 1);
