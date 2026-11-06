@@ -1,6 +1,8 @@
 use std::sync::atomic::{AtomicI8, Ordering};
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
+
+use crate::puzzle::Instant;
 
 use super::consts::*;
 use super::coordinates::*;

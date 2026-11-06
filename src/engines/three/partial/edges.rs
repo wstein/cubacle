@@ -1,6 +1,6 @@
 //! The exact route: a breadth-first search over the whole edges a target names.
 
-use std::time::Instant;
+use crate::puzzle::Instant;
 
 use super::super::cubie::Cubie;
 use super::{finish, proven};

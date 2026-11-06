@@ -6,7 +6,7 @@
 //! a complete target on the 2x2x2, a goal counts when the cube shows it after a
 //! rotation of the whole cube, so the test uses the 24 rotated masks.
 
-use std::time::Instant;
+use crate::puzzle::Instant;
 
 use super::{
     get_depth, normalize, set_depth, tables, Cubie, Face, Facelets, Failure, Move, MoveSequence,

@@ -1,4 +1,6 @@
-use std::time::{Duration, Instant};
+use std::time::Duration;
+
+use crate::puzzle::Instant;
 
 use std::fmt;
 use std::sync::OnceLock;

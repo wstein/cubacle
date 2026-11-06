@@ -1,6 +1,6 @@
 //! Iterative-deepening A* to a target set, with the multi-goal tables as bound.
 
-use std::time::Instant;
+use crate::puzzle::Instant;
 
 use super::goal::Goal;
 use super::model::{Pos, Turns};

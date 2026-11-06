@@ -1,6 +1,8 @@
 //! Tests of the exact target-set route.
 
-use std::time::{Duration, Instant};
+use std::time::Duration;
+
+use crate::puzzle::Instant;
 
 use super::super::cubie::{Cubie, CORNER_FACELET, EDGE_FACELET};
 use super::exact::solve_goal;

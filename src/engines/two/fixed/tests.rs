@@ -1,4 +1,4 @@
-use std::time::Instant;
+use crate::puzzle::Instant;
 
 use crate::puzzle::frame::{Print, Projection, Sticker};
 
