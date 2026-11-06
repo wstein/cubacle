@@ -17,7 +17,7 @@
 //! iterative-deepening search to the whole set of states the target allows,
 //! with multi-goal pruning tables, proven shortest (see `exact`).
 
-use std::time::Instant;
+use crate::puzzle::Instant;
 
 use super::cubie::{Cubie, EDGE_FACELET};
 use super::solver::Min2PhaseSolver;

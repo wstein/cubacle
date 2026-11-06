@@ -1,7 +1,9 @@
 use std::sync::atomic::AtomicI8;
 use std::sync::mpsc;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
+
+use crate::puzzle::Instant;
 
 use super::cubie::*;
 use super::search::*;

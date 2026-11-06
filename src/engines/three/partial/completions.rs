@@ -1,6 +1,6 @@
 //! The second route: enumerate the complete cubes a target allows and solve each.
 
-use std::time::Instant;
+use crate::puzzle::Instant;
 
 use super::super::cubie::{Cubie, CORNER_FACELET, EDGE_FACELET};
 use super::super::solver::Min2PhaseSolver;

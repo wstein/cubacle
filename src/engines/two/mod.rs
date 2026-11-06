@@ -15,8 +15,8 @@
 pub mod fixed;
 mod partial;
 
+use crate::puzzle::Instant;
 use std::sync::OnceLock;
-use std::time::Instant;
 
 use crate::notation::orbit64::{CORNER_COLORS, CORNER_FACELETS};
 use crate::puzzle::{

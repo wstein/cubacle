@@ -3,7 +3,9 @@
 //! Used on request (`SolveOptions::exact`) and always for a free orientation.
 //! See `docs/design/dont-care-targets.md`, "Target sets on the 3x3x3".
 
-use std::time::{Duration, Instant};
+use std::time::Duration;
+
+use crate::puzzle::Instant;
 
 use super::super::cubie::Cubie;
 use super::goal::{color_masks, Goal};

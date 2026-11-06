@@ -5,8 +5,8 @@ mod coordinates;
 mod goal;
 mod table;
 
+use crate::puzzle::Instant;
 use std::fmt;
-use std::time::Instant;
 
 pub use goal::{Accept, Cell, FrameGoal, Rule};
 pub use table::{GoalTable, Transition};
