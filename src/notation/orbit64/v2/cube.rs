@@ -4,6 +4,7 @@
 use super::registry::{Model, Pose};
 use super::V2Error;
 use crate::notation::orbit64::coords::{is_permutation, parity};
+use crate::puzzle::{CenterTwists, PuzzleKind};
 
 /// Orbit coordinates of one cube, in the slot convention of Orbit64 V1.
 ///
@@ -84,6 +85,21 @@ impl Cube {
             },
             frame: 0,
         })
+    }
+
+    /// The turns of the six fixed centers of an `n x n x n` picture cube, for
+    /// the renderer, in the upright pose of this record (`frame` is not
+    /// applied). `None` when the cube has no fixed-center rotations (even
+    /// cubes, the color model), `n` has no [`PuzzleKind`], or a rotation is
+    /// not in `0..=3`.
+    pub fn center_twists(&self, n: usize) -> Option<CenterTwists> {
+        let kind = PuzzleKind::of_size(n)?;
+        let twists: Vec<u8> = self
+            .rotations
+            .iter()
+            .map(|&r| u8::try_from(r).ok())
+            .collect::<Option<_>>()?;
+        CenterTwists::new(kind, twists.try_into().ok()?).ok()
     }
 
     /// The parity `W_k` of the wing orbit at depth `k`; zero without one.
