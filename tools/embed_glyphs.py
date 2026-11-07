@@ -7,11 +7,13 @@
 
 Needs `fonttools` (pip install fonttools).
 
-Language exception: the repository tools are Rust, but this one stays Python because
+Language exception: the repository is Rust, but this tool stays Python because
 it depends on fontTools for TrueType parsing, glyph-outline drawing and variable-font
 instancing (`instancer`), which has no equivalent in the Rust dependencies of the
 workspace. It is a one-off converter run by hand when the embedded font changes, not
-part of the build, the tests or CI. The font file is read from a
+part of the build, the tests or CI.
+
+The font file is read from a
 temporary directory and never enters the repository; only the flattened
 outlines are written. Glyph units: the cap height is 1.4, y points down with
 0 at the cap line, so the baseline is at y = 1.4 and `advance` is in the same
