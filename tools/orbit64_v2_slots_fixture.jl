@@ -7,7 +7,8 @@
 # Needs only Julia's standard library. Each slot line of the markdown tables becomes one
 # line `n|label|facelets` (for example `4|W1 0|1 82`, `5|Z[1,2]|7 11 ...`). The sentence
 # "The fixed centers are `face * K + M`" of an odd size becomes `n|fixed|f0 ... f5`.
-# The run fails when a size lacks a slot line, has a surplus one, or names a slot twice.
+# The run fails when a size lacks a slot line, has a surplus one, names a slot twice, uses a
+# label other than the canonical ones, or does not hold each facelet exactly once.
 
 # The lines of a size: 8 corners, 12 midges and the fixed centers (odd), 24 per wing orbit,
 # one per center orbit.
@@ -16,6 +17,23 @@ function expected_lines(n)
     wings = (n - 2) ÷ 2
     centers = sum(max(0, n - 1 - 2r) for r in 1:(n - 2); init=0)
     8 + (odd ? 12 + 1 : 0) + 24 * wings + centers
+end
+
+# The labels of a size: C 0..7, midges M 0..11 and the sentence "fixed" (odd sizes), wings
+# W<depth> 0..23 per depth, center orbits Z[r,c] with r <= c <= n-2-r.
+function expected_labels(n)
+    labels = Set{String}("C $k" for k in 0:7)
+    if isodd(n)
+        union!(labels, ("M $k" for k in 0:11))
+        push!(labels, "fixed")
+    end
+    for d in 1:(n - 2) ÷ 2, k in 0:23
+        push!(labels, "W$d $k")
+    end
+    for r in 1:(n - 2), c in r:(n - 2 - r)
+        push!(labels, "Z[$r,$c]")
+    end
+    labels
 end
 
 function main(path)
@@ -61,6 +79,22 @@ function main(path)
         key = (parse(Int, n_text), String(label))
         key in seen && error("$(key[1])x$(key[1])x$(key[1]): slot $(key[2]) appears twice")
         push!(seen, key)
+    end
+    # The labels of a size are exactly the canonical ones (no other index, no leading zero)...
+    for size in 2:15
+        got = Set(label for (m, label) in seen if m == size)
+        want = expected_labels(size)
+        got == want || error("$(size)x$(size)x$(size): slot labels differ, missing $(sort!(collect(setdiff(want, got)))), unexpected $(sort!(collect(setdiff(got, want))))")
+    end
+    # ...and together the slots hold every facelet of the cube exactly once.
+    for size in 2:15
+        facelets = Int[]
+        for l in out
+            n_text, _, list = split(l, "|"; limit=3)
+            parse(Int, n_text) == size && append!(facelets, parse.(Int, split(list, " ")))
+        end
+        sort!(facelets)
+        facelets == collect(0:6size^2-1) || error("$(size)x$(size)x$(size): the slots do not hold each facelet 0..$(6size^2 - 1) exactly once")
     end
     # Every size must have exactly the slots its orbits have: a deleted line is an error.
     for size in 2:15
