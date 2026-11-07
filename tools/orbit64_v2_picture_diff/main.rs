@@ -91,7 +91,12 @@ fn compare(rust: &str, flix: &str) -> usize {
             }
         }
     }
-    println!("compared {total} answer lines: {bad} disagreements");
+    let noun = if bad == 1 {
+        "disagreement"
+    } else {
+        "disagreements"
+    };
+    println!("compared {total} answer lines: {bad} {noun}");
     bad
 }
 
@@ -112,7 +117,7 @@ fn rust_answers(case_file: &str) -> (String, usize, usize) {
 }
 
 fn copy_tree(from: &Path, to: &Path) -> Result<(), Failure> {
-    fs::create_dir_all(to).map_err(|e| format!("{}: {e}", to.display()))?;
+    fs::create_dir_all(to).map_err(|e| format!("copying the checkout: {e}"))?;
     for entry in fs::read_dir(from).map_err(|e| format!("{}: {e}", from.display()))? {
         let entry = entry.map_err(|e| e.to_string())?;
         let name = entry.file_name();
@@ -124,7 +129,8 @@ fn copy_tree(from: &Path, to: &Path) -> Result<(), Failure> {
         if kind.is_dir() {
             copy_tree(&entry.path(), &target)?;
         } else if kind.is_file() {
-            fs::copy(entry.path(), &target).map_err(|e| format!("{}: {e}", target.display()))?;
+            fs::copy(entry.path(), &target)
+                .map_err(|e| format!("copying {}: {e}", entry.path().display()))?;
         }
     }
     Ok(())
@@ -194,15 +200,15 @@ fn sha256(data: &[u8]) -> String {
         .collect()
 }
 
-fn recorded(key: &str) -> &'static str {
+fn recorded(key: &str) -> Result<&'static str, Failure> {
     PROVENANCE
         .lines()
         .find_map(|line| line.strip_prefix(key)?.strip_prefix('='))
-        .unwrap_or_else(|| panic!("no {key} in the provenance file"))
+        .ok_or_else(|| format!("no {key} in the provenance file"))
 }
 
 fn check_provenance(flix_dir: &str) -> Result<bool, Failure> {
-    let spec = format!("{}:{}", recorded("flix_commit"), recorded("input_path"));
+    let spec = format!("{}:{}", recorded("flix_commit")?, recorded("input_path")?);
     let shown = Command::new("git")
         .args(["-C", flix_dir, "show", &spec])
         .output()
@@ -215,17 +221,17 @@ fn check_provenance(flix_dir: &str) -> Result<bool, Failure> {
     }
     let mut problems = Vec::new();
     let input = sha256(&shown.stdout);
-    if input != recorded("input_sha256") {
+    if input != recorded("input_sha256")? {
         problems.push(format!(
             "input sha256 is {input}, recorded {}",
-            recorded("input_sha256")
+            recorded("input_sha256")?
         ));
     }
     let output = sha256(PICTURES.as_bytes());
-    if output != recorded("output_sha256") {
+    if output != recorded("output_sha256")? {
         problems.push(format!(
             "fixture sha256 is {output}, recorded {}",
-            recorded("output_sha256")
+            recorded("output_sha256")?
         ));
     }
     for p in &problems {
