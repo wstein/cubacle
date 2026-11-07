@@ -8,7 +8,8 @@
 # line `n|label|facelets` (for example `4|W1 0|1 82`, `5|Z[1,2]|7 11 ...`). The sentence
 # "The fixed centers are `face * K + M`" of an odd size becomes `n|fixed|f0 ... f5`.
 # The run fails when a size lacks a slot line, has a surplus one, names a slot twice, uses a
-# label other than the canonical ones, or does not hold each facelet exactly once.
+# label other than the canonical ones, gives a slot the wrong number of facelets, or does not
+# hold each facelet exactly once.
 
 # The lines of a size: 8 corners, 12 midges and the fixed centers (odd), 24 per wing orbit,
 # one per center orbit.
@@ -85,6 +86,15 @@ function main(path)
         got = Set(label for (m, label) in seen if m == size)
         want = expected_labels(size)
         got == want || error("$(size)x$(size)x$(size): slot labels differ, missing $(sort!(collect(setdiff(want, got)))), unexpected $(sort!(collect(setdiff(got, want))))")
+    end
+    # A slot has the facelets of its piece: 3 for a corner, 2 for a midge or a wing, 24 for
+    # a center orbit, 6 for the fixed centers.
+    for l in out
+        n_text, label, list = split(l, "|"; limit=3)
+        want = startswith(label, "C") ? 3 : startswith(label, "M") ? 2 : startswith(label, "W") ? 2 :
+               startswith(label, "Z") ? 24 : 6
+        got = length(split(list, " "))
+        got == want || error("$(n_text)x$(n_text)x$(n_text): slot $label has $got facelets, expected $want")
     end
     # ...and together the slots hold every facelet of the cube exactly once.
     for size in 2:15
