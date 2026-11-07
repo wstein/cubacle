@@ -7,6 +7,7 @@
 # Needs only Julia's standard library. Each slot line of the markdown tables becomes one
 # line `n|label|facelets` (for example `4|W1 0|1 82`, `5|Z[1,2]|7 11 ...`). The sentence
 # "The fixed centers are `face * K + M`" of an odd size becomes `n|fixed|f0 ... f5`.
+# The run fails when a size lacks a slot line, has a surplus one, or names a slot twice.
 
 # The lines of a size: 8 corners, 12 midges and the fixed centers (odd), 24 per wing orbit,
 # one per center orbit.
@@ -52,6 +53,15 @@ function main(path)
     isempty(out) && error("no slots found in $path")
     fixed_sizes == 7 || error("expected fixed centers for the 7 odd sizes, found $fixed_sizes")
     length(out) == candidates + fixed_sizes || error("$candidates slot-shaped lines, only $(length(out) - fixed_sizes) parsed")
+    # A label names one slot of a size: a duplicated line is an error, also when another
+    # line was deleted and the count per size still fits.
+    seen = Set{Tuple{Int,String}}()
+    for l in out
+        n_text, label, _ = split(l, "|"; limit=3)
+        key = (parse(Int, n_text), String(label))
+        key in seen && error("$(key[1])x$(key[1])x$(key[1]): slot $(key[2]) appears twice")
+        push!(seen, key)
+    end
     # Every size must have exactly the slots its orbits have: a deleted line is an error.
     for size in 2:15
         got = count(l -> startswith(l, string(size, "|")), out)
