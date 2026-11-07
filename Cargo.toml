@@ -44,6 +44,10 @@ name = "four_compare"
 path = "tools/bench/four_compare.rs"
 
 [[example]]
+name = "orbit64_v2_picture_diff"
+path = "tools/orbit64_v2_picture_diff/main.rs"
+
+[[example]]
 name = "probes_big"
 path = "tools/bench/probes_big.rs"
 
