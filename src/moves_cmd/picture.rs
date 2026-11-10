@@ -15,7 +15,9 @@ pub(super) fn read(token: &str, kind: PuzzleKind) -> Result<PictureState, String
             entry.n
         ));
     }
-    v2::facelets::to_picture(entry.n, entry.pose, &cube).map_err(|e| format!("--picture: {e}"))
+    let (colors, centers) = v2::facelets::to_picture_parts(entry.n, entry.pose, &cube)
+        .map_err(|e| format!("--picture: {e}"))?;
+    Ok(PictureState::new(colors, centers).expect("projection keeps the same size"))
 }
 
 pub(super) fn steps(

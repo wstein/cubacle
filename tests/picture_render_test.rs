@@ -2,11 +2,16 @@
 use cubacle::notation::orbit64::v2::{self, Cube, Model, Pose};
 use cubacle::render::{PictureState, Style};
 
+fn picture_of(n: usize, pose: Pose, cube: &Cube) -> Result<PictureState, v2::V2Error> {
+    let (colors, centers) = v2::facelets::to_picture_parts(n, pose, cube)?;
+    Ok(PictureState::new(colors, centers).unwrap())
+}
+
 fn picture(twist: usize) -> PictureState {
     let mut cube = Cube::solved(3, Model::Picture).unwrap();
     cube.rotations[0] = twist;
     cube.rotations[2] = twist;
-    v2::facelets::to_picture(3, Pose::Framed, &cube).unwrap()
+    picture_of(3, Pose::Framed, &cube).unwrap()
 }
 
 #[test]
@@ -40,14 +45,14 @@ fn rotations_transport_center_tangents_like_the_v2_wire_geometry() {
     cube.rotations = vec![1, 2, 3, 0, 1, 1];
     for frame in 0..24 {
         cube.frame = frame;
-        let start = v2::facelets::to_picture(3, Pose::Framed, &cube).unwrap();
+        let start = picture_of(3, Pose::Framed, &cube).unwrap();
         for name in ["x", "x'", "x2", "y", "y'", "y2", "z", "z'", "z2"] {
             let actual = start.apply(&name.parse().unwrap()).unwrap();
             let expected = (0..24)
                 .find_map(|next| {
                     let mut candidate = cube.clone();
                     candidate.frame = next;
-                    let expected = v2::facelets::to_picture(3, Pose::Framed, &candidate).unwrap();
+                    let expected = picture_of(3, Pose::Framed, &candidate).unwrap();
                     (expected.colors() == actual.colors()).then_some(expected)
                 })
                 .unwrap();
@@ -112,17 +117,17 @@ fn the_bridge_rejects_invalid_and_unsupported_picture_states() {
     for n in [2, 4, 6, 9] {
         let cube = Cube::solved(n, Model::Picture).unwrap();
         assert!(matches!(
-            v2::facelets::to_picture(n, Pose::Framed, &cube),
+            picture_of(n, Pose::Framed, &cube),
             Err(v2::V2Error::Unsupported(_))
         ));
     }
     let mut cube = Cube::solved(3, Model::Picture).unwrap();
     cube.rotations[0] = 1; // Odd total rotation violates the picture-state law.
-    assert!(v2::facelets::to_picture(3, Pose::Framed, &cube).is_err());
+    assert!(picture_of(3, Pose::Framed, &cube).is_err());
     for n in [3, 5, 7] {
         let mut cube = Cube::solved(n, Model::Picture).unwrap();
         cube.rotations[0] = 2;
-        let state = v2::facelets::to_picture(n, Pose::Framed, &cube).unwrap();
+        let state = picture_of(n, Pose::Framed, &cube).unwrap();
         assert_eq!(
             state.colors(),
             &Facelets::solved(PuzzleKind::of_size(n).unwrap())
@@ -144,8 +149,8 @@ fn framed_picture_reference_moves_replay_through_the_renderer_bridge() {
             continue;
         }
         let (_, cube) = v2::decode(columns[3]).unwrap();
-        let expected = v2::facelets::to_picture(entry.n, entry.pose, &cube).unwrap();
-        let mut actual = v2::facelets::to_picture(
+        let expected = picture_of(entry.n, entry.pose, &cube).unwrap();
+        let mut actual = picture_of(
             entry.n,
             entry.pose,
             &Cube::solved(entry.n, Model::Picture).unwrap(),
