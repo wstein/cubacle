@@ -1,0 +1,10 @@
+state, folded view: corner U F R, with L, D and B flat around it
+          W W W     B B B
+         W → W      B ↑ B
+        W W W       B B B
+O O O  G G G R R R
+O ↑ O  G → G R ↑ R
+O O O  G G G R R R
+       Y Y Y
+       Y ↑ Y
+       Y Y Y

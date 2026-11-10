@@ -1,0 +1,7 @@
+state, seen from URF: U up, F towards you, R on your right
+   W W W
+  W → W
+ W W W
+G G G R R R
+G → G R ↑ R
+G G G R R R

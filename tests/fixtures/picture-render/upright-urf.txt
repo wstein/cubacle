@@ -1,0 +1,7 @@
+state
+   W W W
+  W ↑ W
+ W W W
+G G G R R R
+G ↑ G R ↑ R
+G G G R R R

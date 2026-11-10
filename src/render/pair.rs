@@ -59,7 +59,7 @@ pub fn state_icon_pair_against(state: &Facelets, reference: &Facelets, style: &S
     pair
 }
 
-fn label(pair: &mut [Icon; 2]) {
+pub(super) fn label(pair: &mut [Icon; 2]) {
     pair[0].grid.header = URF_HEADER.to_owned();
     pair[1].grid.header = LBD_HEADER.to_owned();
 }

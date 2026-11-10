@@ -1,0 +1,10 @@
+state, flat view: U above F, L F R B in a row, D below
+       W W W
+       W ↑ W
+       W W W
+O O O  G G G  R R R  B B B
+O ↑ O  G ↑ G  R ↑ R  B ↑ B
+O O O  G G G  R R R  B B B
+       Y Y Y
+       Y ↑ Y
+       Y Y Y

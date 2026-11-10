@@ -307,6 +307,10 @@ impl<'a> Pictures<'a> {
         }
     }
 
+    pub(crate) fn style(&self) -> &Style {
+        &self.style
+    }
+
     /// Draws the moves in groups instead of one icon per move.
     pub fn grouped(mut self, layout: Layout) -> Pictures<'a> {
         self.layout = Some(layout);

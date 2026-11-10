@@ -28,6 +28,23 @@ pub enum Views {
 }
 
 impl Views {
+    pub(crate) fn picture_icons(
+        self,
+        state: &cubacle::render::PictureState,
+        style: &Style,
+    ) -> Vec<Icon> {
+        match self {
+            Views::Folded => vec![state.folded(style)],
+            Views::Both => state.pair(style).into(),
+            Views::Urf => vec![state.state_icon(style)],
+            Views::Net => vec![state.net(style)],
+            Views::All => {
+                let [urf, dbl] = state.pair(style);
+                vec![state.net(style), urf, dbl]
+            }
+        }
+    }
+
     /// Whether every sticker of the cube is in one of the pictures.
     pub(crate) fn shows_every_face(self) -> bool {
         self != Views::Urf
