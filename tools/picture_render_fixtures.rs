@@ -20,7 +20,8 @@ fn main() {
         let mut cube = Cube::solved(3, Model::Picture).unwrap();
         cube.rotations[0] = twist;
         cube.rotations[2] = twist;
-        let state: PictureState = v2::facelets::to_picture(3, Pose::Framed, &cube).unwrap();
+        let (colors, centers) = v2::facelets::to_picture_parts(3, Pose::Framed, &cube).unwrap();
+        let state = PictureState::new(colors, centers).unwrap();
         println!("{name}: {}", v2::encode(entry.id, &cube).unwrap());
         let [urf, dbl] = state.pair(&style);
         for (view, icon) in [

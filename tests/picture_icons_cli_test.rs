@@ -42,7 +42,8 @@ fn cli_draws_picture_twists_in_text_and_svg() {
 fn cli_whole_cube_views_keep_rotated_center_directions() {
     use cubacle::render::Style;
     let (entry, cube) = v2::decode(&token(1)).unwrap();
-    let start = v2::facelets::to_picture(entry.n, entry.pose, &cube).unwrap();
+    let (colors, centers) = v2::facelets::to_picture_parts(entry.n, entry.pose, &cube).unwrap();
+    let start = cubacle::render::PictureState::new(colors, centers).unwrap();
     let state = start.apply(&"x".parse().unwrap()).unwrap();
     for view in ["urf", "folded", "both", "net", "all"] {
         let output = Command::new(env!("CARGO_BIN_EXE_cubacle"))
@@ -162,7 +163,8 @@ fn cli_raster_and_kitty_use_the_picture_polygons() {
 fn explicit_picture_steps_honor_cumulative_and_keep_independent_starts() {
     use cubacle::render::{PictureState, Style};
     let (entry, cube) = v2::decode(&token(1)).unwrap();
-    let start: PictureState = v2::facelets::to_picture(entry.n, entry.pose, &cube).unwrap();
+    let (colors, centers) = v2::facelets::to_picture_parts(entry.n, entry.pose, &cube).unwrap();
+    let start = PictureState::new(colors, centers).unwrap();
     for cumulative in [false, true] {
         let mut command = Command::new(env!("CARGO_BIN_EXE_cubacle"));
         command.args([

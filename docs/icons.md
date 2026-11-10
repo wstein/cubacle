@@ -465,8 +465,9 @@ per-move start state unless `--cumulative` is set. SVG and RGBA hold one move;
 text and Kitty can hold several. `--picture` is a drawing input, not an
 orientation-aware solver goal or a replacement for color-state inputs.
 
-The library bridge is `orbit64::v2::facelets::to_picture(n, pose, &cube)`. Its
-`render::PictureState` joins `Facelets` with the existing `CenterTwists`; the
+The notation bridge `orbit64::v2::facelets::to_picture_parts(n, pose, &cube)`
+returns the existing puzzle types `(Facelets, CenterTwists)`. The application
+joins those values with `render::PictureState::new(colors, centers)`; the
 `icon`, `state_icon`, `folded`, `pair`, `net` and `apply` methods preserve that
 association. Ordinary `Facelets` drawing stays color-only. Even picture cubes,
 sizes above 7 and arbitrary per-sticker orientations are unsupported here.

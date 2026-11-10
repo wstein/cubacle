@@ -390,13 +390,12 @@ mod tests;
 /// fixed-center twists, including its whole-cube frame. Sticker identity and
 /// orientation outside those six centers are not represented by the renderer.
 /// Even cubes and sizes outside the CLI's 3x3x3, 5x5x5 and 7x7x7 are unsupported.
-pub fn to_picture(
+pub fn to_picture_parts(
     n: usize,
     pose: Pose,
     cube: &Cube,
-) -> Result<crate::render::PictureState, V2Error> {
+) -> Result<(crate::puzzle::Facelets, crate::puzzle::CenterTwists), V2Error> {
     use crate::puzzle::{CenterTwists, Face, Facelets, PuzzleKind};
-    use crate::render::PictureState;
     let kind = PuzzleKind::of_size(n)
         .filter(|_| is_odd(n))
         .ok_or_else(|| {
@@ -434,5 +433,5 @@ pub fn to_picture(
     let colors = Facelets::from_stickers(colors.into_iter().map(|f| Face::ALL[f]).collect())
         .map_err(|e| V2Error::Invalid(e.to_string()))?;
     let centers = CenterTwists::new(kind, twists).map_err(|e| V2Error::Invalid(e.to_string()))?;
-    Ok(PictureState::new(colors, centers).expect("colors and twists have the same size"))
+    Ok((colors, centers))
 }
