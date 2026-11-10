@@ -118,8 +118,9 @@ impl PictureState {
     fn decorate(&self, mut icon: Icon, faces: &[Face], down: bool) -> Icon {
         let n = self.colors.kind().size();
         // All three geometry builders emit stickers in URFDLB/row-major order.
-        // Their rounded squares have 12 vertices; opposite vertices recover
-        // the affine in-plane axes without losing perspective or face lighting.
+        // Their rounded squares have 12 vertices. Opposite vertices locate
+        // the center. Equal-v pairs recover u, and equal-u pairs recover v,
+        // preserving the affine face projection without mixing the axes.
         let stickers: Vec<_> = icon
             .shapes
             .iter()
@@ -132,8 +133,8 @@ impl PictureState {
             let right = [(p[0][0] - p[5][0]) / 2.0, (p[0][1] - p[5][1]) / 2.0];
             let sign = if down { -1.0 } else { 1.0 };
             let up = [
-                sign * (p[2][0] - p[8][0]) / 2.0,
-                sign * (p[2][1] - p[8][1]) / 2.0,
+                sign * (p[2][0] - p[9][0]) / 2.0,
+                sign * (p[2][1] - p[9][1]) / 2.0,
             ];
             let points = [
                 [0.0, 0.65],
@@ -207,5 +208,129 @@ fn tangent(face: Face, turn: u8) -> [i32; 3] {
         1 => right,
         2 => up.map(|v| -v),
         _ => right.map(|v| -v),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::puzzle::PuzzleKind;
+
+    fn assert_picture_arrow_axes(turn: u8) {
+        let style = Style::default();
+        let state = PictureState::new(
+            Facelets::solved(PuzzleKind::Cube3),
+            CenterTwists::new(PuzzleKind::Cube3, [turn; 6]).unwrap(),
+        )
+        .unwrap();
+        let opposite = state.apply(&"y2".parse().unwrap()).unwrap();
+        let [urf, dbl] = state.pair(&style);
+        for (name, icon, faces, centers) in [
+            (
+                "urf",
+                state.state_icon(&style),
+                vec![Face::U, Face::R, Face::F],
+                state.centers,
+            ),
+            (
+                "folded",
+                state.folded(&style),
+                Face::ALL.to_vec(),
+                state.centers,
+            ),
+            ("net", state.net(&style), Face::ALL.to_vec(), state.centers),
+            (
+                "both-urf",
+                urf,
+                vec![Face::U, Face::R, Face::F],
+                state.centers,
+            ),
+            (
+                "both-dbl",
+                dbl,
+                vec![Face::R, Face::F, Face::D],
+                opposite.centers,
+            ),
+        ] {
+            let stickers: Vec<_> = icon
+                .shapes
+                .iter()
+                .filter(|s| s.part == Part::Sticker)
+                .collect();
+            let marks: Vec<_> = icon
+                .shapes
+                .iter()
+                .filter(|s| s.part == Part::Mark)
+                .collect();
+            for (at, face) in faces.into_iter().enumerate() {
+                // Direct derivatives of the documented oblique map
+                // (x - .5z, -y + .42z), or the flat net's (x, -y).
+                // These expectations never read rounded-square vertices
+                // to reconstruct an axis.
+                let (right, up) = if name == "net"
+                    || (name == "folded" && matches!(face, Face::L | Face::D | Face::B))
+                {
+                    ([1.0, 0.0], [0.0, -1.0])
+                } else {
+                    match face {
+                        Face::U => ([1.0, 0.0], [0.5, -0.42]),
+                        Face::D => ([1.0, 0.0], [-0.5, -0.42]),
+                        Face::R if name == "both-dbl" => ([0.5, 0.42], [0.0, -1.0]),
+                        Face::R => ([0.5, -0.42], [0.0, -1.0]),
+                        Face::F => ([1.0, 0.0], [0.0, -1.0]),
+                        _ => unreachable!(),
+                    }
+                };
+                let p = &stickers[at * 9 + 4].points;
+                let center = [
+                    p.iter().map(|p| p[0]).sum::<f64>() / p.len() as f64,
+                    p.iter().map(|p| p[1]).sum::<f64>() / p.len() as f64,
+                ];
+                for (vertex, mut local) in [
+                    [0.0, 0.65],
+                    [-0.32, 0.12],
+                    [-0.12, 0.12],
+                    [-0.12, -0.5],
+                    [0.12, -0.5],
+                    [0.12, 0.12],
+                    [0.32, 0.12],
+                ]
+                .into_iter()
+                .enumerate()
+                {
+                    for _ in 0..centers.twist(face) {
+                        local = [local[1], -local[0]];
+                    }
+                    let expected = [
+                        local[0] * right[0] + local[1] * up[0],
+                        local[0] * right[1] + local[1] * up[1],
+                    ];
+                    let actual = [
+                        marks[at].points[vertex][0] - center[0],
+                        marks[at].points[vertex][1] - center[1],
+                    ];
+                    let cross = actual[0] * expected[1] - actual[1] * expected[0];
+                    assert!(cross.abs() < 1e-10, "{name} {face:?} turn {turn} vertex {vertex}: direction {actual:?} is not parallel to {expected:?}");
+                    assert!(actual[0] * expected[0] + actual[1] * expected[1] > 0.0);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn picture_arrow_vertices_turn_zero() {
+        assert_picture_arrow_axes(0);
+    }
+    #[test]
+    fn picture_arrow_vertices_turn_one() {
+        assert_picture_arrow_axes(1);
+    }
+    #[test]
+    fn picture_arrow_vertices_turn_two() {
+        assert_picture_arrow_axes(2);
+    }
+    #[test]
+    fn picture_arrow_vertices_turn_three() {
+        assert_picture_arrow_axes(3);
     }
 }
