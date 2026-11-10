@@ -48,6 +48,10 @@ name = "orbit64_v2_picture_diff"
 path = "tools/orbit64_v2_picture_diff/main.rs"
 
 [[example]]
+name = "picture_render_fixtures"
+path = "tools/picture_render_fixtures.rs"
+
+[[example]]
 name = "probes_big"
 path = "tools/bench/probes_big.rs"
 

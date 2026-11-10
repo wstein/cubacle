@@ -1,0 +1,7 @@
+state, seen from DBL, turned so that B is in front: B, L, D below
+B B B O O O
+B ↑ B O ↑ O
+B B B O O O
+ Y Y Y
+  Y ↓ Y
+   Y Y Y

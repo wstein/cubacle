@@ -10,7 +10,9 @@ use cubacle::notation::{
 };
 use cubacle::puzzle::{Facelets, Move, MoveSequence, PuzzleKind, Turn};
 use cubacle::ranges::{compress, compressed_text, Optimize};
-use cubacle::render::{icon, Action};
+use cubacle::render::{icon, Action, PictureState};
+
+mod picture;
 
 use crate::icons::{
     default_height, detect_stdout, numbered, show, style, Background, Format, Graphics, Numbers,
@@ -71,6 +73,9 @@ pub struct MovesArgs {
     /// With --icons, start from the cube this scramble produces
     #[arg(long, requires = "icons")]
     from: Option<String>,
+    /// With --icons, start from an Orbit64 V2 picture token (fixed centers only)
+    #[arg(long, requires = "icons", conflicts_with_all = ["from", "optimize"], value_name = "TOKEN")]
+    picture: Option<String>,
     /// With --icons, show the moving layer grey instead of darkening the rest
     #[arg(long, requires = "icons")]
     grey: bool,
@@ -289,7 +294,14 @@ fn draw(
     text: &str,
     moves: &MoveSequence,
 ) -> Result<(), String> {
-    let mut start = Facelets::solved(kind);
+    let mut picture = args
+        .picture
+        .as_deref()
+        .map(|token| picture::read(token, kind))
+        .transpose()?;
+    let mut start = picture
+        .as_ref()
+        .map_or_else(|| Facelets::solved(kind), |p| p.colors().clone());
     if let Some(from) = &args.from {
         let scramble = expand(from, kind)
             .map_err(|error| format!("--from is not valid move notation ({error})"))?;
@@ -305,6 +317,9 @@ fn draw(
         );
     }
     if args.format == Format::Auto && to_stdout {
+        if let Some(picture) = picture {
+            return self::picture::steps(args, kind, text, moves, picture);
+        }
         // Step pictures, as `solve --icons` shows them.
         let options = pictures.options(args.scheme, args.notation);
         let mut pictures = Pictures::new(args.size, &options);
@@ -366,7 +381,11 @@ fn draw(
     let mut state = start;
     let mut bytes: Vec<u8> = Vec::new();
     for (at, action) in actions.iter().enumerate() {
-        let drawn = icon(&state, action, &style).map_err(|error| error.to_string())?;
+        let drawn = match &picture {
+            Some(picture) => picture.icon(action, &style),
+            None => icon(&state, action, &style),
+        }
+        .map_err(|error| error.to_string())?;
         // the text pictures have no number; the others carry the typed index
         let numbers = match (pictures.numbers, format) {
             (Numbers::Auto, Format::Svg) => Numbers::Off,
@@ -388,6 +407,9 @@ fn draw(
             }
         }
         if args.cumulative {
+            if let Some(p) = &mut picture {
+                *p = p.apply(action).map_err(|e| e.to_string())?;
+            }
             state = action.apply(&state).map_err(|error| error.to_string())?;
         }
     }

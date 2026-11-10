@@ -435,6 +435,47 @@ The notation and the `2x` are glyph outlines of Quicksand Bold, converted to pol
 
 Examples of the SVG output are in `tests/fixtures/icons/`.
 
+## Fixed-center picture states
+
+`moves --icons --picture TOKEN` draws an Orbit64 V2 picture token instead of
+starting from solved colors. This drawing slice supports the six fixed centers
+of the 3×3×3, 5×5×5 and 7×7×7. Set `--size` to match the token. The token is
+validated with the existing V2 state rules, and its whole-cube frame is kept.
+`--picture` conflicts with `--from` and `--optimize`.
+
+Each fixed center has an arrow showing its clockwise quarter turns: ↑, →, ↓,
+← for 0, 1, 2, 3. Text keeps the sticker color in ANSI mode and uses the arrow
+in place of the center's color letter. SVG, raster and Kitty draw the same
+arrow polygon on the sticker. The folded, both-corners, URF and net views
+include those directions. Rotations `x`, `y` and `z` transport both the center
+and its direction; layer moves turn the selected centers too.
+
+For example, this valid 3×3×3 token has U and F turned clockwise once:
+
+```sh
+cubacle moves x --icons --picture AAAAAAAAAAAAGY --graphics plain --views net
+cubacle moves x --icons --picture AAAAAAAAAAAAGY --format svg --out center-x.svg
+cubacle moves x y z --icons --picture AAAAAAAAAAAAGY --format text --cumulative
+```
+
+The automatic step output draws each move on the current picture state, then
+its final state in `--views`. Picture steps draw one move per icon; use
+`--group none` with grouped expressions. Explicit formats keep the usual
+per-move start state unless `--cumulative` is set. SVG and RGBA hold one move;
+text and Kitty can hold several. `--picture` is a drawing input, not an
+orientation-aware solver goal or a replacement for color-state inputs.
+
+The library bridge is `orbit64::v2::facelets::to_picture(n, pose, &cube)`. Its
+`render::PictureState` joins `Facelets` with the existing `CenterTwists`; the
+`icon`, `state_icon`, `folded`, `pair`, `net` and `apply` methods preserve that
+association. Ordinary `Facelets` drawing stays color-only. Even picture cubes,
+sizes above 7 and arbitrary per-sticker orientations are unsupported here.
+Sticker identities outside the six fixed centers are projected to colors;
+no corner, edge or movable-center picture rotation is claimed.
+
+SVG and text drawing fixtures are in `tests/fixtures/picture-render/`, with
+their artwork license and regeneration command.
+
 ## Limits
 
 - PDF export, animation and a web frontend are not part of this module yet.

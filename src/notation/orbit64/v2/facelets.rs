@@ -385,3 +385,54 @@ pub fn decode(token: &str) -> Result<(&'static Entry, String), V2Error> {
 
 #[cfg(test)]
 mod tests;
+
+/// Projects a validated odd picture cube to CLI renderer colors and the six
+/// fixed-center twists, including its whole-cube frame. Sticker identity and
+/// orientation outside those six centers are not represented by the renderer.
+/// Even cubes and sizes outside the CLI's 3x3x3, 5x5x5 and 7x7x7 are unsupported.
+pub fn to_picture(
+    n: usize,
+    pose: Pose,
+    cube: &Cube,
+) -> Result<crate::render::PictureState, V2Error> {
+    use crate::puzzle::{CenterTwists, Face, Facelets, PuzzleKind};
+    use crate::render::PictureState;
+    let kind = PuzzleKind::of_size(n)
+        .filter(|_| is_odd(n))
+        .ok_or_else(|| {
+            V2Error::Unsupported(
+                "picture drawing supports fixed centers of 3x3x3, 5x5x5 and 7x7x7 only".into(),
+            )
+        })?;
+    // Reuse the wire writer's complete layout, range, law and pose validation.
+    to_facelets(n, Model::Picture, pose, cube)?;
+    let layout = Layout::new(n);
+    let picture = paint(n, Model::Picture, &layout, cube);
+    let mut colors = vec![0; picture.len()];
+    let mut table = |slots: &[Vec<usize>]| {
+        let home: Vec<_> = slots.iter().flatten().copied().collect();
+        for &at in &home {
+            colors[at] = home[picture[at]] / (n * n);
+        }
+    };
+    table(&layout.corners);
+    table(&layout.midges);
+    for wings in &layout.wings {
+        table(wings);
+    }
+    for centers in &layout.centers {
+        for &at in centers {
+            colors[at] = centers[picture[at]] / (n * n);
+        }
+    }
+    for (face, &at) in layout.fixed.iter().enumerate() {
+        colors[at] = face;
+    }
+    let colors = rotate(n, cube.frame, &colors);
+    let shown = rotate_picture(n, cube.frame, &picture);
+    let twists = std::array::from_fn(|f| (shown[layout.fixed[f]] % 4) as u8);
+    let colors = Facelets::from_stickers(colors.into_iter().map(|f| Face::ALL[f]).collect())
+        .map_err(|e| V2Error::Invalid(e.to_string()))?;
+    let centers = CenterTwists::new(kind, twists).map_err(|e| V2Error::Invalid(e.to_string()))?;
+    Ok(PictureState::new(colors, centers).expect("colors and twists have the same size"))
+}

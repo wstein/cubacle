@@ -94,3 +94,11 @@ bindings, vectors, images and extra `slot` fields are unchanged. Extracted bytes
 SHA-256: `a80d1bed4b50651e0821d1a485194a94724db51669c6b2a4de757a30debc8029`.
 The fixture checks geometry and serialization interoperability; it is not a
 solver-output snapshot and does not assert proof acceptance.
+
+## Fixed-center picture drawing fixtures
+
+The generated SVG and text drawings in `tests/fixtures/picture-render/` are
+Copyright © 2026 Werner Stein, created with AI assistance (Codex, OpenAI),
+and licensed under CC-BY-SA-4.0. See that directory's `README.md` for the
+license link, attribution, sharing and adaptation notice. The renderer,
+generator and tests remain AGPL-3.0-or-later.

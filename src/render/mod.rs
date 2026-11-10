@@ -40,6 +40,7 @@ mod label;
 mod net;
 mod number;
 mod pair;
+mod picture;
 mod raster;
 mod round;
 mod scene;
@@ -55,6 +56,7 @@ pub use folded::{state_icon_folded, state_icon_folded_against};
 pub use kitty::KittyPlacement;
 pub use net::{state_icon_net, state_icon_net_against};
 pub use pair::{opposite_view, state_icon_pair, state_icon_pair_against};
+pub use picture::PictureState;
 pub use raster::Raster;
 pub use style::{Backdrop, Palette, Rgb, Shading, Style};
 
