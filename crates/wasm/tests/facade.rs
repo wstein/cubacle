@@ -3,8 +3,8 @@
 
 use cubacle::puzzle::{Facelets, PuzzleKind};
 use cubacle_wasm::{
-    cubacle_alloc, cubacle_free, cubacle_result_len, cubacle_solve, HEADER, STATUS_BAD_INPUT,
-    STATUS_OK,
+    cubacle_abi_version, cubacle_alloc, cubacle_free, cubacle_result_len, cubacle_solve, HEADER,
+    STATUS_BAD_INPUT, STATUS_OK,
 };
 
 /// Runs the facade on `scramble` and returns the status and the text.
@@ -25,6 +25,11 @@ fn call(size: u32, scramble: &str, max_moves: u32) -> (u8, String) {
     unsafe { cubacle_free(result, total) };
     let text = String::from_utf8(out[HEADER..].to_vec()).expect("utf-8");
     (out[4], text)
+}
+
+#[test]
+fn abi_version_is_one() {
+    assert_eq!(cubacle_abi_version(), 1);
 }
 
 #[test]
