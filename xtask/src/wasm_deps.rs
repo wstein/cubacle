@@ -12,11 +12,30 @@ pub fn forbidden_in(tree: &str) -> Vec<&'static str> {
     FORBIDDEN
         .iter()
         .copied()
-        .filter(|name| {
-            tree.lines()
-                .any(|line| line.split_whitespace().next() == Some(name))
-        })
+        .filter(|name| package_names(tree).any(|package| package == *name))
         .collect()
+}
+
+/// First token of each line. That is the package name only when `cargo tree`
+/// was run with `--prefix none`; a drawn tree puts the name after a box character.
+fn package_names(tree: &str) -> impl Iterator<Item = &str> {
+    tree.lines()
+        .filter_map(|line| line.split_whitespace().next())
+}
+
+/// Refuse a graph that holds a forbidden crate, and refuse output that does not
+/// even name `cubacle`. The second case is the drawn tree: the parser would
+/// otherwise see no package names and report success.
+fn check_tree(tree: &str) -> Result<(), String> {
+    if !package_names(tree).any(|name| name == "cubacle") {
+        return Err("cargo tree output has no package named cubacle".to_string());
+    }
+    let found = forbidden_in(tree);
+    if found.is_empty() {
+        Ok(())
+    } else {
+        Err(format!("the cubacle-wasm graph holds {}", found.join(", ")))
+    }
 }
 
 pub fn run() -> ExitCode {
@@ -47,19 +66,19 @@ pub fn run() -> ExitCode {
             return ExitCode::from(2);
         }
     };
-    let found = forbidden_in(&String::from_utf8_lossy(&output.stdout));
-    if found.is_empty() {
-        println!(
-            "wasm-deps: none of {} in the cubacle-wasm graph",
-            FORBIDDEN.join(", ")
-        );
-        ExitCode::SUCCESS
-    } else {
-        eprintln!(
-            "wasm-deps: the cubacle-wasm graph holds {}",
-            found.join(", ")
-        );
-        ExitCode::FAILURE
+    let tree = String::from_utf8_lossy(&output.stdout);
+    match check_tree(&tree) {
+        Ok(()) => {
+            println!(
+                "wasm-deps: none of {} in the cubacle-wasm graph",
+                FORBIDDEN.join(", ")
+            );
+            ExitCode::SUCCESS
+        }
+        Err(error) => {
+            eprintln!("wasm-deps: {error}");
+            ExitCode::FAILURE
+        }
     }
 }
 
@@ -87,5 +106,25 @@ mod tests {
         assert!(
             forbidden_in("clap_builder v4.6.0\ntoml_edit v0.2.0\nsysinfo-extra v1\n").is_empty()
         );
+    }
+
+    #[test]
+    fn box_drawing_output_is_rejected_even_when_it_mentions_clap() {
+        // Without `--prefix none`, cargo tree draws the graph. The package
+        // name is not the first token, so a parser that only reads that token
+        // sees neither cubacle nor clap and would otherwise report a clean graph.
+        let tree = "\
+cubacle-wasm v0.1.0 (/r/crates/wasm)
+└── cubacle v0.1.0 (/r)
+    └── clap v4.6.7
+";
+        let error = check_tree(tree).expect_err("box drawing is not a package list");
+        assert!(error.contains("cubacle"), "{error}");
+        assert!(forbidden_in(tree).is_empty());
+    }
+
+    #[test]
+    fn a_prefix_none_tree_names_cubacle() {
+        assert!(check_tree(CLEAN).is_ok());
     }
 }
