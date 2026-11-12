@@ -2,7 +2,8 @@
 //! and writes the manifest next to it.
 //!
 //! Output: `target/wasm-dist/cubacle_wasm.wasm` and
-//! `target/wasm-dist/cubacle-wasm.manifest.json`.
+//! `target/wasm-dist/cubacle-wasm.manifest.json`, `cubacle-wasm-<version>.tgz` and its
+//! `.integrity` file.
 
 use std::collections::BTreeMap;
 use std::fs;
@@ -272,7 +273,35 @@ fn build(repo: &Path) -> Result<PathBuf, String> {
         table_sha256: BTreeMap::new(),
     };
     fs::write(dist.join(MANIFEST), manifest.to_json()).map_err(|error| error.to_string())?;
+    pack(repo, &dist, &manifest.version)?;
     Ok(dist)
+}
+
+/// Writes `cubacle-wasm-<version>.tgz` and `.tgz.integrity` (the npm `sha512-` string) into `dist`.
+fn pack(repo: &Path, dist: &Path, version: &str) -> Result<(), String> {
+    let mtime: u64 = capture("git", &["log", "-1", "--format=%ct"], repo)?
+        .trim()
+        .parse()
+        .map_err(|error| format!("commit time: {error}"))?;
+    let js_dir = repo.join("crates/wasm/js");
+    let (entries, skipped) = crate::package::entries(repo, dist, &js_dir, version)?;
+    let tgz = crate::tarball::tgz(&entries, mtime)?;
+    let name = format!("cubacle-wasm-{version}.tgz");
+    fs::write(dist.join(&name), &tgz).map_err(|error| error.to_string())?;
+    let integrity = crate::tarball::integrity(&tgz);
+    fs::write(
+        dist.join(format!("{name}.integrity")),
+        format!("{integrity}\n"),
+    )
+    .map_err(|error| error.to_string())?;
+    println!("wasm: {name} {integrity}");
+    if !skipped.is_empty() {
+        println!(
+            "wasm: not packed (file does not exist yet): {}",
+            skipped.join(", ")
+        );
+    }
+    Ok(())
 }
 
 pub fn run() -> ExitCode {
