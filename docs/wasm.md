@@ -17,6 +17,35 @@ cargo build --release -p cubacle-wasm --target wasm32-unknown-unknown
 
 The module is `target/wasm32-unknown-unknown/release/cubacle_wasm.wasm`. It is built without the `fetch` feature, so the network dependency (`ureq`) is not built. `.cargo/config.toml` sets the `getrandom` custom backend for this target.
 
+## Release build and manifest
+
+```sh
+cargo xtask wasm
+```
+
+The command refuses a working tree that is not clean (untracked files count) and a toolchain other than the one named in `xtask/src/wasm.rs` (`rustc` 1.99.1, commit `58cf8f9c35b355199727627d07ae34a4e2846d67`). It builds with `cargo build --release --locked -p cubacle-wasm --target wasm32-unknown-unknown` into `target/wasm-build`, with `--remap-path-prefix` for the repository and the Cargo home and with the `getrandom` backend flag (set through `CARGO_ENCODED_RUSTFLAGS`, which replaces the target `rustflags` of `.cargo/config.toml`). It writes `target/wasm-dist/cubacle_wasm.wasm` and `target/wasm-dist/cubacle-wasm.manifest.json`. Keys are sorted, the manifest holds no time stamp, and `tableSha256` stays empty until the tables are serialized. Two builds of one commit on one machine gave the same SHA-256; two machines were not compared, so reproducibility across machines is unknown.
+
+`cargo xtask wasm-deps` fails when the normal dependency graph of `cubacle-wasm` holds `clap`, `sysinfo`, `toml` or `ureq`.
+
+Manifest of a run (commit and hashes differ per build):
+
+```json
+{
+  "commit": "aea44bb4d28e1c5aaae5d87525b9da9f48bfcd62",
+  "files": {
+    "cubacle_wasm.wasm": {
+      "bytes": 162138,
+      "sha256": "097dd33104b8211e82fb8b2b88cea655fb86b00ea28c00d791eb739400523de4"
+    }
+  },
+  "format": "cubacle.wasm-manifest",
+  "formatVersion": 1,
+  "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: aarch64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1",
+  "tableSha256": {},
+  "version": "0.1.0"
+}
+```
+
 ## Interface
 
 There is no JavaScript glue. The module exports a C ABI over its linear memory (`memory`):
