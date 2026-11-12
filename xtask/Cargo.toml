@@ -8,5 +8,6 @@ publish = false
 description = "Maintenance tasks of the repository (cargo xtask docs)"
 
 [dependencies]
-# Already used by cubacle; here only to read docs/examples.toml.
+# Already used by cubacle; sha2 hashes the module for the manifest; toml here only to read docs/examples.toml.
+sha2 = "0.11.1"
 toml = { version = "1.1.8", default-features = false, features = ["std", "parse", "serde"] }

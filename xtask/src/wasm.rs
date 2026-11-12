@@ -1,0 +1,233 @@
+//! `cargo xtask wasm`: builds the browser module from a clean tree with fixed flags
+//! and writes the manifest next to it.
+//!
+//! Output: `target/wasm-dist/cubacle_wasm.wasm` and
+//! `target/wasm-dist/cubacle-wasm.manifest.json`.
+
+use std::collections::BTreeMap;
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::process::{Command, ExitCode};
+
+use sha2::{Digest, Sha256};
+
+use crate::manifest::{FileEntry, Manifest};
+
+/// The toolchain this build is pinned to (decision D5): `rustc -Vv` must name this
+/// release and this commit. Change it on purpose, in a pull request of its own.
+pub const PINNED_RELEASE: &str = "1.99.1";
+pub const PINNED_COMMIT_HASH: &str = "58cf8f9c35b355199727627d07ae34a4e2846d67";
+
+pub const MODULE: &str = "cubacle_wasm.wasm";
+pub const MANIFEST: &str = "cubacle-wasm.manifest.json";
+
+/// `git status --porcelain` output: empty means a clean tree (untracked files count).
+pub fn check_clean(porcelain: &str) -> Result<(), String> {
+    if porcelain.trim().is_empty() {
+        Ok(())
+    } else {
+        Err(format!(
+            "the working tree is not clean; commit or remove:\n{}",
+            porcelain.trim_end()
+        ))
+    }
+}
+
+fn field<'a>(rustc_vv: &'a str, key: &str) -> Option<&'a str> {
+    rustc_vv
+        .lines()
+        .find_map(|line| line.strip_prefix(key)?.strip_prefix(": "))
+}
+
+/// `rustc -Vv` output: refuses any release or commit other than the pinned one.
+pub fn check_toolchain(rustc_vv: &str) -> Result<(), String> {
+    let release = field(rustc_vv, "release");
+    let hash = field(rustc_vv, "commit-hash");
+    if release == Some(PINNED_RELEASE) && hash == Some(PINNED_COMMIT_HASH) {
+        Ok(())
+    } else {
+        Err(format!(
+            "toolchain mismatch: pinned rustc {PINNED_RELEASE} ({PINNED_COMMIT_HASH}), found {} ({})",
+            release.unwrap_or("unknown"),
+            hash.unwrap_or("unknown")
+        ))
+    }
+}
+
+/// The flags of the build, joined for `CARGO_ENCODED_RUSTFLAGS`. A plain `RUSTFLAGS`
+/// or this variable replaces the target `rustflags` of `.cargo/config.toml`, so the
+/// `getrandom` backend flag is repeated here.
+pub fn encoded_rustflags(repo: &Path, cargo_home: &Path) -> String {
+    [
+        "--cfg".to_string(),
+        "getrandom_backend=\"custom\"".to_string(),
+        format!("--remap-path-prefix={}=/cubacle", repo.display()),
+        format!("--remap-path-prefix={}=/cargo", cargo_home.display()),
+    ]
+    .join("\u{1f}")
+}
+
+pub fn hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|byte| format!("{byte:02x}")).collect()
+}
+
+fn capture(program: &str, args: &[&str], dir: &Path) -> Result<String, String> {
+    let output = Command::new(program)
+        .args(args)
+        .current_dir(dir)
+        .output()
+        .map_err(|error| format!("cannot run {program}: {error}"))?;
+    if !output.status.success() {
+        return Err(format!(
+            "{program} {} failed: {}",
+            args.join(" "),
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+}
+
+fn package_version(repo: &Path) -> Result<String, String> {
+    let text = fs::read_to_string(repo.join("crates/wasm/Cargo.toml"))
+        .map_err(|error| format!("crates/wasm/Cargo.toml: {error}"))?;
+    let table: toml::Table = text
+        .parse()
+        .map_err(|error| format!("crates/wasm/Cargo.toml: {error}"))?;
+    table
+        .get("package")
+        .and_then(|package| package.get("version"))
+        .and_then(toml::Value::as_str)
+        .map(str::to_owned)
+        .ok_or_else(|| "crates/wasm/Cargo.toml has no package version".to_string())
+}
+
+fn build(repo: &Path) -> Result<PathBuf, String> {
+    let porcelain = capture(
+        "git",
+        &["status", "--porcelain", "--untracked-files=all"],
+        repo,
+    )?;
+    check_clean(&porcelain)?;
+    let rustc_vv = capture("rustc", &["-Vv"], repo)?;
+    check_toolchain(&rustc_vv)?;
+    let commit = capture("git", &["rev-parse", "HEAD"], repo)?
+        .trim()
+        .to_string();
+    let version = package_version(repo)?;
+    let cargo_home = std::env::var_os("CARGO_HOME")
+        .map(PathBuf::from)
+        .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".cargo")))
+        .ok_or("neither CARGO_HOME nor HOME is set")?;
+
+    let target_dir = repo.join("target/wasm-build");
+    let status = Command::new("cargo")
+        .args([
+            "build",
+            "--release",
+            "--locked",
+            "-p",
+            "cubacle-wasm",
+            "--target",
+            "wasm32-unknown-unknown",
+        ])
+        .arg("--target-dir")
+        .arg(&target_dir)
+        .env_remove("RUSTFLAGS")
+        .env(
+            "CARGO_ENCODED_RUSTFLAGS",
+            encoded_rustflags(repo, &cargo_home),
+        )
+        .current_dir(repo)
+        .status()
+        .map_err(|error| format!("cannot run cargo build: {error}"))?;
+    if !status.success() {
+        return Err("cargo build failed".to_string());
+    }
+
+    let dist = repo.join("target/wasm-dist");
+    fs::create_dir_all(&dist).map_err(|error| error.to_string())?;
+    let module = fs::read(
+        target_dir
+            .join("wasm32-unknown-unknown/release")
+            .join(MODULE),
+    )
+    .map_err(|error| format!("{MODULE}: {error}"))?;
+    fs::write(dist.join(MODULE), &module).map_err(|error| error.to_string())?;
+    let mut files = BTreeMap::new();
+    files.insert(
+        MODULE.to_string(),
+        FileEntry {
+            bytes: module.len() as u64,
+            sha256: hex(&Sha256::digest(&module)),
+        },
+    );
+    let manifest = Manifest {
+        version,
+        commit,
+        rustc: rustc_vv.trim_end().to_string(),
+        files,
+        table_sha256: BTreeMap::new(),
+    };
+    fs::write(dist.join(MANIFEST), manifest.to_json()).map_err(|error| error.to_string())?;
+    Ok(dist)
+}
+
+pub fn run() -> ExitCode {
+    let repo = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("repository root");
+    match build(repo) {
+        Ok(dist) => {
+            println!("wasm: wrote {}", dist.display());
+            ExitCode::SUCCESS
+        }
+        Err(message) => {
+            eprintln!("wasm: {message}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn vv(release: &str, hash: &str) -> String {
+        format!(
+            "rustc {release}\nbinary: rustc\ncommit-hash: {hash}\nhost: x\nrelease: {release}\n"
+        )
+    }
+
+    #[test]
+    fn a_dirty_tree_is_refused() {
+        assert!(check_clean("").is_ok());
+        assert!(check_clean(" M src/lib.rs\n")
+            .unwrap_err()
+            .contains("not clean"));
+        assert!(check_clean("?? new.txt\n").is_err());
+    }
+
+    #[test]
+    fn the_pinned_toolchain_passes_and_another_is_refused() {
+        assert!(check_toolchain(&vv(PINNED_RELEASE, PINNED_COMMIT_HASH)).is_ok());
+        let other_release = check_toolchain(&vv("1.98.0", PINNED_COMMIT_HASH)).unwrap_err();
+        assert!(other_release.contains("toolchain mismatch"));
+        assert!(check_toolchain(&vv(PINNED_RELEASE, "0".repeat(40).as_str())).is_err());
+        assert!(check_toolchain("garbage").is_err());
+    }
+
+    #[test]
+    fn the_flags_keep_the_getrandom_backend_and_remap_both_roots() {
+        let flags = encoded_rustflags(Path::new("/r"), Path::new("/h/.cargo"));
+        let parts: Vec<&str> = flags.split('\u{1f}').collect();
+        assert_eq!(parts[0], "--cfg");
+        assert_eq!(parts[1], "getrandom_backend=\"custom\"");
+        assert_eq!(parts[2], "--remap-path-prefix=/r=/cubacle");
+        assert_eq!(parts[3], "--remap-path-prefix=/h/.cargo=/cargo");
+    }
+
+    #[test]
+    fn hex_is_lowercase_and_padded() {
+        assert_eq!(hex(&[0, 15, 255]), "000fff");
+    }
+}
