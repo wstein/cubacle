@@ -71,6 +71,74 @@ pub fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
+/// `RUSTC` when it names a compiler, otherwise `rustc` on `PATH`.
+/// Cargo uses the same variable, so the pin check has to follow it.
+fn compiler_program(rustc_env: Option<&str>) -> &str {
+    match rustc_env.map(str::trim).filter(|value| !value.is_empty()) {
+        Some(program) => program,
+        None => "rustc",
+    }
+}
+
+fn commit_args() -> [&'static str; 2] {
+    ["rev-parse", "HEAD"]
+}
+
+fn file_entry(bytes: &[u8]) -> FileEntry {
+    FileEntry {
+        bytes: bytes.len() as u64,
+        sha256: hex(&Sha256::digest(bytes)),
+    }
+}
+
+/// Arguments and environment of the `cargo build` this task runs.
+///
+/// `RUSTC` and `CARGO_BUILD_RUSTC` are the compiler that passed the pin check.
+/// An empty `CARGO_BUILD_RUSTC_WRAPPER` overrides `build.rustc-wrapper` in a
+/// Cargo config file. `RUSTC_WRAPPER` is a different variable and is removed,
+/// because an empty config value does not clear it. The same applies to the
+/// workspace wrapper. `RUSTFLAGS` is removed so it cannot replace the encoded flags.
+#[derive(Debug)]
+struct CargoInvocation {
+    args: Vec<String>,
+    env: Vec<(String, String)>,
+    removed: &'static [&'static str],
+}
+
+impl CargoInvocation {
+    #[cfg(test)]
+    fn env(&self, key: &str) -> Option<&str> {
+        self.env
+            .iter()
+            .find(|(name, _)| name == key)
+            .map(|(_, value)| value.as_str())
+    }
+}
+
+fn cargo_invocation(target_dir: &Path, compiler: &str, encoded_rustflags: &str) -> CargoInvocation {
+    CargoInvocation {
+        args: vec![
+            "build".into(),
+            "--release".into(),
+            "--locked".into(),
+            "-p".into(),
+            "cubacle-wasm".into(),
+            "--target".into(),
+            "wasm32-unknown-unknown".into(),
+            "--target-dir".into(),
+            target_dir.display().to_string(),
+        ],
+        env: vec![
+            ("RUSTC".into(), compiler.into()),
+            ("CARGO_BUILD_RUSTC".into(), compiler.into()),
+            ("CARGO_ENCODED_RUSTFLAGS".into(), encoded_rustflags.into()),
+            ("CARGO_BUILD_RUSTC_WRAPPER".into(), String::new()),
+            ("CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER".into(), String::new()),
+        ],
+        removed: &["RUSTFLAGS", "RUSTC_WRAPPER", "RUSTC_WORKSPACE_WRAPPER"],
+    }
+}
+
 fn capture(program: &str, args: &[&str], dir: &Path) -> Result<String, String> {
     let output = Command::new(program)
         .args(args)
@@ -108,11 +176,11 @@ fn build(repo: &Path) -> Result<PathBuf, String> {
         repo,
     )?;
     check_clean(&porcelain)?;
-    let rustc_vv = capture("rustc", &["-Vv"], repo)?;
+    let rustc_var = std::env::var("RUSTC").ok();
+    let compiler = compiler_program(rustc_var.as_deref()).to_string();
+    let rustc_vv = capture(&compiler, &["-Vv"], repo)?;
     check_toolchain(&rustc_vv)?;
-    let commit = capture("git", &["rev-parse", "HEAD"], repo)?
-        .trim()
-        .to_string();
+    let commit = capture("git", &commit_args(), repo)?.trim().to_string();
     let version = package_version(repo)?;
     let cargo_home = std::env::var_os("CARGO_HOME")
         .map(PathBuf::from)
@@ -120,24 +188,20 @@ fn build(repo: &Path) -> Result<PathBuf, String> {
         .ok_or("neither CARGO_HOME nor HOME is set")?;
 
     let target_dir = repo.join("target/wasm-build");
-    let status = Command::new("cargo")
-        .args([
-            "build",
-            "--release",
-            "--locked",
-            "-p",
-            "cubacle-wasm",
-            "--target",
-            "wasm32-unknown-unknown",
-        ])
-        .arg("--target-dir")
-        .arg(&target_dir)
-        .env_remove("RUSTFLAGS")
-        .env(
-            "CARGO_ENCODED_RUSTFLAGS",
-            encoded_rustflags(repo, &cargo_home),
-        )
-        .current_dir(repo)
+    let invocation = cargo_invocation(
+        &target_dir,
+        &compiler,
+        &encoded_rustflags(repo, &cargo_home),
+    );
+    let mut command = Command::new("cargo");
+    command.args(&invocation.args).current_dir(repo);
+    for (key, value) in &invocation.env {
+        command.env(key, value);
+    }
+    for key in invocation.removed {
+        command.env_remove(key);
+    }
+    let status = command
         .status()
         .map_err(|error| format!("cannot run cargo build: {error}"))?;
     if !status.success() {
@@ -154,13 +218,7 @@ fn build(repo: &Path) -> Result<PathBuf, String> {
     .map_err(|error| format!("{MODULE}: {error}"))?;
     fs::write(dist.join(MODULE), &module).map_err(|error| error.to_string())?;
     let mut files = BTreeMap::new();
-    files.insert(
-        MODULE.to_string(),
-        FileEntry {
-            bytes: module.len() as u64,
-            sha256: hex(&Sha256::digest(&module)),
-        },
-    );
+    files.insert(MODULE.to_string(), file_entry(&module));
     let manifest = Manifest {
         version,
         commit,
@@ -257,7 +315,7 @@ mod tests {
             invocation
                 .args
                 .windows(2)
-                .any(|pair| pair == ["--target-dir", "target/wasm-build"]),
+                .any(|pair| { pair[0] == "--target-dir" && pair[1] == "target/wasm-build" }),
             "{invocation:?}"
         );
         assert_eq!(invocation.env("RUSTC"), Some("/opt/pinned/rustc"));
@@ -277,7 +335,7 @@ mod tests {
         assert!(invocation.env("RUSTFLAGS").is_none(), "{invocation:?}");
         for name in ["RUSTFLAGS", "RUSTC_WRAPPER", "RUSTC_WORKSPACE_WRAPPER"] {
             assert!(
-                invocation.removed.iter().any(|item| *item == name),
+                invocation.removed.contains(&name),
                 "missing {name} in {invocation:?}"
             );
         }
