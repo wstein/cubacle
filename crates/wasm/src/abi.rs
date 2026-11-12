@@ -2,6 +2,12 @@
 
 use crate::solve::{solve_text, HEADER, STATUS_BAD_INPUT};
 
+/// ABI version of this module. 1 is the scramble-to-solved C entry points.
+#[no_mangle]
+pub extern "C" fn cubacle_abi_version() -> u32 {
+    1
+}
+
 /// Allocates `len` bytes in linear memory for the host to fill.
 #[no_mangle]
 pub extern "C" fn cubacle_alloc(len: usize) -> *mut u8 {

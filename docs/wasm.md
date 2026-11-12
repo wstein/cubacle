@@ -23,6 +23,7 @@ There is no JavaScript glue. The module exports a C ABI over its linear memory (
 
 | Export | Meaning |
 | --- | --- |
+| `cubacle_abi_version() -> u32` | ABI version of the module. 1 is the scramble-to-solved entry points in this table. |
 | `cubacle_alloc(len) -> ptr` | A buffer of `len` bytes for the host to fill. |
 | `cubacle_solve(size, ptr, len, max_moves) -> result` | Solves the scramble (UTF-8, standard notation) on a 2x2x2 or 3x3x3. |
 | `cubacle_result_len(result) -> len` | The byte length of the result buffer. |
