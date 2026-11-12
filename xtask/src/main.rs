@@ -6,6 +6,7 @@
 
 mod docs;
 mod manifest;
+mod tarball;
 mod wasm;
 mod wasm_deps;
 
