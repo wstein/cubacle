@@ -557,6 +557,11 @@ fn applications_use_only_the_public_modules() {
         "src/terminal/mod.rs",
         "crates/server/src/lib.rs",
         "crates/server/src/main.rs",
+        // The wasm facade is an application: it may name only the public modules.
+        "crates/wasm/src/lib.rs",
+        "crates/wasm/src/abi.rs",
+        "crates/wasm/src/solve.rs",
+        "crates/wasm/src/host.rs",
     ] {
         let source = strip_test_items(&strip_comments_and_strings(
             &fs::read_to_string(root.join(file)).unwrap(),
