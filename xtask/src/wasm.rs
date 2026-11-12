@@ -230,4 +230,71 @@ mod tests {
     fn hex_is_lowercase_and_padded() {
         assert_eq!(hex(&[0, 15, 255]), "000fff");
     }
+
+    #[test]
+    fn the_pin_check_uses_rustc_from_the_environment_when_it_is_set() {
+        assert_eq!(compiler_program(None), "rustc");
+        assert_eq!(compiler_program(Some("")), "rustc");
+        assert_eq!(compiler_program(Some("  ")), "rustc");
+        assert_eq!(
+            compiler_program(Some("/opt/pinned/rustc")),
+            "/opt/pinned/rustc"
+        );
+    }
+
+    #[test]
+    fn the_cargo_invocation_locks_the_checked_compiler_and_drops_wrappers() {
+        let invocation = cargo_invocation(
+            Path::new("target/wasm-build"),
+            "/opt/pinned/rustc",
+            "--cfg\u{1f}getrandom_backend=\"custom\"",
+        );
+        assert!(
+            invocation.args.iter().any(|arg| arg == "--locked"),
+            "{invocation:?}"
+        );
+        assert!(
+            invocation
+                .args
+                .windows(2)
+                .any(|pair| pair == ["--target-dir", "target/wasm-build"]),
+            "{invocation:?}"
+        );
+        assert_eq!(invocation.env("RUSTC"), Some("/opt/pinned/rustc"));
+        assert_eq!(
+            invocation.env("CARGO_BUILD_RUSTC"),
+            Some("/opt/pinned/rustc")
+        );
+        assert_eq!(
+            invocation.env("CARGO_ENCODED_RUSTFLAGS"),
+            Some("--cfg\u{1f}getrandom_backend=\"custom\"")
+        );
+        assert_eq!(invocation.env("CARGO_BUILD_RUSTC_WRAPPER"), Some(""));
+        assert_eq!(
+            invocation.env("CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER"),
+            Some("")
+        );
+        assert!(invocation.env("RUSTFLAGS").is_none(), "{invocation:?}");
+        for name in ["RUSTFLAGS", "RUSTC_WRAPPER", "RUSTC_WORKSPACE_WRAPPER"] {
+            assert!(
+                invocation.removed.iter().any(|item| *item == name),
+                "missing {name} in {invocation:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_commit_comes_from_head() {
+        assert_eq!(commit_args(), ["rev-parse", "HEAD"]);
+    }
+
+    #[test]
+    fn the_file_entry_is_the_length_and_sha256_of_those_bytes() {
+        let entry = file_entry(b"abc");
+        assert_eq!(entry.bytes, 3);
+        assert_eq!(
+            entry.sha256,
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
+    }
 }
