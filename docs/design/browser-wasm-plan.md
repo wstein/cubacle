@@ -71,9 +71,11 @@ measured, not found or not run). Base of all file references: `develop` at `de12
   - `src/targets/` (P name) for C2: the two target modes on patterns. New `RULES` entry
     `("src/targets", &["puzzle", "kpuzzle", "targets"])`. It reaches the 3x3x3 solver only
     through the `Solver` trait with an injected instance, like `centers`; it names no engine.
-  - `APP_ALLOWED` gains `kpuzzle` and `targets`. `applications_use_only_the_public_modules`
-    checks `src/main.rs` and `crates/server` today, not `crates/wasm`; adding `crates/wasm/src`
-    to that list is part of slice A1.
+  - `applications_use_only_the_public_modules` checks a list of files (`src/main.rs`,
+    `crates/server/src/lib.rs`, `crates/server/src/main.rs`), not `crates/wasm`. A1 adds the
+    files of `crates/wasm/src` it creates; every later slice that adds a file there adds it to the
+    list. M2, the first slice whose facade names `kpuzzle` and `targets`, adds both to
+    `APP_ALLOWED`.
   - `ARCHITECTURE.md` (module list and dependency rules) changes in the same pull request as
     each `RULES` entry. Without the entry the architecture test does not look at the new
     directory, so "architecture test green" is evidence only after the entry exists.
@@ -117,8 +119,12 @@ Operations (Rust; JS as far as D13 allows): `identity`, `compose(a, b)` (apply `
 the Cubing.js `a.applyTransformation(b)`), `invert`, `move(name)`, `alg(text)` (outer face
 turns, rotations and slices as the 3x3x3 notation accepts them), `toPattern(t)` (default pattern
 after `t`; Cubing.js `toKPattern`), `toTransformation(p)` (the transformation that takes the
-default pattern to `p`; Cubing.js `experimentalToTransformation`; refused when `p` has a
-position with `orientationMod` other than 0 where the result would not be unique),
+default pattern to `p`; Cubing.js `experimentalToTransformation`, which in 0.66.1 copies
+`pieces` and `orientation` and ignores `orientationMod`, and returns null only when the pieces
+of the default pattern are not all distinct: `chunk-LBER75W4.js:540-555`, `:642-657`; cubacle
+follows it: an untracked orientation counts as its stored value, normally 0, so the planner's
+patterns with `CENTERS orientationMod [1, 1, 1, 1, 1, 1]` convert; B1 tests exactly that data
+shape),
 `applyTransformation(pattern, t)`, `isIdentical(p, q)` honoring `orientationMod`, conversion to
 and from `Facelets` plus `CenterTwists`. A move sequence (the answer of a solve) supports
 `invert` and `toString` in the notation of `docs/cli`; that covers the planner's use of the
@@ -262,8 +268,8 @@ B2, L2 <- M1 <- M2 <- M3                  stack M, base develop after stacks B a
 
 - A2 needs A1 only by stack order (one topic per PR; A1 is a precondition for no file of A2).
   A3 builds what A2 trimmed; A4 packs what A3 builds.
-- B1 and B2 touch `src/kpuzzle/`, `tests/architecture_test.rs` (the `RULES` array) and
-  `ARCHITECTURE.md`; stack A touches `crates/wasm/`, `xtask/`, the root `Cargo.toml` and, in A1,
+- B1 touches `src/kpuzzle/`, `tests/architecture_test.rs` (the `RULES` array) and
+  `ARCHITECTURE.md`; B2 touches `src/kpuzzle/` only; stack A touches `crates/wasm/`, `xtask/`, the root `Cargo.toml` and, in A1,
   the application list of `tests/architecture_test.rs`. The two stacks share that one test file
   in different places.
 - L1 (ABI 2, `capabilities`, error codes) edits the files A1 creates; L2 (JS glue) needs the
@@ -275,8 +281,9 @@ B2, L2 <- M1 <- M2 <- M3                  stack M, base develop after stacks B a
   scope of D13.
 
 Limits: at most 4 open pull requests per stack and 3 open units per repository. A and B run in
-parallel (2 units); L starts when A is merged; M starts when B and L are merged and D1, D9, D12
-and D13 are decided.
+parallel (2 units). Start conditions, the same as in D1: A after D1 (A2 also after D8, A3 after D5,
+A4 after D2, D6 and D7); B after D1, D3 and D14; L when A is merged and D4 and D11 are decided;
+M when B and L are merged and D9, D12, D13 and D14 are decided.
 
 ## 5. Slices
 
@@ -297,13 +304,13 @@ first. The wasm target is added once with `rustup target add wasm32-unknown-unkn
 | A2 | `feat/wasm-build-2` | C1 (D8) | Optional `cli` feature for `clap`, `sysinfo`, `toml`; `cargo xtask wasm-deps` fails when the normal wasm graph holds `clap`, `sysinfo`, `toml` or `ureq` | `cargo xtask wasm-deps` reports `clap` | the check passes; CLI and server tests unchanged; `.wasm` size before and after recorded with command |
 | A3 | `feat/wasm-build-3` | C5 (D5) | `cargo xtask wasm`: clean-tree check, pinned flags, manifest | xtask unit tests: manifest key order, dirty tree refused, toolchain mismatch refused | two builds of one commit on one machine give the same SHA-256; an example manifest in the docs |
 | A4 | `feat/wasm-build-4` | C5 (D2, D6, D7) | Deterministic tarball writer and package layout | xtask unit tests: entry order, mtime, owner, mode, gzip header without time | two packs of one commit give the same SHA-512; `tar -tvzf` listing in the PR |
-| B1 | `feat/kpuzzle-1` | C3 (D3, D14) | `src/kpuzzle/`: definitions, transformation, pattern with `orientationMod`, compose, invert, `toPattern`, `toTransformation`, validation; `RULES` entry and `ARCHITECTURE.md` | property tests in `src/kpuzzle/tests.rs`; the architecture test fails on a planted `crate::engines` path in `src/kpuzzle` (mutation) | group laws and move orders hold; the architecture test checks `src/kpuzzle` |
+| B1 | `feat/kpuzzle-1` | C3 (D3, D14) | `src/kpuzzle/`: definitions, transformation, pattern with `orientationMod`, compose, invert, `toPattern`, `toTransformation`, validation; `RULES` entry and `ARCHITECTURE.md` | property tests in `src/kpuzzle/tests.rs`; `toTransformation` of a pattern with `CENTERS orientationMod [1, 1, 1, 1, 1, 1]` returns a transformation (the planner path); the architecture test fails on a planted `crate::engines` path in `src/kpuzzle` (mutation) | group laws and move orders hold; the architecture test checks `src/kpuzzle` |
 | B2 | `feat/kpuzzle-2` | C3 | `alg(text)`, move sequence `invert` and text, bridge to `Facelets`, `CenterTwists` and Orbit64 V2 inside `src/kpuzzle/` | differential test against `Facelets::apply` on fixed random words | bridge round trip holds; center twists equal the Orbit64 V2 picture model |
 | L1 | `feat/wasm-loader-1` | C4, C3 | ABI 2 `cubacle_call`, op `capabilities`, the error codes of section 3.6 | `crates/wasm/tests/`: JSON cases for `capabilities`, unknown op, unknown `formatVersion` | the codes 0 to 2 of ABI 1 unchanged; golden test green |
 | L2 | `feat/wasm-loader-2` | C4 (D11) | `crates/wasm/js/`: client, worker, hash-pinned load, abort, budget, retry; files added to the package list | `node --test`: wrong hash, oversize body, abort before call, terminate during call, retry after failure | all pass; the bench runs through the glue |
 | L3 | `feat/wasm-loader-3` | C4 (D4) | Serialization of the built 2x2x2 and 3x3x3 tables, SHA-256 pinned in a native test, written to the manifest, printed by the bench | the pinned-hash test (fails with a wrong constant; mutation: change one table entry) | native and wasm print the same hashes |
-| M1 | `feat/target-modes-1` | C2 (D1, D9, D12, D14) | `src/targets/`: `ignore-centers` and `exact-frame` on patterns, native, solver injected; `RULES` entry | replay tests on the agreed Calendar fixtures (provenance: Cubistry commit, path, SHA-256) | every fixture replays exactly; refused cases named |
-| M2 | `feat/target-modes-2` | C2 | `solvePattern` in ABI 2 and the glue; modes in `capabilities` | Node replay test on the same fixtures | the same answers as native (byte-equal move text) |
+| M1 | `feat/target-modes-1` | C2 (D1, D9, D12, D14) | `src/targets/`: `ignore-centers` and `exact-frame` on patterns, native, solver injected; `RULES` entry | replay tests in `tests/` (an integration test may build a real `Min2PhaseSolver`; a `src/targets/tests.rs` would fail the `RULES` check, which exempts only three files, `tests/architecture_test.rs:390-393`) on the agreed Calendar fixtures (provenance: Cubistry commit, path, SHA-256) | every fixture replays exactly; refused cases named |
+| M2 | `feat/target-modes-2` | C2 | `solvePattern` in ABI 2 and the glue; modes in `capabilities`; `kpuzzle` and `targets` in `APP_ALLOWED` | Node replay test on the same fixtures | the same answers as native (byte-equal move text) |
 | M3 | `feat/target-modes-3` | C3 (D13) | Definition and the pattern operations D13 allows, in ABI 2, the glue and `index.d.ts` | Node test of each Calendar planner operation listed in section 2 that D13 keeps | the test passes with the planner's data shapes |
 
 Stacking points and restack risks:
@@ -327,7 +334,8 @@ Each with recommendation (R) and price. None is taken by this plan.
    #22 asks for a separate approval of priority, license and interface before C2 is built; G1
    covered steps 2 and 3 of the Cubistry plan only; the Cubistry plan (Constraints) adds that
    AGPL-3.0 section 13 applies to network use and that package or worker boundaries do not waive
-   it. R: approve stacks A and B now; stack L after D4 and D11; stack M after D9, D12, D13 and D14.
+   it. R: approve stacks A and B now (A2 to A4 and B1 also need D2, D3, D5 to D8 and D14, section 4);
+   stack L after D4 and D11; stack M after D9, D12, D13 and D14.
    Price: no cubacle answer for exact-frame targets until then; Cubistry keeps Cubing.js.
 2. **D2 Pin by commit or by tag.** The fixed-frame design records "other repositories pin only
    release tags with green CI" (**O**, [Fixed-frame proofs](fixed-frame-proofs.md) 1.3); #25 and
