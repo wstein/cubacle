@@ -23,7 +23,19 @@ The module is `target/wasm32-unknown-unknown/release/cubacle_wasm.wasm`. It is b
 cargo xtask wasm
 ```
 
-The command refuses a working tree that is not clean. Untracked files count; ignored files do not. It also refuses a toolchain other than the one named in `xtask/src/wasm.rs` (`rustc` 1.99.1, commit `58cf8f9c35b355199727627d07ae34a4e2846d67`). The check runs `$RUSTC` when that variable is set, and `rustc` otherwise, and the build passes that same compiler as `RUSTC`. `RUSTC_WRAPPER`, `RUSTC_WORKSPACE_WRAPPER`, and a `rustc-wrapper` in Cargo configuration are not used. It builds with `cargo build --release --locked -p cubacle-wasm --target wasm32-unknown-unknown` into `target/wasm-build`, with `--remap-path-prefix` for the repository and the Cargo home and with the `getrandom` backend flag (set through `CARGO_ENCODED_RUSTFLAGS`, which replaces the target `rustflags` of `.cargo/config.toml`). It writes `target/wasm-dist/cubacle_wasm.wasm` and `target/wasm-dist/cubacle-wasm.manifest.json`. Keys are sorted, the manifest holds no time stamp, and `tableSha256` stays empty until the tables are serialized. Two builds of one commit on one machine gave the same SHA-256; two machines were not compared, so reproducibility across machines is unknown.
+The command refuses a working tree that is not clean. Untracked files count; ignored files do not. It also refuses a toolchain other than the one named in `xtask/src/wasm.rs` (`rustc` 1.99.1, commit `58cf8f9c35b355199727627d07ae34a4e2846d67`). The check runs `$RUSTC` when that variable is set, and `rustc` otherwise, and the build passes that same compiler as `RUSTC`. `RUSTC_WRAPPER`, `RUSTC_WORKSPACE_WRAPPER`, and a `rustc-wrapper` in Cargo configuration are not used. It builds with `cargo build --release --locked -p cubacle-wasm --target wasm32-unknown-unknown` into `target/wasm-build`, with `--remap-path-prefix` for the repository and the Cargo home and with the `getrandom` backend flag (set through `CARGO_ENCODED_RUSTFLAGS`, which replaces the target `rustflags` of `.cargo/config.toml`). It writes `target/wasm-dist/cubacle_wasm.wasm` and `target/wasm-dist/cubacle-wasm.manifest.json`. Keys are sorted, the manifest holds no time stamp, and `tableSha256` stays empty until the tables are serialized. Two builds of one commit on one machine gave the same SHA-256 of the module; two machines were not compared, so reproducibility across machines is unknown.
+
+The same command then packs `target/wasm-dist/cubacle-wasm-<version>.tgz` (npm layout, prefix `package/`) and writes its integrity string (`sha512-` and the base64 digest, as npm prints it) to `cubacle-wasm-<version>.tgz.integrity`. Entries are sorted by name, ustar headers carry uid and gid 0 and mode 0644, every modification time is the commit time, and the gzip header has no name and no time. The package holds `package.json` (no scripts), `cubacle_wasm.wasm`, the manifest, `LICENSE`, `LICENSE-MIT`, `NOTICE.md` and `README.md`. The glue files `index.mjs`, `worker.mjs` and `index.d.ts` are read from `crates/wasm/js/` when they exist; until they exist the command says so and skips them, and `exports` names only what is packed. Two full rebuilds of one commit on one machine gave the same SHA-512; the tarball is not compared across machines. Nothing is published to npm. Listing of a run:
+
+```text
+-rw-r--r-- 0/0           34523 2026-11-12 13:40 package/LICENSE
+-rw-r--r-- 0/0            4086 2026-11-12 13:40 package/LICENSE-MIT
+-rw-r--r-- 0/0            8959 2026-11-12 13:40 package/NOTICE.md
+-rw-r--r-- 0/0             646 2026-11-12 13:40 package/README.md
+-rw-r--r-- 0/0             535 2026-11-12 13:40 package/cubacle-wasm.manifest.json
+-rw-r--r-- 0/0          162138 2026-11-12 13:40 package/cubacle_wasm.wasm
+-rw-r--r-- 0/0             214 2026-11-12 13:40 package/package.json
+```
 
 `cargo xtask wasm-deps` fails when the normal dependency graph of `cubacle-wasm` holds `clap`, `sysinfo`, `toml` or `ureq`.
 
