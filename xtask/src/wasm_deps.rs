@@ -127,4 +127,38 @@ cubacle-wasm v0.1.0 (/r/crates/wasm)
     fn a_prefix_none_tree_names_cubacle() {
         assert!(check_tree(CLEAN).is_ok());
     }
+
+    /// `required-features = ["cli"]` is not something `wasm-deps` can see.
+    /// Dropping it makes `cargo check -p cubacle --no-default-features --bins`
+    /// compile the binary and fail. This test fails on that same edit.
+    fn binary_requires_cli(manifest: &str) -> bool {
+        let Ok(table) = manifest.parse::<toml::Table>() else {
+            return false;
+        };
+        table
+            .get("bin")
+            .and_then(toml::Value::as_array)
+            .into_iter()
+            .flatten()
+            .any(|bin| {
+                bin.get("name").and_then(toml::Value::as_str) == Some("cubacle")
+                    && bin
+                        .get("required-features")
+                        .and_then(toml::Value::as_array)
+                        .into_iter()
+                        .flatten()
+                        .any(|feature| feature.as_str() == Some("cli"))
+            })
+    }
+
+    #[test]
+    fn the_cubacle_binary_requires_the_cli_feature() {
+        assert!(binary_requires_cli(include_str!("../../Cargo.toml")));
+    }
+
+    #[test]
+    fn a_binary_without_required_features_is_rejected() {
+        let manifest = "[[bin]]\nname = \"cubacle\"\npath = \"src/main.rs\"\n";
+        assert!(!binary_requires_cli(manifest));
+    }
 }
