@@ -100,15 +100,27 @@ fn a_budget_call_that_runs_out_answers_timeout_within_the_budget() {
     let elapsed = started.elapsed();
     assert_eq!(status, STATUS_TIMEOUT, "{text}");
     assert!(!text.is_empty());
-    assert!(elapsed < std::time::Duration::from_millis(1500), "took {elapsed:?}");
+    assert!(
+        elapsed < std::time::Duration::from_millis(1500),
+        "took {elapsed:?}"
+    );
 }
 
 #[test]
 fn a_budget_call_answers_like_abi_1_when_the_budget_is_enough() {
-    for (size, scramble, max) in [(3, "R U R' U' F2 D L2 B' U2 R2 F D' L", 25), (2, "R U R' U' F2 R", 14)] {
-        assert_eq!(call_budget(size, scramble, max, 5000), call(size, scramble, max));
+    for (size, scramble, max) in [
+        (3, "R U R' U' F2 D L2 B' U2 R2 F D' L", 25),
+        (2, "R U R' U' F2 R", 14),
+    ] {
+        assert_eq!(
+            call_budget(size, scramble, max, 5000),
+            call(size, scramble, max)
+        );
         // A budget of 0 means the default budget of ABI 1.
-        assert_eq!(call_budget(size, scramble, max, 0), call(size, scramble, max));
+        assert_eq!(
+            call_budget(size, scramble, max, 0),
+            call(size, scramble, max)
+        );
     }
 }
 
