@@ -2,7 +2,33 @@
 
 use std::fmt;
 
-use super::{Face, PuzzleKind};
+use super::twist_track::{self, Tracked, Tracker};
+use super::{Face, MoveSequence, PuzzleKind};
+
+/// The version of the twist convention, printed in certificates. In the solved
+/// orientation the top of the picture of U points to the back, the top of D to
+/// the front and the top of the four side pictures up. A turn `f` of a face adds
+/// 1 to the twist of its center, `f2` adds 2, `f'` adds 3.
+pub const TWIST_CONVENTION: &str = "center-twist-1 (t=URFDLB, clockwise quarters seen from outside, up: U back, D front, sides up)";
+
+/// Why a twist text or a replay was refused.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TwistError {
+    /// The text is no list of six twists.
+    Syntax(String),
+    /// The move or cube is outside what the tracker supports.
+    Unsupported(String),
+}
+
+impl fmt::Display for TwistError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            TwistError::Syntax(text) | TwistError::Unsupported(text) => f.write_str(text),
+        }
+    }
+}
+
+impl std::error::Error for TwistError {}
 
 /// How far each of the six fixed centers of an odd cube is turned, in quarter
 /// turns clockwise (`0..=3`), indexed by the face in `URFDLB` order.
@@ -77,6 +103,58 @@ impl CenterTwists {
 
     pub fn is_untwisted(&self) -> bool {
         self.twists == [0; 6]
+    }
+
+    /// Whether the sum of the six twists is even. On a cube it equals the parity of
+    /// the corner permutation.
+    pub fn sum_is_even(&self) -> bool {
+        self.twists.iter().map(|&t| u32::from(t)).sum::<u32>() % 2 == 0
+    }
+
+    /// Reads six numbers 0 to 3 separated by commas, spaces ignored: `0,1,2,0,3,0`.
+    pub fn parse(kind: PuzzleKind, text: &str) -> Result<CenterTwists, TwistError> {
+        let bad = || {
+            TwistError::Syntax(format!(
+                "a center twist is six numbers 0 to 3 for U,R,F,D,L,B separated by commas, like 0,1,2,0,3,0 (not {text:?})"
+            ))
+        };
+        let parts: Vec<&str> = text.split(',').map(str::trim).collect();
+        if parts.len() != 6 {
+            return Err(bad());
+        }
+        let mut twists = [0u8; 6];
+        for (slot, part) in twists.iter_mut().zip(&parts) {
+            *slot = match *part {
+                "0" => 0,
+                "1" => 1,
+                "2" => 2,
+                "3" => 3,
+                _ => return Err(bad()),
+            };
+        }
+        CenterTwists::new(kind, twists).map_err(|e| TwistError::Unsupported(e.to_string()))
+    }
+
+    /// The twists seen on each face after the whole-cube rotations of `word`
+    /// (`x y z` turns separated by spaces): each picture goes with its center.
+    pub fn rotated(&self, word: &str) -> Result<CenterTwists, TwistError> {
+        let mut tracker = Tracker::from_twists(self)?;
+        tracker.rotate_word(word)?;
+        Ok(tracker.read())
+    }
+
+    /// What `moves` do to the twists of a 3x3x3. The result is read in the frame
+    /// where every center is on its own face; the whole-cube rotation that gets
+    /// there is in `Tracked::frame` and costs no move.
+    pub fn track(&self, moves: &MoveSequence) -> Result<Tracked, TwistError> {
+        twist_track::track(self, moves)
+    }
+}
+
+impl fmt::Display for CenterTwists {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let [u, r, ff, d, l, b] = self.twists;
+        write!(f, "{u},{r},{ff},{d},{l},{b}")
     }
 }
 
