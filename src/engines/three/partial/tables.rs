@@ -35,6 +35,16 @@ impl Nibbles {
     }
 }
 
+/// What building a table came to.
+pub(super) enum Built<T> {
+    /// The table, ready to bound the search.
+    Table(T),
+    /// No table is needed: some view constrains nothing the table tracks.
+    NothingToPrune,
+    /// No projected state meets the goal, so no cube does.
+    Unsatisfiable,
+}
+
 /// Distances to the nearest seed over `n` states, or `None` without a seed.
 fn bfs(
     n: usize,
@@ -128,11 +138,11 @@ impl CornerTable {
         CORNER_PERMS * CORNER_TWISTS / 2 + (CORNER_PERMS + CORNER_TWISTS) * TURNS * 2
     }
 
-    /// `None` when no view constrains a corner (nothing to prune) or no
-    /// corner arrangement meets the goal.
-    pub(super) fn build(goal: &Goal, turns: &Turns) -> Option<CornerTable> {
+    /// Nothing to prune when some view constrains no corner; unsatisfiable
+    /// when no corner arrangement meets the goal.
+    pub(super) fn build(goal: &Goal, turns: &Turns) -> Built<CornerTable> {
         if goal.views.iter().any(|v| v.corners.is_empty()) {
-            return None;
+            return Built::NothingToPrune;
         }
         let mut perm_mv = vec![0u16; CORNER_PERMS * TURNS];
         for rank in 0..CORNER_PERMS {
@@ -153,7 +163,7 @@ impl CornerTable {
             }
         }
         let twists: Vec<[u8; 8]> = (0..CORNER_TWISTS).map(twist_unrank).collect();
-        let dist = bfs(
+        let Some(dist) = bfs(
             CORNER_PERMS * CORNER_TWISTS,
             |mark| {
                 for rank in 0..CORNER_PERMS {
@@ -175,8 +185,10 @@ impl CornerTable {
                 usize::from(perm_mv[(i / CORNER_TWISTS) * TURNS + m]) * CORNER_TWISTS
                     + usize::from(twist_mv[(i % CORNER_TWISTS) * TURNS + m])
             },
-        )?;
-        Some(CornerTable {
+        ) else {
+            return Built::Unsatisfiable;
+        };
+        Built::Table(CornerTable {
             perm_mv,
             twist_mv,
             dist,
@@ -264,8 +276,8 @@ impl EdgeTable {
         pieces
     }
 
-    /// `None` when no arrangement of the tracked edges meets the goal.
-    pub(super) fn build(goal: &Goal, turns: &Turns, pieces: &[u8]) -> Option<EdgeTable> {
+    /// Unsatisfiable when no arrangement of the tracked edges meets the goal.
+    pub(super) fn build(goal: &Goal, turns: &Turns, pieces: &[u8]) -> Built<EdgeTable> {
         let k = pieces.len();
         let n = arrangements(k);
         let mut to = [[0u8; 12]; TURNS];
@@ -293,7 +305,7 @@ impl EdgeTable {
         let tracked: u32 = pieces
             .iter()
             .fold(0, |acc, &p| acc | 3 << (usize::from(p) * 2));
-        let dist = bfs(
+        let Some(dist) = bfs(
             n << k,
             |mark| {
                 for rank in 0..n {
@@ -324,8 +336,10 @@ impl EdgeTable {
                 let t = mv[(i >> k) * TURNS + m];
                 ((t & 0x3F_FFFF) as usize) << k | ((i & ((1 << k) - 1)) ^ (t >> 22) as usize)
             },
-        )?;
-        Some(EdgeTable {
+        ) else {
+            return Built::Unsatisfiable;
+        };
+        Built::Table(EdgeTable {
             pieces: pieces.to_vec(),
             k,
             mv,
