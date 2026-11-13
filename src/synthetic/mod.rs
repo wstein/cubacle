@@ -35,7 +35,9 @@ mod shadow;
 
 pub use color::Rgb;
 pub use json::fingerprint_json;
-pub use options::{Geometry, Logo, Options, Preset, Shadow, ShadowShape, SyntheticError};
+pub use options::{
+    Geometry, Logo, Options, Preset, Shadow, ShadowShape, SyntheticError, MAX_BLUR_RADIUS,
+};
 
 /// Renders one face as `size * size * 4` bytes of RGBA, row-major, top row
 /// first. `grid` holds the sticker letters, top row first; `W Y O R G B` are
@@ -52,6 +54,12 @@ pub fn render_face(
     }
     if size == 0 {
         return Err(SyntheticError::ZeroSize);
+    }
+    if options
+        .blur
+        .is_some_and(|radius| !(0.0..=MAX_BLUR_RADIUS).contains(&radius))
+    {
+        return Err(SyntheticError::BadBlur);
     }
     let mut data = vec![0u8; size * size * 4];
     let face = draw::Face {

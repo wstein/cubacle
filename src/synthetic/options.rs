@@ -83,7 +83,12 @@ pub enum SyntheticError {
     BadGrid,
     /// The photo side is zero.
     ZeroSize,
+    /// The blur radius is not a number from 0 to [`MAX_BLUR_RADIUS`].
+    BadBlur,
 }
+
+/// The largest blur radius in pixels; a box blur costs time in proportion to it.
+pub const MAX_BLUR_RADIUS: f64 = 64.0;
 
 impl fmt::Display for SyntheticError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -96,6 +101,10 @@ impl fmt::Display for SyntheticError {
             }
             SyntheticError::BadGrid => f.write_str("the grid must be square and not empty"),
             SyntheticError::ZeroSize => f.write_str("the photo size must be at least 1"),
+            SyntheticError::BadBlur => write!(
+                f,
+                "the blur radius must be a number from 0 to {MAX_BLUR_RADIUS}"
+            ),
         }
     }
 }

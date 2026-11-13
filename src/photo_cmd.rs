@@ -46,7 +46,7 @@ pub struct PhotoArgs {
     /// Gaussian noise on top of the preset, sigma in 0 to 255 levels
     #[arg(long)]
     noise: Option<f64>,
-    /// Box blur on top of the preset, radius in pixels
+    /// Box blur on top of the preset, radius in pixels, 0 to 64
     #[arg(long)]
     blur: Option<f64>,
     /// Factor for the light on every pixel, 0.5 is half as bright
