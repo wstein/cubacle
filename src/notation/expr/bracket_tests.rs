@@ -217,3 +217,30 @@ fn bracket_nesting_is_limited_too() {
     let mixed = format!("{}R{}", "([R: ".repeat(60), "])".repeat(60));
     assert_eq!(expand(&mixed, PuzzleKind::Cube3), Err(ExprError::TooDeep));
 }
+
+#[test]
+fn an_empty_group_with_a_huge_count_is_rejected_at_once() {
+    // run on a thread so that a regression fails instead of hanging the suite
+    let (sender, receiver) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let kind = PuzzleKind::Cube3;
+        let rejected: Vec<_> = [
+            "()99999999999",
+            "()*99999999999",
+            "()'99999999999",
+            "(())99999999999",
+        ]
+        .iter()
+        .map(|text| expand(text, kind))
+        .collect();
+        let _ = sender.send((rejected, expand("()100000", kind)));
+    });
+    let (rejected, edge) = receiver
+        .recv_timeout(std::time::Duration::from_secs(10))
+        .expect("an empty group with a huge count returns at once");
+    assert!(
+        rejected.iter().all(|r| *r == Err(ExprError::TooLong)),
+        "{rejected:?}"
+    );
+    assert_eq!(edge, Ok(String::new()));
+}
