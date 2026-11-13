@@ -125,7 +125,7 @@ and every channel is multiplied by `1 - strength * inside`. Defaults: strength 0
 | `logo` | none | round patch on one sticker (`row`, `col`, `color`, optional `size`) |
 | `shadow` | none | `{strength, shape, softness}` of the shadow stage; the `shadow` preset takes them, any other preset gets a shadow when given |
 | `brightness` | none | factor on every channel, applied after the preset |
-| `blur` | none | box blur radius `round(blur)`, used when at least 1, after brightness |
+| `blur` | none | box blur radius `round(blur)`, used when at least 1, after brightness; a value outside 0 to 64 (or NaN) is an error |
 | `noise` | none | noise with this sigma and `seed + 7919`, used when above 0, after blur |
 | `geometry` | margin 0.035, gap 0.07, radius 0.14 | shares of `size` (margin) and of a sticker (gap, radius) |
 

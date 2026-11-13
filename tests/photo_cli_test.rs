@@ -236,3 +236,22 @@ fn the_fingerprint_changes_no_pixel_and_can_be_left_out() {
         let _ = std::fs::remove_dir_all(d);
     }
 }
+
+#[test]
+fn a_blur_that_is_not_a_small_number_is_refused() {
+    for blur in ["NaN", "inf", "-1", "65", "1e300"] {
+        let out = dir("blur");
+        let option = format!("--blur={blur}");
+        let output = photo(&out, &["--scramble", "R U", "--pixels", "16", &option]);
+        let err = String::from_utf8_lossy(&output.stderr);
+        assert_eq!(output.status.code(), Some(1), "{blur}: {err}");
+        assert!(
+            err.contains("blur radius must be a number from 0 to 64"),
+            "{blur}: {err}"
+        );
+        assert!(!out.join("U.png").exists(), "{blur}");
+    }
+    let out = dir("blur-ok");
+    let output = photo(&out, &["--scramble", "R U", "--pixels", "16", "--blur=64"]);
+    assert!(output.status.success(), "{output:?}");
+}

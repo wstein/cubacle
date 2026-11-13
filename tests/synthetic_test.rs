@@ -4,7 +4,10 @@
 //! The golden SHA-256 values pin the output of the current implementation.
 //! Change them only by an explicit decision to change the photos.
 
-use cubacle::synthetic::{render_face, Geometry, Logo, Options, Preset, Rgb, Shadow, ShadowShape};
+use cubacle::synthetic::{
+    render_face, Geometry, Logo, Options, Preset, Rgb, Shadow, ShadowShape, SyntheticError,
+    MAX_BLUR_RADIUS,
+};
 use sha2::{Digest, Sha256};
 
 fn grid(rows: &[&str]) -> Vec<Vec<char>> {
@@ -341,5 +344,28 @@ fn clean_stickers_read_back_to_the_grid_for_2x2_to_7x7() {
                 );
             }
         }
+    }
+}
+
+#[test]
+fn a_blur_radius_outside_zero_to_the_maximum_is_an_error() {
+    let faces = sample();
+    for blur in [f64::NAN, f64::INFINITY, -1.0, 65.0, 1.0e300] {
+        let options = Options {
+            blur: Some(blur),
+            ..Options::default()
+        };
+        assert_eq!(
+            render_face(&faces, Preset::Clean, 1, 32, &options),
+            Err(SyntheticError::BadBlur),
+            "{blur}"
+        );
+    }
+    for blur in [0.0, 0.5, MAX_BLUR_RADIUS] {
+        let options = Options {
+            blur: Some(blur),
+            ..Options::default()
+        };
+        assert!(render_face(&faces, Preset::Clean, 1, 16, &options).is_ok());
     }
 }

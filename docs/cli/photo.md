@@ -41,7 +41,7 @@ out/sheet.png
 
 ## Lighting and options
 
-`--preset` is one of `clean` (default), `scatter`, `gradient`, `shadow`, `dim-warm`, `glare`, `noise` and `bad-camera`. `--scatter`, `--noise`, `--blur` and `--brightness` set the options of the same names on top of the preset. A cube of another size works the same way:
+`--preset` is one of `clean` (default), `scatter`, `gradient`, `shadow`, `dim-warm`, `glare`, `noise` and `bad-camera`. `--scatter`, `--noise`, `--blur` and `--brightness` set the options of the same names on top of the preset. `--blur` is a radius from 0 to 64 pixels; NaN, a negative value and a larger one are refused. A cube of another size works the same way:
 
 ```sh
 cubacle photo --size 4 --scramble "Rw U" --out out4 --pixels 64 --preset glare
