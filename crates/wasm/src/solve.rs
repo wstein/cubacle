@@ -3,6 +3,7 @@
 use cubacle::engines::three::Min2PhaseSolver;
 use cubacle::engines::two::PocketSolver;
 use cubacle::puzzle::{Facelets, MoveSequence, PuzzleKind, SolveOptions, Solver};
+use std::time::Duration;
 
 /// Bytes before the text of a result: the total length and the status.
 pub const HEADER: usize = 5;
@@ -13,6 +14,11 @@ pub const STATUS_OK: u8 = 0;
 pub const STATUS_BAD_INPUT: u8 = 1;
 /// The solver found no solution; the text says why.
 pub const STATUS_NO_SOLUTION: u8 = 2;
+
+/// Wall-clock budget of one `cubacle_solve` call in ABI 1, in milliseconds. A
+/// search that has not found a solution when it runs out ends with
+/// [`STATUS_NO_SOLUTION`] and a text that names the budget.
+pub const DEFAULT_BUDGET_MS: u64 = 2000;
 
 #[doc(hidden)]
 pub fn solve_text(size: u32, scramble: &str, max_moves: u32) -> (u8, String) {
@@ -29,7 +35,9 @@ pub fn solve_text(size: u32, scramble: &str, max_moves: u32) -> (u8, String) {
         Ok(cube) => cube,
         Err(error) => return (STATUS_BAD_INPUT, format!("scramble: {error}")),
     };
-    let options = SolveOptions::default().with_max_moves(max_moves.min(255) as u8);
+    let options = SolveOptions::default()
+        .with_max_moves(max_moves.min(255) as u8)
+        .with_time_budget(Duration::from_millis(DEFAULT_BUDGET_MS));
     let result = match kind {
         PuzzleKind::Cube2 => PocketSolver::new().solve(&cube, &options),
         _ => Min2PhaseSolver::shared().solve(&cube, &options),
