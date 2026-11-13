@@ -1,7 +1,7 @@
 //! The geometry behind the center twist: where each picture sits and which
 //! way it points, followed through layer turns and whole-cube rotations.
 //!
-//! See [`super::twist`] for the convention.
+//! See [`super::twists`] for the convention.
 
 use super::twists::{CenterTwists, TwistError};
 use super::{Face, Move, MoveSequence, PuzzleKind, Turn};
