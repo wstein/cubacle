@@ -367,7 +367,10 @@ impl Reader {
             self.at += 1;
             inverted = true;
         }
-        if item.moves.len().saturating_mul(count) > MAX_EXPANDED_MOVES
+        // a count beyond the limit is refused even for an empty item, whose
+        // repetition would otherwise loop `count` times for nothing
+        if count > MAX_EXPANDED_MOVES
+            || item.moves.len().saturating_mul(count) > MAX_EXPANDED_MOVES
             || item.marks.len().saturating_mul(count) > grouped::MAX_MARKS
         {
             return Err(ExprError::TooLong);

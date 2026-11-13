@@ -184,3 +184,37 @@ fn a_3x3_with_moved_centers_is_solved_by_color_and_a_2x2_too() {
     let (ok, _, error) = cubacle(&["solve", "--size", "2", "-s", "x"]);
     assert!(ok, "{error}");
 }
+
+/// Runs `cubacle` and kills it after `limit`: a hang fails the test.
+fn cubacle_within(args: &[&str], limit: std::time::Duration) -> (Option<i32>, String) {
+    let mut child = Command::new(env!("CARGO_BIN_EXE_cubacle"))
+        .args(args)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .expect("cubacle runs");
+    let start = std::time::Instant::now();
+    while child.try_wait().expect("wait").is_none() {
+        if start.elapsed() > limit {
+            let _ = child.kill();
+            let _ = child.wait();
+            panic!("{args:?} did not return within {limit:?}");
+        }
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
+    let output = child.wait_with_output().expect("output");
+    (
+        output.status.code(),
+        String::from_utf8_lossy(&output.stderr).trim().to_owned(),
+    )
+}
+
+#[test]
+fn an_empty_group_with_a_huge_count_is_refused_at_once() {
+    let limit = std::time::Duration::from_secs(10);
+    for text in ["()99999999999", "()*99999999999", "(R)99999999999"] {
+        let (code, err) = cubacle_within(&["moves", text], limit);
+        assert_eq!(code, Some(1), "{text}: {err}");
+        assert!(err.contains("expands to more than"), "{text}: {err}");
+    }
+}
