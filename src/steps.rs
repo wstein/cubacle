@@ -220,8 +220,14 @@ pub struct PictureArgs {
     /// Show each move with a picture of the cube (graphics on a capable terminal)
     #[arg(long, global = true)]
     pub icons: bool,
-    /// Icon height in pixels for --icons (default: 32 per cube layer, at least 96)
-    #[arg(long, global = true, requires = "icons", value_name = "PIXELS")]
+    /// Icon height in pixels for --icons, 1 to 1024 (default: 32 per cube layer, at least 96)
+    #[arg(
+        long,
+        global = true,
+        requires = "icons",
+        value_name = "PIXELS",
+        value_parser = clap::value_parser!(u32).range(1..=1024)
+    )]
     pub icon_size: Option<u32>,
     /// What the --icons pictures are seen on: sets the notation color and the
     /// dimming (default: ask the terminal, dark when it does not answer)
