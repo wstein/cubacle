@@ -59,7 +59,7 @@ An explicit `--format` or `--out` writes the icons themselves, one per move or r
 | Option | Meaning |
 | --- | --- |
 | `--format auto\|svg\|rgba\|kitty\|text` | The output format. `auto` (the default) shows move pictures (Kitty graphics on a capable terminal, text otherwise); with `--out` it writes SVG. |
-| `--icon-size PIXELS` | Icon height in pixels. Default: 32 per cube layer, at least 96 (96 for the 2x2x2 and 3x3x3, 128 for the 4x4x4, 224 for the 7x7x7), so stickers stay readable on larger cubes. The canvas is 114 by 109.2 units, so the width is about 1.04 times the height (100 by 96 pixels by default). |
+| `--icon-size PIXELS` | Icon height in pixels, 1 to 1024 (0 and larger values are refused; a 1024-pixel icon is a picture of about 4 MB). Default: 32 per cube layer, at least 96 (96 for the 2x2x2 and 3x3x3, 128 for the 4x4x4, 224 for the 7x7x7), so stickers stay readable on larger cubes. The canvas is 114 by 109.2 units, so the width is about 1.04 times the height (100 by 96 pixels by default). |
 | `--size N` | Cube size, 2 to 7, 3 by default. |
 | `--out FILE` | Write to a file instead of standard output. |
 | `--scheme boy\|jp` | Color scheme, `boy` by default; six letters in `URFDLB` order also work. |
@@ -114,7 +114,7 @@ On a Kitty-graphics terminal the solution is shown in phases (see below) and the
 
 | Option | Meaning |
 | --- | --- |
-| `--icon-size PIXELS` | Icon height; all icons have the same size. Default: 32 per cube layer, at least 96. |
+| `--icon-size PIXELS` | Icon height, 1 to 1024; all icons have the same size. Default: 32 per cube layer, at least 96. |
 | `--columns N` | Icons per row. Default: as many as fit. Wide rows are cut off by the terminal, so a large `N` is your own choice. |
 | `--background dark\|light` | What the icons are seen on. Default: asked from the terminal, dark when it does not answer. |
 | `--views folded\|both\|urf\|net\|all` | Pictures of a whole cube: the folded view (`folded`, default), the two corners (`both`), URF only (`urf`), the flat net (`net`) or the net and the two corners (`all`). See [The folded view](#the-folded-view), [Two views of a state](#two-views-of-a-state) and [The flat net](#the-flat-net). |
