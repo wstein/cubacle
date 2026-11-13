@@ -8,7 +8,9 @@
 //! its colors.
 
 use super::super::cubie::{CORNER_FACELET, EDGE_FACELET};
-use super::model::Pos;
+use super::model::{twist_of, Pos};
+use crate::puzzle::CenterRotation;
+use crate::puzzle::{TwistMasks, FREE_TWIST};
 
 /// Bit `i` is the sticker whose home position is facelet `i`.
 pub(super) type Masks = [u64; 54];
@@ -21,6 +23,8 @@ pub(super) const EVERY_STICKER: u64 = (1 << 54) - 1;
 pub(super) struct View {
     pub(super) corners: Vec<(u8, u32)>,
     pub(super) edges: Vec<(u8, u32)>,
+    /// The twists each face center may show; free unless the target says.
+    pub(super) twist: TwistMasks,
 }
 
 #[derive(Debug, Default)]
@@ -33,9 +37,16 @@ impl Goal {
     /// center asks for a sticker other than the center there, or that no
     /// piece can meet, is dropped.
     pub(super) fn new(views: &[Masks]) -> Goal {
+        let pairs: Vec<(Masks, TwistMasks)> = views.iter().map(|m| (*m, FREE_TWIST)).collect();
+        Goal::with_twists(&pairs)
+    }
+
+    /// Like [`Goal::new`], each view with its condition on the center twists.
+    pub(super) fn with_twists(views: &[(Masks, TwistMasks)]) -> Goal {
         let mut goal = Goal::default();
-        for masks in views {
-            if let Some(view) = view_of(masks) {
+        for (masks, twist) in views {
+            if let Some(mut view) = view_of(masks) {
+                view.twist = *twist;
                 if !goal.views.contains(&view) {
                     goal.views.push(view);
                 }
@@ -55,6 +66,36 @@ impl Goal {
         Goal::new(&views)
     }
 
+    /// Like [`Goal::rotated`] with a condition on the center twists. Under
+    /// rotation `r` the center of face `g` sits on face `dest[g]` with its
+    /// picture turned `add[g]` quarters more, so it may show the twists `k`
+    /// for which `k + add[g]` is accepted on face `dest[g]`.
+    pub(super) fn rotated_twisted(
+        masks: &Masks,
+        twist: &TwistMasks,
+        rotations: &[(Vec<usize>, CenterRotation)],
+    ) -> Goal {
+        let views: Vec<(Masks, TwistMasks)> = rotations
+            .iter()
+            .map(|(map, center)| {
+                let shown: Masks = std::array::from_fn(|p| masks[map[p]]);
+                let accepted: TwistMasks = std::array::from_fn(|g| {
+                    let want = twist[center.dest[g]];
+                    (0..4u8)
+                        .filter(|&k| want >> ((k + center.add[g]) & 3) & 1 == 1)
+                        .fold(0, |acc, k| acc | 1 << k)
+                });
+                (shown, accepted)
+            })
+            .collect();
+        Goal::with_twists(&views)
+    }
+
+    /// Whether any view conditions the center twists.
+    pub(super) fn has_twist_condition(&self) -> bool {
+        self.views.iter().any(|v| v.twist != FREE_TWIST)
+    }
+
     /// Whether no state can meet the goal.
     pub(super) fn is_impossible(&self) -> bool {
         self.views.is_empty()
@@ -70,9 +111,15 @@ impl Goal {
             }) && view.edges.iter().all(|&(slot, bits)| {
                 let s = usize::from(slot);
                 bits >> (usize::from(pos.ep[s]) * 2 + usize::from(pos.eo[s])) & 1 == 1
-            })
+            }) && twist_ok(&view.twist, pos.tw)
         })
     }
+}
+
+/// Whether the packed twists `tw` are accepted by `masks`.
+#[inline]
+pub(super) fn twist_ok(masks: &TwistMasks, tw: u16) -> bool {
+    (0..6).all(|g| masks[g] >> twist_of(tw, g) & 1 == 1)
 }
 
 /// The accepted pairs per slot of one view, or `None` when it cannot be met.
@@ -87,6 +134,7 @@ fn view_of(masks: &Masks) -> Option<View> {
     let mut view = View {
         corners: Vec::new(),
         edges: Vec::new(),
+        twist: FREE_TWIST,
     };
     for (slot, home) in CORNER_FACELET.iter().enumerate() {
         if home.iter().all(|&f| masks[usize::from(f)] == EVERY_STICKER) {

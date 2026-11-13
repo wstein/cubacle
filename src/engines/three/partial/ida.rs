@@ -3,8 +3,9 @@
 use crate::puzzle::Instant;
 
 use super::goal::Goal;
-use super::model::{Pos, Turns};
+use super::model::{twist_step, Pos, Turns};
 use super::tables::{CornerTable, EdgeTable};
+use super::twist::TwistTable;
 
 /// How a search ended.
 pub(super) enum Ended {
@@ -20,12 +21,15 @@ pub(super) enum Ended {
 pub(super) struct Bound {
     pub(super) corners: Option<CornerTable>,
     pub(super) edges: Option<EdgeTable>,
+    /// Present when a view conditions the center twists.
+    pub(super) twist: Option<TwistTable>,
 }
 
 #[derive(Clone, Copy)]
 struct Coords {
     corner: (u16, u16),
     edge: u32,
+    tw: u16,
 }
 
 impl Bound {
@@ -36,6 +40,7 @@ impl Bound {
                 .as_ref()
                 .map_or((0, 0), |_| CornerTable::index(pos)),
             edge: self.edges.as_ref().map_or(0, |t| t.index(pos)),
+            tw: pos.tw,
         }
     }
 
@@ -47,6 +52,11 @@ impl Bound {
                 .as_ref()
                 .map_or((0, 0), |t| t.step(at.corner, m)),
             edge: self.edges.as_ref().map_or(0, |t| t.step(at.edge, m)),
+            tw: if self.twist.is_some() {
+                twist_step(at.tw, m)
+            } else {
+                0
+            },
         }
     }
 
@@ -54,7 +64,8 @@ impl Bound {
     fn value(&self, at: Coords) -> u8 {
         let c = self.corners.as_ref().map_or(0, |t| t.bound(at.corner));
         let e = self.edges.as_ref().map_or(0, |t| t.bound(at.edge));
-        c.max(e)
+        let w = self.twist.as_ref().map_or(0, |t| t.bound(at.tw));
+        c.max(e).max(w)
     }
 }
 
