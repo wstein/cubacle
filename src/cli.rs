@@ -273,3 +273,15 @@ pub(crate) struct SolveArgs {
     #[command(flatten)]
     pub(crate) pictures: steps::PictureArgs,
 }
+
+#[cfg(test)]
+mod tests {
+    use clap::CommandFactory;
+
+    /// clap checks the definition only in builds with debug assertions: in a
+    /// `--release` test run this passes without checking; `cargo test` does.
+    #[test]
+    fn the_command_line_definition_is_consistent() {
+        super::Cli::command().debug_assert();
+    }
+}
