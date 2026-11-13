@@ -3,18 +3,32 @@
 
 use cubacle::puzzle::{Facelets, PuzzleKind};
 use cubacle_wasm::{
-    cubacle_abi_version, cubacle_alloc, cubacle_free, cubacle_result_len, cubacle_solve, HEADER,
-    STATUS_BAD_INPUT, STATUS_NO_SOLUTION, STATUS_OK,
+    cubacle_abi_version, cubacle_alloc, cubacle_free, cubacle_result_len, cubacle_solve,
+    cubacle_solve_budget, HEADER, STATUS_BAD_INPUT, STATUS_NO_SOLUTION, STATUS_OK, STATUS_TIMEOUT,
 };
 
-/// Runs the facade on `scramble` and returns the status and the text.
+/// Runs ABI 1 `cubacle_solve` on `scramble` and returns the status and the text.
 fn call(size: u32, scramble: &str, max_moves: u32) -> (u8, String) {
+    run(size, scramble, max_moves, None)
+}
+
+/// Runs ABI 2 `cubacle_solve_budget` with a budget in milliseconds.
+fn call_budget(size: u32, scramble: &str, max_moves: u32, budget_ms: u32) -> (u8, String) {
+    run(size, scramble, max_moves, Some(budget_ms))
+}
+
+fn run(size: u32, scramble: &str, max_moves: u32, budget_ms: Option<u32>) -> (u8, String) {
     let bytes = scramble.as_bytes();
     let input = cubacle_alloc(bytes.len());
     // SAFETY: `input` was allocated with `bytes.len()` bytes just above.
     unsafe { std::ptr::copy_nonoverlapping(bytes.as_ptr(), input, bytes.len()) };
     // SAFETY: `input` and its length describe the buffer filled above.
-    let result = unsafe { cubacle_solve(size, input, bytes.len(), max_moves) };
+    let result = unsafe {
+        match budget_ms {
+            None => cubacle_solve(size, input, bytes.len(), max_moves),
+            Some(budget) => cubacle_solve_budget(size, input, bytes.len(), max_moves, budget),
+        }
+    };
     // SAFETY: the same allocation, released once.
     unsafe { cubacle_free(input, bytes.len()) };
     // SAFETY: `result` was just returned by `cubacle_solve`.
@@ -28,8 +42,8 @@ fn call(size: u32, scramble: &str, max_moves: u32) -> (u8, String) {
 }
 
 #[test]
-fn abi_version_is_one() {
-    assert_eq!(cubacle_abi_version(), 1);
+fn abi_version_is_two() {
+    assert_eq!(cubacle_abi_version(), 2);
 }
 
 #[test]
@@ -75,4 +89,34 @@ fn a_hard_scramble_with_a_small_move_limit_returns_within_the_default_budget() {
         elapsed < std::time::Duration::from_secs(10),
         "took {elapsed:?}"
     );
+}
+
+const SUPERFLIP: &str = "U R2 F B R B2 R U2 L B2 R U' D' R2 F R' L B2 U2 F2";
+
+#[test]
+fn a_budget_call_that_runs_out_answers_timeout_within_the_budget() {
+    let started = std::time::Instant::now();
+    let (status, text) = call_budget(3, SUPERFLIP, 19, 200);
+    let elapsed = started.elapsed();
+    assert_eq!(status, STATUS_TIMEOUT, "{text}");
+    assert!(!text.is_empty());
+    assert!(elapsed < std::time::Duration::from_millis(1500), "took {elapsed:?}");
+}
+
+#[test]
+fn a_budget_call_answers_like_abi_1_when_the_budget_is_enough() {
+    for (size, scramble, max) in [(3, "R U R' U' F2 D L2 B' U2 R2 F D' L", 25), (2, "R U R' U' F2 R", 14)] {
+        assert_eq!(call_budget(size, scramble, max, 5000), call(size, scramble, max));
+        // A budget of 0 means the default budget of ABI 1.
+        assert_eq!(call_budget(size, scramble, max, 0), call(size, scramble, max));
+    }
+}
+
+#[test]
+fn a_budget_call_longer_than_the_default_is_honored() {
+    // ABI 1 answers status 2 after 2000 ms; a 3000 ms budget runs past that.
+    let started = std::time::Instant::now();
+    let (status, _) = call_budget(3, SUPERFLIP, 19, 3000);
+    assert_eq!(status, STATUS_TIMEOUT);
+    assert!(started.elapsed() >= std::time::Duration::from_millis(2900));
 }
