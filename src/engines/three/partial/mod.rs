@@ -97,10 +97,17 @@ pub(super) fn solve_to(
         .free_orientation
         .then(|| frame::through_centers(start, target))
         .flatten();
+    if through.is_some() && target.has_twist_condition() {
+        return fail(
+            Failure::InvalidInput,
+            "a twist condition needs the centers of the start on their faces; this start has its centers moved",
+        );
+    }
     if let Some((renamed, wanted)) = &through {
         return exact::by_goal_set(started, renamed, wanted, options);
     }
-    if options.exact || options.free_orientation {
+    // A twist condition lives in the exact search only.
+    if options.exact || options.free_orientation || target.has_twist_condition() {
         return exact::by_goal_set(started, start, target, options);
     }
     let sets = target.sets();
@@ -182,5 +189,6 @@ mod model;
 mod tables;
 #[cfg(test)]
 mod tests;
+mod twist;
 #[cfg(test)]
 mod twist_tests;

@@ -6,7 +6,7 @@
 //! the facelet model as well.
 
 use super::super::cubie::Cubie;
-use crate::puzzle::{Face, Facelets, Move, MoveSequence, PuzzleKind, Turn};
+use crate::puzzle::{CenterTwists, Face, Facelets, Move, MoveSequence, PuzzleKind, Turn};
 
 /// Face turns: clockwise, half and counterclockwise of U R F D L B.
 pub(super) const TURNS: usize = 18;
@@ -66,6 +66,8 @@ pub(super) struct Pos {
     pub(super) co: [u8; 8],
     pub(super) ep: [u8; 12],
     pub(super) eo: [u8; 12],
+    /// The center twists packed two bits per face, in the order `URFDLB`.
+    pub(super) tw: u16,
 }
 
 impl Pos {
@@ -75,6 +77,7 @@ impl Pos {
             co: [0; 8],
             ep: [0; 12],
             eo: [0; 12],
+            tw: 0,
         };
         for s in 0..8 {
             pos.cp[s] = cube.ca[s] & 7;
@@ -100,6 +103,34 @@ impl Pos {
             next.ep[t] = self.ep[from];
             next.eo[t] = self.eo[from] ^ turns.eadd[m][t];
         }
+        next.tw = twist_step(self.tw, m);
         next
     }
+
+    /// The same pieces with the center twists `twist`.
+    pub(super) fn with_twist(mut self, twist: CenterTwists) -> Pos {
+        self.tw = pack(Face::ALL.map(|f| twist.twist(f)));
+        self
+    }
+}
+
+/// The twists packed two bits per face.
+pub(super) fn pack(t: [u8; 6]) -> u16 {
+    t.iter()
+        .enumerate()
+        .fold(0, |acc, (g, &k)| acc | u16::from(k & 3) << (2 * g))
+}
+
+/// The twist of face `g` in a packed vector.
+#[inline]
+pub(super) fn twist_of(tw: u16, g: usize) -> u8 {
+    (tw >> (2 * g) & 3) as u8
+}
+
+/// The packed twists after turn `m`: face `m / 3` gains `m % 3 + 1` quarters.
+#[inline]
+pub(super) fn twist_step(tw: u16, m: usize) -> u16 {
+    let shift = 2 * (m / 3);
+    let turned = ((tw >> shift & 3) + (m % 3) as u16 + 1) & 3;
+    tw & !(3 << shift) | turned << shift
 }

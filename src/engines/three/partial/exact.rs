@@ -12,9 +12,11 @@ use super::goal::{color_masks, Goal};
 use super::ida::{Bound, Ended, Search};
 use super::model::{Pos, Turns};
 use super::tables::{plan, Built, CornerTable, EdgeTable};
+use super::twist::TwistTable;
 use super::{finish, proven};
 use crate::puzzle::{
-    rotation_maps, Facelets, Failure, MoveSequence, PuzzleKind, SolveOptions, SolveResult, Target,
+    center_rotations, rotation_maps, CenterTwists, Facelets, Failure, MoveSequence, PuzzleKind,
+    SolveOptions, SolveResult, Target,
 };
 
 /// Megabytes for the tables when the caller sets no cap.
@@ -39,13 +41,26 @@ pub(super) fn by_goal_set(
         );
     }
     let masks = color_masks(target.sets());
-    let (goal, frame) = if options.free_orientation {
+    let twist = target.twist_masks();
+    let (goal, frame) = if options.free_orientation && target.has_twist_condition() {
+        let rotations: Vec<_> = rotation_maps(PuzzleKind::Cube3)
+            .into_iter()
+            .zip(center_rotations())
+            .collect();
+        (
+            Goal::rotated_twisted(&masks, twist, &rotations),
+            crate::puzzle::SolveFrame::AnyOrientation,
+        )
+    } else if options.free_orientation {
         (
             Goal::rotated(&masks, &rotation_maps(PuzzleKind::Cube3)),
             crate::puzzle::SolveFrame::AnyOrientation,
         )
     } else {
-        (Goal::new(&[masks]), crate::puzzle::SolveFrame::Fixed)
+        (
+            Goal::with_twists(&[(masks, *twist)]),
+            crate::puzzle::SolveFrame::Fixed,
+        )
     };
     if goal.is_impossible() {
         let why = if options.free_orientation {
@@ -59,20 +74,55 @@ pub(super) fn by_goal_set(
             format!("unreachable: {why}"),
         );
     }
-    let mut result = solve_goal(started, &cube, &goal, options);
+    let twisted = options.start_twist.is_some() || target.has_twist_condition();
+    let twist_start = options
+        .start_twist
+        .or_else(|| CenterTwists::untwisted(PuzzleKind::Cube3))
+        .expect("a 3x3x3 has fixed centers");
+    if twisted && twist_start.sum_is_even() != corner_parity_even(&cube) {
+        return finish(
+            started,
+            Err(Failure::InvalidInput),
+            "the center twist does not belong to this cube: the sum of the six twists must have the parity of the corner permutation (even for an even permutation)".into(),
+        );
+    }
+    let pos = Pos::from_cubie(&cube).with_twist(twist_start);
+    let mut result = solve_pos(started, pos, &goal, options);
     result.metrics.evidence.frame = frame;
     result
 }
 
-/// Searches `goal` from `cube`.
+/// Whether the corner permutation of `cube` is even.
+fn corner_parity_even(cube: &Cubie) -> bool {
+    let perm: Vec<usize> = cube.ca.iter().map(|&c| usize::from(c & 7)).collect();
+    let mut seen = [false; 8];
+    let mut swaps = 0;
+    for i in 0..8 {
+        let (mut j, mut length) = (i, 0);
+        while !seen[j] {
+            seen[j] = true;
+            j = perm[j];
+            length += 1;
+        }
+        swaps += length.max(1) - 1;
+    }
+    swaps % 2 == 0
+}
+
+/// Searches `goal` from `cube` (the entry of the tests).
+#[cfg(test)]
 pub(super) fn solve_goal(
     started: Instant,
     cube: &Cubie,
     goal: &Goal,
     options: &SolveOptions,
 ) -> SolveResult {
+    solve_pos(started, Pos::from_cubie(cube), goal, options)
+}
+
+/// Searches `goal` from `start`.
+fn solve_pos(started: Instant, start: Pos, goal: &Goal, options: &SolveOptions) -> SolveResult {
     let turns = Turns::new();
-    let start = Pos::from_cubie(cube);
     if goal.is_met(&start) {
         return proven(
             started,
@@ -108,10 +158,11 @@ pub(super) fn solve_goal(
             Built::Unsatisfiable => return unreachable("the tracked edges"),
         }
     };
+    let twist = TwistTable::build(goal);
     let table_bytes = corners.as_ref().map_or(0, |_| CornerTable::bytes())
         + edges.as_ref().map_or(0, |t| EdgeTable::bytes(t.tracked()));
     let table_note = format!(
-        "{} MB of tables: {}, {}, built in {:.1} s",
+        "{} MB of tables: {}, {}{}, built in {:.1} s",
         table_bytes >> 20,
         if corners.is_some() {
             "all corners".to_owned()
@@ -122,9 +173,18 @@ pub(super) fn solve_goal(
             Some(t) => format!("{} edges", t.tracked()),
             None => "no edge table".to_owned(),
         },
+        if twist.is_some() {
+            ", the center twists"
+        } else {
+            ""
+        },
         built.elapsed().as_secs_f64()
     );
-    let bound = Bound { corners, edges };
+    let bound = Bound {
+        corners,
+        edges,
+        twist,
+    };
     let budget = options
         .time_budget
         .unwrap_or(Duration::from_millis(DEFAULT_BUDGET_MS));
