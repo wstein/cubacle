@@ -83,6 +83,9 @@ pub(super) fn solve_to(
     if start.kind() != PuzzleKind::Cube3 || target.kind() != PuzzleKind::Cube3 {
         return fail(Failure::InvalidInput, "expected a 3x3x3 start and target");
     }
+    if let Some(rejected) = super::solver::wrong_size(start, started) {
+        return rejected;
+    }
     let mut cube = Cubie::new();
     if cube.set_from_facelet(&start.to_string()) != 0 || cube.verify() != 0 {
         return fail(Failure::InvalidInput, "the start cube state is impossible");

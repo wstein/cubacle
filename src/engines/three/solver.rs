@@ -209,7 +209,7 @@ fn max_moves(options: &SolveOptions) -> u8 {
 /// Besides the size, the centers must be in their standard places: wide and
 /// inner-layer moves can move them, and the engine neither solves such a cube
 /// nor would its solution (layer turns only) put them back.
-fn wrong_size(cube: &Facelets, started: Instant) -> Option<SolveResult> {
+pub(super) fn wrong_size(cube: &Facelets, started: Instant) -> Option<SolveResult> {
     if cube.kind() != PuzzleKind::Cube3 {
         return Some(failed(
             Failure::InvalidInput,

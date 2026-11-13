@@ -183,3 +183,24 @@ fn too_many_completions_are_refused_with_the_supported_forms() {
     assert_eq!(result.outcome, Err(Failure::Exhausted));
     assert!(result.message.unwrap().starts_with("unsupported"));
 }
+
+#[test]
+fn a_start_with_moved_centers_is_refused_on_every_route() {
+    // a middle-slice turn (2R) moves the centers: a relabeled cube
+    let start = Facelets::solved(PuzzleKind::Cube3)
+        .apply(&"2R".parse().unwrap())
+        .unwrap();
+    for exact in [false, true] {
+        let options = SolveOptions {
+            exact,
+            ..SolveOptions::default()
+        };
+        let result = Min2PhaseSolver::new().solve_to(&start, &cross(), &options);
+        assert_eq!(
+            result.outcome,
+            Err(Failure::CentersOffFace),
+            "exact={exact}"
+        );
+        assert!(result.message.unwrap().contains("centers"));
+    }
+}
