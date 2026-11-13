@@ -13,7 +13,7 @@ use crate::failure::{failure_message, limit_message, DEFAULT_MAX_TIME_MS, LIMIT_
 use crate::input::{read_cube, read_target};
 use crate::{
     answer, enumerate_cmd, improve, optimal_cmd, partial_cmd, pattern_aware_cmd, pattern_hint,
-    recover_cmd, restricted_cmd, solved_start, within_cmd,
+    recover_cmd, restricted_cmd, solved_start, twist_cmd, within_cmd,
 };
 
 pub(crate) fn solve(args: SolveArgs) -> Result<(), String> {
@@ -64,6 +64,13 @@ pub(crate) fn solve(args: SolveArgs) -> Result<(), String> {
         .as_deref()
         .map(|text| read_target(text, &args, &start))
         .transpose()?;
+    // A picture cube: a condition on the twists of the centers, and the twist of the start.
+    let (start, target, picture) = if twist_cmd::wanted(&args) {
+        let (start, target, picture) = twist_cmd::prepare(&args, start, target)?;
+        (start, Some(target), Some(picture))
+    } else {
+        (start, target, None)
+    };
     // With --pattern-aware the index is built once and shared with the hint.
     let prebuilt = (args.verbose && args.pattern_aware && start.kind() != PuzzleKind::Cube2)
         .then(|| pattern_aware_cmd::index(args.config.as_deref(), start.kind(), args.slices));
@@ -87,9 +94,9 @@ pub(crate) fn solve(args: SolveArgs) -> Result<(), String> {
     // --any-orientation also takes a complete target: some orientation of it.
     if let Some(partial) = target
         .as_ref()
-        .filter(|t| t.as_state().is_none() || args.any_orientation)
+        .filter(|t| t.as_state().is_none() || args.any_orientation || t.has_twist_condition())
     {
-        return partial_cmd::run(&args, &start, partial);
+        return partial_cmd::run(&args, &start, partial, picture.as_ref());
     }
     if args.optimal && target.is_some() {
         return Err(

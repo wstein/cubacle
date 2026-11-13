@@ -13,6 +13,7 @@ use cubacle::puzzle::{Facelets, Failure, PuzzleKind, SolveOptions, Target};
 
 use crate::cli::SolveArgs;
 use crate::engine::{default_options, solver_for};
+use crate::twist_cmd::{self, Picture};
 use crate::{enumerate_cmd, metrics_out, phase_dots};
 
 /// Refuses the options that do not combine with a partial target (yet).
@@ -44,10 +45,15 @@ fn check(args: &SolveArgs) -> Result<(), String> {
 }
 
 /// Solves `start` to `target` and prints the moves.
-pub fn run(args: &SolveArgs, start: &Facelets, target: &Target) -> Result<(), String> {
+pub fn run(
+    args: &SolveArgs,
+    start: &Facelets,
+    target: &Target,
+    picture: Option<&Picture>,
+) -> Result<(), String> {
     check(args)?;
     let kind = start.kind();
-    let exact = args.optimal || args.any_orientation;
+    let exact = args.optimal || args.any_orientation || picture.is_some();
     if exact && kind != PuzzleKind::Cube3 {
         return Err(format!(
             "{} with a --to target works on the 3x3x3 only, not the {1}x{1}x{1}",
@@ -79,6 +85,9 @@ pub fn run(args: &SolveArgs, start: &Facelets, target: &Target) -> Result<(), St
             .with_exact(true)
             .with_free_orientation(args.any_orientation);
     }
+    if let Some(picture) = picture {
+        options = options.with_start_twist(picture.twist);
+    }
     if let Some(megabytes) = args.max_memory {
         options = options.with_max_memory(megabytes);
     }
@@ -96,13 +105,29 @@ pub fn run(args: &SolveArgs, start: &Facelets, target: &Target) -> Result<(), St
     }
     match result.outcome {
         Ok(solution) => {
-            let reached = if args.any_orientation {
-                target.reached_by_any_rotation(start, &solution)
+            if let Some(picture) = picture {
+                // The stickers and the twists are replayed here with the facelet
+                // model and the center tracker, apart from the engine.
+                let end =
+                    twist_cmd::replay(start, picture, target, &solution, args.any_orientation)?;
+                eprintln!(
+                    "center twist at the end: {} (U,R,F,D,L,B){}",
+                    end.twist,
+                    if end.rotation.is_empty() {
+                        String::new()
+                    } else {
+                        format!(", after the rotation {} (no move)", end.rotation)
+                    }
+                );
             } else {
-                target.reached_by(start, &solution)
-            };
-            if !reached {
-                return Err("internal error: solution does not reach the target".into());
+                let reached = if args.any_orientation {
+                    target.reached_by_any_rotation(start, &solution)
+                } else {
+                    target.reached_by(start, &solution)
+                };
+                if !reached {
+                    return Err("internal error: solution does not reach the target".into());
+                }
             }
             eprintln!("moves {}", solution.len());
             eprintln!("{}", metrics_out::line(kind, &solution));
