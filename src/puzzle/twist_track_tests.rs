@@ -191,3 +191,53 @@ fn the_convention_puts_the_top_of_u_to_the_back_and_of_d_to_the_front() {
     assert_eq!(x.add[Face::U.index()], 2);
     assert_eq!(x.add[Face::D.index()], 0);
 }
+
+/// The middle slice `slice` of the axis `axis` is the whole-cube rotation
+/// `axis` followed by the two outer turns `outer` (R' L for 2R): checked on
+/// the stickers, apart from the tracker.
+fn assert_slice_is_rotation_and_outer_turns(slice: &str, axis: &str, outer: &str) {
+    let solved = Facelets::solved(PuzzleKind::Cube3);
+    let by_slice = solved.apply(&seq(slice)).unwrap();
+    let mut moves = rotation_moves(axis).unwrap().moves().to_vec();
+    moves.extend(seq(outer).moves().iter().copied());
+    let by_parts = solved.apply(&MoveSequence::new(moves)).unwrap();
+    assert_eq!(by_slice, by_parts, "{slice} is {axis} {outer}");
+}
+
+/// After the slice and the frame rotation every center is on its own face.
+fn assert_centers_home_after(slice: &str, frame: &str) {
+    let solved = Facelets::solved(PuzzleKind::Cube3);
+    let end = solved
+        .apply(&seq(slice))
+        .unwrap()
+        .apply(&rotation_moves(frame).unwrap())
+        .unwrap();
+    for face in Face::ALL {
+        assert_eq!(
+            end.stickers()[face.index() * 9 + 4],
+            face,
+            "{slice} then {frame}"
+        );
+    }
+}
+
+#[test]
+fn a_middle_slice_turns_only_the_two_outer_centers_of_its_axis() {
+    // 2R is x R' L, 2U is y U' D, 2F is z F' B: after the rotation back the
+    // outer center of the turn direction gains 3 quarters and the opposite one 1.
+    let cases = [
+        ("2R", "x", "R' L", [0, 3, 0, 0, 1, 0]),
+        ("2U", "y", "U' D", [3, 0, 0, 1, 0, 0]),
+        ("2F", "z", "F' B", [0, 0, 3, 0, 0, 1]),
+    ];
+    for (slice, axis, outer, added) in cases {
+        assert_slice_is_rotation_and_outer_turns(slice, axis, outer);
+        for start in [[0u8; 6], [1, 2, 3, 0, 1, 2]] {
+            let tracked = twists(start).track(&seq(slice)).unwrap();
+            let want: [u8; 6] = std::array::from_fn(|g| (start[g] + added[g]) & 3);
+            assert_eq!(array(&tracked.twists), want, "{slice} from {start:?}");
+            assert!(!tracked.frame.is_empty(), "{slice}");
+            assert_centers_home_after(slice, &tracked.frame);
+        }
+    }
+}
