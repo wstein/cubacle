@@ -205,19 +205,69 @@ fn a_start_with_moved_centers_is_refused_on_every_route() {
     }
 }
 
+/// `cube` turned as a whole by the rotation `map` (it costs no move).
+fn rotated(cube: &Facelets, map: &[usize]) -> Facelets {
+    let stickers = (0..54).map(|i| cube.stickers()[map[i]]).collect();
+    Facelets::from_stickers(stickers).unwrap()
+}
+
+/// Starts whose centers are off their faces: a whole-cube turn or a slice,
+/// then a few outer turns.
+fn moved_center_starts() -> Vec<(String, Facelets)> {
+    let solved = Facelets::solved(PuzzleKind::Cube3);
+    let mut starts = Vec::new();
+    for (index, map) in crate::puzzle::rotation_maps(PuzzleKind::Cube3)
+        .iter()
+        .enumerate()
+    {
+        for after in ["", "R U F", "U R"] {
+            let start = rotated(&solved, map)
+                .apply(&after.parse::<MoveSequence>().unwrap())
+                .unwrap();
+            starts.push((format!("rotation {index} then {after}"), start));
+        }
+    }
+    for slice in ["2R", "2U", "2F"] {
+        for after in ["", "U R", "R U F"] {
+            let text = format!("{slice} {after}");
+            starts.push((
+                text.clone(),
+                solved
+                    .apply(&text.parse::<MoveSequence>().unwrap())
+                    .unwrap(),
+            ));
+        }
+    }
+    starts
+}
+
 #[test]
-fn a_free_orientation_answers_starts_with_moved_centers_as_before() {
+fn a_free_orientation_reaches_the_target_from_starts_with_moved_centers() {
     // whole-cube turns and slices cost nothing when the orientation is free
-    for (text, expected) in [("x", ""), ("y R U", "R'"), ("M", "R' L")] {
-        let moves = crate::notation::parse_expression(text, PuzzleKind::Cube3).unwrap();
-        let start = Facelets::solved(PuzzleKind::Cube3).apply(&moves).unwrap();
-        let options = SolveOptions {
-            free_orientation: true,
-            ..SolveOptions::default()
-        };
+    let options = SolveOptions {
+        free_orientation: true,
+        ..SolveOptions::default()
+    };
+    for (text, start) in moved_center_starts() {
         let result = Min2PhaseSolver::new().solve_to(&start, &cross(), &options);
-        let moves = result.outcome.unwrap();
+        let moves = result.outcome.unwrap_or_else(|f| panic!("{text}: {f:?}"));
         assert!(cross().reached_by_any_rotation(&start, &moves), "{text}");
-        assert_eq!(moves.to_string(), expected, "{text}");
+        if !text.contains(" then ") && text.trim_end().len() == 2 {
+            assert!(moves.len() <= 2, "{text}");
+        }
+    }
+}
+
+#[test]
+fn a_free_orientation_leaves_a_turned_cube_in_zero_moves() {
+    let options = SolveOptions {
+        free_orientation: true,
+        ..SolveOptions::default()
+    };
+    let solved = Facelets::solved(PuzzleKind::Cube3);
+    for map in crate::puzzle::rotation_maps(PuzzleKind::Cube3) {
+        let start = rotated(&solved, &map);
+        let result = Min2PhaseSolver::new().solve_to(&start, &cross(), &options);
+        assert!(result.outcome.unwrap().is_empty());
     }
 }

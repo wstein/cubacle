@@ -93,6 +93,13 @@ pub(super) fn solve_to(
     if cube.set_from_facelet(&start.to_string()) != 0 || cube.verify() != 0 {
         return fail(Failure::InvalidInput, "the start cube state is impossible");
     }
+    let through = options
+        .free_orientation
+        .then(|| frame::through_centers(start, target))
+        .flatten();
+    if let Some((renamed, wanted)) = &through {
+        return exact::by_goal_set(started, renamed, wanted, options);
+    }
     if options.exact || options.free_orientation {
         return exact::by_goal_set(started, start, target, options);
     }
@@ -168,6 +175,7 @@ mod edges;
 mod exact;
 #[cfg(test)]
 mod exact_tests;
+mod frame;
 mod goal;
 mod ida;
 mod model;
