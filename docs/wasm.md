@@ -23,15 +23,16 @@ There is no JavaScript glue. The module exports a C ABI over its linear memory (
 
 | Export | Meaning |
 | --- | --- |
-| `cubacle_abi_version() -> u32` | ABI version of the module. 1 is the scramble-to-solved entry points in this table. |
+| `cubacle_abi_version() -> u32` | ABI version of the module. 2 is this table; ABI 1 is the same table without `cubacle_solve_budget`. |
 | `cubacle_alloc(len) -> ptr` | A buffer of `len` bytes for the host to fill. |
 | `cubacle_solve(size, ptr, len, max_moves) -> result` | Solves the scramble (UTF-8, standard notation) on a 2x2x2 or 3x3x3. |
+| `cubacle_solve_budget(size, ptr, len, max_moves, budget_ms) -> result` | ABI 2. Like `cubacle_solve` with a wall-clock budget in milliseconds; 0 means the 2000 ms default. |
 | `cubacle_result_len(result) -> len` | The byte length of the result buffer. |
 | `cubacle_free(ptr, len)` | Releases a buffer from `cubacle_alloc` or `cubacle_solve`. |
 
-A result is four bytes of total length (little endian), one status byte (0 solved, 1 bad input, 2 no solution) and the UTF-8 text: the solution, or the reason. The module imports two functions from `env`: `cubacle_host_now() -> f64` (milliseconds, for example `performance.now()`), because `std::time::Instant` panics on this target, and `cubacle_host_random(ptr, len)`, which fills a buffer with random bytes. The tables of the engines are built in memory on the first solve of each size; no table file is loaded.
+A result is four bytes of total length (little endian), one status byte (0 solved, 1 bad input, 2 no solution, 3 timeout) and the UTF-8 text: the solution, or the reason. The module imports two functions from `env`: `cubacle_host_now() -> f64` (milliseconds, for example `performance.now()`), because `std::time::Instant` panics on this target, and `cubacle_host_random(ptr, len)`, which fills a buffer with random bytes. The tables of the engines are built in memory on the first solve of each size; no table file is loaded.
 
-A call has a wall-clock budget of 2000 ms (`DEFAULT_BUDGET_MS`), measured with `cubacle_host_now`. A search that finds no solution within the budget returns status 2 with the engine message instead of blocking the host; the same status and a message are returned when `max_moves` admits no solution. The budget is fixed in ABI 1; there is no cancel or progress call.
+Budget. `cubacle_solve` (ABI 1, unchanged signature) runs with a fixed budget of 2000 ms (`DEFAULT_BUDGET_MS`); a search without a solution when it runs out returns status 2, as it does when `max_moves` admits no solution (the text tells them apart). `cubacle_solve_budget` (ABI 2) takes the budget in milliseconds and returns status 3 with the text of the engine when it runs out; a call whose budget suffices answers exactly as `cubacle_solve` does. The clock is `cubacle_host_now`. The new function has its own name because a changed signature of `cubacle_solve` would break ABI 1 hosts without a link error. There is no cancel, progress or streaming call, and a solution is not a proof of optimality.
 
 ## G1 measurement
 
