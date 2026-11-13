@@ -24,6 +24,9 @@ mod solver;
 mod stages;
 mod target;
 mod threads;
+mod twist_masks;
+#[cfg(test)]
+mod twist_masks_tests;
 mod twist_track;
 #[cfg(test)]
 mod twist_track_tests;
@@ -55,5 +58,6 @@ pub use stages::SolveStage;
 pub(crate) use stages::{interned, stage_ends, stage_parts, PHASE_MOVES};
 pub use target::{Target, TargetError};
 pub(crate) use threads::threads;
+pub use twist_masks::{parse_twist_masks, twist_masks_text, TwistMasks, FREE_TWIST};
 pub use twist_track::{rotation_moves, rotation_words, Tracked};
 pub use twists::{CenterTwists, CenterTwistsError, TwistError, TWIST_CONVENTION};
