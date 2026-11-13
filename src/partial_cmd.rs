@@ -128,15 +128,18 @@ pub fn run(args: &SolveArgs, start: &Facelets, target: &Target) -> Result<(), St
             println!("{text}");
             Ok(())
         }
-        Err(failure) => Err(result.message.unwrap_or_else(|| {
-            match failure {
-                Failure::InvalidInput => "the start or the target is impossible",
-                Failure::CentersOffFace => crate::failure::CENTERS_OFF_FACE,
-                Failure::BudgetExhausted => "the time budget ran out",
-                Failure::Exhausted => "no solution within the move limit",
-                Failure::Internal => "internal error",
-            }
-            .into()
-        })),
+        Err(failure) => {
+            crate::failure::note_limit(failure);
+            Err(result.message.unwrap_or_else(|| {
+                match failure {
+                    Failure::InvalidInput => "the start or the target is impossible",
+                    Failure::CentersOffFace => crate::failure::CENTERS_OFF_FACE,
+                    Failure::BudgetExhausted => "the time budget ran out",
+                    Failure::Exhausted => "no solution within the move limit",
+                    Failure::Internal => "internal error",
+                }
+                .into()
+            }))
+        }
     }
 }

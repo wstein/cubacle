@@ -106,7 +106,10 @@ pub(crate) fn run_now(
         result
             .outcome
             .map(|moves| (moves, stages))
-            .map_err(|failure| failure_message(failure, result.message))
+            .map_err(|failure| {
+                crate::failure::note_limit(failure);
+                failure_message(failure, result.message)
+            })
     };
     if way.fresh {
         let (moves, stages) = solve_staged(&current)?;

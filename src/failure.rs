@@ -13,6 +13,14 @@ pub(crate) const EXIT_LIMIT: u8 = 3;
 /// Set by a command whose error is a limit, not a fault of the input.
 pub(crate) static LIMIT_REACHED: AtomicBool = AtomicBool::new(false);
 
+/// Marks the run as ended by a limit when `failure` is a time budget: the exit
+/// status is then 3, not 1.
+pub(crate) fn note_limit(failure: Failure) {
+    if failure == Failure::BudgetExhausted {
+        LIMIT_REACHED.store(true, std::sync::atomic::Ordering::Relaxed);
+    }
+}
+
 /// The longest a solve of the 4x4x4 to 7x7x7 may run without `--max-time`.
 /// Measured on a loaded machine the slowest of three random 7x7x7 solves took
 /// 18 s (the 4x4x4 and 5x5x5 under 5 s, the 6x6x6 under 7 s), so this is
@@ -55,4 +63,22 @@ pub(crate) fn failure_message(failure: Failure, message: Option<String>) -> Stri
         "{reason}{}",
         message.map_or_else(String::new, |m| format!(" ({m})"))
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::Ordering;
+
+    #[test]
+    fn only_a_time_budget_counts_as_a_limit() {
+        LIMIT_REACHED.store(false, Ordering::Relaxed);
+        for failure in [Failure::Exhausted, Failure::InvalidInput, Failure::Internal] {
+            note_limit(failure);
+            assert!(!LIMIT_REACHED.load(Ordering::Relaxed), "{failure:?}");
+        }
+        note_limit(Failure::BudgetExhausted);
+        assert!(LIMIT_REACHED.load(Ordering::Relaxed));
+        LIMIT_REACHED.store(false, Ordering::Relaxed);
+    }
 }
