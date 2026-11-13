@@ -11,7 +11,7 @@ use cubacle::engines::restricted::{
     EnumerateEnd, EnumerateRequest, SubsetSolver, DEFAULT_TABLE_ENTRIES,
 };
 use cubacle::notation::Notation;
-use cubacle::puzzle::{reaches, Alphabet, Facelets, PuzzleKind, SolveOptions};
+use cubacle::puzzle::{reaches, Alphabet, Facelets, Failure, PuzzleKind, SolveOptions};
 
 use crate::cli::SolveArgs;
 use crate::restricted_cmd::failure_text;
@@ -105,7 +105,10 @@ pub fn run(
             &|| false,
         )
         .map_err(|failed| match failed.outcome {
-            Err(failure) => failure_text(failure, failed.message),
+            Err(failure) => {
+                crate::failure::note_limit(failure);
+                failure_text(failure, failed.message)
+            }
             Ok(_) => "internal error".to_owned(),
         })?;
     written.map_err(|error| format!("cannot write the solutions: {error}"))?;
@@ -122,10 +125,13 @@ pub fn run(
             eprintln!("stopped after {} solutions", listing.found);
             Ok(())
         }
-        EnumerateEnd::TimedOut => Err(format!(
-            "the time budget ran out after {} solutions: the list is incomplete",
-            listing.found
-        )),
+        EnumerateEnd::TimedOut => {
+            crate::failure::note_limit(Failure::BudgetExhausted);
+            Err(format!(
+                "the time budget ran out after {} solutions: the list is incomplete",
+                listing.found
+            ))
+        }
         EnumerateEnd::Cancelled => Err("stopped".to_owned()),
     }
 }
