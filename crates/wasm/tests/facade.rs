@@ -132,3 +132,12 @@ fn a_budget_call_longer_than_the_default_is_honored() {
     assert_eq!(status, STATUS_TIMEOUT);
     assert!(started.elapsed() >= std::time::Duration::from_millis(2900));
 }
+
+#[test]
+fn a_budget_call_with_an_unreachable_move_limit_is_no_solution_not_timeout() {
+    // The 2x2x2 scramble needs more than 3 moves; the search ends long before 5000 ms.
+    let (status, text) = call_budget(2, "R U R' U' F2 R", 3, 5000);
+    assert_eq!(status, STATUS_NO_SOLUTION, "{text}");
+    let (status, text) = call_budget(3, "R U F", 2, 5000);
+    assert_eq!(status, STATUS_NO_SOLUTION, "{text}");
+}
