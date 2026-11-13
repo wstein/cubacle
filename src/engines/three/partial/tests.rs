@@ -204,3 +204,20 @@ fn a_start_with_moved_centers_is_refused_on_every_route() {
         assert!(result.message.unwrap().contains("centers"));
     }
 }
+
+#[test]
+fn a_free_orientation_answers_starts_with_moved_centers_as_before() {
+    // whole-cube turns and slices cost nothing when the orientation is free
+    for (text, expected) in [("x", ""), ("y R U", "R'"), ("M", "R' L")] {
+        let moves = crate::notation::parse_expression(text, PuzzleKind::Cube3).unwrap();
+        let start = Facelets::solved(PuzzleKind::Cube3).apply(&moves).unwrap();
+        let options = SolveOptions {
+            free_orientation: true,
+            ..SolveOptions::default()
+        };
+        let result = Min2PhaseSolver::new().solve_to(&start, &cross(), &options);
+        let moves = result.outcome.unwrap();
+        assert!(cross().reached_by_any_rotation(&start, &moves), "{text}");
+        assert_eq!(moves.to_string(), expected, "{text}");
+    }
+}
