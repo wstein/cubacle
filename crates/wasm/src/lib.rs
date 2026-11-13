@@ -20,4 +20,6 @@ mod solve;
 pub use abi::{
     cubacle_abi_version, cubacle_alloc, cubacle_free, cubacle_result_len, cubacle_solve,
 };
-pub use solve::{solve_text, HEADER, STATUS_BAD_INPUT, STATUS_NO_SOLUTION, STATUS_OK};
+pub use solve::{
+    solve_text, DEFAULT_BUDGET_MS, HEADER, STATUS_BAD_INPUT, STATUS_NO_SOLUTION, STATUS_OK,
+};
