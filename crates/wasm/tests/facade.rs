@@ -4,7 +4,7 @@
 use cubacle::puzzle::{Facelets, PuzzleKind};
 use cubacle_wasm::{
     cubacle_abi_version, cubacle_alloc, cubacle_free, cubacle_result_len, cubacle_solve, HEADER,
-    STATUS_BAD_INPUT, STATUS_OK,
+    STATUS_BAD_INPUT, STATUS_NO_SOLUTION, STATUS_OK,
 };
 
 /// Runs the facade on `scramble` and returns the status and the text.
@@ -59,4 +59,20 @@ fn rejects_a_bad_size_and_bad_text_without_trapping() {
     assert_eq!(call(4, "R", 25).0, STATUS_BAD_INPUT);
     assert_eq!(call(3, "not a move", 25).0, STATUS_BAD_INPUT);
     assert_eq!(call(3, "\u{ff}\u{fe}", 25).0, STATUS_BAD_INPUT);
+}
+
+#[test]
+fn a_hard_scramble_with_a_small_move_limit_returns_within_the_default_budget() {
+    // The superflip needs 20 moves, so no solution of 19 or fewer exists and the search
+    // would run for minutes. The facade stops at its default budget instead.
+    let scramble = "U R2 F B R B2 R U2 L B2 R U' D' R2 F R' L B2 U2 F2";
+    let started = std::time::Instant::now();
+    let (status, text) = call(3, scramble, 19);
+    let elapsed = started.elapsed();
+    assert_eq!(status, STATUS_NO_SOLUTION, "{text}");
+    assert!(!text.is_empty());
+    assert!(
+        elapsed < std::time::Duration::from_secs(10),
+        "took {elapsed:?}"
+    );
 }
