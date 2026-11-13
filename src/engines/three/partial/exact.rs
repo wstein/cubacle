@@ -11,7 +11,7 @@ use super::super::cubie::Cubie;
 use super::goal::{color_masks, Goal};
 use super::ida::{Bound, Ended, Search};
 use super::model::{Pos, Turns};
-use super::tables::{plan, CornerTable, EdgeTable};
+use super::tables::{plan, Built, CornerTable, EdgeTable};
 use super::{finish, proven};
 use crate::puzzle::{
     rotation_maps, Facelets, Failure, MoveSequence, PuzzleKind, SolveOptions, SolveResult, Target,
@@ -83,15 +83,30 @@ pub(super) fn solve_goal(
     let budget_mb = options.max_memory_mb.unwrap_or(DEFAULT_MEMORY_MB);
     let (with_corners, pieces) = plan(goal, budget_mb.saturating_mul(1 << 20));
     let built = Instant::now();
+    let unreachable = |note: &str| {
+        finish(
+            started,
+            Err(Failure::Exhausted),
+            format!("unreachable: no state meets the target ({note} cannot be met by any cube)"),
+        )
+    };
     let corners = if with_corners {
-        CornerTable::build(goal, &turns)
+        match CornerTable::build(goal, &turns) {
+            Built::Table(table) => Some(table),
+            Built::NothingToPrune => None,
+            Built::Unsatisfiable => return unreachable("the corners"),
+        }
     } else {
         None
     };
     let edges = if pieces.is_empty() {
         None
     } else {
-        EdgeTable::build(goal, &turns, &pieces)
+        match EdgeTable::build(goal, &turns, &pieces) {
+            Built::Table(table) => Some(table),
+            Built::NothingToPrune => None,
+            Built::Unsatisfiable => return unreachable("the tracked edges"),
+        }
     };
     let table_bytes = corners.as_ref().map_or(0, |_| CornerTable::bytes())
         + edges.as_ref().map_or(0, |t| EdgeTable::bytes(t.tracked()));

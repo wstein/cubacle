@@ -223,3 +223,28 @@ fn a_target_no_orientation_can_meet_is_unreachable() {
     assert_eq!(outcome.unwrap_err(), Failure::Exhausted);
     assert!(message.starts_with("unreachable"), "{message}");
 }
+
+#[test]
+fn a_target_no_cube_meets_is_unreachable_at_once() {
+    // the up-right-front corner twisted in place: every corner is fixed and no
+    // reachable cube shows it, so the corner table has no seed
+    let mut text = Facelets::solved(PuzzleKind::Cube3).to_string().into_bytes();
+    let (u, r, f) = (text[8], text[9], text[20]);
+    (text[8], text[9], text[20]) = (r, f, u);
+    let twisted = Facelets::parse(std::str::from_utf8(&text).unwrap()).unwrap();
+    let target = Target::masked(&twisted, |_| true);
+    let start = Facelets::solved(PuzzleKind::Cube3)
+        .apply(&"R U F".parse().unwrap())
+        .unwrap();
+    let options = SolveOptions {
+        exact: true,
+        time_budget: Some(Duration::from_secs(10)),
+        ..SolveOptions::default()
+    };
+    use crate::puzzle::Solver;
+    let result = super::super::solver::Min2PhaseSolver::new().solve_to(&start, &target, &options);
+    assert_eq!(result.outcome, Err(Failure::Exhausted));
+    let message = result.message.unwrap();
+    assert!(message.starts_with("unreachable"), "{message}");
+    assert!(result.metrics.elapsed < Duration::from_secs(5));
+}
