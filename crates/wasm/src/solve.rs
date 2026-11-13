@@ -12,14 +12,16 @@ pub const HEADER: usize = 5;
 pub const STATUS_OK: u8 = 0;
 /// The size or the scramble text is not accepted; the text says why.
 pub const STATUS_BAD_INPUT: u8 = 1;
-/// The solver found no solution; the text says why.
+/// The solver found no solution (for example `max_moves` admits none); the text is the
+/// engine message. In ABI 1 this also covers a run-out budget, and on the 3x3x3 the
+/// text does not tell the two apart.
 pub const STATUS_NO_SOLUTION: u8 = 2;
-/// ABI 2 only: the time budget ran out before a solution was found; the text says so.
+/// ABI 2 only: the time budget ran out before a solution was found.
 pub const STATUS_TIMEOUT: u8 = 3;
 
 /// Wall-clock budget of one `cubacle_solve` call in ABI 1, in milliseconds. A
 /// search that has not found a solution when it runs out ends with
-/// [`STATUS_NO_SOLUTION`] and a text that names the budget.
+/// [`STATUS_NO_SOLUTION`], the same status as a `max_moves` that admits no solution.
 pub const DEFAULT_BUDGET_MS: u64 = 2000;
 
 /// ABI 1: solves with the default budget; a budget that runs out is status 2.
