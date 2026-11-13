@@ -9,7 +9,7 @@
 use std::fmt;
 
 use super::relative::rotations;
-use super::{Face, Facelets, Mask, MoveSequence, PuzzleKind};
+use super::{CenterTwists, Face, Facelets, Mask, MoveSequence, PuzzleKind, TwistMasks, FREE_TWIST};
 
 /// All six colors allowed: the sticker does not matter.
 const ANY: u8 = 0b11_1111;
@@ -55,6 +55,8 @@ impl std::error::Error for TargetError {}
 pub struct Target {
     kind: PuzzleKind,
     allowed: Vec<u8>,
+    /// The twists each face center may show (3x3x3 picture cubes); free by default.
+    twist: TwistMasks,
 }
 
 impl Target {
@@ -77,7 +79,11 @@ impl Target {
                 return Err(TargetError::TooMany { face, wanted, have });
             }
         }
-        Ok(Target { kind, allowed })
+        Ok(Target {
+            kind,
+            allowed,
+            twist: FREE_TWIST,
+        })
     }
 
     /// The target that is exactly `state`.
@@ -85,6 +91,7 @@ impl Target {
         Target {
             kind: state.kind(),
             allowed: state.stickers().iter().map(|f| 1 << f.index()).collect(),
+            twist: FREE_TWIST,
         }
     }
 
@@ -106,6 +113,31 @@ impl Target {
 
     pub fn kind(&self) -> PuzzleKind {
         self.kind
+    }
+
+    /// This target with a condition on the twist of the face centers: center
+    /// `f` may show the twists whose bit is set in entry `f`.
+    pub fn with_twist(mut self, masks: TwistMasks) -> Target {
+        self.twist = masks.map(|m| m & 0b1111);
+        self
+    }
+
+    /// The accepted twists per center (all free unless set).
+    pub fn twist_masks(&self) -> &TwistMasks {
+        &self.twist
+    }
+
+    /// Whether some center's twist matters.
+    pub fn has_twist_condition(&self) -> bool {
+        self.twist != FREE_TWIST
+    }
+
+    /// Whether the twists `t` satisfy the twist condition.
+    pub fn twist_met(&self, t: &CenterTwists) -> bool {
+        Face::ALL
+            .iter()
+            .zip(&self.twist)
+            .all(|(&face, &mask)| mask >> t.twist(face) & 1 == 1)
     }
 
     /// The stickers this target constrains: the mask of its cared stickers.
