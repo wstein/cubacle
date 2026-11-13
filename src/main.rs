@@ -36,6 +36,7 @@ mod steps;
 mod target_name;
 mod template_cmd;
 mod terminal;
+mod twist_cmd;
 mod views;
 mod within_cmd;
 
