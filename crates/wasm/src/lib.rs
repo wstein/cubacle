@@ -19,7 +19,9 @@ mod solve;
 
 pub use abi::{
     cubacle_abi_version, cubacle_alloc, cubacle_free, cubacle_result_len, cubacle_solve,
+    cubacle_solve_budget,
 };
 pub use solve::{
-    solve_text, DEFAULT_BUDGET_MS, HEADER, STATUS_BAD_INPUT, STATUS_NO_SOLUTION, STATUS_OK,
+    solve_text, solve_text_budget, DEFAULT_BUDGET_MS, HEADER, STATUS_BAD_INPUT, STATUS_NO_SOLUTION,
+    STATUS_OK, STATUS_TIMEOUT,
 };
