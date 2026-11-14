@@ -12,7 +12,7 @@
 use std::time::Duration;
 
 use cubacle::engines::three::{solve_front_goal, FrontFailure, FrontGoal, FrontLimits};
-use cubacle::puzzle::{rotation_moves, CenterTwists, Facelets, PuzzleKind};
+use cubacle::puzzle::{rotation_moves, rotation_words, CenterTwists, Facelets, PuzzleKind};
 
 const FIXTURE: &str = include_str!("fixtures/front_goal_calendar.tsv");
 
@@ -227,4 +227,34 @@ fn an_invalid_goal_is_refused() {
     assert!(FrontGoal::new(&[empty; 9], false).is_err());
     assert!(FrontGoal::new(&[&[54u8][..]; 9], false).is_err());
     assert!(FrontGoal::new(&[one; 9], false).is_ok());
+}
+
+/// A cube that is solved but for `moves`, with its (home) center twists.
+fn scrambled(moves: &str) -> (Facelets, CenterTwists) {
+    let start = Facelets::solved(PuzzleKind::Cube3)
+        .apply(&moves.parse().unwrap())
+        .unwrap();
+    (start, CenterTwists::new(PuzzleKind::Cube3, [0; 6]).unwrap())
+}
+
+/// The goal "the front shows its own stickers".
+fn own_front() -> FrontGoal {
+    let lists: Vec<[u8; 1]> = (18..27).map(|i| [i]).collect();
+    let classes: Vec<&[u8]> = lists.iter().map(|l| &l[..]).collect();
+    FrontGoal::new(&classes, false).unwrap()
+}
+
+fn invalid_text(result: Result<cubacle::engines::three::FrontRoute, FrontFailure>) -> String {
+    match result {
+        Err(FrontFailure::InvalidInput(text)) => text,
+        other => panic!("expected InvalidInput, got {other:?}"),
+    }
+}
+
+#[test]
+fn a_time_limit_too_large_to_add_means_no_time_limit() {
+    let (start, twists) = scrambled("R2");
+    let limits = FrontLimits::default().with_time(Duration::MAX);
+    let route = solve_front_goal(&start, &twists, &own_front(), &limits).unwrap();
+    assert_eq!(route.moves.len(), 1);
 }
