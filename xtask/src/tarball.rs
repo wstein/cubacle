@@ -148,6 +148,11 @@ mod tests {
         );
         assert_eq!(&bytes[4..8], &[0, 0, 0, 0], "no modification time");
         assert_eq!(bytes[9], GZIP_OS_UNKNOWN);
+        assert_eq!(
+            &bytes[..10],
+            &[0x1f, 0x8b, 8, 0, 0, 0, 0, 0, 2, 255],
+            "XFL 2 marks the best compression"
+        );
     }
 
     #[test]
