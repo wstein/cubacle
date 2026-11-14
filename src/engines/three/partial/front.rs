@@ -36,10 +36,10 @@
 //! ignores the time limit (`Duration::ZERO` included); a limit too large to add
 //! to the clock means no limit.
 //!
-//! The default search builds about 44 MB of pruning tables per call (1.7 to 2.7 s
-//! on one native core, measured on the calendar goals); nothing is cached.
-//! `FrontTables::Groups2`, `Groups4` and `Groups9` build that many 0.3 MB tables
-//! of four cubies instead. The time budget covers the search only. The table
+//! The default search builds nine tables of four cubies (0.3 MB each) per call;
+//! nothing is cached. `FrontTables::Groups2` and `Groups4` build fewer.
+//! `FrontTables::Full` builds about 44 MB of corner and edge tables instead
+//! (1.7 to 2.7 s on one native core, measured on the calendar goals). The time budget covers the search only. The table
 //! build has its own budget ([`FrontLimits::with_table_time`], none by default),
 //! is done in chunks, reports its progress and can be cancelled between
 //! chunks. Visibility: only
@@ -107,19 +107,20 @@ impl FrontGoal {
 /// Which pruning tables the search builds.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum FrontTables {
-    /// All corners and up to six edges: about 44 MB. The default.
-    #[default]
+    /// All corners and up to six edges: about 44 MB, 9 to 14 s to build in
+    /// WebAssembly. Give it a table budget ([`FrontLimits::with_table_time`]).
     Full,
     /// Two tables of four cubies (four corners, four edges): 0.7 MB.
     Groups2,
     /// Four tables of four cubies: 1.3 MB.
     Groups4,
-    /// Nine tables of four cubies: 3 MB.
+    /// Nine tables of four cubies: 3 MB, 0.1 to 0.4 s to build. The default.
+    #[default]
     Groups9,
 }
 
 /// The budgets of one search. The default is the search's own: 60 s, no node
-/// cap, at most 21 moves, no budget for the table build, the full tables.
+/// cap, at most 21 moves, no budget for the table build, nine group tables.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct FrontLimits {
     time: Option<Duration>,
