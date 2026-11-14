@@ -42,8 +42,8 @@ fn run(size: u32, scramble: &str, max_moves: u32, budget_ms: Option<u32>) -> (u8
 }
 
 #[test]
-fn abi_version_is_two() {
-    assert_eq!(cubacle_abi_version(), 2);
+fn abi_version_is_three() {
+    assert_eq!(cubacle_abi_version(), 3);
 }
 
 #[test]
