@@ -184,7 +184,11 @@ mod exact;
 mod exact_tests;
 mod frame;
 pub mod front;
+mod gate;
 mod goal;
+mod groups;
+#[cfg(test)]
+mod groups_tests;
 mod ida;
 mod model;
 mod tables;

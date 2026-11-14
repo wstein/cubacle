@@ -6,6 +6,7 @@
 //! only be shorter than the true distance to the goal, so the maximum of the
 //! tables is an admissible bound. Entries are 4 bits; 15 means "15 or more".
 
+use super::gate::{Gate, Stop};
 use super::goal::Goal;
 use super::model::{Pos, Turns, TURNS};
 
@@ -45,26 +46,40 @@ pub(super) enum Built<T> {
     Unsatisfiable,
 }
 
+/// Bytes of a breadth-first search between two checks of the gate.
+const CHUNK: usize = 1 << 16;
+
 /// Distances to the nearest seed over `n` states, or `None` without a seed.
+/// `seeding` marks the seeds and reports its own progress (0 to 1000) to the
+/// gate; the levels that follow take the progress from 300 to 1000.
 fn bfs(
     n: usize,
-    seeding: impl FnOnce(&mut dyn FnMut(usize)),
+    gate: &mut Gate,
+    seeding: impl FnOnce(&mut dyn FnMut(usize), &mut Gate) -> Result<(), Stop>,
     next: impl Fn(usize, usize) -> usize,
-) -> Option<Nibbles> {
+) -> Result<Option<Nibbles>, Stop> {
     let mut dist = Nibbles::filled(n, UNSEEN);
     let mut seeds = 0usize;
-    seeding(&mut |i| {
-        if dist.get(i) == UNSEEN {
-            dist.set(i, 0);
-            seeds += 1;
-        }
-    });
+    seeding(
+        &mut |i| {
+            if dist.get(i) == UNSEEN {
+                dist.set(i, 0);
+                seeds += 1;
+            }
+        },
+        gate,
+    )?;
     if seeds == 0 {
-        return None;
+        return Ok(None);
     }
+    let levels = usize::from(UNSEEN - 1);
     for level in 0..UNSEEN - 1 {
         let mut grown = 0usize;
         for byte in 0..dist.0.len() {
+            if byte % CHUNK == 0 {
+                let done = usize::from(level) * dist.0.len() + byte;
+                gate.check((300 + done * 700 / (levels * dist.0.len())) as u16)?;
+            }
             let cells = dist.0[byte];
             if cells & 15 != level && cells >> 4 != level {
                 continue;
@@ -86,7 +101,8 @@ fn bfs(
             break;
         }
     }
-    Some(dist)
+    gate.check(1000)?;
+    Ok(Some(dist))
 }
 
 fn perm_rank(perm: &[u8; 8]) -> usize {
@@ -140,12 +156,19 @@ impl CornerTable {
 
     /// Nothing to prune when some view constrains no corner; unsatisfiable
     /// when no corner arrangement meets the goal.
-    pub(super) fn build(goal: &Goal, turns: &Turns) -> Built<CornerTable> {
+    pub(super) fn build(
+        goal: &Goal,
+        turns: &Turns,
+        gate: &mut Gate,
+    ) -> Result<Built<CornerTable>, Stop> {
         if goal.views.iter().any(|v| v.corners.is_empty()) {
-            return Built::NothingToPrune;
+            return Ok(Built::NothingToPrune);
         }
         let mut perm_mv = vec![0u16; CORNER_PERMS * TURNS];
         for rank in 0..CORNER_PERMS {
+            if rank % 1024 == 0 {
+                gate.check((rank * 40 / CORNER_PERMS) as u16)?;
+            }
             let perm = perm_unrank(rank);
             for m in 0..TURNS {
                 let moved: [u8; 8] = std::array::from_fn(|t| perm[usize::from(turns.cfrom[m][t])]);
@@ -165,8 +188,12 @@ impl CornerTable {
         let twists: Vec<[u8; 8]> = (0..CORNER_TWISTS).map(twist_unrank).collect();
         let Some(dist) = bfs(
             CORNER_PERMS * CORNER_TWISTS,
-            |mark| {
+            gate,
+            |mark, gate| {
                 for rank in 0..CORNER_PERMS {
+                    if rank % 64 == 0 {
+                        gate.check((40 + rank * 260 / CORNER_PERMS) as u16)?;
+                    }
                     let perm = perm_unrank(rank);
                     for (t, twist) in twists.iter().enumerate() {
                         let met = goal.views.iter().any(|view| {
@@ -180,19 +207,21 @@ impl CornerTable {
                         }
                     }
                 }
+                Ok(())
             },
             |i, m| {
                 usize::from(perm_mv[(i / CORNER_TWISTS) * TURNS + m]) * CORNER_TWISTS
                     + usize::from(twist_mv[(i % CORNER_TWISTS) * TURNS + m])
             },
-        ) else {
-            return Built::Unsatisfiable;
+        )?
+        else {
+            return Ok(Built::Unsatisfiable);
         };
-        Built::Table(CornerTable {
+        Ok(Built::Table(CornerTable {
             perm_mv,
             twist_mv,
             dist,
-        })
+        }))
     }
 
     pub(super) fn index(pos: &Pos) -> (u16, u16) {
@@ -277,7 +306,12 @@ impl EdgeTable {
     }
 
     /// Unsatisfiable when no arrangement of the tracked edges meets the goal.
-    pub(super) fn build(goal: &Goal, turns: &Turns, pieces: &[u8]) -> Built<EdgeTable> {
+    pub(super) fn build(
+        goal: &Goal,
+        turns: &Turns,
+        pieces: &[u8],
+        gate: &mut Gate,
+    ) -> Result<Built<EdgeTable>, Stop> {
         let k = pieces.len();
         let n = arrangements(k);
         let mut to = [[0u8; 12]; TURNS];
@@ -291,6 +325,9 @@ impl EdgeTable {
         }
         let mut mv = vec![0u32; n * TURNS];
         for rank in 0..n {
+            if rank % 4096 == 0 {
+                gate.check((rank * 40 / n) as u16)?;
+            }
             let slots = slots_unrank(rank, k);
             for m in 0..TURNS {
                 let mut moved = vec![0u8; k];
@@ -307,8 +344,12 @@ impl EdgeTable {
             .fold(0, |acc, &p| acc | 3 << (usize::from(p) * 2));
         let Some(dist) = bfs(
             n << k,
-            |mark| {
+            gate,
+            |mark, gate| {
                 for rank in 0..n {
+                    if rank % 1024 == 0 {
+                        gate.check((40 + rank * 260 / n) as u16)?;
+                    }
                     let slots = slots_unrank(rank, k);
                     let mut at = [usize::MAX; 12];
                     for (j, &s) in slots.iter().enumerate() {
@@ -331,20 +372,22 @@ impl EdgeTable {
                         }
                     }
                 }
+                Ok(())
             },
             |i, m| {
                 let t = mv[(i >> k) * TURNS + m];
                 ((t & 0x3F_FFFF) as usize) << k | ((i & ((1 << k) - 1)) ^ (t >> 22) as usize)
             },
-        ) else {
-            return Built::Unsatisfiable;
+        )?
+        else {
+            return Ok(Built::Unsatisfiable);
         };
-        Built::Table(EdgeTable {
+        Ok(Built::Table(EdgeTable {
             pieces: pieces.to_vec(),
             k,
             mv,
             dist,
-        })
+        }))
     }
 
     pub(super) fn index(&self, pos: &Pos) -> u32 {
