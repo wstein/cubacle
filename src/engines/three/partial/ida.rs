@@ -3,6 +3,7 @@
 use crate::puzzle::Instant;
 
 use super::goal::Goal;
+use super::groups::GroupTable;
 use super::model::{twist_step, Pos, Turns};
 use super::tables::{CornerTable, EdgeTable};
 use super::twist::TwistTable;
@@ -23,6 +24,8 @@ pub(super) struct Bound {
     pub(super) edges: Option<EdgeTable>,
     /// Present when a view conditions the center twists.
     pub(super) twist: Option<TwistTable>,
+    /// Four-cubie group tables (at most 9), combined by the maximum.
+    pub(super) groups: Vec<GroupTable>,
 }
 
 #[derive(Clone, Copy)]
@@ -30,6 +33,7 @@ struct Coords {
     corner: (u16, u16),
     edge: u32,
     tw: u16,
+    groups: [u32; 9],
 }
 
 impl Bound {
@@ -41,7 +45,16 @@ impl Bound {
                 .map_or((0, 0), |_| CornerTable::index(pos)),
             edge: self.edges.as_ref().map_or(0, |t| t.index(pos)),
             tw: pos.tw,
+            groups: self.group_coords(pos),
         }
+    }
+
+    fn group_coords(&self, pos: &Pos) -> [u32; 9] {
+        let mut at = [0u32; 9];
+        for (slot, table) in at.iter_mut().zip(&self.groups) {
+            *slot = table.index(pos);
+        }
+        at
     }
 
     #[inline]
@@ -57,6 +70,13 @@ impl Bound {
             } else {
                 0
             },
+            groups: {
+                let mut next = at.groups;
+                for (slot, table) in next.iter_mut().zip(&self.groups) {
+                    *slot = table.step(*slot, m);
+                }
+                next
+            },
         }
     }
 
@@ -65,7 +85,11 @@ impl Bound {
         let c = self.corners.as_ref().map_or(0, |t| t.bound(at.corner));
         let e = self.edges.as_ref().map_or(0, |t| t.bound(at.edge));
         let w = self.twist.as_ref().map_or(0, |t| t.bound(at.tw));
-        c.max(e).max(w)
+        let mut best = c.max(e).max(w);
+        for (&index, table) in at.groups.iter().zip(&self.groups) {
+            best = best.max(table.bound(index));
+        }
+        best
     }
 }
 
