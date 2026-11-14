@@ -1,0 +1,22 @@
+[package]
+name = "cubacle-wasm-front-measure"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.95"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Measurement harness: solve_front_goal as a C ABI over linear memory (not a contract)"
+
+[lib]
+name = "cubacle_wasm_front_measure"
+path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+cubacle = { path = "../..", default-features = false }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = "0.4"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(getrandom_backend, values("custom"))'] }

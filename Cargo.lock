@@ -299,6 +299,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "cubacle-wasm-front-measure"
+version = "0.1.0"
+dependencies = [
+ "cubacle",
+ "getrandom 0.4.3",
+]
+
+[[package]]
 name = "digest"
 version = "0.11.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
