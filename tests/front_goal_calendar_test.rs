@@ -258,3 +258,65 @@ fn a_time_limit_too_large_to_add_means_no_time_limit() {
     let route = solve_front_goal(&start, &twists, &own_front(), &limits).unwrap();
     assert_eq!(route.moves.len(), 1);
 }
+
+#[test]
+fn twists_that_do_not_match_the_corner_parity_are_invalid() {
+    let (start, _) = scrambled("R2");
+    let odd = CenterTwists::new(PuzzleKind::Cube3, [1, 0, 0, 0, 0, 0]).unwrap();
+    let text = invalid_text(solve_front_goal(
+        &start,
+        &odd,
+        &own_front(),
+        &FrontLimits::default(),
+    ));
+    assert!(text.contains("center twists"), "{text}");
+}
+
+#[test]
+fn a_start_of_another_kind_is_invalid() {
+    let (_, twists) = scrambled("R2");
+    let two = Facelets::solved(PuzzleKind::Cube2);
+    let text = invalid_text(solve_front_goal(
+        &two,
+        &twists,
+        &own_front(),
+        &FrontLimits::default(),
+    ));
+    assert!(text.contains("3x3x3"), "{text}");
+}
+
+#[test]
+fn an_impossible_cube_is_invalid() {
+    let (solved, twists) = scrambled("");
+    // One flipped edge: the stickers of facelets 5 and 10 swapped.
+    let mut letters: Vec<char> = solved.to_string().chars().collect();
+    letters.swap(5, 10);
+    let flipped = Facelets::parse(&letters.iter().collect::<String>()).unwrap();
+    let text = invalid_text(solve_front_goal(
+        &flipped,
+        &twists,
+        &own_front(),
+        &FrontLimits::default(),
+    ));
+    assert!(text.contains("impossible"), "{text}");
+}
+
+#[test]
+fn a_goal_needs_exactly_nine_lists() {
+    let one: &[u8] = &[24];
+    assert!(FrontGoal::new(&[one; 8], false).is_err());
+    assert!(FrontGoal::new(&[one; 10], false).is_err());
+    assert!(FrontGoal::new(&[], false).is_err());
+}
+
+#[test]
+fn a_goal_no_state_meets_is_no_route() {
+    // Every position accepts only the center of the front: impossible.
+    let center: &[u8] = &[22];
+    let goal = FrontGoal::new(&[center; 9], false).unwrap();
+    let (start, twists) = scrambled("R2");
+    assert!(matches!(
+        solve_front_goal(&start, &twists, &goal, &FrontLimits::default()),
+        Err(FrontFailure::NoRoute(_))
+    ));
+}
