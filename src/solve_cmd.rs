@@ -30,6 +30,7 @@ pub(crate) fn solve(args: SolveArgs) -> Result<(), String> {
         return Err("--json always carries the inverse; do not combine it with --inverse".into());
     }
     within_cmd::check(&args)?;
+    twist_cmd::check(&args)?;
     if let Some(now) = &args.now {
         let depth = args.depth.unwrap_or(3);
         if depth > 5 {

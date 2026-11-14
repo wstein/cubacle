@@ -245,7 +245,7 @@ pub(crate) struct SolveArgs {
     /// to 3 for U,R,F,D,L,B (clockwise quarter turns of each picture seen from
     /// outside, from the solved orientation), like 0,1,2,0,3,0. A move expression
     /// as the cube derives it. The sum must have the parity of the corner permutation
-    #[arg(long, value_name = "T")]
+    #[arg(long, value_name = "T", conflicts_with_all = ["moves", "all", "count", "now", "within"])]
     pub(crate) center_twist: Option<String>,
     /// 3x3x3: also require these twists of the face centers in the target: six
     /// items for U,R,F,D,L,B, each a twist 0 to 3, several joined by | (0|2), or
