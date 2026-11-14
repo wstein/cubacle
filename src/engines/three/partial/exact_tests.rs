@@ -10,14 +10,14 @@ use super::goal::{Goal, Masks, EVERY_STICKER};
 use super::model::Pos;
 use crate::puzzle::{Facelets, Failure, MoveSequence, PuzzleKind, SolveOptions, Target};
 
-struct Case {
-    expected: usize,
-    start: Facelets,
-    views: Vec<Masks>,
+pub(super) struct Case {
+    pub(super) expected: usize,
+    pub(super) start: Facelets,
+    pub(super) views: Vec<Masks>,
 }
 
 /// The front-face target sets of the calendar spike (see the header of the data file).
-fn cases() -> Vec<Case> {
+pub(super) fn cases() -> Vec<Case> {
     let mut cases: Vec<Case> = Vec::new();
     let mut lines = include_str!("front_cases.txt")
         .lines()
