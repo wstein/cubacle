@@ -82,6 +82,8 @@ pub(super) struct Search<'a> {
     pub(super) bound: &'a Bound,
     pub(super) deadline: Instant,
     pub(super) nodes: u64,
+    /// Stop, as for the time, after this many nodes.
+    pub(super) max_nodes: Option<u64>,
     stopped: bool,
     path: Vec<usize>,
 }
@@ -99,6 +101,7 @@ impl<'a> Search<'a> {
             bound,
             deadline,
             nodes: 0,
+            max_nodes: None,
             stopped: false,
             path: Vec::new(),
         }
@@ -126,7 +129,8 @@ impl<'a> Search<'a> {
 
     fn dfs(&mut self, pos: &Pos, at: Coords, left: usize, last: usize) -> bool {
         self.nodes += 1;
-        if self.nodes & 0xFFFF == 0 && Instant::now() >= self.deadline {
+        let out_of_nodes = self.max_nodes.is_some_and(|max| self.nodes > max);
+        if out_of_nodes || (self.nodes & 0xFFFF == 0 && Instant::now() >= self.deadline) {
             self.stopped = true;
             return false;
         }

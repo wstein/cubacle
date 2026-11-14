@@ -95,7 +95,7 @@ pub(super) fn by_goal_set(
 }
 
 /// Whether the corner permutation of `cube` is even.
-fn corner_parity_even(cube: &Cubie) -> bool {
+pub(super) fn corner_parity_even(cube: &Cubie) -> bool {
     let perm: Vec<usize> = cube.ca.iter().map(|&c| usize::from(c & 7)).collect();
     let mut seen = [false; 8];
     let mut swaps = 0;
@@ -124,13 +124,45 @@ pub(super) fn solve_goal(
 
 /// Searches `goal` from `start`.
 fn solve_pos(started: Instant, start: Pos, goal: &Goal, options: &SolveOptions) -> SolveResult {
+    solve_pos_counted(started, start, goal, options, None).result
+}
+
+/// What a search did besides its result: for the front-goal entry.
+pub(super) struct Counted {
+    pub(super) result: SolveResult,
+    pub(super) nodes: u64,
+    /// Time spent building the pruning tables.
+    pub(super) tables: Duration,
+    /// The position the route ends in; `None` when there is no route.
+    pub(super) end: Option<Pos>,
+}
+
+/// [`solve_pos`] with an optional cap on the search nodes (no answer within
+/// the cap ends as `BudgetExhausted`), reporting nodes, table time and end.
+pub(super) fn solve_pos_counted(
+    started: Instant,
+    start: Pos,
+    goal: &Goal,
+    options: &SolveOptions,
+    max_nodes: Option<u64>,
+) -> Counted {
     let turns = Turns::new();
+    let bare = |result: SolveResult| Counted {
+        result,
+        nodes: 0,
+        tables: Duration::ZERO,
+        end: None,
+    };
     if goal.is_met(&start) {
-        return proven(
+        let result = proven(
             started,
             MoveSequence::new(Vec::new()),
             "shortest: 0 moves, the start already meets the target".into(),
         );
+        return Counted {
+            end: Some(start),
+            ..bare(result)
+        };
     }
     let budget_mb = options.max_memory_mb.unwrap_or(DEFAULT_MEMORY_MB);
     let (with_corners, pieces) = plan(goal, budget_mb.saturating_mul(1 << 20));
@@ -146,7 +178,7 @@ fn solve_pos(started: Instant, start: Pos, goal: &Goal, options: &SolveOptions) 
         match CornerTable::build(goal, &turns) {
             Built::Table(table) => Some(table),
             Built::NothingToPrune => None,
-            Built::Unsatisfiable => return unreachable("the corners"),
+            Built::Unsatisfiable => return bare(unreachable("the corners")),
         }
     } else {
         None
@@ -157,10 +189,11 @@ fn solve_pos(started: Instant, start: Pos, goal: &Goal, options: &SolveOptions) 
         match EdgeTable::build(goal, &turns, &pieces) {
             Built::Table(table) => Some(table),
             Built::NothingToPrune => None,
-            Built::Unsatisfiable => return unreachable("the tracked edges"),
+            Built::Unsatisfiable => return bare(unreachable("the tracked edges")),
         }
     };
     let twist = TwistTable::build(goal);
+    let tables = built.elapsed();
     let table_bytes = corners.as_ref().map_or(0, |_| CornerTable::bytes())
         + edges.as_ref().map_or(0, |t| EdgeTable::bytes(t.tracked()));
     let table_note = format!(
@@ -192,12 +225,15 @@ fn solve_pos(started: Instant, start: Pos, goal: &Goal, options: &SolveOptions) 
         .unwrap_or(Duration::from_millis(DEFAULT_BUDGET_MS));
     let max = options.max_moves.map_or(DEFAULT_MAX_MOVES, usize::from);
     let mut search = Search::new(&turns, goal, &bound, Instant::now() + budget);
+    search.max_nodes = max_nodes;
     let from = search.start_bound(&start);
     let ended = search.run(&start, from, max);
     let nodes = search.nodes;
-    match ended {
+    let mut end = None;
+    let result = match ended {
         Ended::Found(path) => {
             let solution: MoveSequence = path.iter().map(|&m| turns.moves[m]).collect();
+            end = Some(path.iter().fold(start, |pos, &m| pos.step(&turns, m)));
             proven(
                 started,
                 solution,
@@ -223,5 +259,11 @@ fn solve_pos(started: Instant, start: Pos, goal: &Goal, options: &SolveOptions) 
                 ),
             )
         }
+    };
+    Counted {
+        result,
+        nodes,
+        tables,
+        end,
     }
 }
