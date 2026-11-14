@@ -320,3 +320,18 @@ fn a_goal_no_state_meets_is_no_route() {
         Err(FrontFailure::NoRoute(_))
     ));
 }
+
+#[test]
+fn the_time_limit_is_read_every_65536_nodes() {
+    // A search that ends within 65,536 nodes never looks at the clock.
+    let (start, twists) = scrambled("R2");
+    let zero = FrontLimits::default().with_time(Duration::ZERO);
+    assert!(solve_front_goal(&start, &twists, &own_front(), &zero).is_ok());
+    // One that needs more (de-a step 2 needs 166,681) stops at the first reading.
+    let case = &cases("de-a")[1];
+    assert_eq!(case.step, 2);
+    match solve_front_goal(&case.start, &case.twists, &goal_of(case), &zero) {
+        Err(FrontFailure::BudgetExhausted { nodes }) => assert_eq!(nodes, 65_536),
+        other => panic!("expected BudgetExhausted, got {other:?}"),
+    }
+}
