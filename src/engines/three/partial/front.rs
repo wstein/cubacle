@@ -11,7 +11,9 @@
 //!   identities, as facelet numbers 0 to 53 of the solved cube (the home
 //!   position of a sticker), and whether the center picture must stand upright
 //!   (center twist 0 on the front, with the whole-cube rotation applied);
-//! - [`FrontLimits`]: a time budget, a node budget and a move limit.
+//! - [`FrontLimits`]: a time budget and a node budget for the search, a time
+//!   budget for the table build, a move limit and the set of pruning tables
+//!   ([`FrontTables`]).
 //!
 //! The goal is met when some whole-cube rotation puts, at every front position,
 //! an accepted sticker, and the center twist rule holds. The 24 rotations cost
@@ -22,7 +24,10 @@
 //!
 //! Failures: [`FrontFailure::BudgetExhausted`] when the time or the node budget
 //! ends the search first (no partial route is returned; `nodes` says how far it
-//! got); [`FrontFailure::NoRoute`] when no route within the move limit exists or
+//! got); [`FrontFailure::BuildBudgetExhausted`] when the table build budget ends
+//! the build first and [`FrontFailure::Cancelled`] when the observer of
+//! [`solve_front_goal_observed`] stops it (both carry the progress in
+//! thousandths); [`FrontFailure::NoRoute`] when no route within the move limit exists or
 //! no state meets the goal; [`FrontFailure::InvalidInput`] for a start that is
 //! no 3x3x3 or no legal cube, or twists that do not match it. A bad goal never
 //! reaches the search: [`FrontGoal::new`] refuses it.
@@ -31,16 +36,21 @@
 //! ignores the time limit (`Duration::ZERO` included); a limit too large to add
 //! to the clock means no limit.
 //!
-//! The search builds about 44 MB of pruning tables per call (1.7 to 2.7 s on
-//! one native core, measured on the calendar goals); nothing is cached. The
-//! time budget covers the search only, not the table build. Visibility: only
+//! The default search builds about 44 MB of pruning tables per call (1.7 to 2.7 s
+//! on one native core, measured on the calendar goals); nothing is cached.
+//! `FrontTables::Groups2`, `Groups4` and `Groups9` build that many 0.3 MB tables
+//! of four cubies instead. The time budget covers the search only. The table
+//! build has its own budget ([`FrontLimits::with_table_time`], none by default),
+//! is done in chunks, reports its progress and can be cancelled between
+//! chunks. Visibility: only
 //! the types and the function below are public; goal, search and tables stay
 //! private to `partial`.
 
 use std::time::Duration;
 
 use super::super::cubie::Cubie;
-use super::exact::{corner_parity_even, solve_pos_counted};
+use super::exact::{corner_parity_even, solve_pos_counted, TableSet};
+use super::gate::{Gate, Stop};
 use super::goal::{Goal, Masks, EVERY_STICKER};
 use super::model::Pos;
 use crate::puzzle::{
@@ -94,13 +104,29 @@ impl FrontGoal {
     }
 }
 
+/// Which pruning tables the search builds.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum FrontTables {
+    /// All corners and up to six edges: about 44 MB. The default.
+    #[default]
+    Full,
+    /// Two tables of four cubies (four corners, four edges): 0.7 MB.
+    Groups2,
+    /// Four tables of four cubies: 1.3 MB.
+    Groups4,
+    /// Nine tables of four cubies: 3 MB.
+    Groups9,
+}
+
 /// The budgets of one search. The default is the search's own: 60 s, no node
-/// cap, at most 21 moves.
+/// cap, at most 21 moves, no budget for the table build, the full tables.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct FrontLimits {
     time: Option<Duration>,
     max_nodes: Option<u64>,
     max_moves: Option<u8>,
+    table_time: Option<Duration>,
+    tables: FrontTables,
 }
 
 impl FrontLimits {
@@ -114,6 +140,18 @@ impl FrontLimits {
     /// Stops the search at the first node beyond `nodes` nodes.
     pub fn with_max_nodes(mut self, nodes: u64) -> FrontLimits {
         self.max_nodes = Some(nodes);
+        self
+    }
+
+    /// Stops the table build after `time` (separate from the search budget).
+    pub fn with_table_time(mut self, time: Duration) -> FrontLimits {
+        self.table_time = Some(time);
+        self
+    }
+
+    /// Chooses the pruning tables.
+    pub fn with_tables(mut self, tables: FrontTables) -> FrontLimits {
+        self.tables = tables;
         self
     }
 
@@ -150,6 +188,16 @@ pub enum FrontFailure {
         /// counted, so a cap of `n` reports `n + 1`.
         nodes: u64,
     },
+    /// The table build budget ended the build; the search did not start.
+    BuildBudgetExhausted {
+        /// Progress of the build, in thousandths.
+        permille: u16,
+    },
+    /// The observer stopped the table build; the search did not start.
+    Cancelled {
+        /// Progress of the build, in thousandths.
+        permille: u16,
+    },
 }
 
 /// Finds a shortest route from `start` to `goal`, with the rotation that
@@ -159,6 +207,19 @@ pub fn solve_front_goal(
     twists: &CenterTwists,
     goal: &FrontGoal,
     limits: &FrontLimits,
+) -> Result<FrontRoute, FrontFailure> {
+    solve_front_goal_observed(start, twists, goal, limits, &mut |_| true)
+}
+
+/// Like [`solve_front_goal`], and tells `observer` the progress of the table
+/// build in thousandths (strictly rising, the last report is 1000); the build
+/// stops when the observer returns `false` (`FrontFailure::Cancelled`).
+pub fn solve_front_goal_observed(
+    start: &Facelets,
+    twists: &CenterTwists,
+    goal: &FrontGoal,
+    limits: &FrontLimits,
+    observer: &mut dyn FnMut(u16) -> bool,
 ) -> Result<FrontRoute, FrontFailure> {
     let invalid = |text: &str| Err(FrontFailure::InvalidInput(text.to_owned()));
     if start.kind() != PuzzleKind::Cube3 || twists.kind() != PuzzleKind::Cube3 {
@@ -193,13 +254,31 @@ pub fn solve_front_goal(
         ..SolveOptions::default()
     };
     let pos = Pos::from_cubie(&cube).with_twist(*twists);
-    let run = solve_pos_counted(
+    let mut gate = Gate::new(
+        limits
+            .table_time
+            .map(|budget| crate::puzzle::Instant::now() + budget),
+        Some(observer),
+    );
+    let set = match limits.tables {
+        FrontTables::Full => TableSet::Full,
+        FrontTables::Groups2 => TableSet::Groups(2),
+        FrontTables::Groups4 => TableSet::Groups(4),
+        FrontTables::Groups9 => TableSet::Groups(9),
+    };
+    let run = match solve_pos_counted(
         crate::puzzle::Instant::now(),
         pos,
         &whole,
         &options,
         limits.max_nodes,
-    );
+        set,
+        &mut gate,
+    ) {
+        Ok(run) => run,
+        Err(Stop::Budget(permille)) => return Err(FrontFailure::BuildBudgetExhausted { permille }),
+        Err(Stop::Cancelled(permille)) => return Err(FrontFailure::Cancelled { permille }),
+    };
     match run.result.outcome {
         Ok(moves) => {
             let end = run.end.expect("a found route has an end position");

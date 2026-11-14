@@ -11,7 +11,9 @@
 
 use std::time::Duration;
 
-use cubacle::engines::three::{solve_front_goal, FrontFailure, FrontGoal, FrontLimits};
+use cubacle::engines::three::{
+    solve_front_goal, solve_front_goal_observed, FrontFailure, FrontGoal, FrontLimits, FrontTables,
+};
 use cubacle::puzzle::{rotation_moves, rotation_words, CenterTwists, Facelets, PuzzleKind};
 
 const FIXTURE: &str = include_str!("fixtures/front_goal_calendar.tsv");
@@ -359,4 +361,134 @@ fn of_several_fitting_rotations_the_first_in_rotation_words_order_is_reported() 
     let route = solve_front_goal(&start, &twists, &goal, &FrontLimits::default()).unwrap();
     assert!(route.moves.is_empty());
     assert_eq!(route.rotation, fitting[0], "all fitting: {fitting:?}");
+}
+
+#[test]
+fn the_default_table_set_is_the_full_one() {
+    assert_eq!(
+        FrontLimits::default(),
+        FrontLimits::default().with_tables(FrontTables::Full)
+    );
+    assert_ne!(
+        FrontLimits::default(),
+        FrontLimits::default().with_tables(FrontTables::Groups9)
+    );
+}
+
+#[test]
+fn two_four_and_nine_group_tables_find_the_484_optimum_and_replay() {
+    for tables in [
+        FrontTables::Groups2,
+        FrontTables::Groups4,
+        FrontTables::Groups9,
+    ] {
+        let limits = FrontLimits::default()
+            .with_tables(tables)
+            .with_time(Duration::from_secs(120));
+        for print in ["de-a", "en-3-zero"] {
+            for case in cases(print).iter().take(4) {
+                let goal = goal_of(case);
+                let route = solve_front_goal(&case.start, &case.twists, &goal, &limits)
+                    .unwrap_or_else(|f| panic!("{tables:?} {print} step {}: {f:?}", case.step));
+                assert_eq!(
+                    route.moves.len(),
+                    case.expected,
+                    "{tables:?} {print} step {}",
+                    case.step
+                );
+                assert!(
+                    reaches_front_goal(case, &route),
+                    "{tables:?} {print} step {}",
+                    case.step
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn more_group_tables_visit_fewer_nodes() {
+    let case = &cases("de-a")[0];
+    let goal = goal_of(case);
+    let nodes = |tables| {
+        let limits = FrontLimits::default().with_tables(tables);
+        solve_front_goal(&case.start, &case.twists, &goal, &limits)
+            .unwrap()
+            .nodes
+    };
+    let (two, nine) = (nodes(FrontTables::Groups2), nodes(FrontTables::Groups9));
+    assert!(nine < two, "nine tables {nine} nodes, two tables {two}");
+}
+
+#[test]
+fn a_table_budget_of_zero_ends_the_build_not_the_search() {
+    let case = &cases("de-a")[0];
+    let goal = goal_of(case);
+    for tables in [FrontTables::Full, FrontTables::Groups9] {
+        let limits = FrontLimits::default()
+            .with_tables(tables)
+            .with_table_time(Duration::ZERO);
+        match solve_front_goal(&case.start, &case.twists, &goal, &limits) {
+            Err(FrontFailure::BuildBudgetExhausted { permille }) => assert!(permille < 1000),
+            other => panic!("{tables:?}: expected BuildBudgetExhausted, got {other:?}"),
+        }
+    }
+}
+
+#[test]
+fn the_table_budget_does_not_limit_the_search() {
+    let case = &cases("de-a")[0];
+    let goal = goal_of(case);
+    let limits = FrontLimits::default()
+        .with_tables(FrontTables::Groups9)
+        .with_table_time(Duration::from_secs(120))
+        .with_max_nodes(10);
+    assert!(matches!(
+        solve_front_goal(&case.start, &case.twists, &goal, &limits),
+        Err(FrontFailure::BudgetExhausted { .. })
+    ));
+}
+
+#[test]
+fn the_build_reports_progress_upward_and_ends_at_1000() {
+    let case = &cases("de-a")[0];
+    let goal = goal_of(case);
+    let limits = FrontLimits::default().with_tables(FrontTables::Groups9);
+    let mut seen: Vec<u16> = Vec::new();
+    let mut observer = |p: u16| {
+        seen.push(p);
+        true
+    };
+    solve_front_goal_observed(&case.start, &case.twists, &goal, &limits, &mut observer).unwrap();
+    assert!(seen.windows(2).all(|w| w[0] < w[1]), "{seen:?}");
+    assert_eq!(seen.last(), Some(&1000), "{seen:?}");
+    assert!(seen.len() >= 9, "one report per table at least: {seen:?}");
+}
+
+#[test]
+fn a_cancel_stops_inside_the_first_of_the_two_full_tables() {
+    let case = &cases("de-a")[0];
+    let goal = goal_of(case);
+    let mut calls = 0usize;
+    let mut observer = |_: u16| {
+        calls += 1;
+        calls < 20
+    };
+    let result = solve_front_goal_observed(
+        &case.start,
+        &case.twists,
+        &goal,
+        &FrontLimits::default(),
+        &mut observer,
+    );
+    match result {
+        Err(FrontFailure::Cancelled { permille }) => {
+            assert!(
+                permille < 500,
+                "stopped in the second table or later: {permille}"
+            )
+        }
+        other => panic!("expected Cancelled, got {other:?}"),
+    }
+    assert_eq!(calls, 20);
 }
