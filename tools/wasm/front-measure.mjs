@@ -1,11 +1,18 @@
 // Measurement of the front-goal solver (crates/wasm-front-measure) in Node.
 //
 //   node tools/wasm/front-measure.mjs <module.wasm> [--cases N|all] [--time MS] [--nodes N] [--print P] [--reuse]
+//        [--tables 0|2|4|9] [--table-ms MS] [--cancel-at PERMILLE]
+//
+// --tables picks the pruning tables (0 = the full ones, else that many group
+// tables), --table-ms the budget of the table build, --cancel-at makes the host
+// progress import cancel the build once the progress reaches that many thousandths.
 //
 // One TSV line per case on stdout: print, step, expected_htm, got_htm, status,
 // nodes, instantiate_ms, wall_ms (whole call), tables_ms (reported by the
 // solver), search_ms (wall - tables), memory_mb (WebAssembly.Memory after the
-// call), rss_hwm_mb (VmHWM of this process, Linux only). Each case runs in a
+// call), rss_hwm_mb (VmHWM of this process, Linux only), progress_calls (calls of
+// the host progress import). For the status tablebudget and cancelled the nodes
+// column is the progress of the build in thousandths. Each case runs in a
 // new instance (cold), except with --reuse, where one instance serves all
 // cases (shows whether memory grows between calls). A summary goes to stderr.
 // Exit 1 when a status is not ok or a length differs from the fixture.
@@ -28,6 +35,10 @@ const timeMs = Number(opt('time', 120000));
 const maxNodes = Number(opt('nodes', 0));
 const only = opt('print', null);
 const reuse = args.includes('--reuse');
+const tablesOpt = Number(opt('tables', 0));
+const tableMs = Number(opt('table-ms', 0));
+const cancelAt = Number(opt('cancel-at', 0));
+let progressCalls = 0;
 
 const bytes = fs.readFileSync(path);
 const raw = bytes.length;
@@ -58,6 +69,10 @@ function instantiate() {
   const instance = new WebAssembly.Instance(module, {
     env: {
       cubacle_host_now: () => performance.now(),
+      cubacle_host_progress: (permille) => {
+        progressCalls++;
+        return cancelAt > 0 && permille >= cancelAt ? 1 : 0;
+      },
       cubacle_host_random: (p, n) => {
         const v = new Uint8Array(memory.buffer, p, n);
         for (let i = 0; i < n; i++) v[i] = (Math.random() * 256) | 0;
@@ -72,7 +87,7 @@ function call(x, input) {
   const b = enc.encode(input);
   const p = x.fm_alloc(b.length);
   new Uint8Array(x.memory.buffer, p, b.length).set(b);
-  const r = x.fm_solve(p, b.length, timeMs, maxNodes, 0);
+  const r = x.fm_solve(p, b.length, timeMs, maxNodes, 0, tableMs, tablesOpt);
   const n = x.fm_result_len(r);
   const text = dec.decode(new Uint8Array(x.memory.buffer, r + 4, n - 4));
   x.fm_free(r, n);
@@ -89,7 +104,7 @@ function hwmMb() {
   }
 }
 
-console.log('print\tstep\texpected\tgot\tstatus\tnodes\tinst_ms\twall_ms\ttables_ms\tsearch_ms\tmem_mb\trss_hwm_mb');
+console.log('print\tstep\texpected\tgot\tstatus\tnodes\tinst_ms\twall_ms\ttables_ms\tsearch_ms\tmem_mb\trss_hwm_mb\tprogress_calls');
 let shared = reuse ? instantiate() : null;
 let bad = 0;
 const rows = [];
@@ -100,13 +115,14 @@ for (const [print, list] of byPrint) {
     const x = shared ?? instantiate();
     const inst = performance.now() - t0;
     t0 = performance.now();
+    progressCalls = 0;
     const [status, moves, rotation, nodes, tablesUs] = call(x, input);
     const wall = performance.now() - t0;
     const got = status === 'ok' ? moves.split(' ').filter(Boolean).length : -1;
     if (status !== 'ok' || got !== Number(c[3])) bad++;
     const tables = Number(tablesUs) / 1000;
     const mem = x.memory.buffer.byteLength / 1048576;
-    const row = [print, c[1], c[3], got, status, nodes, inst.toFixed(2), wall.toFixed(0), tables.toFixed(0), (wall - tables).toFixed(0), mem.toFixed(1), hwmMb()];
+    const row = [print, c[1], c[3], got, status, nodes, inst.toFixed(2), wall.toFixed(0), tables.toFixed(0), (wall - tables).toFixed(0), mem.toFixed(1), hwmMb(), progressCalls];
     rows.push(row);
     console.log(row.join('\t'));
   }
