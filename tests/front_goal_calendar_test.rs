@@ -158,7 +158,7 @@ fn check_print(print: &str) {
         assert_eq!(
             route.moves.len(),
             case.expected,
-            "{} step {}: length differs from the wstein/cubistry#484 optimum",
+            "{} step {}: length differs from the wstein/cubistrywstein/cubistry#484 optimum",
             case.print,
             case.step
         );
@@ -198,7 +198,7 @@ fn a_tiny_node_budget_ends_in_budget_exhausted() {
     let goal = goal_of(case);
     let limits = FrontLimits::default().with_max_nodes(10);
     match solve_front_goal(&case.start, &case.twists, &goal, &limits) {
-        Err(FrontFailure::BudgetExhausted { nodes }) => assert!(nodes >= 10, "{nodes}"),
+        Err(FrontFailure::BudgetExhausted { nodes }) => assert_eq!(nodes, 11),
         other => panic!("expected BudgetExhausted, got {other:?}"),
     }
 }
