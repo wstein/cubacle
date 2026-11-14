@@ -183,6 +183,7 @@ mod exact;
 #[cfg(test)]
 mod exact_tests;
 mod frame;
+pub mod front;
 mod goal;
 mod ida;
 mod model;
