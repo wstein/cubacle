@@ -139,6 +139,46 @@ fn cargo_invocation(target_dir: &Path, compiler: &str, encoded_rustflags: &str) 
     }
 }
 
+/// What `build` runs after the checks: the cargo command and the `rustc` value of the manifest.
+#[derive(Debug)]
+struct BuildPlan {
+    invocation: CargoInvocation,
+    rustc: String,
+}
+
+/// Every step from the checks to the cargo command, without running anything:
+/// porcelain check, compiler choice, pin check, cargo spec. `rustc_vv_of` runs
+/// `<compiler> -Vv` for the compiler it is given.
+fn plan_build(
+    porcelain: &str,
+    rustc_env: Option<&str>,
+    rustc_vv_of: impl FnOnce(&str) -> Result<String, String>,
+    target_dir: &Path,
+    encoded_rustflags: &str,
+) -> Result<BuildPlan, String> {
+    check_clean(porcelain)?;
+    let compiler = compiler_program(rustc_env);
+    let rustc_vv = rustc_vv_of(compiler)?;
+    check_toolchain(&rustc_vv)?;
+    Ok(BuildPlan {
+        invocation: cargo_invocation(target_dir, compiler, encoded_rustflags),
+        rustc: rustc_vv.trim_end().to_string(),
+    })
+}
+
+/// The `cargo` command with the invocation applied: variables set and removed.
+fn cargo_command(invocation: &CargoInvocation, repo: &Path) -> Command {
+    let mut command = Command::new("cargo");
+    command.args(&invocation.args).current_dir(repo);
+    for (key, value) in &invocation.env {
+        command.env(key, value);
+    }
+    for key in invocation.removed {
+        command.env_remove(key);
+    }
+    command
+}
+
 fn capture(program: &str, args: &[&str], dir: &Path) -> Result<String, String> {
     let output = Command::new(program)
         .args(args)
@@ -175,11 +215,7 @@ fn build(repo: &Path) -> Result<PathBuf, String> {
         &["status", "--porcelain", "--untracked-files=all"],
         repo,
     )?;
-    check_clean(&porcelain)?;
     let rustc_var = std::env::var("RUSTC").ok();
-    let compiler = compiler_program(rustc_var.as_deref()).to_string();
-    let rustc_vv = capture(&compiler, &["-Vv"], repo)?;
-    check_toolchain(&rustc_vv)?;
     let commit = capture("git", &commit_args(), repo)?.trim().to_string();
     let version = package_version(repo)?;
     let cargo_home = std::env::var_os("CARGO_HOME")
@@ -188,20 +224,14 @@ fn build(repo: &Path) -> Result<PathBuf, String> {
         .ok_or("neither CARGO_HOME nor HOME is set")?;
 
     let target_dir = repo.join("target/wasm-build");
-    let invocation = cargo_invocation(
+    let plan = plan_build(
+        &porcelain,
+        rustc_var.as_deref(),
+        |compiler| capture(compiler, &["-Vv"], repo),
         &target_dir,
-        &compiler,
         &encoded_rustflags(repo, &cargo_home),
-    );
-    let mut command = Command::new("cargo");
-    command.args(&invocation.args).current_dir(repo);
-    for (key, value) in &invocation.env {
-        command.env(key, value);
-    }
-    for key in invocation.removed {
-        command.env_remove(key);
-    }
-    let status = command
+    )?;
+    let status = cargo_command(&plan.invocation, repo)
         .status()
         .map_err(|error| format!("cannot run cargo build: {error}"))?;
     if !status.success() {
@@ -222,7 +252,7 @@ fn build(repo: &Path) -> Result<PathBuf, String> {
     let manifest = Manifest {
         version,
         commit,
-        rustc: rustc_vv.trim_end().to_string(),
+        rustc: plan.rustc,
         files,
         table_sha256: BTreeMap::new(),
     };
@@ -339,6 +369,97 @@ mod tests {
                 "missing {name} in {invocation:?}"
             );
         }
+    }
+
+    fn plan(
+        porcelain: &str,
+        rustc_env: Option<&str>,
+        reply: &str,
+        asked: &std::cell::RefCell<Vec<String>>,
+    ) -> Result<BuildPlan, String> {
+        plan_build(
+            porcelain,
+            rustc_env,
+            |compiler| {
+                asked.borrow_mut().push(compiler.to_string());
+                Ok(reply.to_string())
+            },
+            Path::new("t"),
+            "flags",
+        )
+    }
+
+    #[test]
+    fn the_plan_asks_and_runs_the_environment_compiler() {
+        let asked = std::cell::RefCell::new(Vec::new());
+        let reply = vv(PINNED_RELEASE, PINNED_COMMIT_HASH);
+        let plan = plan("", Some("/opt/pinned/rustc"), &reply, &asked).unwrap();
+        assert_eq!(*asked.borrow(), ["/opt/pinned/rustc"]);
+        assert_eq!(plan.invocation.env("RUSTC"), Some("/opt/pinned/rustc"));
+        assert_eq!(
+            plan.invocation.env("CARGO_BUILD_RUSTC"),
+            Some("/opt/pinned/rustc")
+        );
+        assert_eq!(
+            plan.invocation.env("CARGO_ENCODED_RUSTFLAGS"),
+            Some("flags")
+        );
+        assert_eq!(plan.rustc, reply.trim_end());
+        assert!(!plan.rustc.is_empty());
+        let asked = std::cell::RefCell::new(Vec::new());
+        let plan = self::plan("", None, &reply, &asked).unwrap();
+        assert_eq!(*asked.borrow(), ["rustc"]);
+        assert_eq!(plan.invocation.env("RUSTC"), Some("rustc"));
+    }
+
+    #[test]
+    fn the_plan_refuses_a_dirty_tree_and_a_pin_mismatch_before_cargo() {
+        let asked = std::cell::RefCell::new(Vec::new());
+        let reply = vv(PINNED_RELEASE, PINNED_COMMIT_HASH);
+        let dirty = plan("?? new.txt\n", None, &reply, &asked).unwrap_err();
+        assert!(dirty.contains("not clean"), "{dirty}");
+        assert!(asked.borrow().is_empty(), "compiler asked on a dirty tree");
+        let other = plan("", None, &vv("1.98.0", PINNED_COMMIT_HASH), &asked).unwrap_err();
+        assert!(other.contains("toolchain mismatch"), "{other}");
+        let other_hash = plan("", None, &vv(PINNED_RELEASE, &"0".repeat(40)), &asked);
+        assert!(other_hash.is_err());
+    }
+
+    #[test]
+    fn the_plan_passes_a_failing_rustc_on() {
+        let result = plan_build(
+            "",
+            None,
+            |_| Err("cannot run rustc".to_string()),
+            Path::new("t"),
+            "flags",
+        );
+        assert_eq!(result.unwrap_err(), "cannot run rustc");
+    }
+
+    #[test]
+    fn the_cargo_command_sets_the_variables_and_removes_the_others() {
+        let invocation = cargo_invocation(Path::new("t"), "/opt/pinned/rustc", "flags");
+        let command = cargo_command(&invocation, Path::new("/r"));
+        assert_eq!(command.get_program(), "cargo");
+        assert_eq!(command.get_current_dir(), Some(Path::new("/r")));
+        let args: Vec<_> = command.get_args().collect();
+        assert_eq!(args.len(), invocation.args.len());
+        assert_eq!(args[0], "build");
+        let envs: Vec<_> = command.get_envs().collect();
+        for name in ["RUSTFLAGS", "RUSTC_WRAPPER", "RUSTC_WORKSPACE_WRAPPER"] {
+            assert!(
+                envs.iter()
+                    .any(|(key, value)| *key == name && value.is_none()),
+                "{name} not removed: {envs:?}"
+            );
+        }
+        assert!(envs.iter().any(|(key, value)| {
+            *key == "RUSTC" && *value == Some(std::ffi::OsStr::new("/opt/pinned/rustc"))
+        }));
+        assert!(envs.iter().any(|(key, value)| {
+            *key == "CARGO_BUILD_RUSTC_WRAPPER" && *value == Some(std::ffi::OsStr::new(""))
+        }));
     }
 
     #[test]
