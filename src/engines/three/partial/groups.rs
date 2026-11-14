@@ -11,7 +11,8 @@
 //!
 //! The cubies are chosen per goal: the ones the views need most come first,
 //! and the groups are the nine of the research on wstein/cubistry#484 (four
-//! corners, the other four, edges 1 to 4, 5 to 8, 9 to 12, and four mixed).
+//! corners, the other four, edges 1 to 4, 5 to 8, 9 to 12, and four mixed). The
+//! ranking of the cubies is not the research's (see `ranked`).
 
 use super::gate::{Gate, Stop};
 use super::goal::{Goal, View};
@@ -60,6 +61,13 @@ fn chosen(count: usize) -> &'static [usize] {
 
 /// The pieces of `orbit` that the views need most come first: each constrained
 /// slot gives its weight 1 / (pieces it accepts) to each piece it accepts.
+///
+/// This differs from `build_heuristic` in `FrontGoal.jl` (wstein/cubistry#484),
+/// which adds 1 / (stickers accepted at the slot) once per sticker of a cubie
+/// that the slot accepts, and breaks ties by its own cubie order. Here a piece
+/// counts once per slot and ties go by piece number, so the ranking, and with
+/// it the node counts, can differ from the research. Any ranking gives an
+/// admissible bound, so lengths are not affected.
 fn ranked(goal: &Goal, orbit: Orbit) -> Vec<u8> {
     let (n, width) = match orbit {
         Orbit::Corner => (8usize, 3),
