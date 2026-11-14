@@ -323,6 +323,7 @@ pub fn run() -> ExitCode {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use sha2::Sha512;
 
     fn vv(release: &str, hash: &str) -> String {
         format!(
@@ -645,5 +646,137 @@ mod tests {
         };
         assert_eq!(rustc_from(lookup).as_deref(), Some("/opt/pinned/rustc"));
         assert_eq!(rustc_from(|_| None), None);
+    }
+
+    /// Runs `pack` on a synthetic module and manifest with the real license files and the
+    /// real `crates/wasm/README.md`; returns the dist directory.
+    fn packed(version: &str) -> PathBuf {
+        let dist = std::env::temp_dir().join(format!("cubacle-xtask-pack-{version}"));
+        let _ = fs::remove_dir_all(&dist);
+        fs::create_dir_all(&dist).unwrap();
+        fs::write(dist.join(MODULE), b"synthetic module").unwrap();
+        fs::write(dist.join(MANIFEST), b"{}\n").unwrap();
+        pack(repo_root(), &dist, version).unwrap();
+        dist
+    }
+
+    fn repo_root() -> &'static Path {
+        Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap()
+    }
+
+    /// The package entries as (name, mtime, data).
+    fn unpack(tgz: &[u8]) -> Vec<(String, u64, Vec<u8>)> {
+        use std::io::Read;
+        let mut raw = Vec::new();
+        flate2::read::GzDecoder::new(tgz)
+            .read_to_end(&mut raw)
+            .unwrap();
+        let mut archive = tar::Archive::new(raw.as_slice());
+        let mut out = Vec::new();
+        for entry in archive.entries().unwrap() {
+            let mut entry = entry.unwrap();
+            let name = entry.path().unwrap().to_string_lossy().into_owned();
+            let mtime = entry.header().mtime().unwrap();
+            let mut data = Vec::new();
+            entry.read_to_end(&mut data).unwrap();
+            out.push((name, mtime, data));
+        }
+        out
+    }
+
+    #[test]
+    fn pack_names_the_tarball_with_the_version() {
+        let dist = packed("9.8.7");
+        assert!(dist.join("cubacle-wasm-9.8.7.tgz").is_file());
+        assert!(dist.join("cubacle-wasm-9.8.7.tgz.integrity").is_file());
+    }
+
+    #[test]
+    fn the_integrity_file_covers_every_byte_of_the_tarball() {
+        let dist = packed("9.8.6");
+        let bytes = fs::read(dist.join("cubacle-wasm-9.8.6.tgz")).unwrap();
+        let digest = Sha512::digest(&bytes);
+        let expected = format!("sha512-{}\n", base64_of(&digest));
+        let written = fs::read_to_string(dist.join("cubacle-wasm-9.8.6.tgz.integrity")).unwrap();
+        assert_eq!(written, expected);
+    }
+
+    /// Independent base64 (standard alphabet, padding) for the digest check.
+    fn base64_of(bytes: &[u8]) -> String {
+        let alphabet = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        let mut out = String::new();
+        for chunk in bytes.chunks(3) {
+            let mut n = 0u32;
+            for i in 0..3 {
+                n = n << 8 | u32::from(*chunk.get(i).unwrap_or(&0));
+            }
+            for i in 0..4 {
+                if i <= chunk.len() {
+                    out.push(alphabet[(n >> (18 - 6 * i) & 63) as usize] as char);
+                } else {
+                    out.push('=');
+                }
+            }
+        }
+        out
+    }
+
+    #[test]
+    fn every_entry_carries_the_commit_time() {
+        let dist = packed("9.8.5");
+        let committed: u64 = capture("git", &["log", "-1", "--format=%ct"], repo_root())
+            .unwrap()
+            .trim()
+            .parse()
+            .unwrap();
+        assert!(committed > 0);
+        let entries = unpack(&fs::read(dist.join("cubacle-wasm-9.8.5.tgz")).unwrap());
+        assert!(entries.len() >= 7);
+        for (name, mtime, _) in entries {
+            assert_eq!(mtime, committed, "{name}");
+        }
+    }
+
+    #[test]
+    fn package_json_has_the_package_name_and_the_cargo_version() {
+        let dist = packed("9.8.4");
+        let entries = unpack(&fs::read(dist.join("cubacle-wasm-9.8.4.tgz")).unwrap());
+        let (_, _, data) = entries
+            .iter()
+            .find(|(name, _, _)| name == "package/package.json")
+            .unwrap();
+        let json = String::from_utf8(data.clone()).unwrap();
+        assert!(json.contains("\n  \"name\": \"cubacle-wasm\",\n"), "{json}");
+        assert!(json.contains("\n  \"version\": \"9.8.4\"\n"), "{json}");
+    }
+
+    #[test]
+    fn the_packaged_readme_is_the_one_of_the_wasm_crate() {
+        let wasm_readme = fs::read(repo_root().join("crates/wasm/README.md")).unwrap();
+        let root_readme = fs::read(repo_root().join("README.md")).unwrap();
+        assert_ne!(
+            wasm_readme, root_readme,
+            "the test needs two different files"
+        );
+        let dist = packed("9.8.3");
+        let entries = unpack(&fs::read(dist.join("cubacle-wasm-9.8.3.tgz")).unwrap());
+        let (_, _, data) = entries
+            .iter()
+            .find(|(name, _, _)| name == "package/README.md")
+            .unwrap();
+        assert_eq!(data, &wasm_readme);
+    }
+
+    #[test]
+    fn the_license_files_are_packed_byte_equal() {
+        let dist = packed("9.8.2");
+        let entries = unpack(&fs::read(dist.join("cubacle-wasm-9.8.2.tgz")).unwrap());
+        for name in ["LICENSE", "LICENSE-MIT", "NOTICE.md"] {
+            let (_, _, data) = entries
+                .iter()
+                .find(|(entry, _, _)| entry == &format!("package/{name}"))
+                .unwrap();
+            assert_eq!(data, &fs::read(repo_root().join(name)).unwrap(), "{name}");
+        }
     }
 }
