@@ -329,10 +329,12 @@ fn the_time_limit_is_read_every_65536_nodes() {
     let (start, twists) = scrambled("R2");
     let zero = FrontLimits::default().with_time(Duration::ZERO);
     assert!(solve_front_goal(&start, &twists, &own_front(), &zero).is_ok());
-    // One that needs more (de-a step 2 needs 166,681) stops at the first reading.
+    // One that needs more (with the full tables, de-a step 2 needs 166,681) stops
+    // at the first reading.
     let case = &cases("de-a")[1];
     assert_eq!(case.step, 2);
-    match solve_front_goal(&case.start, &case.twists, &goal_of(case), &zero) {
+    let full_zero = zero.with_tables(FrontTables::Full);
+    match solve_front_goal(&case.start, &case.twists, &goal_of(case), &full_zero) {
         Err(FrontFailure::BudgetExhausted { nodes }) => assert_eq!(nodes, 65_536),
         other => panic!("expected BudgetExhausted, got {other:?}"),
     }
@@ -364,15 +366,29 @@ fn of_several_fitting_rotations_the_first_in_rotation_words_order_is_reported() 
 }
 
 #[test]
-fn the_default_table_set_is_the_full_one() {
+fn the_default_table_set_is_the_nine_group_tables_and_full_stays_selectable() {
     assert_eq!(
-        FrontLimits::default(),
-        FrontLimits::default().with_tables(FrontTables::Full)
-    );
-    assert_ne!(
         FrontLimits::default(),
         FrontLimits::default().with_tables(FrontTables::Groups9)
     );
+    assert_ne!(
+        FrontLimits::default(),
+        FrontLimits::default().with_tables(FrontTables::Full)
+    );
+    assert_eq!(FrontTables::default(), FrontTables::Groups9);
+}
+
+#[test]
+fn the_full_tables_still_find_the_484_optimum_and_replay() {
+    let limits = FrontLimits::default()
+        .with_tables(FrontTables::Full)
+        .with_time(Duration::from_secs(120));
+    for case in cases("de-a").iter().take(2) {
+        let goal = goal_of(case);
+        let route = solve_front_goal(&case.start, &case.twists, &goal, &limits).unwrap();
+        assert_eq!(route.moves.len(), case.expected);
+        assert!(reaches_front_goal(case, &route));
+    }
 }
 
 #[test]
@@ -478,7 +494,7 @@ fn a_cancel_stops_inside_the_first_of_the_two_full_tables() {
         &case.start,
         &case.twists,
         &goal,
-        &FrontLimits::default(),
+        &FrontLimits::default().with_tables(FrontTables::Full),
         &mut observer,
     );
     match result {
