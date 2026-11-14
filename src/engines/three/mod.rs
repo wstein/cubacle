@@ -21,7 +21,8 @@ mod tables;
 mod twist_flip;
 
 pub use partial::front::{
-    solve_front_goal, FrontFailure, FrontGoal, FrontGoalError, FrontLimits, FrontRoute,
+    solve_front_goal, solve_front_goal_observed, FrontFailure, FrontGoal, FrontGoalError,
+    FrontLimits, FrontRoute, FrontTables,
 };
 pub use solver::Min2PhaseSolver;
 

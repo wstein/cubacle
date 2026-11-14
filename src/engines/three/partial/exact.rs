@@ -8,7 +8,9 @@ use std::time::Duration;
 use crate::puzzle::Instant;
 
 use super::super::cubie::Cubie;
+use super::gate::{Gate, Stop};
 use super::goal::{color_masks, Goal};
+use super::groups::{plan_groups, GroupTable};
 use super::ida::{Bound, Ended, Search};
 use super::model::{Pos, Turns};
 use super::tables::{plan, Built, CornerTable, EdgeTable};
@@ -124,7 +126,27 @@ pub(super) fn solve_goal(
 
 /// Searches `goal` from `start`.
 fn solve_pos(started: Instant, start: Pos, goal: &Goal, options: &SolveOptions) -> SolveResult {
-    solve_pos_counted(started, start, goal, options, None).result
+    match solve_pos_counted(
+        started,
+        start,
+        goal,
+        options,
+        None,
+        TableSet::Full,
+        &mut Gate::none(),
+    ) {
+        Ok(counted) => counted.result,
+        Err(_) => unreachable!("a gate without a deadline or observer never stops"),
+    }
+}
+
+/// Which pruning tables a search builds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum TableSet {
+    /// The corner table and the largest edge table that fits.
+    Full,
+    /// This many four-cubie group tables (2, 4 or 9) and no other.
+    Groups(usize),
 }
 
 /// What a search did besides its result: for the front-goal entry.
@@ -139,13 +161,16 @@ pub(super) struct Counted {
 
 /// [`solve_pos`] with an optional cap on the search nodes (no answer within
 /// the cap ends as `BudgetExhausted`), reporting nodes, table time and end.
+/// The table build runs behind `gate` and ends early as a [`Stop`].
 pub(super) fn solve_pos_counted(
     started: Instant,
     start: Pos,
     goal: &Goal,
     options: &SolveOptions,
     max_nodes: Option<u64>,
-) -> Counted {
+    set: TableSet,
+    gate: &mut Gate,
+) -> Result<Counted, Stop> {
     let turns = Turns::new();
     let bare = |result: SolveResult| Counted {
         result,
@@ -159,13 +184,22 @@ pub(super) fn solve_pos_counted(
             MoveSequence::new(Vec::new()),
             "shortest: 0 moves, the start already meets the target".into(),
         );
-        return Counted {
+        return Ok(Counted {
             end: Some(start),
             ..bare(result)
-        };
+        });
     }
     let budget_mb = options.max_memory_mb.unwrap_or(DEFAULT_MEMORY_MB);
-    let (with_corners, pieces) = plan(goal, budget_mb.saturating_mul(1 << 20));
+    let (with_corners, pieces) = match set {
+        TableSet::Full => plan(goal, budget_mb.saturating_mul(1 << 20)),
+        TableSet::Groups(_) => (false, Vec::new()),
+    };
+    let group_plan = match set {
+        TableSet::Full => Vec::new(),
+        TableSet::Groups(n) => plan_groups(goal, n),
+    };
+    let stages = usize::from(with_corners) + usize::from(!pieces.is_empty()) + group_plan.len();
+    let mut stage = 0;
     let built = Instant::now();
     let unreachable = |note: &str| {
         finish(
@@ -175,10 +209,12 @@ pub(super) fn solve_pos_counted(
         )
     };
     let corners = if with_corners {
-        match CornerTable::build(goal, &turns) {
+        gate.stage(stage, stages);
+        stage += 1;
+        match CornerTable::build(goal, &turns, gate)? {
             Built::Table(table) => Some(table),
             Built::NothingToPrune => None,
-            Built::Unsatisfiable => return bare(unreachable("the corners")),
+            Built::Unsatisfiable => return Ok(bare(unreachable("the corners"))),
         }
     } else {
         None
@@ -186,18 +222,32 @@ pub(super) fn solve_pos_counted(
     let edges = if pieces.is_empty() {
         None
     } else {
-        match EdgeTable::build(goal, &turns, &pieces) {
+        gate.stage(stage, stages);
+        stage += 1;
+        match EdgeTable::build(goal, &turns, &pieces, gate)? {
             Built::Table(table) => Some(table),
             Built::NothingToPrune => None,
-            Built::Unsatisfiable => return bare(unreachable("the tracked edges")),
+            Built::Unsatisfiable => return Ok(bare(unreachable("the tracked edges"))),
         }
     };
+    let mut groups = Vec::new();
+    for tracked in &group_plan {
+        gate.stage(stage, stages);
+        stage += 1;
+        match GroupTable::build(goal, &turns, tracked, gate)? {
+            Built::Table(table) => groups.push(table),
+            Built::NothingToPrune => {}
+            Built::Unsatisfiable => return Ok(bare(unreachable("the tracked cubies"))),
+        }
+    }
+    gate.finish();
     let twist = TwistTable::build(goal);
     let tables = built.elapsed();
     let table_bytes = corners.as_ref().map_or(0, |_| CornerTable::bytes())
-        + edges.as_ref().map_or(0, |t| EdgeTable::bytes(t.tracked()));
+        + edges.as_ref().map_or(0, |t| EdgeTable::bytes(t.tracked()))
+        + groups.len() * GroupTable::BYTES;
     let table_note = format!(
-        "{} MB of tables: {}, {}{}, built in {:.1} s",
+        "{} MB of tables: {}, {}{}{}, built in {:.1} s",
         table_bytes >> 20,
         if corners.is_some() {
             "all corners".to_owned()
@@ -207,6 +257,11 @@ pub(super) fn solve_pos_counted(
         match &edges {
             Some(t) => format!("{} edges", t.tracked()),
             None => "no edge table".to_owned(),
+        },
+        if groups.is_empty() {
+            String::new()
+        } else {
+            format!(", {} group tables", groups.len())
         },
         if twist.is_some() {
             ", the center twists"
@@ -219,6 +274,7 @@ pub(super) fn solve_pos_counted(
         corners,
         edges,
         twist,
+        groups,
     };
     let budget = options
         .time_budget
@@ -260,10 +316,10 @@ pub(super) fn solve_pos_counted(
             )
         }
     };
-    Counted {
+    Ok(Counted {
         result,
         nodes,
         tables,
         end,
-    }
+    })
 }
