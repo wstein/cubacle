@@ -143,6 +143,7 @@ fn cargo_invocation(target_dir: &Path, compiler: &str, encoded_rustflags: &str) 
 #[derive(Debug)]
 struct BuildPlan {
     invocation: CargoInvocation,
+    target_dir: PathBuf,
     rustc: String,
 }
 
@@ -162,6 +163,7 @@ fn plan_build(
     check_toolchain(&rustc_vv)?;
     Ok(BuildPlan {
         invocation: cargo_invocation(target_dir, compiler, encoded_rustflags),
+        target_dir: target_dir.to_path_buf(),
         rustc: rustc_vv.trim_end().to_string(),
     })
 }
@@ -177,6 +179,13 @@ fn cargo_command(invocation: &CargoInvocation, repo: &Path) -> Command {
         command.env_remove(key);
     }
     command
+}
+
+/// Where cargo leaves the module for the target dir it was given.
+fn module_path(target_dir: &Path) -> PathBuf {
+    target_dir
+        .join("wasm32-unknown-unknown/release")
+        .join(MODULE)
 }
 
 fn capture(program: &str, args: &[&str], dir: &Path) -> Result<String, String> {
@@ -240,11 +249,7 @@ fn build(repo: &Path) -> Result<PathBuf, String> {
 
     let dist = repo.join("target/wasm-dist");
     fs::create_dir_all(&dist).map_err(|error| error.to_string())?;
-    let module = fs::read(
-        target_dir
-            .join("wasm32-unknown-unknown/release")
-            .join(MODULE),
-    )
+    let module = fs::read(module_path(&plan.target_dir))
     .map_err(|error| format!("{MODULE}: {error}"))?;
     fs::write(dist.join(MODULE), &module).map_err(|error| error.to_string())?;
     let mut files = BTreeMap::new();
