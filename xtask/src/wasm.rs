@@ -181,6 +181,16 @@ fn cargo_command(invocation: &CargoInvocation, repo: &Path) -> Command {
     command
 }
 
+/// The value of `RUSTC`, read through `lookup` (the process environment in `build`).
+fn rustc_from(lookup: impl Fn(&str) -> Option<String>) -> Option<String> {
+    lookup("RUSTC")
+}
+
+/// Runs `<compiler> -Vv` in `repo` for the compiler the plan chose.
+fn rustc_version_runner(repo: &Path) -> impl FnOnce(&str) -> Result<String, String> + '_ {
+    |compiler| capture(compiler, &["-Vv"], repo)
+}
+
 /// Where cargo leaves the module for the target dir it was given.
 fn module_path(target_dir: &Path) -> PathBuf {
     target_dir
@@ -224,7 +234,7 @@ fn build(repo: &Path) -> Result<PathBuf, String> {
         &["status", "--porcelain", "--untracked-files=all"],
         repo,
     )?;
-    let rustc_var = std::env::var("RUSTC").ok();
+    let rustc_var = rustc_from(|name| std::env::var(name).ok());
     let commit = capture("git", &commit_args(), repo)?.trim().to_string();
     let version = package_version(repo)?;
     let cargo_home = std::env::var_os("CARGO_HOME")
@@ -236,7 +246,7 @@ fn build(repo: &Path) -> Result<PathBuf, String> {
     let plan = plan_build(
         &porcelain,
         rustc_var.as_deref(),
-        |compiler| capture(compiler, &["-Vv"], repo),
+        rustc_version_runner(repo),
         &target_dir,
         &encoded_rustflags(repo, &cargo_home),
     )?;
@@ -249,8 +259,8 @@ fn build(repo: &Path) -> Result<PathBuf, String> {
 
     let dist = repo.join("target/wasm-dist");
     fs::create_dir_all(&dist).map_err(|error| error.to_string())?;
-    let module = fs::read(module_path(&plan.target_dir))
-    .map_err(|error| format!("{MODULE}: {error}"))?;
+    let module =
+        fs::read(module_path(&plan.target_dir)).map_err(|error| format!("{MODULE}: {error}"))?;
     fs::write(dist.join(MODULE), &module).map_err(|error| error.to_string())?;
     let mut files = BTreeMap::new();
     files.insert(MODULE.to_string(), file_entry(&module));
@@ -480,5 +490,131 @@ mod tests {
             entry.sha256,
             "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
         );
+    }
+    fn strings(values: &[&str]) -> Vec<String> {
+        values.iter().map(|value| value.to_string()).collect()
+    }
+
+    #[test]
+    fn the_plan_has_the_complete_cargo_arguments_and_target_dir() {
+        let asked = std::cell::RefCell::new(Vec::new());
+        let reply = vv(PINNED_RELEASE, PINNED_COMMIT_HASH);
+        let plan = plan("", Some("/opt/pinned/rustc"), &reply, &asked).unwrap();
+        assert_eq!(
+            plan.invocation.args,
+            strings(&[
+                "build",
+                "--release",
+                "--locked",
+                "-p",
+                "cubacle-wasm",
+                "--target",
+                "wasm32-unknown-unknown",
+                "--target-dir",
+                "t",
+            ])
+        );
+        assert_eq!(plan.target_dir, Path::new("t"));
+    }
+
+    #[test]
+    fn the_plan_has_the_complete_environment() {
+        let asked = std::cell::RefCell::new(Vec::new());
+        let reply = vv(PINNED_RELEASE, PINNED_COMMIT_HASH);
+        let plan = plan("", Some("/opt/pinned/rustc"), &reply, &asked).unwrap();
+        assert_eq!(
+            plan.invocation.env,
+            vec![
+                ("RUSTC".to_string(), "/opt/pinned/rustc".to_string()),
+                (
+                    "CARGO_BUILD_RUSTC".to_string(),
+                    "/opt/pinned/rustc".to_string()
+                ),
+                ("CARGO_ENCODED_RUSTFLAGS".to_string(), "flags".to_string()),
+                ("CARGO_BUILD_RUSTC_WRAPPER".to_string(), String::new()),
+                (
+                    "CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER".to_string(),
+                    String::new()
+                ),
+            ]
+        );
+        assert_eq!(
+            plan.invocation.removed,
+            ["RUSTFLAGS", "RUSTC_WRAPPER", "RUSTC_WORKSPACE_WRAPPER"]
+        );
+    }
+
+    #[test]
+    fn the_module_is_read_where_cargo_writes_it_for_the_planned_target_dir() {
+        assert_eq!(
+            module_path(Path::new("/r/target/wasm-build")),
+            Path::new("/r/target/wasm-build/wasm32-unknown-unknown/release/cubacle_wasm.wasm")
+        );
+    }
+
+    #[test]
+    fn the_cargo_command_has_the_complete_arguments_and_environment() {
+        let invocation = cargo_invocation(Path::new("/r/t"), "/opt/pinned/rustc", "flags");
+        let command = cargo_command(&invocation, Path::new("/r"));
+        let args: Vec<&std::ffi::OsStr> = command.get_args().collect();
+        let expected_args: Vec<&std::ffi::OsStr> = [
+            "build",
+            "--release",
+            "--locked",
+            "-p",
+            "cubacle-wasm",
+            "--target",
+            "wasm32-unknown-unknown",
+            "--target-dir",
+            "/r/t",
+        ]
+        .iter()
+        .map(std::ffi::OsStr::new)
+        .collect();
+        assert_eq!(args, expected_args);
+        let mut envs: Vec<(String, Option<String>)> = command
+            .get_envs()
+            .map(|(key, value)| {
+                (
+                    key.to_string_lossy().into_owned(),
+                    value.map(|value| value.to_string_lossy().into_owned()),
+                )
+            })
+            .collect();
+        envs.sort();
+        let some = |value: &str| Some(value.to_string());
+        let mut expected: Vec<(String, Option<String>)> = vec![
+            ("CARGO_BUILD_RUSTC".into(), some("/opt/pinned/rustc")),
+            ("CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER".into(), some("")),
+            ("CARGO_BUILD_RUSTC_WRAPPER".into(), some("")),
+            ("CARGO_ENCODED_RUSTFLAGS".into(), some("flags")),
+            ("RUSTC".into(), some("/opt/pinned/rustc")),
+            ("RUSTC_WORKSPACE_WRAPPER".into(), None),
+            ("RUSTC_WRAPPER".into(), None),
+            ("RUSTFLAGS".into(), None),
+        ];
+        expected.sort();
+        assert_eq!(envs, expected);
+    }
+
+    #[test]
+    fn the_rustc_version_is_asked_of_the_checked_compiler() {
+        // build() uses this runner; capture names the program it ran, so a runner
+        // that ignores `compiler` shows here.
+        let missing = "/nonexistent/cubacle-test-rustc";
+        let error = capture(missing, &["-Vv"], Path::new(".")).unwrap_err();
+        assert!(error.contains(missing), "{error}");
+        assert_eq!(rustc_version_runner(Path::new("."))(missing), Err(error));
+    }
+
+    #[test]
+    fn the_compiler_comes_from_the_rustc_variable_and_no_other() {
+        let lookup = |name: &str| match name {
+            "RUSTC" => Some("/opt/pinned/rustc".to_string()),
+            "CARGO_BUILD_RUSTC" => Some("/wrong/rustc".to_string()),
+            _ => None,
+        };
+        assert_eq!(rustc_from(lookup).as_deref(), Some("/opt/pinned/rustc"));
+        assert_eq!(rustc_from(|_| None), None);
     }
 }
