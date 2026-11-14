@@ -29,6 +29,35 @@ pub(crate) fn wanted(args: &SolveArgs) -> bool {
     args.upright_centers || args.twist_target.is_some() || args.center_twist.is_some()
 }
 
+/// Refuses the options that do not combine with the twist options, before
+/// anything is read or printed.
+pub(crate) fn check(args: &SolveArgs) -> Result<(), String> {
+    if !wanted(args) {
+        return Ok(());
+    }
+    let refuse = |option: &str| {
+        Err(format!(
+            "{option} does not work with --upright-centers, --twist-target or --center-twist yet"
+        ))
+    };
+    if args.json {
+        return refuse("--json");
+    }
+    if args.pictures.icons {
+        return refuse("--icons");
+    }
+    if args.improve {
+        return refuse("--improve");
+    }
+    if args.parallel {
+        return refuse("--parallel");
+    }
+    if args.nodes.is_some() {
+        return refuse("--nodes");
+    }
+    Ok(())
+}
+
 /// The move expression the input stands for, when it is one (a `--scramble`,
 /// or text that is no cube but a move expression); `None` for a cube state.
 pub(crate) fn moves_of_input(input: &InputArgs) -> Result<Option<MoveSequence>, String> {
@@ -67,7 +96,11 @@ pub(crate) fn prepare(
         FREE_TWIST
     };
     if masks == FREE_TWIST {
-        return Err("--center-twist needs --upright-centers or --twist-target: without a condition on the twists it has no effect".into());
+        return Err(if args.twist_target.is_some() {
+            "--twist-target: every center is X, so it asks for nothing; name a twist for at least one center".into()
+        } else {
+            "--center-twist needs --upright-centers or --twist-target: without a condition on the twists it has no effect".into()
+        });
     }
     let target = target
         .unwrap_or_else(|| Target::complete(&Facelets::solved(PuzzleKind::Cube3)))
@@ -110,6 +143,7 @@ pub(crate) fn prepare(
 }
 
 /// Where the cube ends: after the answer and the final whole-cube rotation.
+#[derive(Debug)]
 pub(crate) struct End {
     pub(crate) twist: CenterTwists,
     /// The rotation (`x y z` text, empty for none) after the last move.
