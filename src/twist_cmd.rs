@@ -156,3 +156,76 @@ pub(crate) fn replay(
     }
     Err("internal error: solution does not reach the target".into())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn moves(text: &str) -> MoveSequence {
+        parse_expression(text, PuzzleKind::Cube3).unwrap()
+    }
+
+    fn upright_target() -> Target {
+        Target::complete(&Facelets::solved(PuzzleKind::Cube3))
+            .with_twist([1; 6])
+            .unwrap()
+    }
+
+    fn picture(twist: [u8; 6]) -> Picture {
+        Picture {
+            twist: CenterTwists::new(PuzzleKind::Cube3, twist).unwrap(),
+        }
+    }
+
+    #[test]
+    fn the_replay_accepts_a_right_answer_and_names_the_end_twist() {
+        // R turns the R picture a quarter, R' turns it back
+        let start = Facelets::solved(PuzzleKind::Cube3)
+            .apply(&moves("R"))
+            .unwrap();
+        let end = replay(
+            &start,
+            &picture([0, 1, 0, 0, 0, 0]),
+            &upright_target(),
+            &moves("R'"),
+            false,
+        )
+        .unwrap();
+        assert_eq!(end.twist.to_string(), "0,0,0,0,0,0");
+        assert!(end.rotation.is_empty());
+    }
+
+    #[test]
+    fn the_replay_refuses_an_answer_that_misses_the_stickers() {
+        let start = Facelets::solved(PuzzleKind::Cube3)
+            .apply(&moves("R"))
+            .unwrap();
+        let error = replay(
+            &start,
+            &picture([0, 1, 0, 0, 0, 0]),
+            &upright_target(),
+            &moves("U"),
+            false,
+        )
+        .unwrap_err();
+        assert!(error.contains("internal error"), "{error}");
+    }
+
+    #[test]
+    fn the_replay_refuses_an_answer_that_misses_the_twists() {
+        // the stickers are solved by R' from R, but the start twist says the R
+        // picture sits half turned, so R' leaves it a quarter off
+        let start = Facelets::solved(PuzzleKind::Cube3)
+            .apply(&moves("R"))
+            .unwrap();
+        let error = replay(
+            &start,
+            &picture([0, 2, 0, 0, 0, 0]),
+            &upright_target(),
+            &moves("R'"),
+            false,
+        )
+        .unwrap_err();
+        assert!(error.contains("internal error"), "{error}");
+    }
+}

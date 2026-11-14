@@ -182,3 +182,99 @@ fn without_the_options_nothing_changes() {
     assert!(!err.contains("center twist"), "{err}");
     assert!(!out.is_empty());
 }
+
+#[test]
+fn every_center_is_pinned_by_the_upright_target() {
+    // solved stickers with one picture turned half: only the pictures can say so,
+    // and the answer is long (12 moves), never empty
+    let stickers = Facelets::solved(PuzzleKind::Cube3).to_string();
+    for face in 0..6 {
+        let mut twist = [0u8; 6];
+        twist[face] = 2;
+        let text = twist.map(|t| t.to_string()).join(",");
+        let (ok, out, err) = cubacle(&[
+            "solve",
+            &stickers,
+            "--upright-centers",
+            "--center-twist",
+            &text,
+        ]);
+        assert!(ok, "{text}: {err}");
+        let answer = moves_of(out.lines().next().unwrap());
+        assert!(answer.len() > 1, "{text}: {answer}");
+        // the stickers end solved and every picture upright again
+        assert!(Facelets::solved(PuzzleKind::Cube3)
+            .apply(&answer)
+            .unwrap()
+            .is_solved());
+        let start = CenterTwists::new(PuzzleKind::Cube3, twist).unwrap();
+        let end = start.track(&answer).unwrap();
+        assert!(end.frame.is_empty());
+        assert_eq!(end.twists, upright(), "{text}: {answer}");
+    }
+}
+
+#[test]
+fn a_given_twist_and_a_scramble_exclude_each_other() {
+    let (ok, _, err) = cubacle(&[
+        "solve",
+        "-s",
+        "R",
+        "--upright-centers",
+        "--center-twist",
+        "0,0,0,0,0,0",
+    ]);
+    assert!(!ok);
+    assert!(err.contains("describes a cube given as stickers"), "{err}");
+    assert!(!err.contains("center twist at the start"), "{err}");
+}
+
+#[test]
+fn a_twist_target_that_asks_for_nothing_says_so() {
+    let (ok, _, err) = cubacle(&["solve", "-s", "R", "--twist-target", "X,X,X,X,X,X"]);
+    assert!(!ok);
+    assert!(err.contains("--twist-target: every center is X"), "{err}");
+    assert!(!err.contains("--center-twist needs"), "{err}");
+}
+
+#[test]
+fn options_that_do_not_combine_are_refused_before_anything_else() {
+    for option in ["--json", "--icons", "--improve"] {
+        let (ok, _, err) = cubacle(&["solve", "-s", "R", "--upright-centers", option]);
+        assert!(!ok, "{option}");
+        assert!(
+            err.contains(&format!("{option} does not work with --upright-centers")),
+            "{option}: {err}"
+        );
+        assert!(!err.contains("open stickers"), "{option}: {err}");
+        assert!(
+            !err.contains("center twist at the start"),
+            "{option}: {err}"
+        );
+    }
+}
+
+#[test]
+fn a_center_twist_is_refused_with_now() {
+    let (ok, _, err) = cubacle(&[
+        "solve",
+        "-s",
+        "R",
+        "--now",
+        "R U",
+        "--center-twist",
+        "0,0,0,0,0,0",
+    ]);
+    assert!(!ok);
+    assert!(err.contains("cannot be used"), "{err}");
+}
+
+#[test]
+fn a_cube_that_is_not_a_3x3x3_is_refused_with_the_3x3x3_message() {
+    let (ok, _, err) = cubacle(&["solve", "-s", "R U", "--size", "2", "--upright-centers"]);
+    assert!(!ok);
+    assert!(
+        err.contains("--upright-centers, --twist-target and --center-twist work on the 3x3x3 only, not the 2x2x2"),
+        "{err}"
+    );
+}
