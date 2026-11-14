@@ -224,7 +224,7 @@ pub(super) fn solve_pos_counted(
         .time_budget
         .unwrap_or(Duration::from_millis(DEFAULT_BUDGET_MS));
     let max = options.max_moves.map_or(DEFAULT_MAX_MOVES, usize::from);
-    let mut search = Search::new(&turns, goal, &bound, Instant::now() + budget);
+    let mut search = Search::new(&turns, goal, &bound, Instant::now().checked_add(budget));
     search.max_nodes = max_nodes;
     let from = search.start_bound(&start);
     let ended = search.run(&start, from, max);

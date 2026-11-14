@@ -80,7 +80,7 @@ pub(super) struct Search<'a> {
     pub(super) turns: &'a Turns,
     pub(super) goal: &'a Goal,
     pub(super) bound: &'a Bound,
-    pub(super) deadline: Instant,
+    pub(super) deadline: Option<Instant>,
     pub(super) nodes: u64,
     /// Stop, as for the time, after this many nodes.
     pub(super) max_nodes: Option<u64>,
@@ -93,7 +93,7 @@ impl<'a> Search<'a> {
         turns: &'a Turns,
         goal: &'a Goal,
         bound: &'a Bound,
-        deadline: Instant,
+        deadline: Option<Instant>,
     ) -> Search<'a> {
         Search {
             turns,
@@ -130,7 +130,9 @@ impl<'a> Search<'a> {
     fn dfs(&mut self, pos: &Pos, at: Coords, left: usize, last: usize) -> bool {
         self.nodes += 1;
         let out_of_nodes = self.max_nodes.is_some_and(|max| self.nodes > max);
-        if out_of_nodes || (self.nodes & 0xFFFF == 0 && Instant::now() >= self.deadline) {
+        if out_of_nodes
+            || (self.nodes & 0xFFFF == 0 && self.deadline.is_some_and(|d| Instant::now() >= d))
+        {
             self.stopped = true;
             return false;
         }
