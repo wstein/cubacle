@@ -39,10 +39,10 @@
 //! The default search builds nine tables of four cubies (0.3 MB each) per call;
 //! nothing is cached. `FrontTables::Groups2` and `Groups4` build fewer.
 //! `FrontTables::Full` builds about 44 MB of corner and edge tables instead
-//! (1.7 to 2.7 s on one native core, measured on the calendar goals). The time budget covers the search only. The table
-//! build has its own budget ([`FrontLimits::with_table_time`], none by default),
-//! is done in chunks, reports its progress and can be cancelled between
-//! chunks. Visibility: only
+//! (1.7 to 2.7 s on one native core, measured on the calendar goals). The time
+//! budget covers the search only. The table build has its own budget
+//! ([`FrontLimits::with_table_time`], none by default), is done in chunks,
+//! reports its progress and can be cancelled between chunks. Visibility: only
 //! the types and the function below are public; goal, search and tables stay
 //! private to `partial`.
 
@@ -214,8 +214,11 @@ pub fn solve_front_goal(
 }
 
 /// Like [`solve_front_goal`], and tells `observer` the progress of the table
-/// build in thousandths (strictly rising, the last report is 1000); the build
-/// stops when the observer returns `false` (`FrontFailure::Cancelled`).
+/// build in thousandths (strictly rising); the build stops when the observer
+/// returns `false` (`FrontFailure::Cancelled`). A build that runs to its end
+/// reports 1000 last. A start that already meets the goal builds nothing and
+/// reports nothing, and a goal that some table finds unsatisfiable ends the
+/// build early without a report of 1000 (`FrontFailure::NoRoute`).
 pub fn solve_front_goal_observed(
     start: &Facelets,
     twists: &CenterTwists,
