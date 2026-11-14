@@ -23,8 +23,13 @@
 //! Failures: [`FrontFailure::BudgetExhausted`] when the time or the node budget
 //! ends the search first (no partial route is returned; `nodes` says how far it
 //! got); [`FrontFailure::NoRoute`] when no route within the move limit exists or
-//! no state meets the goal; [`FrontFailure::InvalidInput`] for a bad goal, a
-//! start that is no 3x3x3 or no legal cube, or twists that do not match it.
+//! no state meets the goal; [`FrontFailure::InvalidInput`] for a start that is
+//! no 3x3x3 or no legal cube, or twists that do not match it. A bad goal never
+//! reaches the search: [`FrontGoal::new`] refuses it.
+//!
+//! The search reads the clock every 65,536 nodes, so a search that ends sooner
+//! ignores the time limit (`Duration::ZERO` included); a limit too large to add
+//! to the clock means no limit.
 //!
 //! The search builds about 44 MB of pruning tables per call (1.7 to 2.7 s on
 //! one native core, measured on the calendar goals); nothing is cached. The
@@ -99,13 +104,14 @@ pub struct FrontLimits {
 }
 
 impl FrontLimits {
-    /// Stops the search (not the table build) after `time`.
+    /// Stops the search (not the table build) after `time`, checked every
+    /// 65,536 nodes; a time too large to add to the clock means no limit.
     pub fn with_time(mut self, time: Duration) -> FrontLimits {
         self.time = Some(time);
         self
     }
 
-    /// Stops the search when it would visit more than `nodes` nodes.
+    /// Stops the search at the first node beyond `nodes` nodes.
     pub fn with_max_nodes(mut self, nodes: u64) -> FrontLimits {
         self.max_nodes = Some(nodes);
         self
@@ -140,7 +146,8 @@ pub enum FrontFailure {
     NoRoute(String),
     /// The time or node budget ended the search; no route is returned.
     BudgetExhausted {
-        /// Nodes visited when it stopped.
+        /// Nodes counted when it stopped; the node that crossed a node cap is
+        /// counted, so a cap of `n` reports `n + 1`.
         nodes: u64,
     },
 }
