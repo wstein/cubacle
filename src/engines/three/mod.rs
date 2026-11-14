@@ -4,8 +4,9 @@
 //! `tables` (move and pruning tables, built once per [`Min2PhaseSolver`]
 //! family), `twist_flip` (the twist-flip pruning table), `coordinates` and `search` (the iterative-deepening search),
 //! `engine` (string-level entry points, parsing and the worker pool) and
-//! `solver` (the [`crate::puzzle::Solver`] adapter, the only public item) and
+//! `solver` (the [`crate::puzzle::Solver`] adapter) and
 //! `partial` (targets with open stickers, built on the adapter's `solve`).
+//! Public besides the adapter: the front-goal entry [`solve_front_goal`] of `partial::front`.
 
 mod consts;
 mod coordinates;
@@ -19,6 +20,9 @@ mod stats;
 mod tables;
 mod twist_flip;
 
+pub use partial::front::{
+    solve_front_goal, FrontFailure, FrontGoal, FrontGoalError, FrontLimits, FrontRoute,
+};
 pub use solver::Min2PhaseSolver;
 
 #[cfg(test)]
