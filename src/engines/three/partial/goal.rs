@@ -47,7 +47,8 @@ impl Goal {
         for (masks, twist) in views {
             if let Some(mut view) = view_of(masks) {
                 view.twist = *twist;
-                if !goal.views.contains(&view) {
+                // A twist condition the corner permutation rules out cannot be met.
+                if parity_possible(&view) && !goal.views.contains(&view) {
                     goal.views.push(view);
                 }
             }
@@ -120,6 +121,57 @@ impl Goal {
 #[inline]
 pub(super) fn twist_ok(masks: &TwistMasks, tw: u16) -> bool {
     (0..6).all(|g| masks[g] >> twist_of(tw, g) & 1 == 1)
+}
+
+/// Whether the corner permutation a view fixes is even; `None` when the view
+/// leaves a corner slot open or accepts more than one piece in a slot.
+fn corner_parity_even(view: &View) -> Option<bool> {
+    if view.corners.len() != 8 {
+        return None;
+    }
+    let mut perm = [0usize; 8];
+    for &(slot, bits) in &view.corners {
+        let pieces: Vec<usize> = (0..8).filter(|&p| bits >> (p * 3) & 0b111 != 0).collect();
+        match pieces.as_slice() {
+            [piece] => perm[usize::from(slot)] = *piece,
+            _ => return None,
+        }
+    }
+    let mut seen = [false; 8];
+    let mut swaps = 0;
+    for start in 0..8 {
+        let (mut at, mut length) = (start, 0);
+        while !seen[at] {
+            seen[at] = true;
+            at = perm[at];
+            length += 1;
+        }
+        swaps += length.max(1) - 1;
+    }
+    Some(swaps % 2 == 0)
+}
+
+/// Whether some twist vector the view accepts has the parity that its corner
+/// permutation demands (the sum of the six twists has the parity of the
+/// permutation). A view with open corner slots can always be met in parity.
+fn parity_possible(view: &View) -> bool {
+    let Some(even) = corner_parity_even(view) else {
+        return true;
+    };
+    // the sums of parity 0 or 1 that the masks reach, center by center
+    let mut reach = [true, false];
+    for mask in view.twist {
+        let (even_twist, odd_twist) = (mask & 0b0101 != 0, mask & 0b1010 != 0);
+        let mut next = [false; 2];
+        for parity in 0..2 {
+            if reach[parity] {
+                next[parity] |= even_twist;
+                next[1 - parity] |= odd_twist;
+            }
+        }
+        reach = next;
+    }
+    reach[usize::from(!even)]
 }
 
 /// The accepted pairs per slot of one view, or `None` when it cannot be met.

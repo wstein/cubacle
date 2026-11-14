@@ -65,6 +65,8 @@ pub(super) fn by_goal_set(
     if goal.is_impossible() {
         let why = if options.free_orientation {
             "no orientation of the cube fits the centers of the target"
+        } else if target.has_twist_condition() {
+            "no state meets the stickers and the twist condition together: a center must keep its color (the centers never move), and the six center twists add up to the parity of the corner permutation"
         } else {
             "the target wants another color on a center, and the centers of a 3x3x3 never move"
         };
