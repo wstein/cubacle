@@ -1,13 +1,14 @@
-//! C ABI entry points of the WebAssembly facade (ABI 1 and 2).
+//! C ABI entry points of the WebAssembly facade (ABI 1, 2 and 3).
 
+use crate::front::front_solve_text;
 use crate::solve::{solve_text, solve_text_budget, HEADER, STATUS_BAD_INPUT};
 
 /// ABI version of this module. 1 is the scramble-to-solved C entry points
-/// with the fixed default budget; 2 adds [`cubacle_solve_budget`] and keeps
-/// every ABI 1 export unchanged.
+/// with the fixed default budget; 2 adds [`cubacle_solve_budget`]; 3 adds
+/// [`cubacle_front_solve`]. Each keeps every earlier export unchanged.
 #[no_mangle]
 pub extern "C" fn cubacle_abi_version() -> u32 {
-    2
+    3
 }
 
 /// Allocates `len` bytes in linear memory for the host to fill.
@@ -75,6 +76,23 @@ pub unsafe extern "C" fn cubacle_solve_budget(
     let (status, text) = match std::str::from_utf8(bytes) {
         Ok(scramble) => solve_text_budget(size, scramble, max_moves, budget_ms),
         Err(_) => (STATUS_BAD_INPUT, "scramble is not UTF-8".to_string()),
+    };
+    result_buffer(status, &text)
+}
+
+/// ABI 3: solves the front-goal request of `len` bytes at `input` (see
+/// `docs/wasm.md`). Returns a result buffer like [`cubacle_solve`]: the status
+/// byte of the front answer and its versioned text.
+///
+/// # Safety
+/// `input` must point to `len` readable bytes.
+#[no_mangle]
+pub unsafe extern "C" fn cubacle_front_solve(input: *const u8, len: usize) -> *mut u8 {
+    // SAFETY: the caller guarantees `len` readable bytes at `input`.
+    let bytes = unsafe { std::slice::from_raw_parts(input, len) };
+    let (status, text) = match std::str::from_utf8(bytes) {
+        Ok(request) => front_solve_text(request),
+        Err(_) => (STATUS_BAD_INPUT, "1\trequest is not UTF-8".to_string()),
     };
     result_buffer(status, &text)
 }

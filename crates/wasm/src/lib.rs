@@ -14,12 +14,18 @@
 //! `wasm32-unknown-unknown`. See `docs/wasm.md`.
 
 mod abi;
+mod front;
 mod host;
 mod solve;
 
 pub use abi::{
-    cubacle_abi_version, cubacle_alloc, cubacle_free, cubacle_result_len, cubacle_solve,
-    cubacle_solve_budget,
+    cubacle_abi_version, cubacle_alloc, cubacle_free, cubacle_front_solve, cubacle_result_len,
+    cubacle_solve, cubacle_solve_budget,
+};
+pub use front::{
+    front_solve_text, DEFAULT_MAX_NODES, DEFAULT_SEARCH_MS, DEFAULT_TABLE_MS,
+    FRONT_STATUS_BAD_INPUT, FRONT_STATUS_NO_ROUTE, FRONT_STATUS_OK, FRONT_STATUS_SEARCH_BUDGET,
+    FRONT_STATUS_TABLE_BUDGET, FRONT_VERSION,
 };
 pub use solve::{
     solve_text, solve_text_budget, DEFAULT_BUDGET_MS, HEADER, STATUS_BAD_INPUT, STATUS_NO_SOLUTION,
