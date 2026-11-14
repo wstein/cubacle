@@ -27,6 +27,8 @@ pub enum TargetError {
         wanted: usize,
         have: usize,
     },
+    /// A face center accepts no twist, so no state reaches the target.
+    EmptyTwistSet { face: Face },
 }
 
 impl fmt::Display for TargetError {
@@ -42,6 +44,11 @@ impl fmt::Display for TargetError {
             TargetError::TooMany { face, wanted, have } => write!(
                 f,
                 "the target needs color {} on {wanted} stickers but a cube has only {have} of it; the target is contradictory",
+                face.letter()
+            ),
+            TargetError::EmptyTwistSet { face } => write!(
+                f,
+                "the center of {} accepts no twist, so the target is contradictory",
                 face.letter()
             ),
         }
@@ -116,10 +123,16 @@ impl Target {
     }
 
     /// This target with a condition on the twist of the face centers: center
-    /// `f` may show the twists whose bit is set in entry `f`.
-    pub fn with_twist(mut self, masks: TwistMasks) -> Target {
+    /// `f` may show the twists whose bit is set in entry `f`. An entry with
+    /// none of its low four bits set is an error.
+    pub fn with_twist(mut self, masks: TwistMasks) -> Result<Target, TargetError> {
         self.twist = masks.map(|m| m & 0b1111);
-        self
+        if let Some(at) = self.twist.iter().position(|&m| m == 0) {
+            return Err(TargetError::EmptyTwistSet {
+                face: Face::ALL[at],
+            });
+        }
+        Ok(self)
     }
 
     /// The accepted twists per center (all free unless set).
