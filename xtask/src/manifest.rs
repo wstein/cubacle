@@ -154,6 +154,30 @@ mod tests {
     }
 
     #[test]
+    fn the_exact_text_has_the_values_escapes_and_commas() {
+        let mut manifest = sample();
+        manifest.files.insert(
+            "a\"b\\c\u{1}.bin".into(),
+            FileEntry {
+                bytes: 7,
+                sha256: "01".repeat(32),
+            },
+        );
+        manifest.table_sha256.insert("t1".into(), "d1".repeat(32));
+        manifest.table_sha256.insert("t2".into(), "d2".repeat(32));
+        manifest.rustc = "q\"r\ts\u{1f}".into();
+        let expected = format!(
+            "{{\n  \"commit\": \"{c}\",\n  \"files\": {{\n    \"a\\\"b\\\\c\\u0001.bin\": {{\n      \"bytes\": 7,\n      \"sha256\": \"{h1}\"\n    }},\n    \"cubacle_wasm.wasm\": {{\n      \"bytes\": 3,\n      \"sha256\": \"{h2}\"\n    }}\n  }},\n  \"format\": \"cubacle.wasm-manifest\",\n  \"formatVersion\": 1,\n  \"rustc\": \"q\\\"r\\ts\\u001f\",\n  \"tableSha256\": {{\n    \"t1\": \"{t1}\",\n    \"t2\": \"{t2}\"\n  }},\n  \"version\": \"0.1.0\"\n}}\n",
+            c = "c".repeat(40),
+            h1 = "01".repeat(32),
+            h2 = "ab".repeat(32),
+            t1 = "d1".repeat(32),
+            t2 = "d2".repeat(32),
+        );
+        assert_eq!(manifest.to_json(), expected);
+    }
+
+    #[test]
     fn the_same_input_gives_the_same_text() {
         assert_eq!(sample().to_json(), sample().to_json());
     }
