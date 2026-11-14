@@ -158,7 +158,7 @@ fn check_print(print: &str) {
         assert_eq!(
             route.moves.len(),
             case.expected,
-            "{} step {}: length differs from the #484 optimum",
+            "{} step {}: length differs from the wstein/cubistry#484 optimum",
             case.print,
             case.step
         );
@@ -334,4 +334,29 @@ fn the_time_limit_is_read_every_65536_nodes() {
         Err(FrontFailure::BudgetExhausted { nodes }) => assert_eq!(nodes, 65_536),
         other => panic!("expected BudgetExhausted, got {other:?}"),
     }
+}
+
+#[test]
+fn of_several_fitting_rotations_the_first_in_rotation_words_order_is_reported() {
+    let solved = Facelets::solved(PuzzleKind::Cube3);
+    let turned = |word: &str| solved.apply(&rotation_moves(word).unwrap()).unwrap();
+    // Each position accepts its own sticker and the one a turn about y shows.
+    let y = turned("y");
+    let lists: Vec<[u8; 2]> = (0..9)
+        .map(|i| [(18 + i) as u8, identity_at(&y, 18 + i) as u8])
+        .collect();
+    let classes: Vec<&[u8]> = lists.iter().map(|l| &l[..]).collect();
+    let goal = FrontGoal::new(&classes, false).unwrap();
+    let fitting: Vec<String> = rotation_words()
+        .into_iter()
+        .filter(|w| {
+            let shown = turned(w);
+            (0..9).all(|i| lists[i].contains(&(identity_at(&shown, 18 + i) as u8)))
+        })
+        .collect();
+    assert!(fitting.len() >= 2, "{fitting:?}");
+    let (start, twists) = scrambled("");
+    let route = solve_front_goal(&start, &twists, &goal, &FrontLimits::default()).unwrap();
+    assert!(route.moves.is_empty());
+    assert_eq!(route.rotation, fitting[0], "all fitting: {fitting:?}");
 }
