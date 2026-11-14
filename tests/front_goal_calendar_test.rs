@@ -437,6 +437,29 @@ fn more_group_tables_visit_fewer_nodes() {
 }
 
 #[test]
+fn the_search_visits_the_recorded_number_of_nodes_for_each_table_set() {
+    let case = &cases("de-a")[1];
+    assert_eq!(case.step, 2);
+    let goal = goal_of(case);
+    let nodes = |tables| {
+        let limits = FrontLimits::default()
+            .with_tables(tables)
+            .with_max_nodes(1_000_000);
+        solve_front_goal(&case.start, &case.twists, &goal, &limits)
+            .unwrap()
+            .nodes
+    };
+    let seen = [
+        nodes(FrontTables::Groups2),
+        nodes(FrontTables::Groups4),
+        nodes(FrontTables::Groups9),
+    ];
+    // The search is deterministic; a changed bound (for instance a group table
+    // left out of the maximum) changes these counts.
+    assert_eq!(seen, [166_681, 101_696, 23_254]);
+}
+
+#[test]
 fn a_table_budget_of_zero_ends_the_build_not_the_search() {
     let case = &cases("de-a")[0];
     let goal = goal_of(case);
