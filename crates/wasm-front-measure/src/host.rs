@@ -1,5 +1,23 @@
 //! Host imports the WebAssembly module needs from `env`.
 
+/// Reports the progress of the table build (thousandths) to the host; the
+/// host returns nonzero to cancel the build.
+#[cfg(target_arch = "wasm32")]
+pub fn progress(permille: u16) -> bool {
+    #[link(wasm_import_module = "env")]
+    extern "C" {
+        fn cubacle_host_progress(permille: u32) -> u32;
+    }
+    // SAFETY: a plain import call with a number; the host returns a number.
+    unsafe { cubacle_host_progress(u32::from(permille)) == 0 }
+}
+
+/// Outside WebAssembly nothing watches the build.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn progress(_permille: u16) -> bool {
+    true
+}
+
 #[cfg(all(target_arch = "wasm32", getrandom_backend = "custom"))]
 mod random {
     #[link(wasm_import_module = "env")]

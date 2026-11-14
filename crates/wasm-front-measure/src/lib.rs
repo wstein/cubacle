@@ -5,19 +5,46 @@
 //! Input (UTF-8): `facelets TAB twists TAB accepted TAB center_up`, the columns
 //! 6 to 8 of tests/fixtures/front_goal_calendar.tsv, then `1` or `0`.
 //! Output (UTF-8, tab separated): `status TAB moves TAB rotation TAB nodes TAB
-//! tables_us`, status one of `ok`, `budget`, `noroute`, `invalid`.
-//! The module imports `cubacle_host_now` (clock, ms) and `cubacle_host_random`.
+//! tables_us`, status one of `ok`, `budget`, `tablebudget`, `cancelled`,
+//! `noroute`, `invalid`. For `tablebudget` and `cancelled` the nodes column
+//! holds the progress of the table build in thousandths.
+//! The module imports `cubacle_host_now` (clock, ms), `cubacle_host_random` and
+//! `cubacle_host_progress` (thousandths of the table build; the host returns
+//! nonzero to cancel).
 
 mod host;
 
 use std::time::Duration;
 
-use cubacle::engines::three::{solve_front_goal, FrontFailure, FrontGoal, FrontLimits};
+use cubacle::engines::three::{
+    solve_front_goal_observed, FrontFailure, FrontGoal, FrontLimits, FrontTables,
+};
 use cubacle::puzzle::{CenterTwists, Facelets, PuzzleKind};
 
-/// Runs one case. `time_ms` 0 = the search default, `max_nodes` 0 = no cap,
-/// `max_moves` 0 = the search default.
-pub fn solve_text(input: &str, time_ms: u32, max_nodes: u64, max_moves: u32) -> String {
+/// The settings of one run; 0 means the default of each.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Settings {
+    /// Search time budget in ms.
+    pub time_ms: u32,
+    /// Search node cap.
+    pub max_nodes: u64,
+    /// Move limit.
+    pub max_moves: u32,
+    /// Table build time budget in ms.
+    pub table_ms: u32,
+    /// Number of group tables: 2, 4 or 9; 0 = the full tables.
+    pub tables: u32,
+}
+
+/// Runs one case.
+pub fn solve_text(input: &str, settings: Settings) -> String {
+    let Settings {
+        time_ms,
+        max_nodes,
+        max_moves,
+        table_ms,
+        tables,
+    } = settings;
     let bad = |why: &str| format!("invalid\t{why}\t\t0\t0");
     let f: Vec<&str> = input.split('\t').collect();
     if f.len() != 4 {
@@ -57,7 +84,16 @@ pub fn solve_text(input: &str, time_ms: u32, max_nodes: u64, max_moves: u32) -> 
     if max_moves > 0 {
         limits = limits.with_max_moves(max_moves.min(255) as u8);
     }
-    match solve_front_goal(&start, &twists, &goal, &limits) {
+    if table_ms > 0 {
+        limits = limits.with_table_time(Duration::from_millis(u64::from(table_ms)));
+    }
+    limits = limits.with_tables(match tables {
+        2 => FrontTables::Groups2,
+        4 => FrontTables::Groups4,
+        9 => FrontTables::Groups9,
+        _ => FrontTables::Full,
+    });
+    match solve_front_goal_observed(&start, &twists, &goal, &limits, &mut |p| host::progress(p)) {
         Ok(r) => format!(
             "ok\t{}\t{}\t{}\t{}",
             r.moves,
@@ -66,6 +102,10 @@ pub fn solve_text(input: &str, time_ms: u32, max_nodes: u64, max_moves: u32) -> 
             r.tables.as_micros()
         ),
         Err(FrontFailure::BudgetExhausted { nodes }) => format!("budget\t\t\t{nodes}\t0"),
+        Err(FrontFailure::BuildBudgetExhausted { permille }) => {
+            format!("tablebudget\t\t\t{permille}\t0")
+        }
+        Err(FrontFailure::Cancelled { permille }) => format!("cancelled\t\t\t{permille}\t0"),
         Err(FrontFailure::NoRoute(m)) => format!("noroute\t{m}\t\t0\t0"),
         Err(FrontFailure::InvalidInput(m)) => format!("invalid\t{m}\t\t0\t0"),
     }
@@ -104,11 +144,22 @@ pub unsafe extern "C" fn fm_solve(
     time_ms: u32,
     max_nodes: f64,
     max_moves: u32,
+    table_ms: u32,
+    tables: u32,
 ) -> *mut u8 {
     // SAFETY: `len` readable bytes at `input`.
     let bytes = unsafe { std::slice::from_raw_parts(input, len) };
     let text = match std::str::from_utf8(bytes) {
-        Ok(s) => solve_text(s, time_ms, max_nodes as u64, max_moves),
+        Ok(s) => solve_text(
+            s,
+            Settings {
+                time_ms,
+                max_nodes: max_nodes as u64,
+                max_moves,
+                table_ms,
+                tables,
+            },
+        ),
         Err(_) => "invalid\tnot UTF-8\t\t0\t0".to_string(),
     };
     let total = 4 + text.len();
