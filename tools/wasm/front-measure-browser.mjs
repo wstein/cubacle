@@ -1,6 +1,10 @@
 // The front-goal measurement (see front-measure.mjs) in headless Chromium.
 //
 //   node tools/wasm/front-measure-browser.mjs <module.wasm> <playwright-core path> [--cases N|all] [--time MS]
+//        [--tables 0|2|4|9] [--table-ms MS] [--cancel-at PERMILLE]
+//
+// The options are those of front-measure.mjs. The last column is the number of
+// host progress calls.
 //
 // Same TSV as front-measure.mjs without the VmHWM column (the browser process is
 // not this one). Each case runs in a new instance on a fresh page, served from
@@ -22,6 +26,9 @@ if (!wasmPath || !playwrightPath) {
 }
 const perPrint = opt('cases', '8') === 'all' ? 20 : Number(opt('cases', '8'));
 const timeMs = Number(opt('time', 120000));
+const tablesOpt = Number(opt('tables', 0));
+const tableMs = Number(opt('table-ms', 0));
+const cancelAt = Number(opt('cancel-at', 0));
 const require = createRequire(import.meta.url);
 const { chromium } = require(require.resolve(playwrightPath, { paths: [process.cwd()] }));
 
@@ -51,14 +58,15 @@ const server = http.createServer((req, res) => {
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const origin = `http://127.0.0.1:${server.address().port}`;
 const browser = await chromium.launch();
-console.log('print\tstep\texpected\tgot\tstatus\tnodes\tinst_ms\twall_ms\ttables_ms\tsearch_ms\tmem_mb\tisolated');
+console.log('print\tstep\texpected\tgot\tstatus\tnodes\tinst_ms\twall_ms\ttables_ms\tsearch_ms\tmem_mb\tisolated\tprogress_calls');
 let bad = 0;
 for (const c of cases) {
   const input = `${c[5]}\t${c[6]}\t${c[7]}\t${c[4].split('|')[4] === '' ? 0 : 1}`;
   const page = await (await browser.newContext()).newPage();
   await page.goto(origin);
   const r = await page.evaluate(
-    async ({ input, timeMs }) => {
+    async ({ input, timeMs, tablesOpt, tableMs, cancelAt }) => {
+      let progressCalls = 0;
       const module = await WebAssembly.compileStreaming(fetch('/m.wasm'));
       let memory;
       let t0 = performance.now();
@@ -66,6 +74,10 @@ for (const c of cases) {
         await WebAssembly.instantiate(module, {
           env: {
             cubacle_host_now: () => performance.now(),
+            cubacle_host_progress: (permille) => {
+              progressCalls++;
+              return cancelAt > 0 && permille >= cancelAt ? 1 : 0;
+            },
             cubacle_host_random: (p, n) => crypto.getRandomValues(new Uint8Array(memory.buffer, p, n)),
           },
         })
@@ -76,20 +88,20 @@ for (const c of cases) {
       const p = x.fm_alloc(b.length);
       new Uint8Array(memory.buffer, p, b.length).set(b);
       t0 = performance.now();
-      const res = x.fm_solve(p, b.length, timeMs, 0, 0);
+      const res = x.fm_solve(p, b.length, timeMs, 0, 0, tableMs, tablesOpt);
       const wall = performance.now() - t0;
       const n = x.fm_result_len(res);
       const text = new TextDecoder().decode(new Uint8Array(memory.buffer, res + 4, n - 4));
-      return { text, inst, wall, mem: memory.buffer.byteLength / 1048576, isolated: self.crossOriginIsolated };
+      return { text, inst, wall, mem: memory.buffer.byteLength / 1048576, isolated: self.crossOriginIsolated, progressCalls };
     },
-    { input, timeMs },
+    { input, timeMs, tablesOpt, tableMs, cancelAt },
   );
   await page.context().close();
   const [status, moves, , nodes, tablesUs] = r.text.split('\t');
   const got = status === 'ok' ? moves.split(' ').filter(Boolean).length : -1;
   if (status !== 'ok' || got !== Number(c[3])) bad++;
   const tables = Number(tablesUs) / 1000;
-  console.log([c[0], c[1], c[3], got, status, nodes, r.inst.toFixed(2), r.wall.toFixed(0), tables.toFixed(0), (r.wall - tables).toFixed(0), r.mem.toFixed(1), r.isolated].join('\t'));
+  console.log([c[0], c[1], c[3], got, status, nodes, r.inst.toFixed(2), r.wall.toFixed(0), tables.toFixed(0), (r.wall - tables).toFixed(0), r.mem.toFixed(1), r.isolated, r.progressCalls].join('\t'));
 }
 await browser.close();
 server.close();
