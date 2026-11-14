@@ -144,7 +144,8 @@ impl FrontLimits {
         self
     }
 
-    /// Stops the table build after `time` (separate from the search budget).
+    /// Stops the table build after `time` (separate from the search budget). A
+    /// time too large to add to the clock means no table budget.
     pub fn with_table_time(mut self, time: Duration) -> FrontLimits {
         self.table_time = Some(time);
         self
@@ -258,7 +259,7 @@ pub fn solve_front_goal_observed(
     let mut gate = Gate::new(
         limits
             .table_time
-            .map(|budget| crate::puzzle::Instant::now() + budget),
+            .and_then(|budget| crate::puzzle::Instant::now().checked_add(budget)),
         Some(observer),
     );
     let set = match limits.tables {

@@ -452,6 +452,17 @@ fn a_table_budget_of_zero_ends_the_build_not_the_search() {
 }
 
 #[test]
+fn a_table_budget_too_large_to_add_means_no_table_budget() {
+    let case = &cases("de-a")[0];
+    let goal = goal_of(case);
+    let limits = FrontLimits::default()
+        .with_tables(FrontTables::Groups9)
+        .with_table_time(Duration::MAX);
+    let route = solve_front_goal(&case.start, &case.twists, &goal, &limits).unwrap();
+    assert_eq!(route.moves.len(), case.expected);
+}
+
+#[test]
 fn the_table_budget_does_not_limit_the_search() {
     let case = &cases("de-a")[0];
     let goal = goal_of(case);
