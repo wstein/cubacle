@@ -2,7 +2,7 @@
 //! Input: `facelets TAB twists TAB accepted TAB center_up` (the columns 6 to 8 of
 //! tests/fixtures/front_goal_calendar.tsv, then 1 when the center cell is not blank).
 
-use cubacle_wasm_front_measure::solve_text;
+use cubacle_wasm_front_measure::{solve_text, Settings};
 
 const FIXTURE: &str = include_str!("../../../tests/fixtures/front_goal_calendar.tsv");
 
@@ -26,7 +26,13 @@ fn input_of(print: &str, step: &str) -> (String, usize) {
 #[test]
 fn a_calendar_case_gives_the_484_optimum() {
     let (input, expected) = input_of("de-a", "1");
-    let out = solve_text(&input, 120_000, 0, 0);
+    let out = solve_text(
+        &input,
+        Settings {
+            time_ms: 120_000,
+            ..Settings::default()
+        },
+    );
     let f: Vec<&str> = out.split('\t').collect();
     assert_eq!(f[0], "ok", "{out}");
     assert_eq!(f[1].split_whitespace().count(), expected, "{out}");
@@ -35,11 +41,46 @@ fn a_calendar_case_gives_the_484_optimum() {
 #[test]
 fn a_node_cap_ends_as_budget() {
     let (input, _) = input_of("de-a", "1");
-    let out = solve_text(&input, 120_000, 10, 0);
+    let out = solve_text(
+        &input,
+        Settings {
+            time_ms: 120_000,
+            max_nodes: 10,
+            ..Settings::default()
+        },
+    );
     assert!(out.starts_with("budget\t"), "{out}");
 }
 
 #[test]
 fn a_bad_input_is_invalid() {
-    assert!(solve_text("x", 1000, 0, 0).starts_with("invalid\t"));
+    assert!(solve_text("x", Settings::default()).starts_with("invalid\t"));
+}
+
+#[test]
+fn nine_group_tables_give_the_484_optimum() {
+    let (input, expected) = input_of("de-a", "1");
+    let out = solve_text(
+        &input,
+        Settings {
+            tables: 9,
+            ..Settings::default()
+        },
+    );
+    let f: Vec<&str> = out.split('\t').collect();
+    assert_eq!(f[0], "ok", "{out}");
+    assert_eq!(f[1].split_whitespace().count(), expected, "{out}");
+}
+
+#[test]
+fn a_table_budget_of_one_millisecond_ends_the_build() {
+    let (input, _) = input_of("de-a", "1");
+    let out = solve_text(
+        &input,
+        Settings {
+            table_ms: 1,
+            ..Settings::default()
+        },
+    );
+    assert!(out.starts_with("tablebudget\t"), "{out}");
 }
