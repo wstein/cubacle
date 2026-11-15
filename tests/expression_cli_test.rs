@@ -218,3 +218,17 @@ fn an_empty_group_with_a_huge_count_is_refused_at_once() {
         assert!(err.contains("expands to more than"), "{text}: {err}");
     }
 }
+
+#[test]
+fn scramble_count_is_bounded() {
+    let limit = std::time::Duration::from_secs(10);
+    for count in ["100001", "99999999999"] {
+        let (code, err) = cubacle_within(&["scramble", "--moves", count], limit);
+        assert_eq!(code, Some(1), "{count}: {err}");
+        assert!(err.contains("at most 100000"), "{count}: {err}");
+    }
+    for count in ["0", "100000"] {
+        let (code, err) = cubacle_within(&["scramble", "--moves", count], limit);
+        assert_eq!(code, Some(0), "{count}: {err}");
+    }
+}

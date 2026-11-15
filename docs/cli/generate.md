@@ -8,7 +8,7 @@ weight: 8
 
 ## Generate scrambles and cubes
 
-`scramble` prints a random scramble. `-n` sets the number of moves (default: 25) and `--size` the cube size (default: 3). On a 4x4x4 or 5x5x5 the scramble also turns second layers. `--notation sign` writes the moves in SiGN and `--notation sse` in SSE (see [Move notations](move-notations.md#move-notations)); the default is `wca`.
+`scramble` prints a random scramble. `-n` sets the number of moves (default: 25, maximum: 100000) and `--size` the cube size (default: 3). On a 4x4x4 or 5x5x5 the scramble also turns second layers. `--notation sign` writes the moves in SiGN and `--notation sse` in SSE (see [Move notations](move-notations.md#move-notations)); the default is `wca`.
 
 ```sh
 cubacle scramble -n 8

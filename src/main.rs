@@ -120,6 +120,12 @@ fn run(cli: Cli) -> Result<(), String> {
             size,
             notation,
         } => {
+            if moves > cubacle::notation::MAX_EXPANDED_MOVES {
+                return Err(format!(
+                    "scramble accepts at most {} moves",
+                    cubacle::notation::MAX_EXPANDED_MOVES
+                ));
+            }
             let kind = kind_of(size)?;
             println!("{}", notation.write(kind, &generate::scramble(kind, moves)));
             Ok(())
