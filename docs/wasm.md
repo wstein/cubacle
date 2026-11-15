@@ -1,6 +1,6 @@
 ---
 title: "Browser WebAssembly build"
-description: "The cubacle-wasm facade for the 2x2x2 and 3x3x3, and the G1 measurement of its size, time and memory."
+description: "The cubacle-wasm facade for the 2x2x2 and 3x3x3, its ABI 3 front-goal export, and the G1 measurement of its size, time and memory."
 weight: 9
 ---
 
@@ -64,16 +64,59 @@ There is no JavaScript glue. The module exports a C ABI over its linear memory (
 
 | Export | Meaning |
 | --- | --- |
-| `cubacle_abi_version() -> u32` | ABI version of the module. 2 is this table; ABI 1 is the same table without `cubacle_solve_budget`. |
+| `cubacle_abi_version() -> u32` | ABI version of the module. 3 is this table; ABI 2 is the same table without `cubacle_front_solve`, ABI 1 also without `cubacle_solve_budget`. |
 | `cubacle_alloc(len) -> ptr` | A buffer of `len` bytes for the host to fill. |
 | `cubacle_solve(size, ptr, len, max_moves) -> result` | Solves the scramble (UTF-8, standard notation) on a 2x2x2 or 3x3x3. |
 | `cubacle_solve_budget(size, ptr, len, max_moves, budget_ms) -> result` | ABI 2. Like `cubacle_solve` with a wall-clock budget in milliseconds; 0 means the 2000 ms default. |
+| `cubacle_front_solve(ptr, len) -> result` | ABI 3. Solves a front-goal request (see [Front goal export](#front-goal-export-abi-3)). |
 | `cubacle_result_len(result) -> len` | The byte length of the result buffer. |
 | `cubacle_free(ptr, len)` | Releases a buffer from `cubacle_alloc` or `cubacle_solve`. |
 
 A result is four bytes of total length (little endian), one status byte (0 solved, 1 bad input, 2 no solution, 3 timeout) and the UTF-8 text: the solution, or the reason. The module imports two functions from `env`: `cubacle_host_now() -> f64` (milliseconds, for example `performance.now()`), because `std::time::Instant` panics on this target, and `cubacle_host_random(ptr, len)`, which fills a buffer with random bytes. The tables of the engines are built in memory on the first solve of each size; no table file is loaded.
 
 Budget. `cubacle_solve` (ABI 1, unchanged signature) runs with a fixed budget of 2000 ms (`DEFAULT_BUDGET_MS`); a search without a solution when it runs out returns status 2, as it does when `max_moves` admits no solution. On the 3x3x3 ABI 1 does not tell the two cases apart (both return status 2 with the same engine text); `cubacle_solve_budget` does. `cubacle_solve_budget` (ABI 2) takes the budget in milliseconds and returns status 3 when it runs out (status 2 stays for a `max_moves` that admits no solution); a call whose budget suffices answers exactly as `cubacle_solve` does. The clock is `cubacle_host_now`. The new function has its own name because a changed signature of `cubacle_solve` would break ABI 1 hosts without a link error. There is no cancel, progress or streaming call, and a solution is not a proof of optimality.
+
+## Front goal export (ABI 3)
+
+`cubacle_front_solve(ptr, len)` solves the front goal of the 3x3x3 calendar: nine front positions, each with the sticker identities it may show, any whole-cube rotation, optionally the center picture upright (`solve_front_goal_observed` of `cubacle::engines::three`, tables `FrontTables::Groups9`). It is the production form of the measurement harness `crates/wasm-front-measure`, which stays unchanged.
+
+Choice of the form. ABI 3 is an additive export of `cubacle-wasm`, not a new module. A new module would need its own build, manifest and package in `cargo xtask wasm` (hard-coded to `cubacle-wasm` and covered by many tests) and would give consumers two artifacts to pin; the single module keeps one pin, one manifest and one tarball. The price is size, and one import: ABI 3 adds none. The harness's `cubacle_host_progress` import is not used, because an extra import would stop every ABI 1 and 2 host that does not provide it from instantiating the module. A table build is bounded by its budget (`table_ms`), and cancellation is the host terminating the worker, as in ABI 2. Progress and cooperative cancel of the table build are not part of ABI 3; they would need ABI 4 or a separate module.
+
+Request: UTF-8 text, nine fields separated by one TAB, no line break. The first field is the version and decides how the rest reads; a version other than `1` is refused with status 1.
+
+| # | Field | Meaning |
+| --- | --- | --- |
+| 1 | `version` | `1` |
+| 2 | `facelets` | 54 letters `URFDLB`: the pose in the standard layout (U, R, F, D, L, B, nine each), centers home |
+| 3 | `twists` | six center twists U,R,F,D,L,B, each 0 to 3, comma separated; their sum must have the parity of the corner permutation |
+| 4 | `accepted` | nine lists separated by a space, row-major over the front (facelets 18 to 26); each list holds comma separated home facelet numbers 0 to 53, none empty |
+| 5 | `center_up` | `1` when the center picture must stand upright (center twist 0 on the front after the final rotation), else `0` |
+| 6 | `table_ms` | table build budget in milliseconds; 0 means 3000 |
+| 7 | `search_ms` | search budget in milliseconds (checked every 65,536 nodes); 0 means 4000 |
+| 8 | `max_nodes` | node cap; 0 means 5,000,000 |
+| 9 | `max_moves` | move limit; 0 means the engine's own limit (21) |
+
+Answer: the result buffer of the other calls (length, status byte, text). The text starts with the version `1`.
+
+| Status | Meaning | Text after the version |
+| --- | --- | --- |
+| 0 | route found | `moves TAB rotation TAB nodes TAB tables_ms`: face turns in standard notation (shortest in the half-turn metric), the final whole-cube rotation (a word of at most two `x y z` tokens, empty for none), search nodes, table build time in ms with three decimals |
+| 1 | bad input (also an unknown version, a wrong field count, an impossible cube) | the reason |
+| 2 | no route (none within the move limit, or no state meets the goal) | the reason |
+| 3 | search budget (time or nodes) ended the search; no route | `nodes=<n>` |
+| 4 | table budget ended the build; the search did not start | `permille=<n>` |
+
+The call is deterministic: the same request gives the same moves, rotation and node count (the time fields depend on the host clock). The module imports `cubacle_host_now` and `cubacle_host_random` as before. The tables are built in memory per call and not cached. Replay: apply `moves`, then `rotation`, to the pose; every front position then shows one of its accepted stickers.
+
+Checks (all 80 cases of `tests/fixtures/front_goal_calendar.tsv`, the optimum of wstein/cubistry#484 each, every route replayed):
+
+```sh
+cargo test --release -p cubacle-wasm --test front
+cargo build --release -p cubacle-wasm --target wasm32-unknown-unknown
+node tools/wasm/front-host.mjs target/wasm32-unknown-unknown/release/cubacle_wasm.wasm
+```
+
+The Node host test replays with its own cube model; the center-up rule is replayed by the native test only.
 
 ## G1 measurement
 
