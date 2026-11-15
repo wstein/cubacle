@@ -169,7 +169,7 @@ F2 U' R B' L2 D' F U2 R'
 
 (the first line is on stderr). `--max-time MS` (default 60000, 0 for none) and `--max-memory MB` (default 1000) bound the search; when one ends it, stderr says `error: time limit` or `error: memory limit` and the status is 3. `--within` works with `--notation`, `--icons`, `--group`, `--optimize` and `-v`. It does not combine with `--now`, `--optimal`, `--moves`, `--count`, `--all` (one route is listed) and, without `--then-solve`, with the options of the normal solver (`-m`, `-b`, `--probes`, `--improve`, `--parallel`, `--fast`); each is refused by name. The 2x2x2 route ends on the exact solved cube, not on a whole-cube rotation of it.
 
-Exit codes of `solve`: 0 success; 1 input error or refused option; 2 no route (or an impossible state); 3 a time or memory limit ended the search.
+Exit codes of `solve --within`: 0 success; 1 input error or refused option; 2 no route (or an impossible state); 3 a time or memory limit ended the search.
 
 On the 3x3x3 the search is faster than `--optimal` for up to seven moves (6 moves: 7 ms against 0.47 s, because the large tables of `--optimal` have to be loaded) and gives the same length, so it is used there too. Measured with the release build on a busy Apple-silicon machine (load average 40 to 80, so read the times as upper bounds), a cube K moves from solved (a hit; the optimum was K) and one K+1 moves away (none: the search runs to the end). Seconds, then peak memory (RSS) in MB:
 
@@ -350,7 +350,7 @@ Exit status of `cubacle` on a command that fails:
 | --- | --- |
 | 0 | Done. |
 | 1 | An error: input that is wrong or an impossible cube, a move limit that cannot be met, a face center off its face. |
-| 2 | The command line is wrong (the usage error of `clap`, for example `--max-time` with `-b`). |
+| 2 | The command line is wrong (a `clap` usage error), or `solve --within` found no route or an impossible state. |
 | 3 | A time limit was reached. Nothing is printed on standard output. |
 
 The 4x4x4 to 7x7x7 have a time limit of 120 s without `--max-time`. Measured on a loaded 12-core machine (cached tables), three random scrambles each took: 3x3x3 25 to 50 ms, 4x4x4 25 to 30 ms, 5x5x5 60 to 140 ms (wall 1 to 4 s with the tables loaded), 6x6x6 1.1 to 5.6 s, 7x7x7 3.8 to 13 s (wall up to 18 s), so the limit is about seven times the slowest. When it is reached:

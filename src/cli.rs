@@ -35,7 +35,7 @@ pub(crate) enum Command {
     Template(template_cmd::TemplateArgs),
     /// Print a random scramble
     Scramble {
-        /// Number of moves
+        /// Number of moves (at most 100000)
         #[arg(short = 'n', long, default_value_t = 25)]
         moves: usize,
         /// Cube size
