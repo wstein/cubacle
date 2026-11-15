@@ -18,7 +18,7 @@
 //! Answer: the status byte of the result buffer and a text whose first field is
 //! the version `1`. Status 0: `1 TAB moves TAB rotation TAB nodes TAB tables_ms`
 //! (`moves` in standard notation, `rotation` a word of at most two `x y z` tokens
-//! or empty, `tables_ms` the table build time with three decimals). Status 3:
+//! with the suffixes `'` and `2`, or empty, `tables_ms` the table build time with three decimals). Status 3:
 //! `1 TAB nodes=<n>`; status 4: `1 TAB permille=<n>`; statuses 1 and 2: `1 TAB`
 //! and a reason. The tables are the nine group tables (`FrontTables::Groups9`).
 
@@ -27,7 +27,7 @@ use std::time::Duration;
 use cubacle::engines::three::{
     solve_front_goal_observed, FrontFailure, FrontGoal, FrontLimits, FrontTables,
 };
-use cubacle::puzzle::{CenterTwists, Facelets, PuzzleKind};
+use cubacle::puzzle::{rotation_moves, CenterTwists, Facelets, PuzzleKind};
 
 /// Version of the request and the answer text.
 pub const FRONT_VERSION: &str = "1";
@@ -55,6 +55,32 @@ fn bad(why: &str) -> (u8, String) {
 
 fn number(field: &str, name: &str) -> Result<u64, String> {
     field.parse().map_err(|_| format!("{name} is not a number"))
+}
+
+/// The engine writes a rotation as a path of quarter turns (`x y y y`, `x y x`).
+/// This returns the first word of at most two tokens (the suffixes `'` and `2`
+/// allowed; shorter words first, axes in the order `x y z`) that turns the cube
+/// the same way; each of the 24 rotations has one.
+fn short_rotation(word: &str) -> String {
+    let solved = Facelets::solved(PuzzleKind::Cube3);
+    let effect = |w: &str| rotation_moves(w).ok().and_then(|m| solved.apply(&m).ok());
+    let Some(wanted) = effect(word) else {
+        return word.to_owned();
+    };
+    let singles: Vec<String> = ["x", "y", "z"]
+        .iter()
+        .flat_map(|axis| ["", "2", "'"].map(|suffix| format!("{axis}{suffix}")))
+        .collect();
+    let pairs = singles.iter().flat_map(|first| {
+        singles
+            .iter()
+            .map(move |second| format!("{first} {second}"))
+    });
+    std::iter::once(String::new())
+        .chain(singles.iter().cloned())
+        .chain(pairs)
+        .find(|candidate| effect(candidate).as_ref() == Some(&wanted))
+        .unwrap_or_else(|| word.to_owned())
 }
 
 /// Solves one request; see the module documentation.
@@ -139,7 +165,7 @@ pub fn front_solve_text(input: &str) -> (u8, String) {
             format!(
                 "{FRONT_VERSION}\t{}\t{}\t{}\t{:.3}",
                 route.moves,
-                route.rotation,
+                short_rotation(&route.rotation),
                 route.nodes,
                 route.tables.as_secs_f64() * 1000.0
             ),
@@ -160,5 +186,39 @@ pub fn front_solve_text(input: &str) -> (u8, String) {
             (FRONT_STATUS_NO_ROUTE, format!("{FRONT_VERSION}\t{why}"))
         }
         Err(FrontFailure::InvalidInput(why)) => bad(&why),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::short_rotation;
+    use cubacle::puzzle::{rotation_moves, rotation_words, Facelets, PuzzleKind};
+
+    #[test]
+    fn a_path_of_quarter_turns_becomes_a_short_word() {
+        assert_eq!(short_rotation("x y y y"), "x y'");
+        assert_eq!(short_rotation("y y"), "y2");
+        assert_eq!(short_rotation("y y y y"), "");
+        assert_eq!(short_rotation(""), "");
+    }
+
+    #[test]
+    fn all_24_rotations_have_at_most_two_tokens_and_the_same_effect() {
+        let solved = Facelets::solved(PuzzleKind::Cube3);
+        let mut seen = Vec::new();
+        for word in rotation_words() {
+            let short = short_rotation(&word);
+            assert!(
+                short.split_whitespace().count() <= 2,
+                "{word:?} -> {short:?}"
+            );
+            let before = solved.apply(&rotation_moves(&word).unwrap()).unwrap();
+            let after = solved.apply(&rotation_moves(&short).unwrap()).unwrap();
+            assert_eq!(before, after, "{word:?} -> {short:?}");
+            seen.push(short);
+        }
+        seen.sort();
+        seen.dedup();
+        assert_eq!(seen.len(), 24);
     }
 }
