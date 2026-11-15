@@ -14,8 +14,7 @@
 //
 // --mutate changes the request before the call, to show that a check fails for
 // its own reason: version, drop-rotation (the answer's rotation is dropped before the replay),
-// truncate-accepted, flip-center-up. The mutations of the module itself (limits ignored) are
-// made in the source and rebuilt; see the pull request.
+// truncate-accepted, flip-center-up, ignore-limits (the limits of the limit checks are sent as 0, the defaults).
 import fs from 'node:fs';
 import { performance } from 'node:perf_hooks';
 
@@ -175,6 +174,7 @@ function frontSolve(ex, text) {
   return { status: out[4], text: dec.decode(out.subarray(5)) };
 }
 function request(c, limits = [0, 0, 0, 0], version = '1') {
+  if (mutate === 'ignore-limits') limits = [0, 0, 0, 0];
   let accepted = c.accepted;
   let up = c.centerUp ? 1 : 0;
   if (mutate === 'version') version = '2';
