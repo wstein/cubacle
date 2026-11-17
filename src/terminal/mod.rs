@@ -7,7 +7,8 @@
 //! terminal, so one that ignores the other queries still returns at once. The
 //! parsing is in `parse` and has no tty.
 //!
-//! Nothing is asked when standard input or output is not a terminal, or inside
+//! Nothing is asked when standard output is not a terminal, /dev/tty cannot be
+//! opened, or inside
 //! `tmux` or `screen`, which would swallow the queries or need a passthrough
 //! that this program does not use; the defaults apply there.
 
@@ -52,6 +53,10 @@ fn columns_from(env: &dyn Fn(&str) -> Option<String>) -> u32 {
         .unwrap_or(80)
 }
 
+fn should_probe(stdout_tty: bool, devtty_openable: bool) -> bool {
+    stdout_tty && devtty_openable
+}
+
 /// Asks the terminal; falls back to defaults where it cannot or must not.
 /// `want_background` is false when the color is not needed (`--background`).
 pub fn probe(want_background: bool) -> Terminal {
@@ -62,7 +67,7 @@ pub fn probe(want_background: bool) -> Terminal {
     let mut cell = None;
     let mut area = None;
     let mut background = None;
-    if std::io::stdin().is_terminal() && std::io::stdout().is_terminal() {
+    if should_probe(std::io::stdout().is_terminal(), imp::tty_openable()) {
         if let Some((cols, rows, x, y)) = imp::window_size() {
             if cols > 0 {
                 columns = u32::from(cols);
@@ -89,15 +94,14 @@ pub fn probe(want_background: bool) -> Terminal {
 }
 
 /// Asks the terminal whether it speaks the Kitty graphics protocol, at most
-/// once per process. False when standard input or output is not a terminal,
+/// once per process. False when standard output is not a terminal, /dev/tty cannot be opened,
 /// inside `tmux` or `screen`, on timeout and on every error.
 pub fn supports_kitty() -> bool {
     use std::io::IsTerminal;
     static ANSWER: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
     *ANSWER.get_or_init(|| {
         let env = |name: &str| std::env::var(name).ok().filter(|v| !v.is_empty());
-        std::io::stdin().is_terminal()
-            && std::io::stdout().is_terminal()
+        should_probe(std::io::stdout().is_terminal(), imp::tty_openable())
             && !behind_multiplexer(&env)
             && imp::supports_kitty()
     })
@@ -111,6 +115,14 @@ mod imp {
     };
     use std::fs::{File, OpenOptions};
     use std::io::{Read, Write};
+
+    pub fn tty_openable() -> bool {
+        OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open("/dev/tty")
+            .is_ok()
+    }
 
     pub fn window_size() -> Option<(u16, u16, u16, u16)> {
         let size = tcgetwinsize(std::io::stdout()).ok()?;
@@ -212,6 +224,10 @@ mod imp {
 mod imp {
     use super::parse::Replies;
 
+    pub fn tty_openable() -> bool {
+        false
+    }
+
     pub fn window_size() -> Option<(u16, u16, u16, u16)> {
         None
     }
@@ -228,6 +244,13 @@ mod imp {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn probe_requires_stdout_and_controlling_tty_not_stdin() {
+        assert!(should_probe(true, true));
+        assert!(!should_probe(false, true));
+        assert!(!should_probe(true, false));
+    }
 
     #[test]
     fn multiplexers_are_recognized() {
