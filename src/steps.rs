@@ -10,7 +10,7 @@ use std::io::Write;
 use cubacle::notation::{orbit64, ColorScheme, Notation};
 use cubacle::phases::Phase;
 use cubacle::puzzle::{Facelets, LayerMove, Move, MoveSequence, Turn};
-use cubacle::render::{icon, Icon, Raster, Style};
+use cubacle::render::{icon, Action, Icon, Raster, Style};
 
 use crate::icons::{
     default_height, detect_stdout, show, style, Background, Graphics, GraphicsMode, Numbers,
@@ -348,6 +348,16 @@ impl<'a> Pictures<'a> {
             with_start,
             Block::whole(solution.len()),
         )
+    }
+
+    /// Draw semantic actions without expanding rotations into layer moves.
+    pub(crate) fn action_steps(
+        &self,
+        start: &Facelets,
+        actions: Vec<Action>,
+    ) -> Result<String, String> {
+        let run = Run::actions(actions, self.options.notation, start.kind());
+        self.steps_run(start, &run, &[], false, Block::whole(run.len()))
     }
 
     /// The moves of a block of a longer list: `found` holds the phases with

@@ -23,6 +23,28 @@ pub(crate) struct Run {
 }
 
 impl Run {
+    pub(crate) fn actions(actions: Vec<Action>, notation: Notation, kind: PuzzleKind) -> Run {
+        let turns: Vec<Turn> = actions
+            .iter()
+            .map(|action| match action {
+                Action::Layer(mv) => mv.turn,
+                Action::Block(mv) => mv.turn,
+                Action::Rotate { turn, .. } => *turn,
+            })
+            .collect();
+        let written = actions
+            .iter()
+            .map(|action| match action {
+                Action::Layer(mv) => notation.write_move(kind, mv),
+                _ => action.to_string(),
+            })
+            .collect();
+        Run {
+            actions,
+            written,
+            lone: lone_turns(&turns),
+        }
+    }
     /// One step per move.
     pub(crate) fn plain(solution: &MoveSequence, notation: Notation, kind: PuzzleKind) -> Run {
         let moves = solution.moves();
