@@ -106,7 +106,7 @@ Produced with `cubacle moves --metrics --size N "..."` (output of the commands, 
 
 The expression reader turns `M`, `x` and a range such as `2-3Rw` into several plain layer moves (`x` on a 3x3x3 is `Rw L'`). Counting those would count one turn as two. `moves` and `convert --metrics` therefore count the words as typed whenever the input is a flat list of WCA or SiGN words, middle slices, rotations and ranges. Text with groups, repeats, commutators or SSE words is counted after expansion into plain moves, which can count rotations and slices as the layer moves they stand for.
 
-The output of a solver never contains rotations, slices or ranges unless `--optimize ranges` is given, so its counts need no care.
+Solver output has no explicit rotations. Single inner layers can occur on larger cubes or with `--slices`; the `ranges` and `easy` postprocessing objectives can also write layer ranges.
 
 ## What each engine works on
 
@@ -131,10 +131,12 @@ Measured with `cubacle solve --size N -s "<30 scramble moves>"` on fixed pseudo-
 | plain moves (default) | `moves`, `solve` | HTM and OBTM (a half turn is one move) |
 | every half turn as two quarter turns | `moves --expand quarter` | QTM: every written move is one count, so the number of words is the QTM count (R2 becomes R R) |
 | runs of one axis as layer ranges | `moves --optimize ranges`, `solve --optimize ranges` | BTM and ETM on big cubes: `3Rw R'` becomes `2-3Rw`, one block turn |
+| engine turns, exact frame | `moves --optimize moves`, `solve --optimize moves` | Fewer plain layer or outer-block turns per axis run, each costing one |
+| block turns, free final orientation | `moves --optimize easy`, `solve --optimize easy` | Fewer BTM turns per axis run; an inner block costs one |
 
 `--expand quarter` is exact and costs nothing: `R2` and `R R` turn the same layer by the same angle. It writes only quarter turns, so the HTM count of the output is its QTM count. It does not combine with `--optimize ranges`, which writes half turns of a block as one move (`2-3Rw2`). `convert` prints a cube, not moves, so it has nothing to rewrite; its `--metrics` counts an input expression. `solve` has no `--expand` (follow-up).
 
-Neither form searches: the sequence stays the one the solver found, so no form makes a solution shorter in a metric it was not found in.
+The two objectives rewrite axis runs after the solve. `moves` preserves the exact state; `easy` can leave a rotated state and does not promise physical ease. Neither claims a globally shortest solution. Token count and HTM need not decrease together: HTM counts an inner block as two.
 
 ## For library users
 

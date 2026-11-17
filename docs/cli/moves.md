@@ -176,3 +176,5 @@ cubacle facelets "R U R' U'"
 ```text
 UULUUFUUFRRUBRRURRFFDFFUFFFDDRDDDDDDBLLLLLLLLBRRBBBBBB
 ```
+
+`moves --optimize moves` rewrites axis runs in the engine move count: each single-layer or outer-block turn costs one regardless of angle. The alphabet allows every single layer and outer blocks up to two layers (up to half the cube on 6x6x6 and 7x7x7). It preserves the exact state. `moves --optimize easy` uses contiguous block turns counted in BTM and may change the final whole-cube orientation; it is a local postprocessing objective, not a global optimum or a guarantee of physical ease. Both can be drawn with `--icons`.
