@@ -44,3 +44,12 @@ fn upright_refuses_pattern_aware() {
     refused(&["--pattern-aware"], "--pattern-aware");
 }
 
+#[test]
+fn upright_refuses_parallel() {
+    refused(&["--parallel"], "--parallel");
+}
+
+#[test]
+fn upright_refuses_nodes() {
+    refused(&["--optimal", "--nodes", "10"], "--nodes");
+}
