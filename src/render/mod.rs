@@ -282,3 +282,27 @@ mod mark_tests {
         assert_eq!(marks(&icon), 6);
     }
 }
+
+#[cfg(test)]
+mod rotation_orbit_tests {
+    use super::*;
+    use crate::puzzle::PuzzleKind;
+    use scene::Part;
+
+    /// The orbit and the axis pass behind the cube: the part the cube hides is
+    /// drawn before the cube body, the rest after it.
+    #[test]
+    fn rotations_draw_hidden_orbit_before_cube() {
+        let state = Facelets::solved(PuzzleKind::Cube5);
+        for text in ["x", "y", "z", "x2", "y2", "z2", "x'", "y'", "z'"] {
+            let action = text.parse().unwrap();
+            let icon = icon(&state, &action, &Style::default()).unwrap();
+            let shapes = &icon.shapes;
+            let body = shapes.iter().position(|s| s.part == Part::Body).unwrap();
+            let before = shapes[..body].iter().filter(|s| s.part == Part::Arrow);
+            let after = shapes[body..].iter().filter(|s| s.part == Part::Arrow);
+            assert!(before.count() > 0, "{text}: nothing behind the cube");
+            assert!(after.count() > 0, "{text}: nothing in front of the cube");
+        }
+    }
+}
