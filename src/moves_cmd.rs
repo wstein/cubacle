@@ -6,11 +6,12 @@ use std::path::PathBuf;
 
 use clap::Args;
 use cubacle::notation::{
-    axis_units, parse_expression, parse_grouped, to_wca_token, ColorScheme, Item, Notation,
+    axis_units, parse_expression, parse_grouped, parse_rotations, ColorScheme, Item, Notation,
+    Rotation,
 };
 use cubacle::puzzle::{Facelets, Move, MoveSequence, PuzzleKind, Turn};
 use cubacle::ranges::{optimize, Optimize};
-use cubacle::render::{icon, Action, PictureState};
+use cubacle::render::{icon, Action, Axis, PictureState};
 
 mod picture;
 
@@ -197,10 +198,40 @@ pub fn run(args: MovesArgs) -> Result<(), String> {
             ));
         }
         let tail = MoveSequence::new(all.moves()[total - last..].to_vec());
-        text = args.notation.write(kind, &tail);
+        text = if args.pictures.icons {
+            let (_, rotations) = parse_rotations(&text, kind).map_err(|error| error.to_string())?;
+            let cut = total - last;
+            let rotations: Vec<_> = rotations
+                .into_iter()
+                .filter(|r| r.start >= cut)
+                .map(|r| Rotation {
+                    start: r.start - cut,
+                    ..r
+                })
+                .collect();
+            semantic_actions(&tail, &rotations)
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join(" ")
+        } else {
+            args.notation.write(kind, &tail)
+        };
     }
     if args.inverse {
-        text = inverse_text(&text, args.notation, kind)?;
+        text = if args.pictures.icons && !text.contains('·') && !text.contains('(') {
+            let (moves, rotations) =
+                parse_rotations(&format!("({text})'"), kind).map_err(|error| error.to_string())?;
+            semantic_actions(&moves, &rotations)
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join(" ")
+        } else if args.pictures.icons {
+            format!("({text})'")
+        } else {
+            inverse_text(&text, args.notation, kind)?
+        };
     }
     let moves = expand(&text, kind)?;
     if !args.pictures.icons && args.group != GroupMode::Axis && args.group != GroupMode::default() {
@@ -273,21 +304,28 @@ pub fn run(args: MovesArgs) -> Result<(), String> {
     Ok(())
 }
 
-/// The icons the text stands for: when every word is a move or rotation (WCA
-/// or SiGN), one icon each, so rotations keep their own picture; otherwise
-/// one per move of the expanded expression.
-fn actions_of(text: &str, moves: &MoveSequence) -> Vec<Action> {
-    let words: Option<Vec<Action>> = text
-        .split_whitespace()
-        .map(|word| {
-            word.parse::<Action>().ok().or_else(|| {
-                to_wca_token(word)
-                    .ok()
-                    .and_then(|wca| wca.parse::<Action>().ok())
-            })
-        })
-        .collect();
-    words.unwrap_or_else(|| moves.moves().iter().map(|mv| Action::Layer(*mv)).collect())
+fn semantic_actions(moves: &MoveSequence, rotations: &[Rotation]) -> Vec<Action> {
+    let mut actions = Vec::new();
+    let mut at = 0;
+    let mut rotations = rotations.iter().peekable();
+    while at < moves.len() {
+        if let Some(rotation) = rotations.next_if(|r| r.start == at) {
+            let axis = match rotation.axis {
+                'x' => Axis::X,
+                'y' => Axis::Y,
+                _ => Axis::Z,
+            };
+            actions.push(Action::Rotate {
+                axis,
+                turn: rotation.turn,
+            });
+            at += 2;
+        } else {
+            actions.push(Action::Layer(moves.moves()[at]));
+            at += 1;
+        }
+    }
+    actions
 }
 
 fn draw(
@@ -310,6 +348,8 @@ fn draw(
         start = start.apply(&scramble).map_err(|error| error.to_string())?;
     }
     let pictures = &args.pictures;
+    let (_, rotations) = parse_rotations(text, kind).map_err(|error| error.to_string())?;
+    let actions = semantic_actions(moves, &rotations);
     let to_stdout = args.out.is_none();
     if args.optimize.is_some()
         && (args.group != GroupMode::default() || args.format != Format::Auto || !to_stdout)
@@ -327,20 +367,20 @@ fn draw(
         let mut pictures = Pictures::new(args.size, &options);
         if args.group == GroupMode::Axis {
             let tree = axis_units(moves.moves(), kind, &[]);
-            pictures = pictures.grouped(Layout::of(&tree));
+            pictures = pictures.grouped(
+                Layout::of(&tree).collapse(&rotations.iter().map(|r| r.start).collect::<Vec<_>>()),
+            );
         } else if args.group == GroupMode::Dots && (text.contains('·') || text.contains('(')) {
             let tree = parse_grouped(text, kind).map_err(|error| error.to_string())?;
-            pictures = pictures.grouped(Layout::of(&tree));
+            pictures = pictures.grouped(
+                Layout::of(&tree).collapse(&rotations.iter().map(|r| r.start).collect::<Vec<_>>()),
+            );
         }
         let mut steps = if let Some(objective) = args.optimize {
             let packed = optimize(kind, moves, objective);
             pictures.layer_steps(&start, &packed, false)?
-        } else if args.group != GroupMode::Axis
-            && !(args.group == GroupMode::Dots && (text.contains('·') || text.contains('(')))
-        {
-            pictures.action_steps(&start, actions_of(text, moves))?
         } else {
-            pictures.steps(&start, moves, &[], false)?
+            pictures.action_steps(&start, actions.clone())?
         };
         // the cube after the last move, as `solve --icons` ends
         let result = args
@@ -357,7 +397,6 @@ fn draw(
             .write_all(steps.as_bytes())
             .map_err(|e| format!("cannot write to standard output: {e}"));
     }
-    let actions = actions_of(text, moves);
     let height = pictures
         .icon_size
         .unwrap_or_else(|| default_height(args.size));
@@ -458,11 +497,33 @@ mod tests {
         let text = "R2 L2 x y z x2 y2 z2 x' y' z'";
         let kind = PuzzleKind::Cube5;
         let moves = expand(text, kind).unwrap();
-        let actions = actions_of(text, &moves);
+        let (_, rotations) = parse_rotations(text, kind).unwrap();
+        let actions = semantic_actions(&moves, &rotations);
         assert_eq!(actions.len(), 11);
         assert!(actions[2..]
             .iter()
             .all(|a| matches!(a, Action::Rotate { .. })));
+        let start = Facelets::solved(kind)
+            .apply(&expand("R U F2", kind).unwrap())
+            .unwrap();
+        let end = actions
+            .iter()
+            .fold(start.clone(), |state, action| action.apply(&state).unwrap());
+        assert_eq!(end, start.apply(&moves).unwrap());
+    }
+
+    #[test]
+    fn nested_rotations_replay_after_inversion_and_repetition() {
+        let kind = PuzzleKind::Cube5;
+        let (moves, rotations) = parse_rotations("([R: x] CL)*2'", kind).unwrap();
+        let actions = semantic_actions(&moves, &rotations);
+        assert_eq!(
+            actions
+                .iter()
+                .filter(|action| matches!(action, Action::Rotate { .. }))
+                .count(),
+            4
+        );
         let start = Facelets::solved(kind);
         let end = actions
             .iter()

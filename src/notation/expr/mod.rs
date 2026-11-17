@@ -3,7 +3,7 @@ mod glued;
 mod grouped;
 
 pub use error::ExprError;
-pub use grouped::{Group, Item};
+pub use grouped::{Group, Item, Rotation};
 use grouped::{Mark, MarkKind, Run};
 
 use super::sign::is_separator;
@@ -50,6 +50,15 @@ pub fn parse_expression(text: &str, kind: PuzzleKind) -> Result<MoveSequence, Ex
 pub fn parse_grouped(text: &str, kind: PuzzleKind) -> Result<Group, ExprError> {
     let run = read(text, kind, true)?;
     Ok(Group::build(&run.moves, &run.marks))
+}
+
+/// Reads the expanded moves and retains the positions of explicit rotations.
+pub fn parse_rotations(
+    text: &str,
+    kind: PuzzleKind,
+) -> Result<(MoveSequence, Vec<Rotation>), ExprError> {
+    let run = read(text, kind, false)?;
+    Ok((MoveSequence::new(run.moves), run.rotations))
 }
 
 fn read(text: &str, kind: PuzzleKind, track: bool) -> Result<Run, ExprError> {
@@ -123,7 +132,7 @@ impl Reader {
                 }
                 Some('*') => return Err(ExprError::BadRepeat { position: self.at }),
                 Some(_) => {
-                    let word = Run::plain(self.word()?);
+                    let word = self.word()?;
                     self.suffixes(word, false)?
                 }
             };
@@ -210,7 +219,7 @@ impl Reader {
 
     /// One move word: everything up to whitespace, `·` or a bracket, `*`, `,` `:`.
     /// A layer range is several moves.
-    fn word(&mut self) -> Result<Vec<Move>, ExprError> {
+    fn word(&mut self) -> Result<Run, ExprError> {
         let start = self.at;
         while self
             .peek()
@@ -224,19 +233,53 @@ impl Reader {
                 Some(moves) => Ok(moves),
                 None => Err(error),
             },
-            done => done,
+            Ok(moves) => Ok(self.word_run(&word, moves)),
         }
+    }
+
+    fn word_run(&self, word: &str, moves: Vec<Move>) -> Run {
+        let mut run = Run::plain(moves);
+        let mut chars = word.chars();
+        if let Some(axis @ ('x' | 'y' | 'z')) = chars.next() {
+            if let Some(turn) = Turn::from_suffix(chars.as_str()) {
+                run.rotations.push(Rotation {
+                    start: 0,
+                    axis,
+                    turn,
+                });
+            }
+        } else if word.starts_with('C') && run.moves.len() == 2 {
+            let first = run.moves[0];
+            let (axis, reverse) = match first.face {
+                Face::R => ('x', false),
+                Face::L => ('x', true),
+                Face::U => ('y', false),
+                Face::D => ('y', true),
+                Face::F => ('z', false),
+                Face::B => ('z', true),
+            };
+            run.rotations.push(Rotation {
+                start: 0,
+                axis,
+                turn: if reverse {
+                    opposite(first.turn)
+                } else {
+                    first.turn
+                },
+            });
+        }
+        run
     }
 
     /// A word of several moves written without spaces (see [`glued`]): every
     /// piece must parse, else the word keeps its original error.
-    fn glued(&self, word: &str, start: usize) -> Option<Vec<Move>> {
-        let mut out = Vec::new();
+    fn glued(&self, word: &str, start: usize) -> Option<Run> {
+        let mut out = Run::default();
         for (offset, piece) in glued::pieces(word)? {
-            out.extend(
-                self.one(piece, start + word[..offset].chars().count())
-                    .ok()?,
-            );
+            let moves = self
+                .one(piece, start + word[..offset].chars().count())
+                .ok()?;
+            out.append(self.word_run(piece, moves));
         }
         Some(out)
     }

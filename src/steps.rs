@@ -9,7 +9,9 @@ use std::io::Write;
 
 use cubacle::notation::{orbit64, ColorScheme, Notation};
 use cubacle::phases::Phase;
-use cubacle::puzzle::{Facelets, LayerMove, Move, MoveSequence, Turn};
+#[cfg(test)]
+use cubacle::puzzle::Move;
+use cubacle::puzzle::{Facelets, LayerMove, MoveSequence, Turn};
 use cubacle::render::{icon, Action, Icon, Raster, Style};
 
 use crate::icons::{
@@ -186,6 +188,7 @@ fn row_icon(raster: Raster, lone: bool) -> Raster {
 
 /// Whether each move is a quarter turn with a half turn right before and right
 /// after it.
+#[cfg(test)]
 pub(crate) fn lone_quarters(moves: &[Move]) -> Vec<bool> {
     let turns: Vec<Turn> = moves.iter().map(|mv| mv.turn).collect();
     lone_turns(&turns)
@@ -357,6 +360,9 @@ impl<'a> Pictures<'a> {
         actions: Vec<Action>,
     ) -> Result<String, String> {
         let run = Run::actions(actions, self.options.notation, start.kind());
+        if let Some(layout) = &self.layout {
+            return groups::action_steps(self, start, &run, layout);
+        }
         self.steps_run(start, &run, &[], false, Block::whole(run.len()))
     }
 
