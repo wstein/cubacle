@@ -55,6 +55,24 @@ pub(crate) fn check(args: &SolveArgs) -> Result<(), String> {
     if args.nodes.is_some() {
         return refuse("--nodes");
     }
+    if !args.group.is_empty() {
+        return refuse("--group");
+    }
+    if args.every.is_some() {
+        return refuse("--every");
+    }
+    if args.optimize.is_some() {
+        return refuse("--optimize");
+    }
+    if args.depth.is_some() {
+        return refuse("--depth");
+    }
+    if args.raw {
+        return refuse("--raw");
+    }
+    if args.pattern_aware {
+        return refuse("--pattern-aware");
+    }
     Ok(())
 }
 
