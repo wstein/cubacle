@@ -257,6 +257,57 @@ mod tests {
     }
 
     #[test]
+    fn label_four_crossing_is_filled() {
+        // The vertical stem spans x=0.66..0.9, the crossbar y=0.8..1.02.
+        let shapes = crate::render::font::text("4", (0.0, 0.0), 140.0, Rgb(255, 0, 0), Part::Label);
+        let raster = rasterise_canvas(&shapes, (150.0, 150.0), 150, None);
+        assert_eq!(pixel(&raster, 78, 91)[3], 255);
+    }
+
+    #[test]
+    fn label_counters_remain_clear() {
+        for (c, x, y) in [
+            ('0', 61, 70),
+            ('4', 55, 60),
+            ('6', 57, 95),
+            ('8', 55, 40),
+            ('8', 55, 98),
+            ('9', 56, 43),
+            ('R', 65, 45),
+            ('D', 65, 70),
+            ('B', 65, 40),
+            ('B', 65, 97),
+        ] {
+            let shapes = crate::render::font::text(
+                &c.to_string(),
+                (0.0, 0.0),
+                140.0,
+                Rgb(255, 0, 0),
+                Part::Label,
+            );
+            let raster = rasterise_canvas(&shapes, (150.0, 150.0), 150, None);
+            assert_eq!(pixel(&raster, x, y)[3], 0, "{c} at {x},{y}");
+        }
+    }
+
+    #[test]
+    fn other_parts_keep_even_odd_fill() {
+        for part in [
+            Part::Body,
+            Part::Sticker,
+            Part::Halo,
+            Part::Arrow,
+            Part::Mark,
+            Part::Number,
+            Part::Frame,
+        ] {
+            let shapes = crate::render::font::text("4", (0.0, 0.0), 140.0, Rgb(255, 0, 0), part);
+            let raster = rasterise_canvas(&shapes, (150.0, 150.0), 150, None);
+            assert_eq!(pixel(&raster, 78, 91)[3], 0, "{part:?}");
+        }
+    }
+
+    #[test]
     fn a_rectangle_covers_the_expected_pixels() {
         let raster = rasterise(&[rect(10.0, 20.0, 30.5, 40.0)], 100, None);
         assert_eq!((raster.width, raster.height), (150, 100));
