@@ -12,8 +12,8 @@ A move icon (a "minicube": a small cube picture with an arrow, also called an ar
 
 An icon shows the Front, Up and Right faces of the cube in a deep oblique view, with every flat, bright sticker of the N×N×N grid (2 to 7) in the real colors of the cube state before the move.
 
-- **Moving layers** keep their colors at full brightness and everything else is darkened: to 25 percent on a dark background and to 40 percent on a light one (see `--background`). With `--grey`, the moving layers turn grey instead.
-- **A soft violet arrow with a white outline** lies on the face where the moving layer is visible, along the layer with a margin of 12 percent of the face width at both ends. Quarter turns have a round tail and a head about twice as long as wide with rounded corners. Half turns have a head at each end. Its size stays the same on the canvas for a given cube size: 4.0 canvas units wide on the 2x2x2, narrowing to 2.8 on the 7x7x7. On the Right face it is foreshortened like the face.
+- **Moving layers** keep their colors at full brightness and everything else is darkened: to 32.5 percent on a dark background and to 46 percent on a light one (see `--background`). With `--grey`, the moving layers turn grey instead.
+- **A soft violet arrow with a white outline** lies on the face where the moving layer is visible, along the layer, shortened at both ends to reduce the shaft length by 20 percent. Quarter turns have a round tail and a head about twice as long as wide with rounded corners. Half turns have a head at each end. Its size stays the same on the canvas for a given cube size: 4.0 canvas units wide on the 2x2x2, narrowing to 2.8 on the 7x7x7. On the Right face it is foreshortened like the face.
 - **An upright violet "2x"** with a white outline, the same height as the notation, marks a half turn. It sits right of a vertical arrow and above a horizontal one; rotations place it at the upper right.
 - **A curved violet arrow** over the whole cube marks the rotations `x`, `y` and `z`.
 - **The notation** is written below the cube in Quicksand Bold, always in the same size and on the same baseline. It is light on a dark background and dark on a light one.
@@ -64,7 +64,7 @@ An explicit `--format` or `--out` writes the icons themselves, one per move or r
 | `--out FILE` | Write to a file instead of standard output. |
 | `--scheme boy\|jp` | Color scheme, `boy` by default; six letters in `URFDLB` order also work. |
 | `--from SCRAMBLE` | Start from the cube that this scramble produces. |
-| `--background dark\|light` | What the icon is seen on, `dark` by default. It sets the dimming (25 or 40 percent) and the color of the notation (light or dark). |
+| `--background dark\|light` | What the icon is seen on, `dark` by default. It sets the resting-layer brightness (32.5 or 46 percent) and the color of the notation (light or dark). |
 | `--opaque` | Paint a solid background of the `--background` color (`#20242b` for dark, white for light) behind SVG, RGBA and Kitty output. The default is transparent, so the picture takes the colors of the terminal or page. |
 | `--cumulative` | Draw each move on the cube left by the moves before it. |
 | `--grey` | Grey the moving layers instead of darkening the rest. |
