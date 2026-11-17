@@ -13,8 +13,8 @@ A move icon (a "minicube": a small cube picture with an arrow, also called an ar
 An icon shows the Front, Up and Right faces of the cube in a deep oblique view, with every flat, bright sticker of the N×N×N grid (2 to 7) in the real colors of the cube state before the move.
 
 - **Moving layers** keep their colors at full brightness and everything else is darkened: to 25 percent on a dark background and to 40 percent on a light one (see `--background`). With `--grey`, the moving layers turn grey instead.
-- **A soft violet arrow with a white outline** lies on the face where the moving layer is visible, along the layer with a margin of 12 percent of the face width at both ends. It has a round tail and a head about twice as long as wide with rounded corners. Its size stays the same on the canvas for a given cube size: 4.0 canvas units wide on the 2x2x2, narrowing to 2.8 on the 7x7x7. On the Right face it is foreshortened like the face.
-- **An upright violet "2x"** with a white outline, the same height as the notation, marks a half turn. It sits right of a vertical arrow and above a horizontal one.
+- **A soft violet arrow with a white outline** lies on the face where the moving layer is visible, along the layer with a margin of 12 percent of the face width at both ends. Quarter turns have a round tail and a head about twice as long as wide with rounded corners. Half turns have a head at each end. Its size stays the same on the canvas for a given cube size: 4.0 canvas units wide on the 2x2x2, narrowing to 2.8 on the 7x7x7. On the Right face it is foreshortened like the face.
+- **An upright violet "2x"** with a white outline, the same height as the notation, marks a half turn. It sits right of a vertical arrow and above a horizontal one; rotations place it at the upper right.
 - **A curved violet arrow** over the whole cube marks the rotations `x`, `y` and `z`.
 - **The notation** is written below the cube in Quicksand Bold, always in the same size and on the same baseline. It is light on a dark background and dark on a light one.
 
@@ -295,7 +295,7 @@ Stickers that differ: 31 of 54 (all marked amber in graphics rows, in the view t
 
 Correction (3 moves)
 move R1 of 3: D2
-D2 → (half turn)
+D2 ↔ (half turn)
    g y y
   r w r
  o y b
@@ -307,7 +307,7 @@ O B O G Y W
 
 Continue (moves 7-21 of the printed solution)
 move 7 of 21: B2
-B2 ↑ (half turn)
+B2 ↕ (half turn)
    B R Y
   r w r
  o y b
