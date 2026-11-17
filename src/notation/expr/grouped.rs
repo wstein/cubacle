@@ -2,7 +2,15 @@
 //! the flat move list.
 
 use super::inverse;
-use crate::puzzle::Move;
+use crate::puzzle::{Move, Turn};
+
+/// A whole-cube rotation and its range in the expanded move list.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Rotation {
+    pub start: usize,
+    pub axis: char,
+    pub turn: Turn,
+}
 
 /// The most group marks an expression may expand to.
 pub(super) const MAX_MARKS: usize = 400_000;
@@ -28,6 +36,7 @@ pub(super) struct Mark {
 pub(super) struct Run {
     pub(super) moves: Vec<Move>,
     pub(super) marks: Vec<Mark>,
+    pub(super) rotations: Vec<Rotation>,
 }
 
 impl Run {
@@ -35,6 +44,7 @@ impl Run {
         Run {
             moves,
             marks: Vec::new(),
+            rotations: Vec::new(),
         }
     }
 
@@ -44,6 +54,11 @@ impl Run {
             at: m.at + shift,
             kind: m.kind,
         }));
+        self.rotations
+            .extend(other.rotations.into_iter().map(|r| Rotation {
+                start: r.start + shift,
+                ..r
+            }));
         self.moves.extend(other.moves);
     }
 
@@ -80,6 +95,20 @@ impl Run {
         let len = self.moves.len();
         Run {
             moves: inverse(&self.moves),
+            rotations: self
+                .rotations
+                .iter()
+                .rev()
+                .map(|r| Rotation {
+                    start: len - r.start - 2,
+                    axis: r.axis,
+                    turn: match r.turn {
+                        Turn::Clockwise => Turn::CounterClockwise,
+                        Turn::CounterClockwise => Turn::Clockwise,
+                        Turn::Half => Turn::Half,
+                    },
+                })
+                .collect(),
             marks: self
                 .marks
                 .iter()

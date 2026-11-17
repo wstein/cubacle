@@ -39,7 +39,8 @@ pub(super) fn steps(
         style.shading = cubacle::render::Shading::GreyMoving;
     }
     let mut out = String::new();
-    for (at, action) in actions_of(text, moves).iter().enumerate() {
+    let (_, rotations) = parse_rotations(text, kind).map_err(|e| e.to_string())?;
+    for (at, action) in semantic_actions(moves, &rotations).iter().enumerate() {
         let drawn = state.icon(action, &style).map_err(|e| e.to_string())?;
         let drawn = numbered(drawn, at + 1, args.pictures.numbers, style.backdrop);
         out.push_str(&pictures.picture(&[drawn], &style));

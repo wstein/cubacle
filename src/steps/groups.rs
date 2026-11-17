@@ -8,10 +8,11 @@
 use std::ops::Range;
 
 use cubacle::notation::{Group, Item};
-use cubacle::puzzle::{Facelets, Move, MoveSequence};
-use cubacle::render::{brackets, icon, Action, BlockSpan, Raster, UnitSpan};
+use cubacle::puzzle::{Facelets, MoveSequence};
+use cubacle::render::{brackets, icon, BlockSpan, Raster, UnitSpan};
 
-use super::{lone_quarters, row_icon, Pictures};
+use super::run::Run;
+use super::{row_icon, Pictures};
 use crate::icons::{numbered, show, Graphics};
 use crate::views::kitty_block;
 
@@ -36,6 +37,15 @@ struct BlockRange {
 }
 
 impl Layout {
+    pub(crate) fn collapse(mut self, starts: &[usize]) -> Layout {
+        let index = |at: usize| at - starts.partition_point(|&start| start + 1 < at);
+        for block in &mut self.blocks {
+            for unit in &mut block.units {
+                *unit = index(unit.start)..index(unit.end);
+            }
+        }
+        self
+    }
     pub fn of(tree: &Group) -> Layout {
         let mut at = 0;
         let mut blocks = Vec::new();
@@ -73,28 +83,24 @@ impl Layout {
         self.blocks.iter().any(|b| b.outer)
     }
 
-    /// The moves with ` · ` between groups and a block in parentheses.
-    pub fn line(&self, moves: &[Move], write: &dyn Fn(&Move) -> String) -> String {
-        let words = |unit: &Range<usize>| {
-            moves[unit.clone()]
-                .iter()
-                .map(write)
-                .collect::<Vec<_>>()
-                .join(" ")
-        };
-        let blocks: Vec<String> = self
-            .blocks
+    fn words(&self, words: &[String]) -> String {
+        self.blocks
             .iter()
-            .map(|b| {
-                let inner: Vec<String> = b.units.iter().map(words).collect();
-                if b.outer {
-                    format!("({})", inner.join(" · "))
+            .map(|block| {
+                let inner = block
+                    .units
+                    .iter()
+                    .map(|unit| words[unit.clone()].join(" "))
+                    .collect::<Vec<_>>()
+                    .join(" · ");
+                if block.outer {
+                    format!("({inner})")
                 } else {
-                    inner.join(" · ")
+                    inner
                 }
             })
-            .collect();
-        blocks.join(" · ")
+            .collect::<Vec<_>>()
+            .join(" · ")
     }
 }
 
@@ -293,26 +299,35 @@ pub(super) fn steps(
     solution: &MoveSequence,
     layout: &Layout,
 ) -> Result<String, String> {
-    let moves = solution.moves();
+    let run = Run::plain(solution, pictures.options.notation, start.kind());
+    action_steps(pictures, start, &run, layout)
+}
+
+pub(super) fn action_steps(
+    pictures: &Pictures<'_>,
+    start: &Facelets,
+    run: &Run,
+    layout: &Layout,
+) -> Result<String, String> {
     if pictures.graphics == Graphics::Kitty {
-        kitty(pictures, start, moves, layout)
+        kitty(pictures, start, run, layout)
     } else {
-        text(pictures, start, moves, layout)
+        text(pictures, start, run, layout)
     }
 }
 
 fn kitty(
     pictures: &Pictures<'_>,
     start: &Facelets,
-    moves: &[Move],
+    run: &Run,
     layout: &Layout,
 ) -> Result<String, String> {
     let style = &pictures.style;
     let mut state = start.clone();
     let mut out = String::new();
-    let width = match moves.first() {
+    let width = match run.actions.first() {
         Some(first) => {
-            icon(&state, &Action::Layer(*first), style)
+            icon(&state, first, style)
                 .map_err(|error| error.to_string())?
                 .to_rgba(style.size)
                 .width
@@ -324,7 +339,7 @@ fn kitty(
         width: pictures.terminal.width_px,
         icons: pictures.options.columns.unwrap_or(usize::MAX),
     };
-    let lone = lone_quarters(moves);
+    let lone = &run.lone;
     let total = layout.units();
     let outer = layout.has_outer();
     for row in pack(layout, fit) {
@@ -344,7 +359,7 @@ fn kitty(
                 }
                 let mut icons = Vec::new();
                 for at in piece.moves.clone() {
-                    let action = Action::Layer(moves[at]);
+                    let action = run.actions[at];
                     let drawn = icon(&state, &action, style).map_err(|error| error.to_string())?;
                     let drawn = numbered(drawn, at + 1, pictures.options.numbers, style.backdrop);
                     icons.push(row_icon(drawn.to_rgba(style.size), lone[at]));
@@ -387,21 +402,18 @@ pub(super) fn spacer(width: u32) -> Raster {
 fn text(
     pictures: &Pictures<'_>,
     start: &Facelets,
-    moves: &[Move],
+    run: &Run,
     layout: &Layout,
 ) -> Result<String, String> {
-    let notation = pictures.options.notation;
-    let kind = start.kind();
-    let write = |mv: &Move| notation.write_move(kind, mv);
     let total = layout.units();
-    let mut out = layout.line(moves, &write);
+    let mut out = layout.words(&run.written);
     out.push('\n');
     let mut state = start.clone();
     let mut number = 0;
     for block in &layout.blocks {
         for (i, unit) in block.units.iter().enumerate() {
             number += 1;
-            let words: Vec<String> = moves[unit.clone()].iter().map(write).collect();
+            let words = &run.written[unit.clone()];
             let open = if block.outer && i == 0 { "(" } else { "" };
             let close = if block.outer && i + 1 == block.units.len() {
                 ")"
@@ -412,9 +424,8 @@ fn text(
                 "group {number} of {total}: {open}{}{close}\n",
                 words.join(" ")
             ));
-            for mv in &moves[unit.clone()] {
-                let action = Action::Layer(*mv);
-                let drawn = icon(&state, &action, &pictures.style).map_err(|e| e.to_string())?;
+            for action in &run.actions[unit.clone()] {
+                let drawn = icon(&state, action, &pictures.style).map_err(|e| e.to_string())?;
                 out.push_str(&show(&drawn, pictures.graphics, pictures.style.size));
                 out.push('\n');
                 state = action.apply(&state).map_err(|e| e.to_string())?;
