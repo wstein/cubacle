@@ -280,9 +280,11 @@ fn actions_of(text: &str, moves: &MoveSequence) -> Vec<Action> {
     let words: Option<Vec<Action>> = text
         .split_whitespace()
         .map(|word| {
-            to_wca_token(word)
-                .ok()
-                .and_then(|wca| wca.parse::<Action>().ok())
+            word.parse::<Action>().ok().or_else(|| {
+                to_wca_token(word)
+                    .ok()
+                    .and_then(|wca| wca.parse::<Action>().ok())
+            })
         })
         .collect();
     words.unwrap_or_else(|| moves.moves().iter().map(|mv| Action::Layer(*mv)).collect())
@@ -333,6 +335,10 @@ fn draw(
         let mut steps = if let Some(objective) = args.optimize {
             let packed = optimize(kind, moves, objective);
             pictures.layer_steps(&start, &packed, false)?
+        } else if args.group != GroupMode::Axis
+            && !(args.group == GroupMode::Dots && (text.contains('·') || text.contains('(')))
+        {
+            pictures.action_steps(&start, actions_of(text, moves))?
         } else {
             pictures.steps(&start, moves, &[], false)?
         };
@@ -445,5 +451,22 @@ mod tests {
     fn half_turns_become_two_quarter_turns() {
         let moves: MoveSequence = "R2 U' 2Rw2".parse().unwrap();
         assert_eq!(quarter_turns(&moves).to_string(), "R R U' Rw Rw");
+    }
+
+    #[test]
+    fn rotation_actions_replay_the_expanded_expression() {
+        let text = "R2 L2 x y z x2 y2 z2 x' y' z'";
+        let kind = PuzzleKind::Cube5;
+        let moves = expand(text, kind).unwrap();
+        let actions = actions_of(text, &moves);
+        assert_eq!(actions.len(), 11);
+        assert!(actions[2..]
+            .iter()
+            .all(|a| matches!(a, Action::Rotate { .. })));
+        let start = Facelets::solved(kind);
+        let end = actions
+            .iter()
+            .fold(start.clone(), |state, action| action.apply(&state).unwrap());
+        assert_eq!(end, start.apply(&moves).unwrap());
     }
 }
