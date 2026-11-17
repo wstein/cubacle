@@ -40,10 +40,13 @@ impl Layout {
     pub(crate) fn collapse(mut self, starts: &[usize]) -> Layout {
         let index = |at: usize| at - starts.partition_point(|&start| start + 1 < at);
         for block in &mut self.blocks {
-            for unit in &mut block.units {
+            block.units.retain_mut(|unit| {
+                let was_empty = unit.start >= unit.end;
                 *unit = index(unit.start)..index(unit.end);
-            }
+                was_empty || unit.start < unit.end
+            });
         }
+        self.blocks.retain(|block| !block.units.is_empty());
         self
     }
     pub fn of(tree: &Group) -> Layout {

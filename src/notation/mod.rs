@@ -18,7 +18,7 @@ mod subset;
 mod template;
 
 pub use alphabet::{parse_alphabet, AlphabetError, NAMED_SETS};
-pub use axis::axis_units;
+pub use axis::{axis_units, axis_units_with_rotations};
 pub use expr::{
     parse_expression, parse_grouped, parse_rotations, ExprError, Group, Item, Rotation, MAX_DEPTH,
     MAX_EXPANDED_MOVES,

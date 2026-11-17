@@ -6,8 +6,8 @@ use std::path::PathBuf;
 
 use clap::Args;
 use cubacle::notation::{
-    axis_units, parse_expression, parse_grouped, parse_rotations, ColorScheme, Item, Notation,
-    Rotation,
+    axis_units, axis_units_with_rotations, parse_expression, parse_grouped, parse_rotations,
+    ColorScheme, Item, Notation, Rotation,
 };
 use cubacle::puzzle::{Facelets, Move, MoveSequence, PuzzleKind, Turn};
 use cubacle::ranges::{optimize, Optimize};
@@ -366,10 +366,9 @@ fn draw(
         let options = pictures.options(args.scheme, args.notation);
         let mut pictures = Pictures::new(args.size, &options);
         if args.group == GroupMode::Axis {
-            let tree = axis_units(moves.moves(), kind, &[]);
-            pictures = pictures.grouped(
-                Layout::of(&tree).collapse(&rotations.iter().map(|r| r.start).collect::<Vec<_>>()),
-            );
+            let starts: Vec<_> = rotations.iter().map(|r| r.start).collect();
+            let tree = axis_units_with_rotations(moves.moves(), kind, &[], &starts);
+            pictures = pictures.grouped(Layout::of(&tree).collapse(&starts));
         } else if args.group == GroupMode::Dots && (text.contains('·') || text.contains('(')) {
             let tree = parse_grouped(text, kind).map_err(|error| error.to_string())?;
             pictures = pictures.grouped(

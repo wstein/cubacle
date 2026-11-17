@@ -96,6 +96,17 @@ impl Open {
 /// way) joins a unit of its own axis, like a rotation in ATM. The result is a
 /// root group of units, as [`super::parse_grouped`] returns for `·`.
 pub fn axis_units(moves: &[Move], kind: PuzzleKind, breaks: &[usize]) -> Group {
+    axis_units_with_rotations(moves, kind, breaks, &[])
+}
+
+/// Groups moves without pairing a layer move with the start of a rotation.
+/// Rotation starts must be sorted in ascending order.
+pub fn axis_units_with_rotations(
+    moves: &[Move],
+    kind: PuzzleKind,
+    breaks: &[usize],
+    rotation_starts: &[usize],
+) -> Group {
     let n = u8::try_from(kind.size()).expect("sizes are small");
     let all: u16 = (1 << n) - 1;
     let mut items = Vec::new();
@@ -106,7 +117,9 @@ pub fn axis_units(moves: &[Move], kind: PuzzleKind, breaks: &[usize]) -> Group {
             open.take(&mut items);
         }
         let block = block_of(&moves[at], n);
-        let pair = moves.get(at + 1).filter(|_| !breaks.contains(&(at + 1)));
+        let pair = moves.get(at + 1).filter(|_| {
+            !breaks.contains(&(at + 1)) && rotation_starts.binary_search(&(at + 1)).is_err()
+        });
         let rotation = if block.mask == all {
             Some(1)
         } else {

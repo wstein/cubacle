@@ -124,3 +124,53 @@ fn marked_groups_keep_rotations() {
         &["group 1 of 2: R x", "group 2 of 2: y U"],
     );
 }
+
+#[test]
+fn axis_groups_do_not_split_rotations_at_token_boundaries() {
+    let output = Command::new(env!("CARGO_BIN_EXE_cubacle"))
+        .args([
+            "moves",
+            "--size",
+            "5",
+            "--icons",
+            "--graphics",
+            "plain",
+            "--group",
+            "axis",
+            "L' x",
+        ])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let text = String::from_utf8(output.stdout).unwrap();
+    let groups: Vec<_> = text
+        .lines()
+        .filter(|line| line.starts_with("group "))
+        .collect();
+    assert_eq!(groups, ["group 1 of 1: L' x"]);
+}
+
+#[test]
+fn axis_groups_keep_adjacent_rotations_together() {
+    let output = Command::new(env!("CARGO_BIN_EXE_cubacle"))
+        .args([
+            "moves",
+            "--size",
+            "5",
+            "--icons",
+            "--graphics",
+            "plain",
+            "--group",
+            "axis",
+            "L' x x'",
+        ])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let text = String::from_utf8(output.stdout).unwrap();
+    let groups: Vec<_> = text
+        .lines()
+        .filter(|line| line.starts_with("group "))
+        .collect();
+    assert_eq!(groups, ["group 1 of 1: L' x x'"]);
+}
