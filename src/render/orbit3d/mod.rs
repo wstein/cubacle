@@ -20,7 +20,7 @@ use curve::{
 };
 
 use super::action::Action;
-use super::arrow::{arrowhead, corner_mark, halo_grow, ribbon, shaft_width, sub, unit, Metrics};
+use super::arrow::{arrowhead, halo_grow, mark_beside, ribbon, shaft_width, sub, unit, Metrics};
 use super::geometry::Projection;
 use super::round::disc;
 use super::scene::{Part, Shape, WIDTH};
@@ -127,7 +127,7 @@ pub(super) fn shapes(action: &Action, n: usize, proj: &Projection, pixels_per_un
         target.extend(item.shapes);
     }
     if orbit.half {
-        layers.front.extend(corner_mark());
+        layers.front.extend(orbit.half_mark());
     }
     layers
 }
@@ -261,6 +261,23 @@ impl Orbit<'_> {
             heads: head_list,
             tail,
         }
+    }
+
+    /// The `2x` of a half turn: beside the middle of the arc, on the side away
+    /// from the cube center.
+    fn half_mark(&self) -> Vec<Shape> {
+        let middle = MIDDLE[self.axis].to_radians();
+        let at = |angle: f64| self.proj.project(ring_point(self.axis, self.radius, angle));
+        let (before, point, after) = (at(middle - 0.05), at(middle), at(middle + 0.05));
+        let tangent = unit(sub(after, before));
+        let mut outward = [tangent[1], -tangent[0]];
+        let center = self.proj.project([0.0; 3]);
+        let away = sub(point, center);
+        if outward[0] * away[0] + outward[1] * away[1] < 0.0 {
+            outward = [-outward[0], -outward[1]];
+        }
+        let shaft = self.metrics().width / 2.0 + halo_grow(self.pixels_per_unit);
+        mark_beside(point, outward, shaft, BOTTOM)
     }
 
     fn arrow_items(&self) -> Vec<Item> {

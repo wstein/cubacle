@@ -4,7 +4,7 @@ use crate::puzzle::{Face, Facelets, PuzzleKind};
 use crate::render::geometry::{cube_shapes, Camera};
 use crate::render::scene::HEIGHT;
 use crate::render::style::Style;
-use crate::render::{icon, Icon};
+use crate::render::{icon, Backdrop, Icon};
 
 const ROTATIONS: [&str; 9] = ["x", "y", "z", "x2", "y2", "z2", "x'", "y'", "z'"];
 const KINDS: [PuzzleKind; 6] = [
@@ -336,5 +336,53 @@ fn orbit_measure() {
     }
     for text in ["x", "y", "z", "x2", "y2", "z2"] {
         println!("{text} 5x5 {:.2}", arc_length(text, 5));
+    }
+}
+
+/// The box around the glyphs of the "2x" mark.
+fn mark_box(icon: &Icon) -> [f64; 4] {
+    let (mut x0, mut y0, mut x1, mut y1) = (f64::MAX, f64::MAX, f64::MIN, f64::MIN);
+    for s in icon.shapes.iter().filter(|s| s.part == Part::Mark) {
+        for &[x, y] in &s.points {
+            (x0, y0, x1, y1) = (x0.min(x), y0.min(y), x1.max(x), y1.max(y));
+        }
+    }
+    [x0, y0, x1, y1]
+}
+
+/// The "2x" of a half turn sits beside the arrow: its box touches the side of
+/// the shaft with `MARK_GAP` of air, so the box center is at most the half shaft
+/// with its halo, plus the gap, plus half the box diagonal from the shaft. One
+/// unit more covers the spacing of the shaft samples. The largest distance
+/// measured is 18.7 against a bound of 20.1; with the mark in the corner, as
+/// before, the distance is 59 or more.
+#[test]
+fn the_half_turn_mark_sits_beside_the_arrow() {
+    for kind in KINDS {
+        let n = kind.size();
+        for backdrop in [Backdrop::Dark, Backdrop::Light] {
+            let style = Style {
+                backdrop,
+                ..Style::default()
+            };
+            for text in ["x2", "y2", "z2"] {
+                let drawn = icon(&Facelets::solved(kind), &act(text), &style).unwrap();
+                let [x0, y0, x1, y1] = mark_box(&drawn);
+                let (cx, cy) = ((x0 + x1) / 2.0, (y0 + y1) / 2.0);
+                let proj = projection(n);
+                let orbit = Orbit::new(&act(text), n, &proj, pixels_per_unit());
+                let shaft = project_all(&orbit.arrow_plan().shaft, &proj);
+                let gap = shaft
+                    .iter()
+                    .map(|q| (q[0] - cx).hypot(q[1] - cy))
+                    .fold(f64::MAX, f64::min);
+                let half = orbit.metrics().width / 2.0 + halo_grow(pixels_per_unit());
+                let bound = half + 3.0 + (x1 - x0).hypot(y1 - y0) / 2.0 + 1.0;
+                assert!(
+                    gap <= bound,
+                    "{n}x{n} {text} {backdrop:?}: mark center {gap:.1} from the shaft, bound {bound:.1}"
+                );
+            }
+        }
     }
 }

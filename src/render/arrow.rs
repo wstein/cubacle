@@ -345,11 +345,26 @@ fn half_text(plan: &Plan, nf: f64, projection: &Projection, width: f64) -> Vec<S
     mark_at((x, y), (w, h))
 }
 
-/// The `2x` of a whole-cube half turn: in the upper-right corner of the canvas.
-pub(super) fn corner_mark() -> Vec<Shape> {
+/// Air between the shaft and the `2x` of a whole-cube half turn, in canvas units.
+const MARK_GAP: f64 = 3.0;
+
+/// The `2x` of a whole-cube half turn beside the arrow: its box touches the
+/// side of the shaft at `point` that `outward` (a unit vector) points to, with
+/// `MARK_GAP` of air. `shaft` is the half width of the shaft with its halo.
+/// The mark stays inside the drawing area down to `bottom`.
+pub(super) fn mark_beside(
+    point: [f64; 2],
+    outward: [f64; 2],
+    shaft: f64,
+    bottom: f64,
+) -> Vec<Shape> {
     let scale = LABEL_SCALE * HALF_MARK_SCALE;
     let (w, h) = (font::measure("2x") * scale, font::GLYPH_HEIGHT * scale);
-    mark_at((WIDTH - EDGE - HALO - w - 2.0, EDGE + HALO + 2.0), (w, h))
+    let reach = shaft + MARK_GAP + outward[0].abs() * w / 2.0 + outward[1].abs() * h / 2.0;
+    let (cx, cy) = (point[0] + outward[0] * reach, point[1] + outward[1] * reach);
+    let x = (cx - w / 2.0).clamp(EDGE + HALO, WIDTH - EDGE - HALO - w);
+    let y = (cy - h / 2.0).clamp(EDGE + HALO, bottom - HALO - h);
+    mark_at((x, y), (w, h))
 }
 
 /// The `2x` with its halo at `(x, y)`, `(w, h)` large. Every drawing stays
