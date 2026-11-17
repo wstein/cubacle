@@ -403,3 +403,47 @@ fn the_axis_takes_its_color_from_the_backdrop() {
         assert!(has(backdrop.ring_ink()), "{backdrop:?}: ring");
     }
 }
+
+#[test]
+fn axis_outline_layers_and_margin() {
+    for n in 2..=7 {
+        let proj = projection(n);
+        for backdrop in [Backdrop::Dark, Backdrop::Light] {
+            let outline = backdrop.axis_outline();
+            for text in ROTATIONS {
+                let orbit = Orbit::new(&act(text), n, &proj, pixels_per_unit(), backdrop);
+                let axis = orbit.axis_items();
+                assert!(!axis.is_empty());
+                for item in &axis {
+                    assert!(item.depth == Depth::Axis);
+                    assert_eq!(item.shapes.len(), 2, "{n} {text} {backdrop:?}");
+                    assert_eq!(item.shapes[0].fill, outline);
+                    assert_eq!(item.shapes[1].fill, backdrop.axis_ink());
+                    let polygon = &item.shapes[0].points;
+                    let a = polygon[0];
+                    let b = polygon[polygon.len() - 1];
+                    let width = (a[0] - b[0]).hypot(a[1] - b[1]);
+                    assert!((width - 2.9).abs() < 1e-8, "outline width {width}");
+                    for &p in &item.shapes[0].points {
+                        assert!(inside_canvas(p, 0.0), "{n} {text} {p:?}");
+                    }
+                }
+                assert!(orbit.ring_items().iter().all(|item| item.shapes.len() == 1));
+                let layers = shapes(&act(text), n, &proj, pixels_per_unit(), backdrop);
+                for hidden in [true, false] {
+                    let list = if hidden {
+                        &layers.behind
+                    } else {
+                        &layers.front
+                    };
+                    for item in axis.iter().filter(|item| item.hidden == hidden) {
+                        assert!(
+                            list.windows(2).any(|pair| pair == item.shapes.as_slice()),
+                            "{n} {text} {backdrop:?}"
+                        );
+                    }
+                }
+            }
+        }
+    }
+}

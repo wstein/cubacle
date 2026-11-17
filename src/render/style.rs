@@ -79,6 +79,11 @@ pub enum Backdrop {
     Light,
 }
 
+const DARK_AXIS_CORE: Rgb = Rgb(0xe6, 0xeb, 0xf2);
+const DARK_AXIS_OUTLINE: Rgb = Rgb(0x14, 0x16, 0x1a);
+const LIGHT_AXIS_CORE: Rgb = Rgb(0x22, 0x22, 0x22);
+const LIGHT_AXIS_OUTLINE: Rgb = Rgb(0xff, 0xff, 0xff);
+
 impl Backdrop {
     /// The brightness of the pieces that do not turn.
     pub(crate) fn dimming(self) -> f64 {
@@ -96,11 +101,18 @@ impl Backdrop {
     }
 
     /// The rotation axis of a whole-cube rotation: near white on a dark
-    /// backdrop, dark slate on a light one.
+    /// backdrop, dark gray on a light one.
     pub(crate) fn axis_ink(self) -> Rgb {
         match self {
-            Backdrop::Dark => Rgb(0xe6, 0xeb, 0xf2),
-            Backdrop::Light => Rgb(0x4a, 0x54, 0x68),
+            Backdrop::Dark => DARK_AXIS_CORE,
+            Backdrop::Light => LIGHT_AXIS_CORE,
+        }
+    }
+
+    pub(crate) fn axis_outline(self) -> Rgb {
+        match self {
+            Backdrop::Dark => DARK_AXIS_OUTLINE,
+            Backdrop::Light => LIGHT_AXIS_OUTLINE,
         }
     }
 
@@ -221,5 +233,60 @@ mod tests {
             Palette::from_letters(['?'; 6]).color(Face::R),
             Rgb(0x96, 0x96, 0x96)
         );
+    }
+}
+
+#[cfg(test)]
+mod axis_contrast_tests {
+    use super::*;
+
+    fn luminance(c: Rgb) -> f64 {
+        let lin = |v: u8| {
+            let s = f64::from(v) / 255.0;
+            if s <= 0.04045 {
+                s / 12.92
+            } else {
+                ((s + 0.055) / 1.055).powf(2.4)
+            }
+        };
+        0.2126 * lin(c.0) + 0.7152 * lin(c.1) + 0.0722 * lin(c.2)
+    }
+
+    fn contrast(a: Rgb, b: Rgb) -> f64 {
+        let (a, b) = (luminance(a), luminance(b));
+        (a.max(b) + 0.05) / (a.min(b) + 0.05)
+    }
+
+    #[test]
+    fn axis_pair_reads_on_backdrops_and_stickers() {
+        let palette = Palette::default();
+        let colors =
+            [Face::U, Face::R, Face::F, Face::D, Face::L, Face::B].map(|f| palette.color(f));
+        let grounds = [
+            Rgb(0, 0, 0),
+            Rgb(0x1c, 0x1e, 0x24),
+            Rgb(0x20, 0x24, 0x2b),
+            WHITE,
+            Rgb(0xf4, 0xf4, 0xf4),
+            Rgb(0x96, 0x96, 0x96),
+            GREY,
+            BODY,
+        ];
+        for backdrop in [Backdrop::Dark, Backdrop::Light] {
+            let core = backdrop.axis_ink();
+            let outline = backdrop.axis_outline();
+            assert!(
+                contrast(core, outline) >= 3.0,
+                "{backdrop:?}: core vs outline"
+            );
+            for color in grounds.into_iter().chain(colors).chain(
+                colors
+                    .into_iter()
+                    .flat_map(|c| [c.scale(0.325), c.scale(0.46), c.scale(0.82), c.scale(0.93)]),
+            ) {
+                let ratio = contrast(core, color).max(contrast(outline, color));
+                assert!(ratio >= 3.0, "{backdrop:?} {}: {ratio:.4}", color.hex());
+            }
+        }
     }
 }

@@ -36,6 +36,7 @@ const OVERHANG: f64 = 0.36;
 const BODY_RIM: f64 = 0.1;
 /// Line widths of the axis and of the orbit, in canvas units.
 const AXIS_WIDTH: f64 = 1.5;
+const AXIS_OUTLINE: f64 = 0.7;
 const RING_WIDTH: f64 = 1.0;
 /// Every polygon stays this far from the canvas edge and above the notation,
 /// which starts at 94 (`label.rs`).
@@ -178,7 +179,8 @@ impl Orbit<'_> {
         let mut reach = self.radius + OVERHANG * self.n;
         let fits = |s: f64| {
             let ends = [s, -s].map(|s| self.proj.project(axis_point(self.axis, s)));
-            ends.iter().all(|&q| inside_canvas(q, AXIS_WIDTH / 2.0))
+            ends.iter()
+                .all(|&q| inside_canvas(q, AXIS_WIDTH / 2.0 + AXIS_OUTLINE))
         };
         while reach > 0.0 && !fits(reach) {
             reach -= 0.05;
@@ -198,7 +200,25 @@ impl Orbit<'_> {
             .collect();
         self.runs(&points, &|_| Depth::Axis)
             .into_iter()
-            .map(|run| self.line(run, AXIS_WIDTH, self.backdrop.axis_ink()))
+            .map(|run| {
+                let flat = project_all(&run.points, self.proj);
+                Item {
+                    hidden: run.hidden,
+                    depth: run.depth,
+                    shapes: vec![
+                        Shape::new(
+                            Part::Arrow,
+                            ribbon(&flat, AXIS_WIDTH + 2.0 * AXIS_OUTLINE),
+                            self.backdrop.axis_outline(),
+                        ),
+                        Shape::new(
+                            Part::Arrow,
+                            ribbon(&flat, AXIS_WIDTH),
+                            self.backdrop.axis_ink(),
+                        ),
+                    ],
+                }
+            })
             .collect()
     }
 
