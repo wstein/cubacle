@@ -151,9 +151,8 @@ pub(crate) struct SolveArgs {
     /// How to write the solution: wca (Rw, 3Rw) sign (r, 3r) or sse (TR, T3R)
     #[arg(long, default_value = "wca")]
     pub(crate) notation: Notation,
-    /// Post-solve compression (no search): `ranges` writes adjacent turns of one axis as
-    /// layer ranges (2-3r in sign, 2-3Rw in wca) and reports both move counts; with
-    /// --icons each range is one picture with one arrow
+    /// Post-solve rewriting: ranges (layer ranges), moves (engine turn count),
+    /// or easy (block turns, final orientation free); with --icons draw each block
     #[arg(long, value_name = "WHAT")]
     pub(crate) optimize: Option<Optimize>,
     /// Allow single inner layers (2R) in 4x4x4 and 5x5x5 answers where they make them shorter

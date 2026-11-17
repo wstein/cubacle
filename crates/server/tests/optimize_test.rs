@@ -67,3 +67,10 @@ async fn an_unknown_optimization_is_a_400() {
     let (status, _) = call(json!({"cube": cube, "optimize": "all"})).await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
 }
+
+#[tokio::test]
+async fn easy_is_refused_without_a_frame_for_compressed_output() {
+    let cube = Facelets::solved(PuzzleKind::Cube3).to_string();
+    let (status, _) = call(json!({"cube": cube, "optimize": "easy"})).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+}

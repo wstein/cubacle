@@ -380,6 +380,17 @@ impl<'a> Pictures<'a> {
         self.steps_run(start, &run, &phases, with_start, Block::whole(run.len()))
     }
 
+    /// Draw a precomputed sequence of layer moves.
+    pub(crate) fn layer_steps(
+        &self,
+        start: &Facelets,
+        moves: &[LayerMove],
+        with_start: bool,
+    ) -> Result<String, String> {
+        let run = Run::packed(moves, self.options.notation, start.kind());
+        self.steps_run(start, &run, &[], with_start, Block::whole(run.len()))
+    }
+
     fn steps_run(
         &self,
         start: &Facelets,
@@ -461,6 +472,26 @@ impl<'a> Pictures<'a> {
 /// as a whole; a range belongs to the phase where it starts.
 pub fn compressed(start: &Facelets, solution: &MoveSequence, found: &[Phase]) -> Vec<LayerMove> {
     compress_phases(start.kind(), solution, found).0
+}
+
+/// Draw a precomputed layer sequence without solver phase labels.
+pub(crate) fn print_layers(
+    start: &Facelets,
+    moves: &[LayerMove],
+    options: &SolutionIcons,
+) -> Result<(), String> {
+    let pictures = Pictures::new(start.kind().size(), options);
+    let mut out = start_line(start)?;
+    if let Some(target) = &options.target {
+        out.push_str(&target_line(target)?);
+    }
+    out.push_str(&pictures.layer_steps(start, moves, true)?);
+    let text = cubacle::ranges::write(options.notation, start.kind(), moves);
+    let mut stdout = std::io::stdout().lock();
+    stdout
+        .write_all(out.as_bytes())
+        .and_then(|()| writeln!(stdout, "\nMoves: {text}"))
+        .map_err(|e| format!("cannot write to standard output: {e}"))
 }
 
 /// Each move of the solution with the picture of the cube before it. With

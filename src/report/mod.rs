@@ -13,7 +13,7 @@ use crate::metrics::{count, count_layer_moves, Metric};
 use crate::notation::Notation;
 use crate::phases::from_stages;
 use crate::puzzle::{LayerMove, MoveSequence, PuzzleKind, SolveEvidence, SolveStage};
-use crate::ranges::{compress, write as write_ranges, Optimize};
+use crate::ranges::{optimize as optimize_moves, write as write_ranges, Optimize};
 
 pub use format::JsonFormat;
 pub use json::{write_string, Object};
@@ -116,8 +116,8 @@ impl SolveReport {
         optimize: Option<Optimize>,
         elapsed: Duration,
     ) -> SolveReport {
-        let compressed = optimize.map(|_| {
-            let packed = compress(kind, solution);
+        let compressed = optimize.map(|objective| {
+            let packed = optimize_moves(kind, solution, objective);
             Compressed {
                 text: write_ranges(notation, kind, &packed),
                 length: packed.len(),

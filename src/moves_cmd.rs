@@ -9,7 +9,7 @@ use cubacle::notation::{
     axis_units, parse_expression, parse_grouped, to_wca_token, ColorScheme, Item, Notation,
 };
 use cubacle::puzzle::{Facelets, Move, MoveSequence, PuzzleKind, Turn};
-use cubacle::ranges::{compress, compressed_text, Optimize};
+use cubacle::ranges::{optimize, Optimize};
 use cubacle::render::{icon, Action, PictureState};
 
 mod picture;
@@ -40,8 +40,8 @@ pub struct MovesArgs {
     /// quarter turns (R2 becomes R R), the form to count in QTM
     #[arg(long, value_enum, conflicts_with_all = ["icons", "optimize"])]
     expand: Option<Expand>,
-    /// Write adjacent turns of one axis as layer ranges where that is shorter
-    /// (`ranges`, as in `solve`); with `--icons` one picture per range
+    /// Rewrite for ranges, engine move count (moves), or block turns with a
+    /// free final orientation (easy); with --icons draw each resulting block
     #[arg(long, value_name = "WHAT")]
     optimize: Option<Optimize>,
     /// Print the moves that undo the expression: reversed, each turned the
@@ -238,10 +238,10 @@ pub fn run(args: MovesArgs) -> Result<(), String> {
         }
         return draw(&args, kind, &text, &moves);
     }
-    if args.optimize == Some(Optimize::Ranges) {
-        let (written, _) = compressed_text(args.notation, kind, &moves);
+    if let Some(objective) = args.optimize {
+        let packed = optimize(kind, &moves, objective);
+        let written = cubacle::ranges::write(args.notation, kind, &packed);
         println!("{written}");
-        let packed = compress(kind, &moves);
         eprintln!(
             "{}",
             if args.metrics {
@@ -330,13 +330,19 @@ fn draw(
             let tree = parse_grouped(text, kind).map_err(|error| error.to_string())?;
             pictures = pictures.grouped(Layout::of(&tree));
         }
-        let mut steps = if args.optimize == Some(Optimize::Ranges) {
-            pictures.compressed_steps(&start, moves, &[], false)?
+        let mut steps = if let Some(objective) = args.optimize {
+            let packed = optimize(kind, moves, objective);
+            pictures.layer_steps(&start, &packed, false)?
         } else {
             pictures.steps(&start, moves, &[], false)?
         };
         // the cube after the last move, as `solve --icons` ends
-        let end = start.apply(moves).map_err(|error| error.to_string())?;
+        let result = args
+            .optimize
+            .map(|objective| cubacle::ranges::expand(&optimize(kind, moves, objective)));
+        let end = start
+            .apply(result.as_ref().unwrap_or(moves))
+            .map_err(|error| error.to_string())?;
         steps.push('\n');
         steps.push_str(&end_line(&end)?);
         steps.push_str(&pictures.start_state(&end));

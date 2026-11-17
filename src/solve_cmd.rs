@@ -17,6 +17,26 @@ use crate::{
 };
 
 pub(crate) fn solve(args: SolveArgs) -> Result<(), String> {
+    use cubacle::ranges::Optimize;
+    if matches!(args.optimize, Some(Optimize::Moves | Optimize::Easy)) {
+        if !args.group.is_empty()
+            || args.every.is_some()
+            || args.moves.is_some()
+            || args.optimal
+            || args.within.is_some()
+            || args.upright_centers
+            || args.center_twist.is_some()
+            || args.twist_target.is_some()
+        {
+            return Err("--optimize moves/easy cannot be combined with grouping, restricted searches, or center twists".into());
+        }
+        if args.optimize == Some(Optimize::Easy) && (args.to.is_some() || args.inverse || args.json)
+        {
+            return Err(
+                "--optimize easy cannot be combined with --to, --inverse, or --json".into(),
+            );
+        }
+    }
     if args.pictures.icons && !args.group.is_empty() {
         return Err("--group cannot be combined with --icons: the pictures are already headed by the solver phases, and the dots (` · `) mark units in the written answer only".into());
     }
@@ -97,6 +117,12 @@ pub(crate) fn solve(args: SolveArgs) -> Result<(), String> {
         .as_ref()
         .filter(|t| t.as_state().is_none() || args.any_orientation || t.has_twist_condition())
     {
+        if args.optimize == Some(Optimize::Moves) {
+            return Err(
+                "--optimize moves cannot be combined with a partial or orientation-free target"
+                    .into(),
+            );
+        }
         return partial_cmd::run(&args, &start, partial, picture.as_ref());
     }
     if args.optimal && target.is_some() {

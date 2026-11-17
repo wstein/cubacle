@@ -92,6 +92,11 @@ pub(crate) async fn solve(
         .map(str::parse)
         .transpose()
         .map_err(ApiError::bad_input)?;
+    if optimize == Some(Optimize::Easy) {
+        return Err(ApiError::bad_input(
+            "optimize easy is not available in JSON: its final orientation may differ",
+        ));
+    }
     let scheme = request.scheme.clone();
     let start = read_input(request.cube, request.scramble, request.size, request.scheme).await?;
     let kind = start.kind();

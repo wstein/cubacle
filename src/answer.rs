@@ -83,6 +83,24 @@ pub(crate) fn print(solved: &Solved<'_>) -> Result<(), String> {
     if args.inverse {
         target = Some(solved.start.clone());
     }
+    if let Some(objective @ (Optimize::Moves | Optimize::Easy)) = args.optimize {
+        let packed = cubacle::ranges::optimize(facelets.kind(), solution, objective);
+        eprintln!("compressed moves {}", packed.len());
+        eprintln!(
+            "compressed {}",
+            metrics_out::compressed_line(facelets.kind(), &packed)
+        );
+        if args.pictures.icons {
+            let mut options = args.pictures.options(args.input.scheme, args.notation);
+            options.target = target;
+            return steps::print_layers(start, &packed, &options);
+        }
+        println!(
+            "{}",
+            cubacle::ranges::write(args.notation, facelets.kind(), &packed)
+        );
+        return Ok(());
+    }
     // The engine's own stages where it reports them, else the state-based cut.
     let found = match args.every {
         Some(every) if args.optimize == Some(Optimize::Ranges) => {
@@ -167,7 +185,11 @@ fn print_json(solved: &Solved<'_>, elapsed: Duration) -> Result<(), String> {
         .with_evidence(solved.evidence);
     if let Some(compressed) = &report.compressed {
         eprintln!("compressed moves {}", compressed.length);
-        let packed = cubacle::ranges::compress(kind, solved.solution);
+        let packed = cubacle::ranges::optimize(
+            kind,
+            solved.solution,
+            args.optimize.expect("compressed report"),
+        );
         eprintln!("compressed {}", metrics_out::compressed_line(kind, &packed));
     }
     println!(
