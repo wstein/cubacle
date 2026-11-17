@@ -24,7 +24,7 @@ use super::arrow::{arrowhead, halo_grow, mark_beside, ribbon, shaft_width, sub, 
 use super::geometry::Projection;
 use super::round::disc;
 use super::scene::{Part, Shape, WIDTH};
-use super::style::{Rgb, ARROW_VIOLET, ORBIT_AXIS, ORBIT_RING, WHITE};
+use super::style::{Backdrop, Rgb, ARROW_VIOLET, WHITE};
 use crate::puzzle::Turn;
 
 /// Radius of the orbit in half cube edges (model units per `n`). Larger values
@@ -84,10 +84,17 @@ struct Orbit<'a> {
     prime: bool,
     proj: &'a Projection,
     pixels_per_unit: f64,
+    backdrop: Backdrop,
 }
 
 impl<'a> Orbit<'a> {
-    fn new(action: &Action, n: usize, proj: &'a Projection, pixels_per_unit: f64) -> Orbit<'a> {
+    fn new(
+        action: &Action,
+        n: usize,
+        proj: &'a Projection,
+        pixels_per_unit: f64,
+        backdrop: Backdrop,
+    ) -> Orbit<'a> {
         let Action::Rotate { turn, .. } = action else {
             panic!("not a whole-cube rotation: {action}");
         };
@@ -102,13 +109,20 @@ impl<'a> Orbit<'a> {
             prime: *turn == Turn::CounterClockwise,
             proj,
             pixels_per_unit,
+            backdrop,
         }
     }
 }
 
 /// The picture of the rotation `action` on a cube of size `n`.
-pub(super) fn shapes(action: &Action, n: usize, proj: &Projection, pixels_per_unit: f64) -> Layers {
-    let orbit = Orbit::new(action, n, proj, pixels_per_unit);
+pub(super) fn shapes(
+    action: &Action,
+    n: usize,
+    proj: &Projection,
+    pixels_per_unit: f64,
+    backdrop: Backdrop,
+) -> Layers {
+    let orbit = Orbit::new(action, n, proj, pixels_per_unit, backdrop);
     let mut items = orbit.axis_items();
     items.extend(orbit.ring_items());
     items.extend(orbit.arrow_items());
@@ -184,7 +198,7 @@ impl Orbit<'_> {
             .collect();
         self.runs(&points, &|_| Depth::Axis)
             .into_iter()
-            .map(|run| self.line(run, AXIS_WIDTH, ORBIT_AXIS))
+            .map(|run| self.line(run, AXIS_WIDTH, self.backdrop.axis_ink()))
             .collect()
     }
 
@@ -197,7 +211,7 @@ impl Orbit<'_> {
             .collect();
         self.runs(&points, &|p| self.depth_of(p))
             .into_iter()
-            .map(|run| self.line(run, RING_WIDTH, ORBIT_RING))
+            .map(|run| self.line(run, RING_WIDTH, self.backdrop.ring_ink()))
             .collect()
     }
 

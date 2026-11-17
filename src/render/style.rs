@@ -94,6 +94,24 @@ impl Backdrop {
             Backdrop::Light => Rgb(0x14, 0x16, 0x1a),
         }
     }
+
+    /// The rotation axis of a whole-cube rotation: near white on a dark
+    /// backdrop, dark slate on a light one.
+    pub(crate) fn axis_ink(self) -> Rgb {
+        match self {
+            Backdrop::Dark => Rgb(0xe6, 0xeb, 0xf2),
+            Backdrop::Light => Rgb(0x4a, 0x54, 0x68),
+        }
+    }
+
+    /// The orbit ring of a whole-cube rotation: a mid tone that is at least
+    /// 3:1 against the backdrop.
+    pub(crate) fn ring_ink(self) -> Rgb {
+        match self {
+            Backdrop::Dark => Rgb(0x9a, 0xa4, 0xb2),
+            Backdrop::Light => Rgb(0x6b, 0x75, 0x87),
+        }
+    }
 }
 
 /// Everything that is not the cube state or the move.
@@ -137,10 +155,6 @@ pub(crate) const GREY: Rgb = Rgb(0x9a, 0xa0, 0xa6);
 pub(crate) const BODY: Rgb = Rgb(0x0e, 0x10, 0x14);
 pub(crate) const ARROW_VIOLET: Rgb = Rgb(0x93, 0x33, 0xea);
 pub(crate) const WHITE: Rgb = Rgb(0xff, 0xff, 0xff);
-/// The rotation axis and the orbit of a whole-cube rotation: mid tones that
-/// read on the dark and on the light backdrop.
-pub(crate) const ORBIT_AXIS: Rgb = Rgb(0x4a, 0x54, 0x68);
-pub(crate) const ORBIT_RING: Rgb = Rgb(0x9a, 0xa4, 0xb2);
 
 #[cfg(test)]
 mod tests {
@@ -158,6 +172,44 @@ mod tests {
         assert_eq!(Rgb(200, 100, 0).scale(0.45), Rgb(90, 45, 0));
         assert_eq!(Rgb(200, 100, 0).scale(2.0), Rgb(255, 200, 0));
         assert_eq!(Rgb(1, 2, 255).hex(), "#0102ff");
+    }
+
+    fn luminance(c: Rgb) -> f64 {
+        let lin = |v: u8| {
+            let s = f64::from(v) / 255.0;
+            if s <= 0.04045 {
+                s / 12.92
+            } else {
+                ((s + 0.055) / 1.055).powf(2.4)
+            }
+        };
+        0.2126 * lin(c.0) + 0.7152 * lin(c.1) + 0.0722 * lin(c.2)
+    }
+
+    fn contrast(a: Rgb, b: Rgb) -> f64 {
+        let (a, b) = (luminance(a), luminance(b));
+        (a.max(b) + 0.05) / (a.min(b) + 0.05)
+    }
+
+    /// The axis and the ring of a rotation icon are at least 3:1 against the
+    /// backdrops they are meant for: pure black and a dark panel, pure white and
+    /// a light panel.
+    #[test]
+    fn the_axis_and_the_ring_read_on_their_backdrop() {
+        let dark = [Rgb(0, 0, 0), Rgb(0x1c, 0x1e, 0x24)];
+        let light = [Rgb(0xff, 0xff, 0xff), Rgb(0xf4, 0xf4, 0xf4)];
+        for (backdrop, grounds) in [(Backdrop::Dark, dark), (Backdrop::Light, light)] {
+            for ground in grounds {
+                for (name, ink) in [("axis", backdrop.axis_ink()), ("ring", backdrop.ring_ink())] {
+                    let ratio = contrast(ink, ground);
+                    assert!(
+                        ratio >= 3.0,
+                        "{name} on {backdrop:?} {}: contrast {ratio:.2}",
+                        ground.hex()
+                    );
+                }
+            }
+        }
     }
 
     #[test]

@@ -65,7 +65,7 @@ fn arrows_run_the_way_apply_moves_the_stickers() {
     for text in ["x", "x'", "y", "y'", "z", "z'"] {
         let action = act(text);
         let (axis, _) = action.axis_sign();
-        let orbit = Orbit::new(&action, 3, &proj, pixels_per_unit());
+        let orbit = Orbit::new(&action, 3, &proj, pixels_per_unit(), Backdrop::default());
         let plan = orbit.arrow_plan();
         let head = &plan.heads[0];
         let tail = plan.tail.expect("a quarter turn has a round tail");
@@ -97,7 +97,7 @@ fn arrows_run_the_way_apply_moves_the_stickers() {
 fn heads_and_tails_follow_the_turn() {
     let proj = projection(5);
     for text in ROTATIONS {
-        let orbit = Orbit::new(&act(text), 5, &proj, pixels_per_unit());
+        let orbit = Orbit::new(&act(text), 5, &proj, pixels_per_unit(), Backdrop::default());
         let plan = orbit.arrow_plan();
         let (start, end) = orbit.arc();
         let at = |angle: f64| ring_point(orbit.axis, orbit.radius, angle);
@@ -147,12 +147,12 @@ fn the_near_half_of_the_orbit_is_in_front_of_the_axis() {
 fn the_back_of_the_orbit_is_painted_before_the_axis_and_the_front_after_it() {
     let proj = projection(5);
     for text in ROTATIONS {
-        let orbit = Orbit::new(&act(text), 5, &proj, pixels_per_unit());
-        let layers = shapes(&act(text), 5, &proj, pixels_per_unit());
+        let orbit = Orbit::new(&act(text), 5, &proj, pixels_per_unit(), Backdrop::default());
+        let layers = shapes(&act(text), 5, &proj, pixels_per_unit(), Backdrop::default());
         let rank = |list: &[Shape], p: P3| {
             let q = proj.project(p);
             list.iter().position(|s| {
-                s.fill == ORBIT_RING
+                s.fill == Backdrop::default().ring_ink()
                     && s.points
                         .iter()
                         .any(|v| (v[0] - q[0]).hypot(v[1] - q[1]) < 0.8)
@@ -160,7 +160,7 @@ fn the_back_of_the_orbit_is_painted_before_the_axis_and_the_front_after_it() {
         };
         let axis_at = |list: &[Shape]| -> (usize, usize) {
             let at: Vec<usize> = (0..list.len())
-                .filter(|&i| list[i].fill == ORBIT_AXIS)
+                .filter(|&i| list[i].fill == Backdrop::default().axis_ink())
                 .collect();
             (at[0], at[at.len() - 1])
         };
@@ -190,7 +190,7 @@ fn the_back_of_the_orbit_is_painted_before_the_axis_and_the_front_after_it() {
 
 fn arc_length(text: &str, n: usize) -> f64 {
     let proj = projection(n);
-    let orbit = Orbit::new(&act(text), n, &proj, pixels_per_unit());
+    let orbit = Orbit::new(&act(text), n, &proj, pixels_per_unit(), Backdrop::default());
     let (start, end) = orbit.arc();
     let points: Vec<P3> = (0..=400)
         .map(|i| {
@@ -236,7 +236,7 @@ fn spans_are_the_decided_angles() {
         ("y2", 146.4, -45.0),
         ("z2", 127.5, -45.0),
     ] {
-        let orbit = Orbit::new(&act(text), 5, &proj, pixels_per_unit());
+        let orbit = Orbit::new(&act(text), 5, &proj, pixels_per_unit(), Backdrop::default());
         let (start, end) = orbit.arc();
         assert!((end - start).to_degrees() - degrees < 1e-9, "{text}");
         assert!(
@@ -312,8 +312,12 @@ fn the_axis_runs_through_the_cube() {
     let proj = projection(5);
     let ppu = pixels_per_unit();
     for text in ["x", "y", "z"] {
-        let layers = shapes(&act(text), 5, &proj, ppu);
-        let axis = |list: &[Shape]| list.iter().filter(|s| s.fill == ORBIT_AXIS).count();
+        let layers = shapes(&act(text), 5, &proj, ppu, Backdrop::default());
+        let axis = |list: &[Shape]| {
+            list.iter()
+                .filter(|s| s.fill == Backdrop::default().axis_ink())
+                .count()
+        };
         assert!(axis(&layers.behind) > 0, "{text}: no axis inside the cube");
         // `z` points at the viewer: only its front end is visible
         let outside = if text == "z" { 1 } else { 2 };
@@ -370,7 +374,8 @@ fn the_half_turn_mark_sits_beside_the_arrow() {
                 let [x0, y0, x1, y1] = mark_box(&drawn);
                 let (cx, cy) = ((x0 + x1) / 2.0, (y0 + y1) / 2.0);
                 let proj = projection(n);
-                let orbit = Orbit::new(&act(text), n, &proj, pixels_per_unit());
+                let orbit =
+                    Orbit::new(&act(text), n, &proj, pixels_per_unit(), Backdrop::default());
                 let shaft = project_all(&orbit.arrow_plan().shaft, &proj);
                 let gap = shaft
                     .iter()
@@ -384,5 +389,17 @@ fn the_half_turn_mark_sits_beside_the_arrow() {
                 );
             }
         }
+    }
+}
+
+/// The axis is drawn in the color of the backdrop it is meant for.
+#[test]
+fn the_axis_takes_its_color_from_the_backdrop() {
+    for backdrop in [Backdrop::Dark, Backdrop::Light] {
+        let proj = projection(5);
+        let layers = shapes(&act("x"), 5, &proj, pixels_per_unit(), backdrop);
+        let has = |ink: Rgb| layers.front.iter().any(|s| s.fill == ink);
+        assert!(has(backdrop.axis_ink()), "{backdrop:?}: axis");
+        assert!(has(backdrop.ring_ink()), "{backdrop:?}: ring");
     }
 }

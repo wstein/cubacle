@@ -105,7 +105,7 @@ pub fn icon(state: &Facelets, action: &Action, style: &Style) -> Result<Icon, Re
     let mut shapes = Vec::new();
     if matches!(action, Action::Rotate { .. }) {
         // The orbit and the axis pass behind the cube.
-        let orbit = orbit3d::shapes(action, n, &projection, pixels_per_unit);
+        let orbit = orbit3d::shapes(action, n, &projection, pixels_per_unit, style.backdrop);
         shapes.extend(orbit.behind);
         shapes.extend(cube);
         shapes.extend(orbit.front);
