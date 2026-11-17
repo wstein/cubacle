@@ -14,7 +14,7 @@ fn token(twist: usize) -> String {
 }
 
 #[test]
-fn cli_draws_picture_twists_in_text_and_svg() {
+fn cli_hides_picture_twists_in_text_and_svg() {
     for format in ["text", "svg"] {
         let run = |twist| {
             Command::new(env!("CARGO_BIN_EXE_cubacle"))
@@ -34,12 +34,17 @@ fn cli_draws_picture_twists_in_text_and_svg() {
         let b = run(1);
         assert!(a.status.success(), "{}", String::from_utf8_lossy(&a.stderr));
         assert!(b.status.success(), "{}", String::from_utf8_lossy(&b.stderr));
-        assert_ne!(a.stdout, b.stdout, "{format} lost center twist");
+        assert_eq!(a.stdout, b.stdout, "{format} displays center twists");
+        if format == "text" {
+            assert!(String::from_utf8_lossy(&a.stdout).starts_with("x ↑\n"));
+        } else {
+            assert!(String::from_utf8_lossy(&a.stdout).contains("#9333ea"));
+        }
     }
 }
 
 #[test]
-fn cli_whole_cube_views_keep_rotated_center_directions() {
+fn cli_whole_cube_views_match_rotated_picture_colors() {
     use cubacle::render::Style;
     let (entry, cube) = v2::decode(&token(1)).unwrap();
     let (colors, centers) = v2::facelets::to_picture_parts(entry.n, entry.pose, &cube).unwrap();
@@ -119,7 +124,7 @@ fn cli_rejects_wrong_picture_contracts() {
 }
 
 #[test]
-fn cli_raster_and_kitty_use_the_picture_polygons() {
+fn cli_raster_and_kitty_hide_picture_twists() {
     let directory =
         std::env::temp_dir().join(format!("cubacle-picture-cli-{}", std::process::id()));
     std::fs::create_dir_all(&directory).unwrap();
@@ -149,7 +154,7 @@ fn cli_raster_and_kitty_use_the_picture_polygons() {
         };
         let a = run(0);
         let b = run(1);
-        assert_ne!(a, b, "{format} lost the center direction");
+        assert_eq!(a, b, "{format} displays center twists");
         if format == "rgba" {
             assert_eq!(b.len(), 100 * 96 * 4);
         } else {
