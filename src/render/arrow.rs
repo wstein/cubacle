@@ -191,7 +191,7 @@ fn shorter_path(path: &[[f64; 2]], head_len: f64, half: bool) -> Vec<[f64; 2]> {
 }
 
 /// An outline of the stroked `path`, `width` wide.
-fn ribbon(path: &[[f64; 2]], width: f64) -> Vec<[f64; 2]> {
+pub(super) fn ribbon(path: &[[f64; 2]], width: f64) -> Vec<[f64; 2]> {
     let mut left = Vec::new();
     let mut right = Vec::new();
     for i in 0..path.len() {
@@ -208,12 +208,37 @@ fn ribbon(path: &[[f64; 2]], width: f64) -> Vec<[f64; 2]> {
 }
 
 /// Sizes in plane units.
-struct Metrics {
-    width: f64,
-    head_len: f64,
-    head_half: f64,
+pub(super) struct Metrics {
+    pub(super) width: f64,
+    pub(super) head_len: f64,
+    pub(super) head_half: f64,
     /// Radius of the rounded head corners.
-    round: f64,
+    pub(super) round: f64,
+}
+
+impl Metrics {
+    /// A shaft `width` wide, widened across its direction by `across`; the head
+    /// is twice as long as wide and keeps its length.
+    pub(super) fn new(width: f64, across: f64) -> Metrics {
+        Metrics {
+            width: width * across,
+            head_len: 4.4 * width,
+            head_half: 1.1 * width * across,
+            round: 0.12 * width * across,
+        }
+    }
+}
+
+/// The shaft width in canvas units: from 4.0 on the 2x2 to 2.8 on the 7x7,
+/// at least 3.2 pixels.
+pub(super) fn shaft_width(n: usize, pixels_per_unit: f64) -> f64 {
+    let grade = (n as f64 - 2.0).clamp(0.0, 5.0) / 5.0;
+    (4.0 + (2.8 - 4.0) * grade).max(3.2 / pixels_per_unit)
+}
+
+/// How far the white outline grows around the arrow, in canvas units.
+pub(super) fn halo_grow(pixels_per_unit: f64) -> f64 {
+    1.1_f64.max(1.4 / pixels_per_unit)
 }
 
 /// The soft arrow: a shaft with rounded heads or a round tail,
@@ -238,7 +263,7 @@ fn soft_outline(path: &[[f64; 2]], m: &Metrics, grow: f64, half: bool) -> Vec<Ve
     ]
 }
 
-fn arrowhead(base: [f64; 2], dir: [f64; 2], m: &Metrics, grow: f64) -> Vec<[f64; 2]> {
+pub(super) fn arrowhead(base: [f64; 2], dir: [f64; 2], m: &Metrics, grow: f64) -> Vec<[f64; 2]> {
     let tip = [base[0] + dir[0] * m.head_len, base[1] + dir[1] * m.head_len];
     let side = [-dir[1], dir[0]];
     rounded_triangle(
@@ -284,24 +309,16 @@ pub(crate) fn shapes(
     projection: &Projection,
     pixels_per_unit: f64,
 ) -> Vec<Shape> {
-    // The shaft goes from 4.0 canvas units on the 2x2 to 2.8 on the 7x7.
-    let grade = (n as f64 - 2.0).clamp(0.0, 5.0) / 5.0;
     // Canvas units per model unit: the arrow is sized in canvas units.
     let unit = 1.0 / projection.scale;
-    let width = (4.0 + (2.8 - 4.0) * grade).max(3.2 / pixels_per_unit) * unit;
+    let width = shaft_width(n, pixels_per_unit) * unit;
     // The arrow is drawn in the face plane and projected with it, so it is
     // foreshortened like the face, but only down to 70 % of the Front width
     // so that it stays readable.
     let squeeze = foreshortening(plan.face, n as f64, projection);
     let across = (0.7 / squeeze).clamp(1.0, 2.2);
-    // The head is twice as long as wide.
-    let metrics = Metrics {
-        width: width * across,
-        head_len: 4.4 * width,
-        head_half: 1.1 * width * across,
-        round: 0.12 * width * across,
-    };
-    let grow = 1.1_f64.max(1.4 / pixels_per_unit) * unit * across.sqrt();
+    let metrics = Metrics::new(width, across);
+    let grow = halo_grow(pixels_per_unit) * unit * across.sqrt();
     let nf = n as f64;
     let flat = |poly: Vec<[f64; 2]>| -> Vec<[f64; 2]> {
         poly.into_iter()
@@ -316,13 +333,7 @@ pub(crate) fn shapes(
         shapes.push(Shape::new(Part::Arrow, flat(poly), ARROW_VIOLET));
     }
     if action.is_half() {
-        shapes.extend(half_text(
-            plan,
-            nf,
-            projection,
-            width * across,
-            matches!(action, Action::Rotate { .. }),
-        ));
+        shapes.extend(half_text(plan, nf, projection, width * across));
     }
     shapes
 }
@@ -337,14 +348,8 @@ const EDGE: f64 = 2.0;
 
 /// An upright `2x`, not in perspective, in the arrow color with a white
 /// outline: right of a vertical arrow, above a horizontal one (right of it
-/// when above does not fit). Rotations place it in the upper-right corner.
-fn half_text(
-    plan: &Plan,
-    nf: f64,
-    projection: &Projection,
-    width: f64,
-    rotation: bool,
-) -> Vec<Shape> {
+/// when above does not fit).
+fn half_text(plan: &Plan, nf: f64, projection: &Projection, width: f64) -> Vec<Shape> {
     let at = |p: [f64; 2]| projection.project(plane_point(plan.face, nf, p[0], p[1]));
     let (tail, tip) = (at(plan.path[0]), at(*plan.path.last().expect("a path")));
     let dir = sub(tip, tail);
@@ -356,14 +361,24 @@ fn half_text(
     let gap = 3.0;
     let right = [point[0] + shaft + gap, point[1] - h / 2.0];
     let above = [point[0] - w / 2.0, point[1] - shaft - gap - h];
-    let (x, y) = if rotation {
-        (WIDTH - EDGE - HALO - w - 2.0, EDGE + HALO + 2.0)
-    } else if vertical || above[1] < EDGE + HALO {
+    let (x, y) = if vertical || above[1] < EDGE + HALO {
         (right[0], right[1])
     } else {
         (above[0], above[1])
     };
-    // Every drawing stays `EDGE` units inside the canvas, halo included.
+    mark_at((x, y), (w, h))
+}
+
+/// The `2x` of a whole-cube half turn: in the upper-right corner of the canvas.
+pub(super) fn corner_mark() -> Vec<Shape> {
+    let scale = LABEL_SCALE * HALF_MARK_SCALE;
+    let (w, h) = (font::measure("2x") * scale, font::GLYPH_HEIGHT * scale);
+    mark_at((WIDTH - EDGE - HALO - w - 2.0, EDGE + HALO + 2.0), (w, h))
+}
+
+/// The `2x` with its halo at `(x, y)`, `(w, h)` large. Every drawing stays
+/// `EDGE` units inside the canvas, halo included.
+fn mark_at((x, y): (f64, f64), (w, h): (f64, f64)) -> Vec<Shape> {
     let x = x.clamp(EDGE + HALO, WIDTH - EDGE - HALO - w);
     let y = y.clamp(EDGE + HALO, HEIGHT - EDGE - HALO - h);
     let mut shapes = font::halo("2x", (x, y), h, HALO, WHITE, Part::Halo);

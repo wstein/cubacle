@@ -137,6 +137,10 @@ pub(crate) const GREY: Rgb = Rgb(0x9a, 0xa0, 0xa6);
 pub(crate) const BODY: Rgb = Rgb(0x0e, 0x10, 0x14);
 pub(crate) const ARROW_VIOLET: Rgb = Rgb(0x93, 0x33, 0xea);
 pub(crate) const WHITE: Rgb = Rgb(0xff, 0xff, 0xff);
+/// The rotation axis and the orbit of a whole-cube rotation: mid tones that
+/// read on the dark and on the light backdrop.
+pub(crate) const ORBIT_AXIS: Rgb = Rgb(0x4a, 0x54, 0x68);
+pub(crate) const ORBIT_RING: Rgb = Rgb(0x9a, 0xa4, 0xb2);
 
 #[cfg(test)]
 mod tests {

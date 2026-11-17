@@ -39,6 +39,7 @@ mod kitty;
 mod label;
 mod net;
 mod number;
+mod orbit3d;
 mod pair;
 mod picture;
 mod raster;
