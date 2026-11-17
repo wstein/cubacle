@@ -416,15 +416,18 @@ fn axis_outline_layers_and_margin() {
                 assert!(!axis.is_empty());
                 for item in &axis {
                     assert!(item.depth == Depth::Axis);
-                    assert_eq!(item.shapes.len(), 2, "{n} {text} {backdrop:?}");
+                    assert_eq!(item.shapes.len(), 6, "{n} {text} {backdrop:?}");
                     assert_eq!(item.shapes[0].fill, outline);
                     assert_eq!(item.shapes[1].fill, backdrop.axis_ink());
                     let polygon = &item.shapes[0].points;
                     let a = polygon[0];
                     let b = polygon[polygon.len() - 1];
                     let width = (a[0] - b[0]).hypot(a[1] - b[1]);
-                    assert!((width - 2.9).abs() < 1e-8, "outline width {width}");
-                    for &p in &item.shapes[0].points {
+                    assert!(
+                        (width - (orbit.axis_width() + 0.5)).abs() < 1e-8,
+                        "outline width {width}"
+                    );
+                    for &p in item.shapes.iter().flat_map(|shape| &shape.points) {
                         assert!(inside_canvas(p, 0.0), "{n} {text} {p:?}");
                     }
                 }
@@ -464,12 +467,35 @@ fn axis_outline_layers_and_margin() {
                     }
                     for item in axis.iter().filter(|item| item.hidden == hidden) {
                         assert!(
-                            list.windows(2).any(|pair| pair == item.shapes.as_slice()),
+                            list.windows(item.shapes.len())
+                                .any(|pair| pair == item.shapes.as_slice()),
                             "{n} {text} {backdrop:?}"
                         );
                     }
                 }
             }
+        }
+    }
+}
+
+#[test]
+fn axis_core_and_outline_follow_v1_at_small_and_large_sizes() {
+    let proj = projection(5);
+    for (size, expected) in [(96.0, HEIGHT / 96.0), (300.0, 0.45)] {
+        let ppu = size / HEIGHT;
+        let orbit = Orbit::new(&act("y2"), 5, &proj, ppu, Backdrop::Dark);
+        for item in orbit.axis_items() {
+            assert_eq!(item.shapes.len(), 6);
+            for (shape, width) in item.shapes.iter().zip([expected + 0.5, expected]) {
+                let a = shape.points[0];
+                let b = shape.points[shape.points.len() - 1];
+                let actual = ((a[0] - b[0]).powi(2) + (a[1] - b[1]).powi(2)).sqrt();
+                assert!(
+                    (actual - width).abs() < 1e-9,
+                    "size {size}: {actual} != {width}"
+                );
+            }
+            assert!(expected * ppu >= 1.0 - 1e-12);
         }
     }
 }

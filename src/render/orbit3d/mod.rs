@@ -35,8 +35,8 @@ const OVERHANG: f64 = 0.36;
 /// The cube body is drawn this much larger than the stickers' cube.
 const BODY_RIM: f64 = 0.1;
 /// Line widths of the axis and of the orbit, in canvas units.
-const AXIS_WIDTH: f64 = 1.5;
-const AXIS_OUTLINE: f64 = 0.7;
+const AXIS_WIDTH: f64 = 0.45;
+const AXIS_OUTLINE: f64 = 0.25;
 const RING_WIDTH: f64 = 1.0;
 /// Every polygon stays this far from the canvas edge and above the notation,
 /// which starts at 94 (`label.rs`).
@@ -179,8 +179,7 @@ impl Orbit<'_> {
         let mut reach = self.radius + OVERHANG * self.n;
         let fits = |s: f64| {
             let ends = [s, -s].map(|s| self.proj.project(axis_point(self.axis, s)));
-            ends.iter()
-                .all(|&q| inside_canvas(q, AXIS_WIDTH / 2.0 + AXIS_OUTLINE))
+            ends.iter().all(|&q| inside_canvas(q, 1.45))
         };
         while reach > 0.0 && !fits(reach) {
             reach -= 0.05;
@@ -188,8 +187,13 @@ impl Orbit<'_> {
         reach
     }
 
+    fn axis_width(&self) -> f64 {
+        AXIS_WIDTH.max(1.0 / self.pixels_per_unit)
+    }
+
     fn axis_items(&self) -> Vec<Item> {
         let reach = self.axis_reach();
+        let width = self.axis_width();
         let points: Vec<P3> = (0..=AXIS_SAMPLES)
             .map(|i| {
                 axis_point(
@@ -208,12 +212,28 @@ impl Orbit<'_> {
                     shapes: vec![
                         Shape::new(
                             Part::Arrow,
-                            ribbon(&flat, AXIS_WIDTH + 2.0 * AXIS_OUTLINE),
+                            ribbon(&flat, width + 2.0 * AXIS_OUTLINE),
+                            self.backdrop.axis_outline(),
+                        ),
+                        Shape::new(Part::Arrow, ribbon(&flat, width), self.backdrop.axis_ink()),
+                        Shape::new(
+                            Part::Arrow,
+                            disc(flat[0], width / 2.0 + AXIS_OUTLINE),
                             self.backdrop.axis_outline(),
                         ),
                         Shape::new(
                             Part::Arrow,
-                            ribbon(&flat, AXIS_WIDTH),
+                            disc(flat[0], width / 2.0),
+                            self.backdrop.axis_ink(),
+                        ),
+                        Shape::new(
+                            Part::Arrow,
+                            disc(flat[flat.len() - 1], width / 2.0 + AXIS_OUTLINE),
+                            self.backdrop.axis_outline(),
+                        ),
+                        Shape::new(
+                            Part::Arrow,
+                            disc(flat[flat.len() - 1], width / 2.0),
                             self.backdrop.axis_ink(),
                         ),
                     ],
