@@ -6,7 +6,7 @@
 //! plane coordinates and projected with the stickers, so it shares their shear.
 //!
 //! The arrow is soft: a shaft with a round tail and a head, about twice as
-//! long as wide, with rounded corners, all outlined in white with round joins.
+//! long as wide, with rounded corners, all outlined in white with round joins. Half turns have a second head in place of the tail.
 //! Its size is constant on the canvas, graded by cube size, and a margin of 12 %
 //! of the face width stays free at both ends.
 
@@ -199,13 +199,31 @@ struct Metrics {
     round: f64,
 }
 
-/// The soft arrow: a shaft with a round tail and a head with round corners,
+/// The soft arrow: a shaft with rounded heads or a round tail,
 /// all grown by `grow` with round joins, so the outline has no spikes.
-fn soft_outline(path: &[[f64; 2]], m: &Metrics, grow: f64) -> Vec<Vec<[f64; 2]>> {
+fn soft_outline(path: &[[f64; 2]], m: &Metrics, grow: f64, half: bool) -> Vec<Vec<[f64; 2]>> {
     let (shaft, base, dir) = trim(path, m.head_len);
+    let (shaft, tail) = if half {
+        let reverse: Vec<_> = shaft.into_iter().rev().collect();
+        let (shaft, base, dir) = trim(&reverse, m.head_len);
+        let shaft: Vec<_> = shaft.into_iter().rev().collect();
+        let tail = arrowhead(base, dir, m, grow);
+        (shaft, tail)
+    } else {
+        let tail = disc(shaft[0], (m.width + 2.0 * grow) / 2.0);
+        (shaft, tail)
+    };
+    vec![
+        ribbon(&shaft, m.width + 2.0 * grow),
+        tail,
+        arrowhead(base, dir, m, grow),
+    ]
+}
+
+fn arrowhead(base: [f64; 2], dir: [f64; 2], m: &Metrics, grow: f64) -> Vec<[f64; 2]> {
     let tip = [base[0] + dir[0] * m.head_len, base[1] + dir[1] * m.head_len];
     let side = [-dir[1], dir[0]];
-    let head = rounded_triangle(
+    rounded_triangle(
         [
             [
                 base[0] + side[0] * m.head_half,
@@ -219,9 +237,7 @@ fn soft_outline(path: &[[f64; 2]], m: &Metrics, grow: f64) -> Vec<Vec<[f64; 2]>>
         ],
         m.round,
         grow,
-    );
-    let tail = disc(shaft[0], (m.width + 2.0 * grow) / 2.0);
-    vec![ribbon(&shaft, m.width + 2.0 * grow), tail, head]
+    )
 }
 
 /// How much a unit circle of a face plane shrinks across its narrow axis on the
@@ -275,14 +291,20 @@ pub(crate) fn shapes(
             .collect()
     };
     let mut shapes = Vec::new();
-    for poly in soft_outline(&plan.path, &metrics, grow) {
+    for poly in soft_outline(&plan.path, &metrics, grow, action.is_half()) {
         shapes.push(Shape::new(Part::Halo, flat(poly), WHITE));
     }
-    for poly in soft_outline(&plan.path, &metrics, 0.0) {
+    for poly in soft_outline(&plan.path, &metrics, 0.0, action.is_half()) {
         shapes.push(Shape::new(Part::Arrow, flat(poly), ARROW_VIOLET));
     }
     if action.is_half() {
-        shapes.extend(half_text(plan, nf, projection, width * across));
+        shapes.extend(half_text(
+            plan,
+            nf,
+            projection,
+            width * across,
+            matches!(action, Action::Rotate { .. }),
+        ));
     }
     shapes
 }
@@ -297,8 +319,14 @@ const EDGE: f64 = 2.0;
 
 /// An upright `2x`, not in perspective, in the arrow color with a white
 /// outline: right of a vertical arrow, above a horizontal one (right of it
-/// when above does not fit).
-fn half_text(plan: &Plan, nf: f64, projection: &Projection, width: f64) -> Vec<Shape> {
+/// when above does not fit). Rotations place it in the upper-right corner.
+fn half_text(
+    plan: &Plan,
+    nf: f64,
+    projection: &Projection,
+    width: f64,
+    rotation: bool,
+) -> Vec<Shape> {
     let at = |p: [f64; 2]| projection.project(plane_point(plan.face, nf, p[0], p[1]));
     let (tail, tip) = (at(plan.path[0]), at(*plan.path.last().expect("a path")));
     let dir = sub(tip, tail);
@@ -310,7 +338,9 @@ fn half_text(plan: &Plan, nf: f64, projection: &Projection, width: f64) -> Vec<S
     let gap = 3.0;
     let right = [point[0] + shaft + gap, point[1] - h / 2.0];
     let above = [point[0] - w / 2.0, point[1] - shaft - gap - h];
-    let (x, y) = if vertical || above[1] < EDGE + HALO {
+    let (x, y) = if rotation {
+        (WIDTH - EDGE - HALO - w - 2.0, EDGE + HALO + 2.0)
+    } else if vertical || above[1] < EDGE + HALO {
         (right[0], right[1])
     } else {
         (above[0], above[1])
@@ -360,6 +390,67 @@ mod tests {
         crate::render::icon(&state, &act(text), &style)
             .unwrap()
             .shapes
+    }
+
+    #[test]
+    fn half_turns_have_two_arrowheads() {
+        use crate::puzzle::{LayerMove, Turn};
+        let mut actions: Vec<Action> = ["R2", "L2", "Bw2", "2R2", "x2", "y2", "z2"]
+            .iter()
+            .map(|text| act(text))
+            .collect();
+        actions.push(Action::block(LayerMove::new(Face::R, 2, 3, Turn::Half)));
+        for action in actions {
+            let plan = plan(&action, 5);
+            let metrics = Metrics {
+                width: 0.2,
+                head_len: 0.8,
+                head_half: 0.22,
+                round: 0.02,
+            };
+            let parts = soft_outline(&plan.path, &metrics, 0.0, action.is_half());
+            assert_eq!(parts.len(), 3, "{action}");
+            for (head, endpoint) in [
+                (&parts[1], plan.path[0]),
+                (&parts[2], *plan.path.last().unwrap()),
+            ] {
+                let distance = head
+                    .iter()
+                    .map(|p| sub(*p, endpoint)[0].hypot(sub(*p, endpoint)[1]))
+                    .fold(f64::INFINITY, f64::min);
+                assert!(distance < 0.1, "{action}: {distance}");
+            }
+            assert_eq!(parts[1].len(), parts[2].len(), "{action}");
+        }
+        let plan = plan(&act("R"), 5);
+        let metrics = Metrics {
+            width: 0.2,
+            head_len: 0.8,
+            head_half: 0.22,
+            round: 0.02,
+        };
+        let parts = soft_outline(&plan.path, &metrics, 0.0, false);
+        assert_ne!(parts[1].len(), parts[2].len());
+    }
+
+    #[test]
+    fn rendered_half_turn_heads_and_rotation_marks_are_separate() {
+        for text in ["R2", "L2", "Bw2", "2R2", "x2", "y2", "z2"] {
+            let shapes = drawn(PuzzleKind::Cube5, text);
+            let arrows: Vec<_> = shapes.iter().filter(|s| s.part == Part::Arrow).collect();
+            assert_eq!(arrows.len(), 3, "{text}");
+            assert_eq!(arrows[1].points.len(), arrows[2].points.len(), "{text}");
+            if text.ends_with('2') && text.len() == 2 && text.starts_with(['x', 'y', 'z']) {
+                let mark = bounds(&shapes, Part::Mark);
+                for head in &arrows[1..] {
+                    let b = bounds(&[(*head).clone()], Part::Arrow);
+                    assert!(
+                        mark[2] < b[0] || b[2] < mark[0] || mark[3] < b[1] || b[3] < mark[1],
+                        "{text}: {mark:?} {b:?}"
+                    );
+                }
+            }
+        }
     }
 
     /// The `2x` is at least as tall as the capitals of the notation.

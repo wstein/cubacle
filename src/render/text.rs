@@ -47,9 +47,18 @@ pub(crate) fn grid(state: &Facelets, action: &Action, style: &Style, direction: 
             .collect()
     });
     let half = if action.is_half() { " (half turn)" } else { "" };
+    let glyph = if action.is_half() {
+        match direction {
+            Direction::Up | Direction::Down => '↕',
+            Direction::Left | Direction::Right => '↔',
+            Direction::Clockwise | Direction::CounterClockwise => '↔',
+        }
+    } else {
+        direction.glyph()
+    };
     Grid {
         n: kind.size(),
-        header: format!("{action} {}{half}", direction.glyph()),
+        header: format!("{action} {glyph}{half}"),
         below: false,
         faces,
         net: None,
@@ -235,12 +244,40 @@ mod tests {
     }
 
     #[test]
+    fn half_turns_use_bidirectional_glyphs() {
+        let state = Facelets::solved(crate::puzzle::PuzzleKind::Cube5);
+        for (name, glyph) in [
+            ("R2", '↕'),
+            ("L2", '↕'),
+            ("Bw2", '↕'),
+            ("2R2", '↕'),
+            ("U2", '↔'),
+            ("x2", '↕'),
+            ("y2", '↔'),
+            ("z2", '↔'),
+        ] {
+            let action: Action = name.parse().unwrap();
+            let text = grid(
+                &state,
+                &action,
+                &Style::default(),
+                plan(&action, 5).direction,
+            )
+            .render(false);
+            assert!(
+                text.starts_with(&format!("{name} {glyph} (half turn)\n")),
+                "{text}"
+            );
+        }
+    }
+
+    #[test]
     fn ansi_text_uses_background_colors() {
         let state = Facelets::solved(crate::puzzle::PuzzleKind::Cube2);
         let action: Action = "U2".parse().unwrap();
         let direction = plan(&action, 2).direction;
         let text = grid(&state, &action, &Style::default(), direction).render(true);
-        assert!(text.starts_with("U2 \u{2190} (half turn)\n"));
+        assert!(text.starts_with("U2 \u{2194} (half turn)\n"));
         assert!(text.contains("\x1b[48;2;"));
         assert!(text.contains("\x1b[0m"));
     }

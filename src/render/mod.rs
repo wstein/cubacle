@@ -4,7 +4,7 @@
 //! stickers. The moving layers keep their colors while the rest is darkened
 //! (or the moving layers turn grey, see [`Shading`]); a soft violet arrow with
 //! a white outline lies on the face where the layer is visible, an upright
-//! violet "2x" marks half turns, whole-cube rotations get a curved arrow, and
+//! violet "2x" and a double-headed arrow mark half turns, whole-cube rotations get a curved arrow, and
 //! the notation is written below the cube in Quicksand Bold. [`state_icon`]
 //! draws a state alone, framed, for the result of a group of moves. The [`Backdrop`]
 //! decides how strongly the resting pieces are dimmed and the color of the
