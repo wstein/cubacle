@@ -1,7 +1,7 @@
 //! A small anti-aliased polygon filler: exact horizontal coverage, four
-//! sub-scanlines per pixel, even-odd fill, premultiplied accumulation.
+//! sub-scanlines per pixel, premultiplied accumulation.
 
-use super::scene::Shape;
+use super::scene::{Part, Shape};
 use super::style::Rgb;
 
 /// Straight (non-premultiplied) RGBA pixels, row by row.
@@ -42,7 +42,15 @@ pub(crate) fn rasterise_canvas(
     }
     for shape in shapes {
         let points: Vec<[f64; 2]> = shape.points.iter().map(|p| [p[0] * k, p[1] * k]).collect();
-        fill(&mut buf, w, h, &points, shape.fill, shape.opacity as f32);
+        fill(
+            &mut buf,
+            w,
+            h,
+            &points,
+            shape.fill,
+            shape.opacity as f32,
+            shape.part == Part::Label,
+        );
     }
     let mut data = Vec::with_capacity(w * h * 4);
     for px in buf.as_chunks::<4>().0 {
@@ -177,7 +185,15 @@ impl Raster {
     }
 }
 
-fn fill(buf: &mut [f32], w: usize, h: usize, points: &[[f64; 2]], color: Rgb, opacity: f32) {
+fn fill(
+    buf: &mut [f32],
+    w: usize,
+    h: usize,
+    points: &[[f64; 2]],
+    color: Rgb,
+    opacity: f32,
+    nonzero: bool,
+) {
     if points.len() < 3 {
         return;
     }
@@ -196,7 +212,7 @@ fn fill(buf: &mut [f32], w: usize, h: usize, points: &[[f64; 2]], color: Rgb, op
         .min(h);
     let rgb = [color.0, color.1, color.2].map(|c| f32::from(c) / 255.0);
     let mut coverage = vec![0.0_f32; w];
-    let mut crossings: Vec<f64> = Vec::new();
+    let mut crossings: Vec<(f64, i32)> = Vec::new();
     for y in min_y..max_y {
         coverage.iter_mut().for_each(|c| *c = 0.0);
         for sub in 0..SUB {
@@ -205,12 +221,24 @@ fn fill(buf: &mut [f32], w: usize, h: usize, points: &[[f64; 2]], color: Rgb, op
             for i in 0..points.len() {
                 let (a, b) = (points[i], points[(i + 1) % points.len()]);
                 if (a[1] <= yy) != (b[1] <= yy) {
-                    crossings.push(a[0] + (yy - a[1]) / (b[1] - a[1]) * (b[0] - a[0]));
+                    crossings.push((
+                        a[0] + (yy - a[1]) / (b[1] - a[1]) * (b[0] - a[0]),
+                        if b[1] > a[1] { 1 } else { -1 },
+                    ));
                 }
             }
-            crossings.sort_by(f64::total_cmp);
-            for pair in crossings.as_chunks::<2>().0 {
-                let (x0, x1) = (pair[0].max(0.0), pair[1].min(w as f64));
+            crossings.sort_by(|a, b| a.0.total_cmp(&b.0));
+            let mut winding = 0;
+            for pair in crossings.windows(2) {
+                winding += if nonzero { pair[0].1 } else { 1 };
+                if if nonzero {
+                    winding == 0
+                } else {
+                    winding % 2 == 0
+                } {
+                    continue;
+                }
+                let (x0, x1) = (pair[0].0.max(0.0), pair[1].0.min(w as f64));
                 if x1 <= x0 {
                     continue;
                 }
