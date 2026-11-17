@@ -374,6 +374,8 @@ fn moves_icons_write_graphics_to_a_file() {
         "--icons",
         "--format",
         "kitty",
+        "--icon-size",
+        "96",
         "--out",
         kitty.to_str().unwrap(),
     ]);
@@ -396,6 +398,8 @@ fn moves_icons_write_graphics_to_a_file() {
         "--format",
         "kitty",
         "--opaque",
+        "--icon-size",
+        "96",
         "--out",
         clear.to_str().unwrap(),
     ]);
@@ -695,8 +699,8 @@ fn icons_of_larger_cubes_are_drawn_larger() {
             .len()
     };
     // height x width (the canvas is 114 x 109.2) x 4 bytes
-    assert_eq!(bytes("3"), 96 * 100 * 4);
-    assert_eq!(bytes("7"), 224 * 234 * 4);
+    assert_eq!(bytes("3"), 144 * 150 * 4);
+    assert_eq!(bytes("7"), 336 * 351 * 4);
 }
 
 #[test]

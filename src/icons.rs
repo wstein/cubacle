@@ -146,9 +146,9 @@ pub(crate) fn detect_stdout(mode: GraphicsMode) -> Graphics {
     }
 }
 
-/// The icon height that keeps stickers readable: 32 pixels per cube layer, at least 96.
+/// The icon height that keeps stickers readable: 48 pixels per cube layer, at least 144, capped at 1024.
 pub(crate) fn default_height(cube: usize) -> u32 {
-    (32 * u32::try_from(cube).unwrap_or(7)).max(96)
+    cube.saturating_mul(48).clamp(144, 1024) as u32
 }
 
 pub(crate) fn style(
@@ -197,6 +197,16 @@ pub(crate) fn show(icon: &Icon, graphics: Graphics, size: u32) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn default_sizes_and_technical_cap() {
+        assert_eq!(
+            (2..=7).map(default_height).collect::<Vec<_>>(),
+            [144, 144, 192, 240, 288, 336]
+        );
+        assert_eq!(default_height(15), 720);
+        assert_eq!(default_height(22), 1024);
+    }
 
     fn env<'a>(pairs: &'a [(&'a str, &'a str)]) -> impl Fn(&str) -> Option<String> + 'a {
         move |name| {
