@@ -7,8 +7,9 @@
 //!
 //! The arrow is soft: a shaft with a round tail and a head, about twice as
 //! long as wide, with rounded corners, all outlined in white with round joins. Half turns have a second head in place of the tail.
-//! Its size is constant on the canvas, graded by cube size. Its shaft is shortened
-//! by 20 % while its heads retain their size.
+//! Its size is constant on the canvas, graded by cube size. The quarter-turn
+//! tail retains a 10% shaft cut; heads have a 0% cut. The arrow is lifted
+//! toward the viewer by 0.20 sticker pitch along the face normal.
 
 use super::action::{velocity, Action};
 use super::font;
@@ -149,7 +150,14 @@ fn trim(path: &[[f64; 2]], cut: f64) -> (Vec<[f64; 2]>, [f64; 2], [f64; 2]) {
     (kept, base, unit(sub(tip, base)))
 }
 
-/// Keep the heads unchanged while shortening the shaft by one fifth.
+/// Fraction of the original shaft removed at an arrowhead.
+const TIP_CUT: f64 = 0.0;
+/// Fraction of the original shaft removed at a round tail.
+const TAIL_CUT: f64 = 0.1;
+/// Distance from the face in sticker pitches.
+const LIFT: f64 = 0.20;
+
+/// Keep the heads unchanged while shortening the shaft at the tail.
 fn shorter_path(path: &[[f64; 2]], head_len: f64, half: bool) -> Vec<[f64; 2]> {
     let length: f64 = path
         .windows(2)
@@ -159,10 +167,9 @@ fn shorter_path(path: &[[f64; 2]], head_len: f64, half: bool) -> Vec<[f64; 2]> {
         })
         .sum();
     let shaft = (length - head_len * if half { 2.0 } else { 1.0 }).max(0.0);
-    let cut = shaft * 0.1;
-    let (short, _, _) = trim(path, cut);
+    let (short, _, _) = trim(path, shaft * TIP_CUT);
     let reversed: Vec<_> = short.into_iter().rev().collect();
-    let (short, _, _) = trim(&reversed, cut);
+    let (short, _, _) = trim(&reversed, shaft * if half { TIP_CUT } else { TAIL_CUT });
     short.into_iter().rev().collect()
 }
 
@@ -298,7 +305,12 @@ pub(crate) fn shapes(
     let nf = n as f64;
     let flat = |poly: Vec<[f64; 2]>| -> Vec<[f64; 2]> {
         poly.into_iter()
-            .map(|[u, v]| projection.project(plane_point(plan.face, nf, u, v)))
+            .map(|[u, v]| {
+                let mut point = plane_point(plan.face, nf, u, v);
+                // One sticker pitch is two model units.
+                point[if plan.face == Face::F { 2 } else { 0 }] += 2.0 * LIFT;
+                projection.project(point)
+            })
             .collect()
     };
     let mut shapes = Vec::new();
@@ -417,7 +429,7 @@ mod tests {
     }
 
     #[test]
-    fn shaft_is_eighty_percent_of_original_without_shortening_heads() {
+    fn shaft_extends_at_heads_but_keeps_the_quarter_tail() {
         let path = [[0.0, 0.0], [10.0, 0.0]];
         let m = Metrics {
             width: 0.2,
@@ -430,7 +442,118 @@ mod tests {
             let shaft = &parts[0];
             let length = shaft.iter().map(|p| p[0]).fold(f64::NEG_INFINITY, f64::max)
                 - shaft.iter().map(|p| p[0]).fold(f64::INFINITY, f64::min);
-            assert!((length - original * 0.8).abs() < 1e-9, "{half}: {length}");
+            // Removing the old 10% cut adds 10% at each head.
+            let expected = original * if half { 1.0 } else { 0.9 };
+            assert!((length - expected).abs() < 1e-9, "{half}: {length}");
+            let start = shaft.iter().map(|p| p[0]).fold(f64::INFINITY, f64::min);
+            assert!((start - if half { 2.0 } else { 0.8 }).abs() < 1e-9);
+        }
+        for n in [3, 5] {
+            for text in ["R", "R2"] {
+                let action = act(text);
+                let plan = plan(&action, n);
+                let projection = Projection::new(n, 10.0, 9.0, 80.0, 76.0);
+                let m = Metrics::new(shaft_width(n, 1.0) / projection.scale, 1.0);
+                let total = sub(plan.path[1], plan.path[0]);
+                let total = total[0].hypot(total[1]);
+                let original = total - m.head_len * if action.is_half() { 2.0 } else { 1.0 };
+                let shaft = &soft_outline(&plan.path, &m, 0.0, action.is_half())[0];
+                let center = |a: [f64; 2], b: [f64; 2]| [(a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0];
+                let start = center(shaft[0], shaft[3]);
+                let end = center(shaft[1], shaft[2]);
+                let d = sub(end, start);
+                let length = d[0].hypot(d[1]);
+                let old = original * 0.8;
+                let increase = original * if action.is_half() { 0.2 } else { 0.1 };
+                assert!((length - old - increase).abs() < 1e-9, "{n} {text}");
+                if !action.is_half() {
+                    let tail = sub(start, plan.path[0]);
+                    assert!((tail[0].hypot(tail[1]) - original * 0.1).abs() < 1e-9);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn arrow_polygons_are_lifted_by_projected_normal() {
+        for kind in [PuzzleKind::Cube3, PuzzleKind::Cube5] {
+            for text in ["R", "F", "R2", "F2"] {
+                let action = act(text);
+                let n = kind.size();
+                let plan = plan(&action, n);
+                let projection = Projection::new(n, 10.0, 9.0, 80.0, 76.0);
+                let width = shaft_width(n, 1.0) / projection.scale;
+                let across =
+                    (0.7 / foreshortening(plan.face, n as f64, &projection)).clamp(1.0, 2.2);
+                let metrics = Metrics::new(width, across);
+                let expected = soft_outline(&plan.path, &metrics, 0.0, action.is_half());
+                let actual = shapes(&plan, &action, n, &projection, 1.0);
+                let origin = plane_point(plan.face, n as f64, 0.0, 0.0);
+                let mut lifted = origin;
+                lifted[if plan.face == Face::F { 2 } else { 0 }] += 0.4;
+                let delta = sub(projection.project(lifted), projection.project(origin));
+                for (shape, poly) in actual
+                    .iter()
+                    .filter(|s| s.part == Part::Arrow)
+                    .zip(expected)
+                {
+                    for (point, [u, v]) in shape.points.iter().zip(poly) {
+                        let base = projection.project(plane_point(plan.face, n as f64, u, v));
+                        let shift = sub(*point, base);
+                        assert!(
+                            (shift[0] - delta[0]).abs() < 1e-9
+                                && (shift[1] - delta[1]).abs() < 1e-9,
+                            "{kind:?} {text}: {shift:?} vs {delta:?}"
+                        );
+                        assert!((shift[0].hypot(shift[1]) - delta[0].hypot(delta[1])).abs() < 1e-9);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn move_arrows_stay_inside_drawing_area() {
+        for kind in [
+            PuzzleKind::Cube2,
+            PuzzleKind::Cube3,
+            PuzzleKind::Cube4,
+            PuzzleKind::Cube5,
+            PuzzleKind::Cube6,
+            PuzzleKind::Cube7,
+        ] {
+            for face in ["R", "L", "U", "D", "F", "B"] {
+                let mut moves = vec![face.to_owned(), format!("{face}w")];
+                for layer in 2..kind.size() {
+                    moves.push(format!("{layer}{face}"));
+                    moves.push(format!("{layer}{face}w"));
+                }
+                for text in moves
+                    .into_iter()
+                    .flat_map(|m| [m.clone(), format!("{m}'"), format!("{m}2")])
+                {
+                    if !act(&text).fits(kind) {
+                        continue;
+                    }
+                    let action = act(&text);
+                    let plan = plan(&action, kind.size());
+                    let projection = Projection::new(kind.size(), 10.0, 9.0, 80.0, 76.0);
+                    let shapes = shapes(&plan, &action, kind.size(), &projection, 1.0);
+                    for point in shapes
+                        .iter()
+                        .filter(|s| s.part == Part::Arrow || s.part == Part::Halo)
+                        .flat_map(|s| &s.points)
+                    {
+                        assert!(
+                            point[0] >= 1.0
+                                && point[0] <= WIDTH - 1.0
+                                && point[1] >= 1.0
+                                && point[1] < 92.0,
+                            "{kind:?} {text}: {point:?}"
+                        );
+                    }
+                }
+            }
         }
     }
 
