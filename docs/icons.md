@@ -59,7 +59,7 @@ An explicit `--format` or `--out` writes the icons themselves, one per move or r
 | Option | Meaning |
 | --- | --- |
 | `--format auto\|svg\|rgba\|kitty\|text` | The output format. `auto` (the default) shows move pictures (Kitty graphics on a capable terminal, text otherwise); with `--out` it writes SVG. |
-| `--icon-size PIXELS` | Icon height in pixels, 1 to 1024 (0 and larger values are refused; a 1024-pixel icon is a picture of about 4 MB). Default: 32 per cube layer, at least 96 (96 for the 2x2x2 and 3x3x3, 128 for the 4x4x4, 224 for the 7x7x7), so stickers stay readable on larger cubes. The canvas is 114 by 109.2 units, so the width is about 1.04 times the height (100 by 96 pixels by default). |
+| `--icon-size PIXELS` | Icon height in pixels, 1 to 1024 (0 and larger values are refused; a 1024-pixel icon is a picture of about 4 MB). Default: 48 per cube layer, at least 144 and at most 1024 (144 for the 2x2x2 and 3x3x3, 192 for the 4x4x4, 336 for the 7x7x7). The canvas is 114 by 109.2 units, so the width is the height times 114 / 109.2, rounded to the nearest pixel: a 5x5x5 move icon is 251 by 240 pixels. |
 | `--size N` | Cube size, 2 to 7, 3 by default. |
 | `--out FILE` | Write to a file instead of standard output. |
 | `--scheme boy\|jp` | Color scheme, `boy` by default; six letters in `URFDLB` order also work. |
@@ -114,7 +114,7 @@ On a Kitty-graphics terminal the solution is shown in phases (see below) and the
 
 | Option | Meaning |
 | --- | --- |
-| `--icon-size PIXELS` | Icon height, 1 to 1024; all icons have the same size. Default: 32 per cube layer, at least 96. |
+| `--icon-size PIXELS` | Icon height, 1 to 1024; all icons have the same size. Default: 48 per cube layer, at least 144 and at most 1024. |
 | `--columns N` | Icons per row. Default: as many as fit. Wide rows are cut off by the terminal, so a large `N` is your own choice. |
 | `--background dark\|light` | What the icons are seen on. Default: asked from the terminal, dark when it does not answer. |
 | `--views folded\|both\|urf\|net\|all` | Pictures of a whole cube: the folded view (`folded`, default), the two corners (`both`), URF only (`urf`), the flat net (`net`) or the net and the two corners (`all`). See [The folded view](#the-folded-view), [Two views of a state](#two-views-of-a-state) and [The flat net](#the-flat-net). |
@@ -188,13 +188,9 @@ There is no command-line option or environment variable for it.
        D D D
 ```
 
-Every sticker appears exactly once, the three corner faces keep their 3D look and the other three read like the net. The flat faces are oriented as in the net (U edge on top for L and B, F at the top edge of D), so every edge shared by two faces continues across the gap. Amber marks of `solve --now --icons` sit on the differing stickers of the perspective faces (drawn in the same perspective) and of the flat faces; each differing sticker is marked once. The picture is 1.44 times as wide as it is high; measured at the default height, from the start picture of `solve --icons`:
+Every sticker appears exactly once, the three corner faces keep their 3D look and the other three read like the net. The flat faces are oriented as in the net (U edge on top for L and B, F at the top edge of D), so every edge shared by two faces continues across the gap. Amber marks of `solve --now --icons` sit on the differing stickers of the perspective faces (drawn in the same perspective) and of the flat faces; each differing sticker is marked once. The picture is about 1.44 times as wide as it is high.
 
-| Cube | 2x2x2 | 3x3x3 | 4x4x4 | 5x5x5 | 6x6x6 | 7x7x7 |
-| --- | --- | --- | --- | --- | --- | --- |
-| Pixels (width x height) | 138 x 96 | 138 x 96 | 183 x 128 | 229 x 160 | 274 x 192 | 320 x 224 |
-
-It is one image; like `net` it is never split, so on a terminal narrower than the picture lower `--icon-size` (the default height is 32 per layer, at least 96). Without graphics the text picture is the corner with the flat faces beside it, as in the sample under [Recover with icons](#recover-with-icons). Tests check that each of the 6 n x n stickers is drawn once with its color and place for sizes 2 to 7, that stickers of one cubie meet across the gaps, that every differing sticker has exactly one mark, and the text of a solved 3x3x3.
+It is one image; like `net` it is never split, so on a terminal narrower than the picture lower `--icon-size` (the default height is 48 per layer, at least 144 and at most 1024). Without graphics the text picture is the corner with the flat faces beside it, as in the sample under [Recover with icons](#recover-with-icons). Tests check that each of the 6 n x n stickers is drawn once with its color and place for sizes 2 to 7, that stickers of one cubie meet across the gaps, that every differing sticker has exactly one mark, and the text of a solved 3x3x3.
 
 ### Two views of a state
 
@@ -214,9 +210,9 @@ On a Kitty terminal the two pictures are one image. When that image is wider tha
       D
 ```
 
-U lies above F and D below F; L, F, R and B form one row. U is drawn with F at its bottom edge and D with F at its top edge, so every edge shared by two faces that touch in the picture continues across the gap. Rings, stripes and point symmetry of a pattern read directly from it, which the corner views cannot show, and it works for every size from 2x2x2 to 7x7x7. A 5x5x5 at the default height of 160 pixels is an image of 211 by 160 pixels (the height is `--icon-size`, as for the other pictures).
+U lies above F and D below F; L, F, R and B form one row. U is drawn with F at its bottom edge and D with F at its top edge, so every edge shared by two faces that touch in the picture continues across the gap. Rings, stripes and point symmetry of a pattern read directly from it, which the corner views cannot show, and it works for every size from 2x2x2 to 7x7x7. The height is `--icon-size`, as for the other pictures.
 
-`--views all` draws the net first, then the two corners, in one image when they fit the terminal width and `--columns` allows it, otherwise stacked one image each (the same rule as for `both`). For a 3x3x3 at the default height the three pictures are one image of 343 by 96 pixels in a terminal 1600 pixels wide, and three images of 127, 100 and 100 pixels width in one of 240 pixels. Amber marks of `solve --now --icons` sit on the stickers that differ, as in the corner views; as the net shows every face, each differing sticker is marked once, and the line `Stickers that differ` says so. Tests check each of the 6 n x n stickers is drawn once, with its color, at its place, that stickers of one cubie meet across the gap on touching faces, and that every differing sticker has exactly one mark.
+`--views all` draws the net first, then the two corners, in one image when they fit the terminal width and `--columns` allows it, otherwise stacked one image each (the same rule as for `both`). The pictures share a row only when the terminal width and `--columns` allow it. Amber marks of `solve --now --icons` sit on the stickers that differ, as in the corner views; as the net shows every face, each differing sticker is marked once, and the line `Stickers that differ` says so. Tests check each of the 6 n x n stickers is drawn once, with its color, at its place, that stickers of one cubie meet across the gap on touching faces, and that every differing sticker has exactly one mark.
 
 Without graphics the net is a letter grid, with a heading and one space between faces more than between stickers. This is the text of `solve --now --icons --views net` for the example of [Recover with icons](#recover-with-icons), as run:
 
