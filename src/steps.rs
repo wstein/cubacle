@@ -223,7 +223,7 @@ pub struct PictureArgs {
     /// Show each move with a picture of the cube (graphics on a capable terminal)
     #[arg(long, global = true)]
     pub icons: bool,
-    /// Icon height in pixels for --icons, 1 to 1024 (default: 32 per cube layer, at least 96)
+    /// Icon height in pixels for --icons, 1 to 1024 (default: 48 per cube layer, at least 144, capped at 1024)
     #[arg(
         long,
         global = true,

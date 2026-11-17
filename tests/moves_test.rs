@@ -123,3 +123,18 @@ fn inverse_inverts_each_hand_unit_and_reverses_their_order() {
     let grouped = moves(&["--size", "7", "--inverse", "--group", "axis", text]);
     assert!(grouped.contains(" · "), "{grouped}");
 }
+
+#[test]
+fn explicit_icon_size_is_preserved() {
+    let (ok, out, err) = cubacle(&[
+        "moves",
+        "R",
+        "--icons",
+        "--format",
+        "svg",
+        "--icon-size",
+        "500",
+    ]);
+    assert!(ok, "{err}");
+    assert!(out.contains("height=\"500\""), "{out}");
+}

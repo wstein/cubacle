@@ -156,7 +156,7 @@ fn cli_raster_and_kitty_hide_picture_twists() {
         let b = run(1);
         assert_eq!(a, b, "{format} displays center twists");
         if format == "rgba" {
-            assert_eq!(b.len(), 100 * 96 * 4);
+            assert_eq!(b.len(), 150 * 144 * 4);
         } else {
             assert!(b.windows(3).any(|w| w == b"\x1b_G"));
         }

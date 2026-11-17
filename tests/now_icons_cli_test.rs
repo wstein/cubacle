@@ -63,7 +63,7 @@ fn state_images(out: &str) -> usize {
 fn should_be_and_is_now_share_one_image_when_they_fit() {
     let run = |extra: &[&str]| {
         let mut args = vec!["solve", "-s", ORIGINAL, "--now", NOW, "--icons"];
-        args.extend_from_slice(&["--graphics", "kitty"]);
+        args.extend_from_slice(&["--graphics", "kitty", "--icon-size", "96"]);
         args.extend_from_slice(extra);
         let (ok, out, _) = cubacle(&args);
         assert!(ok);
