@@ -57,6 +57,14 @@ fn five_by_five_icons_match_their_fixtures() {
     }
 }
 
+/// The nine whole-cube rotations: orbit, axis and the "2x" mark of half turns.
+#[test]
+fn rotation_icons_match_their_fixtures() {
+    for text in ["x", "y", "z", "x2", "y2", "z2", "x'", "y'", "z'"] {
+        check(PuzzleKind::Cube5, text);
+    }
+}
+
 #[test]
 fn output_is_deterministic_and_well_formed() {
     for kind in PuzzleKind::ALL {
