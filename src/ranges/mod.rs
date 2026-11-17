@@ -7,8 +7,11 @@
 //! replacement is shorter. The result is exactly the same state, never a
 //! rotation of it. Only contiguous blocks are formed.
 
+use std::collections::VecDeque;
+use std::sync::OnceLock;
+
 use crate::notation::Notation;
-use crate::puzzle::{Face, LayerMove, Move, MoveSequence, PuzzleKind, Turn};
+use crate::puzzle::{Face, Facelets, LayerMove, Move, MoveSequence, PuzzleKind, Turn};
 
 fn axis_of(face: Face) -> usize {
     face.index() % 3
@@ -174,6 +177,10 @@ pub fn write(notation: Notation, kind: PuzzleKind, moves: &[LayerMove]) -> Strin
 pub enum Optimize {
     /// Write adjacent same-axis turns as layer ranges.
     Ranges,
+    /// Minimize the engine move count within each axis run, preserving the frame.
+    Moves,
+    /// Minimize block turns within each axis run, allowing a final cube rotation.
+    Easy,
 }
 
 impl std::str::FromStr for Optimize {
@@ -182,9 +189,165 @@ impl std::str::FromStr for Optimize {
     fn from_str(text: &str) -> Result<Optimize, String> {
         match text {
             "ranges" => Ok(Optimize::Ranges),
-            _ => Err(format!("optimize must be ranges, not {text:?}")),
+            "moves" => Ok(Optimize::Moves),
+            "easy" => Ok(Optimize::Easy),
+            _ => Err(format!(
+                "optimize must be ranges, moves, or easy, not {text:?}"
+            )),
         }
     }
+}
+
+/// Rewrite a sequence for the chosen objective. `Moves` counts each plain
+/// layer or outer-block turn once, independently of angle. It uses the
+/// axis normalizer with single layers enabled. `Easy` counts each contiguous
+/// block once (BTM); it may leave the final cube in a different orientation.
+/// Both are local axis-run optimizations, not globally shortest solutions.
+pub fn optimize(kind: PuzzleKind, solution: &MoveSequence, objective: Optimize) -> Vec<LayerMove> {
+    if !solution.fits(kind) {
+        return solution
+            .moves()
+            .iter()
+            .copied()
+            .map(LayerMove::from)
+            .collect();
+    }
+    match objective {
+        Optimize::Ranges => compress(kind, solution),
+        Optimize::Moves => crate::puzzle::normalize(kind.size(), solution.moves(), true)
+            .into_iter()
+            .map(LayerMove::from)
+            .collect(),
+        Optimize::Easy => easy(kind, solution),
+    }
+}
+
+/// Inverse face permutation of a whole-cube rotation about `face`.
+fn inverse_rotation(kind: PuzzleKind, face: Face, q: u8) -> [Face; 6] {
+    let turns = (1..=kind.size())
+        .map(|depth| {
+            if depth <= kind.size() / 2 {
+                Move::new(face, depth as u8, false, turn_of(q))
+            } else {
+                Move::new(
+                    Face::ALL[face.index() + 3],
+                    (kind.size() + 1 - depth) as u8,
+                    false,
+                    turn_of(4 - q),
+                )
+            }
+        })
+        .collect();
+    let rotated = Facelets::solved(kind)
+        .apply(&MoveSequence::new(turns))
+        .expect("whole-cube rotation fits");
+    std::array::from_fn(|i| rotated.stickers()[i * kind.face_len()])
+}
+
+/// Breadth-first table for every axis description using contiguous blocks.
+struct BlockTable {
+    distance: Vec<u8>,
+    previous: Vec<(usize, usize, usize, u8)>,
+}
+
+fn block_table(n: usize) -> &'static BlockTable {
+    static TABLES: [OnceLock<BlockTable>; 6] = [const { OnceLock::new() }; 6];
+    TABLES[n - 2].get_or_init(|| {
+        let count = 1usize << (2 * n);
+        let mut distance = vec![u8::MAX; count];
+        let mut previous = vec![(0, 0, 0, 0); count];
+        distance[0] = 0;
+        let mut queue = VecDeque::from([0]);
+        while let Some(state) = queue.pop_front() {
+            for first in 0..n {
+                for last in first..n {
+                    if first == 0 && last + 1 == n {
+                        continue;
+                    }
+                    for q in 1..=3 {
+                        let mut next = state;
+                        for layer in first..=last {
+                            let shift = 2 * layer;
+                            let digit = ((state >> shift) + q) & 3;
+                            next = (next & !(3 << shift)) | (digit << shift);
+                        }
+                        if distance[next] == u8::MAX {
+                            distance[next] = distance[state] + 1;
+                            previous[next] = (state, first, last, q as u8);
+                            queue.push_back(next);
+                        }
+                    }
+                }
+            }
+        }
+        BlockTable { distance, previous }
+    })
+}
+
+fn encode(net: &[u8], rotation: u8) -> usize {
+    net.iter().enumerate().fold(0, |state, (layer, &q)| {
+        state | (usize::from((q + 4 - rotation) % 4) << (2 * layer))
+    })
+}
+
+/// Keep an omitted rotation as a face permutation and conjugate all later
+/// moves through it. The table finds the fewest contiguous blocks after
+/// subtracting each possible uniform rotation from the axis.
+fn easy(kind: PuzzleKind, solution: &MoveSequence) -> Vec<LayerMove> {
+    let n = kind.size();
+    let mut inverse = Face::ALL;
+    let mut output = Vec::new();
+    let moves = solution.moves();
+    let mut start = 0;
+    while start < moves.len() {
+        let axis = axis_of(moves[start].face);
+        let mut end = start + 1;
+        while end < moves.len() && axis_of(moves[end].face) == axis {
+            end += 1;
+        }
+        let run: Vec<Move> = moves[start..end]
+            .iter()
+            .map(|mv| {
+                let mut transformed = *mv;
+                transformed.face = inverse[mv.face.index()];
+                transformed
+            })
+            .collect();
+        let transformed_axis = axis_of(run[0].face);
+        let mut net = vec![0; n];
+        for mv in &run {
+            add(&mut net, mv);
+        }
+        let table = block_table(n);
+        let mut best: Option<(usize, u8)> = None;
+        let mut best_len = run.len();
+        for q in 0..4 {
+            let state = encode(&net, q);
+            let length = usize::from(table.distance[state]);
+            if length < best_len {
+                best_len = length;
+                best = Some((state, q));
+            }
+        }
+        if let Some((mut state, q)) = best {
+            let mut found = Vec::new();
+            while state != 0 {
+                let (previous, first, last, turns) = table.previous[state];
+                found.push(block_move(n, transformed_axis, (first, last, turns)));
+                state = previous;
+            }
+            found.reverse();
+            output.extend(found);
+            if q != 0 {
+                let rotation = inverse_rotation(kind, Face::ALL[transformed_axis], q);
+                inverse = inverse.map(|face| rotation[face.index()]);
+            }
+        } else {
+            output.extend(run.into_iter().map(LayerMove::from));
+        }
+        start = end;
+    }
+    output
 }
 
 /// A solution compressed and written: the text and its move count.

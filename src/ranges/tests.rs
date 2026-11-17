@@ -63,3 +63,49 @@ fn compressed_replays_to_the_same_state() {
         assert_eq!(want, solved.apply(&expand(&packed)).unwrap(), "{text}");
     }
 }
+
+/// Destination of every distinct sticker, independent of facelet colors.
+fn permutation(kind: PuzzleKind, sequence: &MoveSequence) -> Vec<usize> {
+    let mut result: Vec<_> = (0..kind.facelet_count()).collect();
+    for mv in sequence.moves() {
+        let step = crate::puzzle::destinations(kind, mv);
+        for at in &mut result {
+            *at = step[*at];
+        }
+    }
+    result
+}
+
+#[test]
+fn objectives_preserve_distinct_sticker_permutations() {
+    let mut seed = 0x1284_901au64;
+    for kind in PuzzleKind::ALL {
+        let rotations = crate::puzzle::rotation_maps(kind);
+        for _ in 0..100 {
+            let mut sequence = Vec::new();
+            for _ in 0..32 {
+                seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
+                let face = Face::ALL[((seed >> 32) % 6) as usize];
+                let turn = [Turn::Clockwise, Turn::Half, Turn::CounterClockwise]
+                    [((seed >> 40) % 3) as usize];
+                let depth = 1 + ((seed >> 45) as usize % (kind.size() - 1));
+                let wide = depth > 1 && (seed >> 50) & 1 == 0;
+                sequence.push(Move::new(face, depth as u8, wide, turn));
+            }
+            let input = MoveSequence::new(sequence);
+            let expected = permutation(kind, &input);
+            let moves = expand(&optimize(kind, &input, Optimize::Moves));
+            assert_eq!(permutation(kind, &moves), expected, "{kind:?} {input}");
+            let easy = expand(&optimize(kind, &input, Optimize::Easy));
+            let got = permutation(kind, &easy);
+            assert!(
+                rotations.iter().any(|rotation| {
+                    got.iter()
+                        .zip(&expected)
+                        .all(|(&at, &want)| rotation[at] == want)
+                }),
+                "{kind:?} {input}"
+            );
+        }
+    }
+}
