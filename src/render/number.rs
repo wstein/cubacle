@@ -37,6 +37,26 @@ mod tests {
         r.data.chunks(4).map(|p| p[3]).collect()
     }
 
+    #[test]
+    fn four_crossings_in_move_numbers_are_filled() {
+        for label in ["44", "45", "46"] {
+            let raster = rasterise_canvas(
+                &shapes(label, Backdrop::Dark),
+                (CANVAS_W, CANVAS_H),
+                2184,
+                None,
+            );
+            // The first four's stem and crossbar overlap at glyph coordinate (0.78, 0.91).
+            let x = ((2.0 + 0.78 * 8.0 / 1.4) * 20.0) as usize;
+            let y = ((2.0 + 0.91 * 8.0 / 1.4) * 20.0) as usize;
+            assert_eq!(
+                raster.data[(y * raster.width as usize + x) * 4 + 3],
+                255,
+                "{label}"
+            );
+        }
+    }
+
     /// No move of any size has the number over the cube, the arrow, the `2x`
     /// mark or the notation, also for the widest numbers in use.
     #[test]
