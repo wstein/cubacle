@@ -443,12 +443,10 @@ of the 3×3×3, 5×5×5 and 7×7×7. Set `--size` to match the token. The token 
 validated with the existing V2 state rules, and its whole-cube frame is kept.
 `--picture` conflicts with `--from` and `--optimize`.
 
-Each fixed center has an arrow showing its clockwise quarter turns: ↑, →, ↓,
-← for 0, 1, 2, 3. Text keeps the sticker color in ANSI mode and uses the arrow
-in place of the center's color letter. SVG, raster and Kitty draw the same
-arrow polygon on the sticker. The folded, both-corners, URF and net views
-include those directions. Rotations `x`, `y` and `z` transport both the center
-and its direction; layer moves turn the selected centers too.
+The drawings show sticker colors without center-orientation marks. Rotations
+`x`, `y` and `z` transport both the center and its direction in the underlying
+picture state; layer moves turn the selected centers too. Move icons retain
+their usual arrows and half-turn marks.
 
 For example, this valid 3×3×3 token has U and F turned clockwise once:
 
