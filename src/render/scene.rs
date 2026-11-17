@@ -25,6 +25,7 @@ pub(crate) struct Shape {
     pub points: Vec<[f64; 2]>,
     pub fill: Rgb,
     pub opacity: f64,
+    pub nonzero_fill: bool,
 }
 
 impl Shape {
@@ -34,6 +35,7 @@ impl Shape {
             points,
             fill,
             opacity: 1.0,
+            nonzero_fill: false,
         }
     }
 

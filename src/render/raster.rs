@@ -1,7 +1,7 @@
 //! A small anti-aliased polygon filler: exact horizontal coverage, four
 //! sub-scanlines per pixel, premultiplied accumulation.
 
-use super::scene::{Part, Shape};
+use super::scene::Shape;
 use super::style::Rgb;
 
 /// Straight (non-premultiplied) RGBA pixels, row by row.
@@ -49,7 +49,7 @@ pub(crate) fn rasterise_canvas(
             &points,
             shape.fill,
             shape.opacity as f32,
-            shape.part == Part::Label,
+            shape.nonzero_fill,
         );
     }
     let mut data = Vec::with_capacity(w * h * 4);
@@ -326,12 +326,23 @@ mod tests {
             Part::Halo,
             Part::Arrow,
             Part::Mark,
-            Part::Number,
             Part::Frame,
         ] {
-            let shapes = crate::render::font::text("4", (0.0, 0.0), 140.0, Rgb(255, 0, 0), part);
+            let shapes = crate::render::font::text("4", (0.0, 0.0), 140.0, Rgb(255, 0, 0), part)
+                .into_iter()
+                .map(|s| Shape::new(part, s.points, s.fill))
+                .collect::<Vec<_>>();
             let raster = rasterise_canvas(&shapes, (150.0, 150.0), 150, None);
             assert_eq!(pixel(&raster, 78, 91)[3], 0, "{part:?}");
+        }
+    }
+
+    #[test]
+    fn text_parts_fill_overlapping_glyph_strokes() {
+        for part in [Part::Label, Part::Number, Part::Mark, Part::Halo] {
+            let shapes = crate::render::font::text("4", (0.0, 0.0), 140.0, Rgb(255, 0, 0), part);
+            let raster = rasterise_canvas(&shapes, (150.0, 150.0), 150, None);
+            assert_eq!(pixel(&raster, 78, 91)[3], 255, "{part:?}");
         }
     }
 

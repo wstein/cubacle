@@ -54,7 +54,9 @@ pub(crate) fn text(
                 .iter()
                 .map(|p| [x + (cursor + p[0]) * scale, y + p[1] * scale])
                 .collect();
-            shapes.push(Shape::new(part, points, fill));
+            let mut shape = Shape::new(part, points, fill);
+            shape.nonzero_fill = true;
+            shapes.push(shape);
         }
         cursor += glyph.1;
     }
