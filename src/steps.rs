@@ -486,6 +486,12 @@ pub(crate) fn print_layers(
         out.push_str(&target_line(target)?);
     }
     out.push_str(&pictures.layer_steps(start, moves, true)?);
+    let end = start
+        .apply(&cubacle::ranges::expand(moves))
+        .map_err(|e| e.to_string())?;
+    out.push('\n');
+    out.push_str(&end_line(&end)?);
+    out.push_str(&pictures.start_state(&end));
     let text = cubacle::ranges::write(options.notation, start.kind(), moves);
     let mut stdout = std::io::stdout().lock();
     stdout

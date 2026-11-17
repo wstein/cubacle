@@ -92,3 +92,30 @@ fn objectives_reject_center_twist_goals() {
         assert!(err.contains("center twists"), "{err}");
     }
 }
+
+#[test]
+fn solve_objectives_show_the_final_state_in_icons() {
+    for objective in ["moves", "easy"] {
+        for graphics in ["plain", "kitty"] {
+            for scramble in ["R", "R R'"] {
+                let (ok, out, err) = run(&[
+                    "solve",
+                    "--size",
+                    "3",
+                    "--optimize",
+                    objective,
+                    "--icons",
+                    "--graphics",
+                    graphics,
+                    scramble,
+                ]);
+                assert!(ok, "{err}");
+                assert_eq!(
+                    out.matches("End state:").count(),
+                    1,
+                    "{objective} {graphics} {scramble}"
+                );
+            }
+        }
+    }
+}
