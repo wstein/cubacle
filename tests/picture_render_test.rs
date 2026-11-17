@@ -15,16 +15,17 @@ fn picture(twist: usize) -> PictureState {
 }
 
 #[test]
-fn fixed_center_twists_are_visible_in_every_view_and_writer() {
+fn fixed_center_twists_do_not_add_marks_to_any_view_or_writer() {
     let plain = picture(0);
     let turned = picture(1);
     let style = Style::default();
-    for view in ["urf", "folded", "both", "net"] {
+    for view in ["urf", "folded", "both", "net", "x", "x2"] {
         let draw = |p: &PictureState| match view {
             "urf" => vec![p.state_icon(&style)],
             "folded" => vec![p.folded(&style)],
             "both" => p.pair(&style).to_vec(),
-            _ => vec![p.net(&style)],
+            "net" => vec![p.net(&style)],
+            _ => vec![p.icon(&view.parse().unwrap(), &style).unwrap()],
         };
         let a = draw(&plain);
         let b = draw(&turned);
@@ -34,8 +35,28 @@ fn fixed_center_twists_are_visible_in_every_view_and_writer() {
         let text = |icons: &[cubacle::render::Icon]| {
             icons.iter().map(|i| i.to_text(false)).collect::<String>()
         };
-        assert_ne!(text(&a), text(&b), "{view} text loses the twist");
-        assert_ne!(svg(a), svg(b), "{view} SVG loses the twist");
+        assert_eq!(text(&a), text(&b), "{view} text displays a center mark");
+        for (left, right) in a.iter().zip(&b) {
+            assert_eq!(
+                left.to_rgba(128),
+                right.to_rgba(128),
+                "{view} pixels display a center mark"
+            );
+        }
+        assert_eq!(svg(a), svg(b), "{view} SVG displays a center mark");
+    }
+}
+
+#[test]
+fn picture_moves_keep_the_regular_move_arrow_and_half_turn_mark() {
+    let state = picture(1);
+    let style = Style::default();
+    for name in ["x", "x2", "R2"] {
+        let action = name.parse().unwrap();
+        let picture = state.icon(&action, &style).unwrap();
+        let regular = cubacle::render::icon(state.colors(), &action, &style).unwrap();
+        assert_eq!(picture.to_svg(), regular.to_svg(), "{name}");
+        assert_eq!(picture.to_text(false), regular.to_text(false), "{name}");
     }
 }
 
