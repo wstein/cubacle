@@ -30,6 +30,44 @@ mod tests {
     use crate::render::scene::{HEIGHT, WIDTH};
 
     #[test]
+    fn rotation_labels_have_glyphs_at_the_same_scale_and_fit() {
+        let bounds = |s: &[Shape]| {
+            let points: Vec<_> = s.iter().flat_map(|shape| &shape.points).collect();
+            assert!(!points.is_empty());
+            (
+                points.iter().map(|p| p[1]).fold(f64::MAX, f64::min),
+                points.iter().map(|p| p[1]).fold(f64::MIN, f64::max),
+            )
+        };
+        let x = shapes("x", Backdrop::Dark);
+        let (x_top, x_bottom) = bounds(&x);
+        for axis in ["x", "y", "z"] {
+            let axis_shapes = shapes(axis, Backdrop::Dark);
+            let (top, bottom) = bounds(&axis_shapes);
+            assert!((top - x_top).abs() < 0.2, "{axis}: top {top}");
+            assert!(
+                (bottom.min(TOP + LABEL_SCALE * font::GLYPH_HEIGHT) - x_bottom).abs() < 0.2,
+                "{axis}: bottom {bottom}"
+            );
+            for suffix in ["", "2", "'"] {
+                let label = format!("{axis}{suffix}");
+                let rendered = shapes(&label, Backdrop::Dark);
+                assert!(
+                    rendered.len() >= axis_shapes.len()
+                        && rendered.iter().all(|s| s.part == Part::Label),
+                    "{label}"
+                );
+                for point in rendered.iter().flat_map(|s| &s.points) {
+                    assert!(
+                        (0.0..=WIDTH).contains(&point[0]) && (0.0..=HEIGHT).contains(&point[1]),
+                        "{label}: {point:?}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
     fn the_label_has_a_fixed_size_and_fits_the_canvas() {
         assert!((TOP + LABEL_SCALE * font::GLYPH_HEIGHT + 4.0 - HEIGHT).abs() < 0.01);
         let top = |s: &[Shape]| {
