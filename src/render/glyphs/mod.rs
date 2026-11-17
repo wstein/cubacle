@@ -1,6 +1,6 @@
 //! Embedded glyph outlines of the label font.
 //!
-//! The module holds polygons for `0123456789URFDLBwx'` only, derived from
+//! The module holds polygons for `0123456789URFDLBwxyz'` only, derived from
 //! Quicksand under the SIL Open Font License 1.1 (see `NOTICE.md` and
 //! `licenses/`).
 

@@ -71,7 +71,7 @@ The move labels and the `2x` mark of the icons can be drawn from glyph outlines
 of Quicksand Bold, converted to polygons and embedded as Rust data
 (`src/render/glyphs/quicksand.rs`, written by `tools/embed_glyphs.py`). No font
 file is shipped and no font is loaded at run time. Only the characters
-`0123456789URFDLBwx'` are embedded. Under the OFL 1.1 these embedded outlines
+`0123456789URFDLBwxyz'` are embedded. Under the OFL 1.1 these embedded outlines
 are derived glyph data, not a font program: they are not offered or named as a
 font, and the Reserved Font Name "Quicksand" is not used for any product. The
 file names its origin; the license text is kept in

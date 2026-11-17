@@ -26,7 +26,7 @@ import math
 from fontTools.pens.basePen import BasePen
 from fontTools.ttLib import TTFont
 
-CHARS = "0123456789URFDLBwx'"
+CHARS = "0123456789URFDLBwxyz'"
 CAP = 1.4
 TOLERANCE = 0.004  # cap units; the icons never show a curve this far off
 

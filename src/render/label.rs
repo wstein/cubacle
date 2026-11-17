@@ -15,9 +15,11 @@ const TOP: f64 = 94.0;
 
 pub(crate) fn shapes(label: &str, backdrop: Backdrop) -> Vec<Shape> {
     let x = CUBE_CENTER - font::measure(label) * LABEL_SCALE / 2.0;
+    // The descender needs room for the raster border margin at small sizes.
+    let top = if label.contains('y') { TOP - 4.0 } else { TOP };
     font::text(
         label,
-        (x, TOP),
+        (x, top),
         LABEL_SCALE * font::GLYPH_HEIGHT,
         backdrop.ink(),
         Part::Label,
@@ -44,9 +46,11 @@ mod tests {
         for axis in ["x", "y", "z"] {
             let axis_shapes = shapes(axis, Backdrop::Dark);
             let (top, bottom) = bounds(&axis_shapes);
-            assert!((top - x_top).abs() < 0.2, "{axis}: top {top}");
+            let offset = if axis == "y" { 4.0 } else { 0.0 };
+            assert!((top + offset - x_top).abs() < 0.2, "{axis}: top {top}");
             assert!(
-                (bottom.min(TOP + LABEL_SCALE * font::GLYPH_HEIGHT) - x_bottom).abs() < 0.2,
+                ((bottom + offset).min(TOP + LABEL_SCALE * font::GLYPH_HEIGHT) - x_bottom).abs()
+                    < 0.2,
                 "{axis}: bottom {bottom}"
             );
             for suffix in ["", "2", "'"] {
