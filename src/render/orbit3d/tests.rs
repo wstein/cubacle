@@ -430,12 +430,38 @@ fn axis_outline_layers_and_margin() {
                 }
                 assert!(orbit.ring_items().iter().all(|item| item.shapes.len() == 1));
                 let layers = shapes(&act(text), n, &proj, pixels_per_unit(), backdrop);
+                let others: Vec<Item> = orbit
+                    .ring_items()
+                    .into_iter()
+                    .chain(orbit.arrow_items())
+                    .collect();
                 for hidden in [true, false] {
                     let list = if hidden {
                         &layers.behind
                     } else {
                         &layers.front
                     };
+                    let position = |item: &Item| {
+                        list.windows(item.shapes.len())
+                            .position(|pair| pair == item.shapes.as_slice())
+                            .unwrap()
+                    };
+                    let axis_positions: Vec<usize> = axis
+                        .iter()
+                        .filter(|item| item.hidden == hidden)
+                        .map(position)
+                        .collect();
+                    for item in others.iter().filter(|item| item.hidden == hidden) {
+                        let at = position(item);
+                        for &axis_at in &axis_positions {
+                            if item.depth == Depth::Behind {
+                                assert!(at < axis_at, "{n} {text}: behind axis");
+                            }
+                            if item.depth == Depth::Front {
+                                assert!(at > axis_at, "{n} {text}: in front of axis");
+                            }
+                        }
+                    }
                     for item in axis.iter().filter(|item| item.hidden == hidden) {
                         assert!(
                             list.windows(2).any(|pair| pair == item.shapes.as_slice()),
