@@ -151,6 +151,15 @@ fn axis_groups_do_not_split_rotations_at_token_boundaries() {
 }
 
 #[test]
+fn inverse_accepts_maximum_expression_depth() {
+    let mut expression = String::from("x");
+    for _ in 0..100 {
+        expression = format!("({expression})");
+    }
+    check_steps(&["--group", "none", "--inverse"], &expression, &["x'"]);
+}
+
+#[test]
 fn axis_groups_keep_adjacent_rotations_together() {
     let output = Command::new(env!("CARGO_BIN_EXE_cubacle"))
         .args([
@@ -173,4 +182,49 @@ fn axis_groups_keep_adjacent_rotations_together() {
         .filter(|line| line.starts_with("group "))
         .collect();
     assert_eq!(groups, ["group 1 of 1: L' x x'"]);
+}
+
+#[test]
+fn inverse_reverses_marked_groups_and_rotations() {
+    let output = Command::new(env!("CARGO_BIN_EXE_cubacle"))
+        .args([
+            "moves",
+            "--size",
+            "5",
+            "--icons",
+            "--graphics",
+            "plain",
+            "--group",
+            "dots",
+            "--inverse",
+            "R x · y U",
+        ])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let text = String::from_utf8(output.stdout).unwrap();
+    let groups: Vec<_> = text
+        .lines()
+        .filter(|line| line.starts_with("group "))
+        .collect();
+    assert_eq!(groups, ["group 1 of 2: U' y'", "group 2 of 2: x' R'"]);
+}
+
+#[test]
+fn ungrouped_icons_do_not_enforce_group_mark_limit() {
+    let mut expression = String::from("x");
+    for _ in 0..100 {
+        expression = format!("({expression})");
+    }
+    expression.push_str("*2001");
+    let output = Command::new(env!("CARGO_BIN_EXE_cubacle"))
+        .args([
+            "moves", "--size", "5", "--icons", "--group", "none", "--format", "svg",
+        ])
+        .arg(expression)
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+    let error = String::from_utf8(output.stderr).unwrap();
+    assert!(error.contains("svg and rgba hold one icon"), "{error}");
 }

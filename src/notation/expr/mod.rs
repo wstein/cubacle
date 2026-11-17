@@ -61,6 +61,19 @@ pub fn parse_rotations(
     Ok((MoveSequence::new(run.moves), run.rotations))
 }
 
+/// Reads rotations and optionally groups, optionally reversing the expression.
+pub fn parse_rotations_grouped(
+    text: &str,
+    kind: PuzzleKind,
+    inverted: bool,
+    track_groups: bool,
+) -> Result<(MoveSequence, Vec<Rotation>, Group), ExprError> {
+    let run = read(text, kind, track_groups)?;
+    let run = if inverted { run.inverse() } else { run };
+    let group = Group::build(&run.moves, &run.marks);
+    Ok((MoveSequence::new(run.moves), run.rotations, group))
+}
+
 fn read(text: &str, kind: PuzzleKind, track: bool) -> Result<Run, ExprError> {
     let mut reader = Reader {
         chars: text.chars().collect(),

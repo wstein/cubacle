@@ -6,8 +6,8 @@ use std::path::PathBuf;
 
 use clap::Args;
 use cubacle::notation::{
-    axis_units, axis_units_with_rotations, parse_expression, parse_grouped, parse_rotations,
-    ColorScheme, Item, Notation, Rotation,
+    axis_units, axis_units_with_rotations, parse_expression, parse_rotations,
+    parse_rotations_grouped, ColorScheme, Group, Item, Notation, Rotation,
 };
 use cubacle::puzzle::{Facelets, Move, MoveSequence, PuzzleKind, Turn};
 use cubacle::ranges::{optimize, Optimize};
@@ -218,22 +218,26 @@ pub fn run(args: MovesArgs) -> Result<(), String> {
             args.notation.write(kind, &tail)
         };
     }
-    if args.inverse {
-        text = if args.pictures.icons && !text.contains('·') && !text.contains('(') {
-            let (moves, rotations) =
-                parse_rotations(&format!("({text})'"), kind).map_err(|error| error.to_string())?;
-            semantic_actions(&moves, &rotations)
-                .iter()
-                .map(ToString::to_string)
-                .collect::<Vec<_>>()
-                .join(" ")
-        } else if args.pictures.icons {
-            format!("({text})'")
-        } else {
-            inverse_text(&text, args.notation, kind)?
-        };
+    if args.inverse && !args.pictures.icons {
+        text = inverse_text(&text, args.notation, kind)?;
     }
-    let moves = expand(&text, kind)?;
+    let parsed = if args.pictures.icons {
+        let track_groups = args.group == GroupMode::Dots
+            && (text.contains('·') || text.contains('('))
+            && args.format == Format::Auto
+            && args.out.is_none()
+            && args.picture.is_none();
+        Some(
+            parse_rotations_grouped(&text, kind, args.inverse, track_groups)
+                .map_err(|e| e.to_string())?,
+        )
+    } else {
+        None
+    };
+    let moves = match &parsed {
+        Some((moves, _, _)) => moves.clone(),
+        None => expand(&text, kind)?,
+    };
     if !args.pictures.icons && args.group != GroupMode::Axis && args.group != GroupMode::default() {
         return Err(
             "--group dots and --group none need --icons; without it only --group axis applies"
@@ -267,7 +271,8 @@ pub fn run(args: MovesArgs) -> Result<(), String> {
         if args.metrics {
             eprintln!("{}", metrics_out::text_line(&text, kind, &moves, true));
         }
-        return draw(&args, kind, &text, &moves);
+        let (_, rotations, group) = parsed.as_ref().expect("icons have a parsed expression");
+        return draw(&args, kind, &text, &moves, rotations, group);
     }
     if let Some(objective) = args.optimize {
         let packed = optimize(kind, &moves, objective);
@@ -333,6 +338,8 @@ fn draw(
     kind: PuzzleKind,
     text: &str,
     moves: &MoveSequence,
+    rotations: &[Rotation],
+    group: &Group,
 ) -> Result<(), String> {
     let mut picture = args
         .picture
@@ -348,8 +355,7 @@ fn draw(
         start = start.apply(&scramble).map_err(|error| error.to_string())?;
     }
     let pictures = &args.pictures;
-    let (_, rotations) = parse_rotations(text, kind).map_err(|error| error.to_string())?;
-    let actions = semantic_actions(moves, &rotations);
+    let actions = semantic_actions(moves, rotations);
     let to_stdout = args.out.is_none();
     if args.optimize.is_some()
         && (args.group != GroupMode::default() || args.format != Format::Auto || !to_stdout)
@@ -360,7 +366,7 @@ fn draw(
     }
     if args.format == Format::Auto && to_stdout {
         if let Some(picture) = picture {
-            return self::picture::steps(args, kind, text, moves, picture);
+            return self::picture::steps(args, kind, text, &actions, picture);
         }
         // Step pictures, as `solve --icons` shows them.
         let options = pictures.options(args.scheme, args.notation);
@@ -370,9 +376,8 @@ fn draw(
             let tree = axis_units_with_rotations(moves.moves(), kind, &[], &starts);
             pictures = pictures.grouped(Layout::of(&tree).collapse(&starts));
         } else if args.group == GroupMode::Dots && (text.contains('·') || text.contains('(')) {
-            let tree = parse_grouped(text, kind).map_err(|error| error.to_string())?;
             pictures = pictures.grouped(
-                Layout::of(&tree).collapse(&rotations.iter().map(|r| r.start).collect::<Vec<_>>()),
+                Layout::of(group).collapse(&rotations.iter().map(|r| r.start).collect::<Vec<_>>()),
             );
         }
         let mut steps = if let Some(objective) = args.optimize {

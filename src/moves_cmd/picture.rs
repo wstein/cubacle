@@ -24,7 +24,7 @@ pub(super) fn steps(
     args: &MovesArgs,
     kind: PuzzleKind,
     text: &str,
-    moves: &MoveSequence,
+    actions: &[Action],
     mut state: PictureState,
 ) -> Result<(), String> {
     if args.group == GroupMode::Axis
@@ -39,8 +39,7 @@ pub(super) fn steps(
         style.shading = cubacle::render::Shading::GreyMoving;
     }
     let mut out = String::new();
-    let (_, rotations) = parse_rotations(text, kind).map_err(|e| e.to_string())?;
-    for (at, action) in semantic_actions(moves, &rotations).iter().enumerate() {
+    for (at, action) in actions.iter().enumerate() {
         let drawn = state.icon(action, &style).map_err(|e| e.to_string())?;
         let drawn = numbered(drawn, at + 1, args.pictures.numbers, style.backdrop);
         out.push_str(&pictures.picture(&[drawn], &style));
