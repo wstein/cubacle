@@ -50,19 +50,22 @@ pub(crate) struct Plan {
     pub direction: Direction,
 }
 
+/// Which way the arrow of `action` points; whole-cube rotations have no
+/// plane arrow, their orbit is drawn by `orbit3d`.
+pub(crate) fn direction(action: &Action, n: usize) -> Direction {
+    match action {
+        Action::Rotate { .. } => rotation_direction(action),
+        _ => plan(action, n).direction,
+    }
+}
+
+/// The plane arrow of a layer move (not of a whole-cube rotation).
 pub(crate) fn plan(action: &Action, n: usize) -> Plan {
+    debug_assert!(!matches!(action, Action::Rotate { .. }));
     let nf = n as f64;
     let (axis, _) = action.axis_sign();
     let sense = action.sense();
-    let face = if axis == 2 && !matches!(action, Action::Rotate { .. }) {
-        Face::R
-    } else {
-        Face::F
-    };
-    let rotation = matches!(action, Action::Rotate { .. });
-    if rotation {
-        return rotation_plan(axis, sense, nf);
-    }
+    let face = if axis == 2 { Face::R } else { Face::F };
     let mut p0 = [0.0; 3];
     p0[axis] = action.band_center(n);
     let normal = if face == Face::R { 0 } else { 2 };
@@ -98,54 +101,27 @@ fn straight_direction(du: f64, dv: f64) -> Direction {
     }
 }
 
-/// A curved arrow over the Front face: a bow for `x` and `y`, a ring for `z`.
-fn rotation_plan(axis: usize, sense: i32, n: f64) -> Plan {
-    let steps = 32;
-    let mut path = Vec::with_capacity(steps + 1);
-    let direction = if axis == 2 {
-        let clockwise = sense < 0;
-        let (start, sweep) = if clockwise {
-            (150.0_f64, -260.0)
-        } else {
-            (30.0, 260.0)
-        };
-        for i in 0..=steps {
-            let angle = (start + sweep * i as f64 / steps as f64).to_radians();
-            path.push([0.68 * n * angle.cos(), 0.68 * n * angle.sin()]);
-        }
-        if clockwise {
+/// `x` moves the Front up or down, `y` left or right, `z` turns clockwise or
+/// counter-clockwise seen from the front.
+fn rotation_direction(action: &Action) -> Direction {
+    let (axis, _) = action.axis_sign();
+    let sense = action.sense();
+    if axis == 2 {
+        return if sense < 0 {
             Direction::Clockwise
         } else {
             Direction::CounterClockwise
-        }
-    } else {
-        let p0 = [0.0, 0.0, n];
-        let [du, dv] = plane_coords(Face::F, velocity(axis, sense, p0));
-        let sign = if axis == 0 { dv.signum() } else { du.signum() };
-        for i in 0..=steps {
-            let t = i as f64 / steps as f64;
-            let along = sign * 0.78 * n * (2.0 * t - 1.0);
-            let bow = 0.3 * n * (std::f64::consts::PI * t).sin();
-            path.push(if axis == 0 {
-                [bow, along]
-            } else {
-                [along, -bow]
-            });
-        }
-        straight_direction(du, dv)
-    };
-    Plan {
-        face: Face::F,
-        path,
-        direction,
+        };
     }
+    let [du, dv] = plane_coords(Face::F, velocity(axis, sense, [0.0, 0.0, 1.0]));
+    straight_direction(du, dv)
 }
 
-fn sub(a: [f64; 2], b: [f64; 2]) -> [f64; 2] {
+pub(super) fn sub(a: [f64; 2], b: [f64; 2]) -> [f64; 2] {
     [a[0] - b[0], a[1] - b[1]]
 }
 
-fn unit(v: [f64; 2]) -> [f64; 2] {
+pub(super) fn unit(v: [f64; 2]) -> [f64; 2] {
     let len = v[0].hypot(v[1]).max(1e-12);
     [v[0] / len, v[1] / len]
 }
@@ -446,7 +422,7 @@ mod tests {
     #[test]
     fn half_turns_have_two_arrowheads() {
         use crate::puzzle::{LayerMove, Turn};
-        let mut actions: Vec<Action> = ["R2", "L2", "Bw2", "2R2", "x2", "y2", "z2"]
+        let mut actions: Vec<Action> = ["R2", "L2", "Bw2", "2R2"]
             .iter()
             .map(|text| act(text))
             .collect();
@@ -486,22 +462,12 @@ mod tests {
     }
 
     #[test]
-    fn rendered_half_turn_heads_and_rotation_marks_are_separate() {
-        for text in ["R2", "L2", "Bw2", "2R2", "x2", "y2", "z2"] {
+    fn rendered_half_turn_heads_are_separate() {
+        for text in ["R2", "L2", "Bw2", "2R2"] {
             let shapes = drawn(PuzzleKind::Cube5, text);
             let arrows: Vec<_> = shapes.iter().filter(|s| s.part == Part::Arrow).collect();
             assert_eq!(arrows.len(), 3, "{text}");
             assert_eq!(arrows[1].points.len(), arrows[2].points.len(), "{text}");
-            if text.ends_with('2') && text.len() == 2 && text.starts_with(['x', 'y', 'z']) {
-                let mark = bounds(&shapes, Part::Mark);
-                for head in &arrows[1..] {
-                    let b = bounds(&[(*head).clone()], Part::Arrow);
-                    assert!(
-                        mark[2] < b[0] || b[2] < mark[0] || mark[3] < b[1] || b[3] < mark[1],
-                        "{text}: {mark:?} {b:?}"
-                    );
-                }
-            }
         }
     }
 
@@ -519,7 +485,7 @@ mod tests {
     #[test]
     fn the_mark_is_never_clipped() {
         let moves = [
-            "R2", "L2", "U2", "D2", "F2", "B2", "2R2", "3Rw2", "Rw2", "x2", "2U2",
+            "R2", "L2", "U2", "D2", "F2", "B2", "2R2", "3Rw2", "Rw2", "2U2",
         ];
         for kind in [
             PuzzleKind::Cube2,
@@ -561,7 +527,7 @@ mod tests {
     fn arrows_point_where_apply_moves_the_stickers() {
         let moves = [
             "R", "R'", "L", "L'", "U", "U'", "D", "D'", "F", "F'", "B", "B'", "Rw", "Rw'", "2R",
-            "2U'", "2F", "3Rw", "x", "x'", "y", "y'",
+            "2U'", "2F", "3Rw",
         ];
         for kind in kinds() {
             for text in moves {
@@ -603,8 +569,8 @@ mod tests {
         for (text, clockwise, lands) in [("z", true, Face::D), ("z'", false, Face::U)] {
             let kind = PuzzleKind::Cube3;
             let action = act(text);
-            let plan = plan(&action, 3);
-            assert_eq!(plan.direction == Direction::Clockwise, clockwise);
+            let plan_direction = direction(&action, 3);
+            assert_eq!(plan_direction == Direction::Clockwise, clockwise);
             let after = action.apply(&Facelets::solved(kind)).unwrap();
             let landed = (0..kind.facelet_count())
                 .any(|i| Face::ALL[i / kind.face_len()] == lands && after.stickers()[i] == Face::R);
@@ -628,7 +594,7 @@ mod tests {
             ("z", Direction::Clockwise),
         ];
         for (text, direction) in want {
-            assert_eq!(plan(&act(text), 3).direction, direction, "{text}");
+            assert_eq!(super::direction(&act(text), 3), direction, "{text}");
         }
     }
 

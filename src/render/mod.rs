@@ -4,7 +4,8 @@
 //! stickers. The moving layers keep their colors while the rest is darkened
 //! (or the moving layers turn grey, see [`Shading`]); a soft violet arrow with
 //! a white outline lies on the face where the layer is visible, an upright
-//! violet "2x" and a double-headed arrow mark half turns, whole-cube rotations get a curved arrow, and
+//! violet "2x" and a double-headed arrow mark half turns, whole-cube rotations
+//! get an arrow on an orbit around the cube, drawn with the rotation axis, and
 //! the notation is written below the cube in Quicksand Bold. [`state_icon`]
 //! draws a state alone, framed, for the result of a group of moves. The [`Backdrop`]
 //! decides how strongly the resting pieces are dimmed and the color of the
@@ -93,7 +94,7 @@ pub fn icon(state: &Facelets, action: &Action, style: &Style) -> Result<Icon, Re
     let pixels_per_unit = f64::from(style.size.max(16)) / scene::HEIGHT;
     let projection = geometry::Projection::new(n, 10.0, 9.0, 80.0, 76.0);
     let pixels_per_model = projection.scale * pixels_per_unit;
-    let mut shapes = geometry::cube_shapes(
+    let cube = geometry::cube_shapes(
         state,
         Some(action),
         style,
@@ -101,18 +102,29 @@ pub fn icon(state: &Facelets, action: &Action, style: &Style) -> Result<Icon, Re
         &projection,
         pixels_per_model,
     );
-    let plan = arrow::plan(action, n);
-    shapes.extend(arrow::shapes(
-        &plan,
-        action,
-        n,
-        &projection,
-        pixels_per_unit,
-    ));
+    let mut shapes = Vec::new();
+    if matches!(action, Action::Rotate { .. }) {
+        // The orbit and the axis pass behind the cube.
+        let orbit = orbit3d::shapes(action, n, &projection, pixels_per_unit);
+        shapes.extend(orbit.behind);
+        shapes.extend(cube);
+        shapes.extend(orbit.front);
+    } else {
+        shapes.extend(cube);
+        let plan = arrow::plan(action, n);
+        shapes.extend(arrow::shapes(
+            &plan,
+            action,
+            n,
+            &projection,
+            pixels_per_unit,
+        ));
+    }
     shapes.extend(label::shapes(&label, style.backdrop));
+    let direction = arrow::direction(action, n);
     Ok(Icon {
-        grid: text::grid(state, action, style, plan.direction),
-        direction: Some(plan.direction),
+        grid: text::grid(state, action, style, direction),
+        direction: Some(direction),
         shapes,
         label,
         size: style.size,

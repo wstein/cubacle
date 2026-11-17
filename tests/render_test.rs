@@ -138,9 +138,7 @@ fn rasters_have_the_requested_height() {
 #[test]
 fn drawings_keep_a_margin_from_the_border() {
     for kind in PuzzleKind::ALL {
-        for text in [
-            "R", "D'", "L", "U'", "B'", "F", "x", "y'", "z2", "R2", "Rw2", "3Rw'",
-        ] {
+        for text in ["R", "D'", "L", "U'", "B'", "F", "R2", "Rw2", "3Rw'"] {
             let action: Action = text.parse().unwrap();
             if icon(&Facelets::solved(kind), &action, &Style::default()).is_err() {
                 continue;

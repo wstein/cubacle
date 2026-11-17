@@ -228,13 +228,13 @@ impl Grid {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::render::arrow::plan;
+    use crate::render::arrow::direction as plan_direction;
 
     #[test]
     fn plain_text_marks_the_moving_layer_without_escapes() {
         let state = Facelets::solved(crate::puzzle::PuzzleKind::Cube3);
         let action: Action = "R".parse().unwrap();
-        let direction = plan(&action, 3).direction;
+        let direction = plan_direction(&action, 3);
         let text = grid(&state, &action, &Style::default(), direction).render(false);
         assert_eq!(
             text,
@@ -261,7 +261,7 @@ mod tests {
                 &state,
                 &action,
                 &Style::default(),
-                plan(&action, 5).direction,
+                plan_direction(&action, 5),
             )
             .render(false);
             assert!(
@@ -275,7 +275,7 @@ mod tests {
     fn ansi_text_uses_background_colors() {
         let state = Facelets::solved(crate::puzzle::PuzzleKind::Cube2);
         let action: Action = "U2".parse().unwrap();
-        let direction = plan(&action, 2).direction;
+        let direction = plan_direction(&action, 2);
         let text = grid(&state, &action, &Style::default(), direction).render(true);
         assert!(text.starts_with("U2 \u{2194} (half turn)\n"));
         assert!(text.contains("\x1b[48;2;"));
