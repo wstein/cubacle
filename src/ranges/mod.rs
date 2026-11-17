@@ -1,11 +1,13 @@
-//! Post-solve compression: adjacent turns of one axis written as layer ranges.
+//! Post-solve objectives for rewriting adjacent turns of one axis.
 //!
 //! All turns about one axis commute, so a run of them is described by the net
 //! quarter turns of each layer. Neighboring layers with the same net turn are
 //! one [`LayerMove`] (`3Rw Rw'` is layer 3 alone; `2R 3R` is `2-3r` in SiGN,
 //! `2-3Rw` in WCA). No search is involved, and a run is only replaced when the
-//! replacement is shorter. The result is exactly the same state, never a
-//! rotation of it. Only contiguous blocks are formed.
+//! replacement is shorter. This `ranges` form preserves the exact state and
+//! forms only contiguous blocks. `moves` minimizes plain turns per axis run
+//! while preserving the exact state. `easy` searches contiguous block turns
+//! per axis run and may leave the result in a rotated orientation.
 
 use std::collections::VecDeque;
 use std::sync::OnceLock;
