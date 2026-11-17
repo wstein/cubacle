@@ -47,9 +47,9 @@ mod tests {
         // the resting stickers of a move icon are darker than in the state icon
         assert_ne!(svg, moving.to_svg());
         assert!(svg.contains("#ffffff"), "the white center keeps full color");
-        // white on the Up face, dimmed to 25 percent in the move icon only
-        assert!(moving.to_svg().contains("#404040"));
-        assert!(!svg.contains("#404040"));
+        // white on the Up face, dimmed to 32.5 percent in the move icon only
+        assert!(moving.to_svg().contains("#535353"));
+        assert!(!svg.contains("#535353"));
     }
 
     #[test]

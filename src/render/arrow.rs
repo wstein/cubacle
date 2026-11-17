@@ -7,8 +7,8 @@
 //!
 //! The arrow is soft: a shaft with a round tail and a head, about twice as
 //! long as wide, with rounded corners, all outlined in white with round joins. Half turns have a second head in place of the tail.
-//! Its size is constant on the canvas, graded by cube size, and a margin of 12 %
-//! of the face width stays free at both ends.
+//! Its size is constant on the canvas, graded by cube size. Its shaft is shortened
+//! by 20 % while its heads retain their size.
 
 use super::action::{velocity, Action};
 use super::font;
@@ -173,6 +173,23 @@ fn trim(path: &[[f64; 2]], cut: f64) -> (Vec<[f64; 2]>, [f64; 2], [f64; 2]) {
     (kept, base, unit(sub(tip, base)))
 }
 
+/// Keep the heads unchanged while shortening the shaft by one fifth.
+fn shorter_path(path: &[[f64; 2]], head_len: f64, half: bool) -> Vec<[f64; 2]> {
+    let length: f64 = path
+        .windows(2)
+        .map(|p| {
+            let d = sub(p[1], p[0]);
+            d[0].hypot(d[1])
+        })
+        .sum();
+    let shaft = (length - head_len * if half { 2.0 } else { 1.0 }).max(0.0);
+    let cut = shaft * 0.1;
+    let (short, _, _) = trim(path, cut);
+    let reversed: Vec<_> = short.into_iter().rev().collect();
+    let (short, _, _) = trim(&reversed, cut);
+    short.into_iter().rev().collect()
+}
+
 /// An outline of the stroked `path`, `width` wide.
 fn ribbon(path: &[[f64; 2]], width: f64) -> Vec<[f64; 2]> {
     let mut left = Vec::new();
@@ -202,7 +219,8 @@ struct Metrics {
 /// The soft arrow: a shaft with rounded heads or a round tail,
 /// all grown by `grow` with round joins, so the outline has no spikes.
 fn soft_outline(path: &[[f64; 2]], m: &Metrics, grow: f64, half: bool) -> Vec<Vec<[f64; 2]>> {
-    let (shaft, base, dir) = trim(path, m.head_len);
+    let path = shorter_path(path, m.head_len, half);
+    let (shaft, base, dir) = trim(&path, m.head_len);
     let (shaft, tail) = if half {
         let reverse: Vec<_> = shaft.into_iter().rev().collect();
         let (shaft, base, dir) = trim(&reverse, m.head_len);
@@ -393,6 +411,24 @@ mod tests {
     }
 
     #[test]
+    fn shaft_is_eighty_percent_of_original_without_shortening_heads() {
+        let path = [[0.0, 0.0], [10.0, 0.0]];
+        let m = Metrics {
+            width: 0.2,
+            head_len: 2.0,
+            head_half: 0.22,
+            round: 0.02,
+        };
+        for (half, original) in [(false, 8.0), (true, 6.0)] {
+            let parts = soft_outline(&path, &m, 0.0, half);
+            let shaft = &parts[0];
+            let length = shaft.iter().map(|p| p[0]).fold(f64::NEG_INFINITY, f64::max)
+                - shaft.iter().map(|p| p[0]).fold(f64::INFINITY, f64::min);
+            assert!((length - original * 0.8).abs() < 1e-9, "{half}: {length}");
+        }
+    }
+
+    #[test]
     fn half_turns_have_two_arrowheads() {
         use crate::puzzle::{LayerMove, Turn};
         let mut actions: Vec<Action> = ["R2", "L2", "Bw2", "2R2", "x2", "y2", "z2"]
@@ -410,9 +446,10 @@ mod tests {
             };
             let parts = soft_outline(&plan.path, &metrics, 0.0, action.is_half());
             assert_eq!(parts.len(), 3, "{action}");
+            let shortened = shorter_path(&plan.path, metrics.head_len, true);
             for (head, endpoint) in [
-                (&parts[1], plan.path[0]),
-                (&parts[2], *plan.path.last().unwrap()),
+                (&parts[1], shortened[0]),
+                (&parts[2], *shortened.last().unwrap()),
             ] {
                 let distance = head
                     .iter()

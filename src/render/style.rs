@@ -83,8 +83,8 @@ impl Backdrop {
     /// The brightness of the pieces that do not turn.
     pub(crate) fn dimming(self) -> f64 {
         match self {
-            Backdrop::Dark => 0.25,
-            Backdrop::Light => 0.40,
+            Backdrop::Dark => 0.325,
+            Backdrop::Light => 0.46,
         }
     }
 
@@ -140,6 +140,13 @@ pub(crate) const WHITE: Rgb = Rgb(0xff, 0xff, 0xff);
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn inactive_layers_reduce_darkening_by_ten_percent() {
+        use super::Backdrop;
+        assert!((Backdrop::Dark.dimming() - 0.325).abs() < 1e-12);
+        assert!((Backdrop::Light.dimming() - 0.46).abs() < 1e-12);
+    }
+
     use super::*;
 
     #[test]
