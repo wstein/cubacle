@@ -183,6 +183,36 @@ pub trait Solver {
         self.solve(facelets, options)
     }
 
+    /// Up to `n` distinct solutions of the cube, the one [`Solver::solve`]
+    /// gives first, the others in the engine's own order (no sorting). Two
+    /// solutions that are equal after normalizing count once; fewer than `n`
+    /// come back when the engine has no more or the clock runs out after the
+    /// first. A failure of the first is the whole answer: a list with that one
+    /// failed result.
+    ///
+    /// The default answers `n` = 1 as [`Solver::solve`] does and fails with
+    /// [`Failure::InvalidInput`] and the word "unsupported" for more: not
+    /// every engine can vary its answer.
+    fn solve_many(
+        &self,
+        facelets: &Facelets,
+        options: &SolveOptions,
+        n: usize,
+    ) -> Vec<SolveResult> {
+        if n <= 1 {
+            return vec![self.solve(facelets, options)];
+        }
+        let size = self.kind().size();
+        vec![SolveResult {
+            outcome: Err(Failure::InvalidInput),
+            message: Some(format!(
+                "unsupported: the {size}x{size}x{size} engine cannot list several solutions yet"
+            )),
+            metrics: SolveMetrics::default(),
+            stages: Vec::new(),
+        }]
+    }
+
     /// Finds moves that take `start` to any state of a target that may leave
     /// stickers open. The result's message says whether the answer is proven
     /// shortest ("shortest: ...") or the best found ("best found: ...").
@@ -219,6 +249,15 @@ mod tests {
         fn solve(&self, _: &Facelets, _: &SolveOptions) -> SolveResult {
             unreachable!("not called")
         }
+    }
+
+    #[test]
+    fn the_default_solve_many_refuses_a_list_and_answers_one_as_solve_does() {
+        let cube = Facelets::solved(PuzzleKind::Cube3);
+        let list = Stub.solve_many(&cube, &SolveOptions::default(), 3);
+        assert_eq!(list.len(), 1);
+        assert_eq!(list[0].outcome, Err(Failure::InvalidInput));
+        assert!(list[0].message.as_deref().unwrap().contains("unsupported"));
     }
 
     #[test]
