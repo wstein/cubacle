@@ -150,8 +150,15 @@ pub(crate) fn run(
     }
     eprintln!("solutions {} (shortest {shortest} moves)", listed.len());
     if listed.len() < n {
+        // a time limit can end a list only where one is set (the default of the
+        // 4x4x4 and bigger, or --max-time and -b)
+        let clock = if options.time_budget.is_some() {
+            ", which include --max-time"
+        } else {
+            ""
+        };
         eprintln!(
-            "found {} of {n} solutions: no more distinct ones turned up within the search limits, which include --max-time",
+            "found {} of {n} solutions: no more distinct ones turned up within the search limits{clock}",
             listed.len()
         );
     }

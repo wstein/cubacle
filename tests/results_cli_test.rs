@@ -192,6 +192,8 @@ fn fewer_distinct_solutions_than_asked_say_so() {
         "{}",
         run.err
     );
+    // the 4x4x4 has a default time limit that can end a list
+    assert!(run.err.contains("--max-time"), "{}", run.err);
 }
 
 #[test]
@@ -296,6 +298,8 @@ fn the_limit_is_ten_thousand_and_the_message_names_it() {
         "{}",
         run.err
     );
+    // no clock limits a 2x2x2 list: the message does not name one
+    assert!(!run.err.contains("--max-time"), "{}", run.err);
     let run = solve(two, &["--results", "10001"]);
     assert!(!run.ok);
     assert!(
