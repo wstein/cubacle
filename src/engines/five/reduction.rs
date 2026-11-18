@@ -19,7 +19,7 @@ use super::tables::Tables;
 use crate::reduction::ida::{self, Collector, Stage, Start, TimedOut};
 use crate::reduction::par;
 
-const KEEP: [usize; 5] = [200, 500, 500, 500, 1];
+pub(super) const KEEP: [usize; 5] = [200, 500, 500, 500, 1];
 
 /// A reduction: its moves (numbers 0 to 35) and, for each of the five
 /// phases, the number of moves made when it ended.
@@ -115,8 +115,9 @@ pub(super) fn reduce(
     cube: &Cubie,
     threads: usize,
     deadline: Option<Instant>,
+    keep: [usize; 5],
 ) -> Result<Reduction, Stuck> {
-    let sols4 = first_four(tables, cube, threads, deadline)?;
+    let sols4 = first_four(tables, cube, threads, deadline, keep)?;
     let sols5 = last(tables, &sols4, 1, threads, deadline)?;
     sols5
         .into_iter()
@@ -137,8 +138,9 @@ pub(super) fn reduce_many(
     threads: usize,
     (deadline, early): (Option<Instant>, Option<Instant>),
     n: usize,
+    keep: [usize; 5],
 ) -> Result<Vec<Reduction>, Stuck> {
-    let sols4 = first_four(tables, cube, threads, deadline)?;
+    let sols4 = first_four(tables, cube, threads, deadline, keep)?;
     let sols5 = match last(tables, &sols4, n, threads, early) {
         Err(Stuck::TimedOut)
             if early != deadline && deadline.is_none_or(|d| Instant::now() < d) =>
@@ -178,6 +180,7 @@ fn first_four(
     cube: &Cubie,
     threads: usize,
     deadline: Option<Instant>,
+    keep: [usize; 5],
 ) -> Result<Vec<Solving>, Stuck> {
     let syms = &tables.syms;
     // Phase 1: the cube as it is and turned twice.
@@ -195,7 +198,7 @@ fn first_four(
         syms,
         &first,
         |sc| vec![tables.p1.start(&sc.cube)],
-        KEEP[0],
+        keep[0],
         threads,
         deadline,
         |sc, out| out.push(sc),
@@ -206,7 +209,7 @@ fn first_four(
         syms,
         &sols1,
         |sc| vec![tables.p2.start(&sc.cube)],
-        KEEP[1],
+        keep[1],
         threads,
         deadline,
         |mut sc, out| {
@@ -225,7 +228,7 @@ fn first_four(
         syms,
         &sols2,
         |sc| tables.p3.starts(&sc.cube, syms),
-        KEEP[2],
+        keep[2],
         threads,
         deadline,
         |mut sc, out| {
@@ -254,7 +257,7 @@ fn first_four(
         syms,
         &sols3,
         |sc| tables.p4.starts(&sc.cube),
-        KEEP[3],
+        keep[3],
         threads,
         deadline,
         |mut sc, out| {
@@ -313,7 +316,7 @@ mod tests {
                 if threads == 1 && n >= 6 {
                     continue;
                 }
-                let got = reduce(&tables, &cube, threads, None)
+                let got = reduce(&tables, &cube, threads, None, KEEP)
                     .expect("a reduction")
                     .moves;
                 assert_eq!(got, expected, "cube {n} with {threads} threads");
