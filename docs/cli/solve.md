@@ -53,7 +53,7 @@ The first two lines go to standard error. `moves N` is always printed there, `el
 | `--upright-centers` | 3x3x3: the target is the solved cube with all six face-center pictures upright; the start twist comes from the scramble or `--center-twist`. See [Picture cubes](picture.md). |
 | `--center-twist <T>` | 3x3x3: the twist of the six centers of the given cube, `U,R,F,D,L,B` each 0 to 3, like `0,1,2,0,3,0`. See [Picture cubes](picture.md). |
 | `--twist-target <T>` | 3x3x3: also require these center twists in the target (`0,X,2\|3,X,X,X`). See [Picture cubes](picture.md). |
-| `--within[=K]` | An optimal route of at most K moves (1 to 7, default 6) for a nearly solved cube of any size, searched from both ends; works for every `--to` state. Exit code 2 when there is none, 3 at a limit. See [A nearly solved cube](solve-options.md#a-nearly-solved-cube-within). |
+| `--within[=K]` | An optimal route of at most K moves (1 to 10, default 6) for a nearly solved cube of any size, searched from both ends; works for every `--to` state. Exit code 2 when there is none, 3 at a limit. See [A nearly solved cube](solve-options.md#a-nearly-solved-cube-within). |
 | `--blocks` | With `--within`: also the blocks of two and three layers from either side and the layers 2-3. |
 | `--then-solve` | With `--within`: when no route of at most K moves exists, solve with the normal solver. |
 | `--slices` | 4x4x4 and 5x5x5: allow single inner layers (`2R`) in the answer where they make it shorter. Default: outer layers and two-layer turns only. See [the move metric](../performance.md#move-metric). |
@@ -79,6 +79,23 @@ A cube argument of `-` reads the cube from standard input:
 ```sh
 cubacle random | cubacle solve -
 ```
+
+For `--within` with the default outer-block alphabet, these release-build measurements used
+fixed-seed scrambles without adjacent moves on the same axis. RSS is the largest value sampled
+from `/proc` at 10 ms intervals, so the peak may be higher. The shared ten-core machine had
+load averages of 3.83 to 10.09; times include process startup and vary with load.
+
+| Cube | K and scramble | Wall time | Sampled peak RSS |
+| --- | --- | ---: | ---: |
+| 5x5x5 | 8: `R' B' Dw Bw2 Rw' Bw' Lw2 U` | 81 ms | 18,616 KiB |
+| 5x5x5 | 9: `R' B' Dw Bw2 Rw' Bw' Lw2 U Bw2` | 1,051 ms | 374,936 KiB |
+| 5x5x5 | 10: `R' B' Dw Bw2 Rw' Bw' Lw2 U Bw2 Lw` | 6,154 ms | 374,948 KiB |
+| 3x3x3 | 10: `R' B' D B2 R' B' L2 U B2 L` | 41 ms | 15,264 KiB |
+
+The 5x5x5 K=10 stored table held 23,623,138 states (360 MiB), within the default
+`--max-memory 1000` table cap. Larger alphabets can take more time or hit a limit;
+`--max-time` and `--max-memory` set the limits.
+
 
 ### What solved means
 

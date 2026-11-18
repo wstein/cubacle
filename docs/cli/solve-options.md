@@ -109,7 +109,7 @@ The 4x4x4 and larger cubes also differ: the command wraps the engine in the patt
 
 ### A nearly solved cube: --within
 
-`--within K` is for a cube that is only slightly scrambled: it finds an optimal route of at most K moves (K from 1 to 7; write `--within=5`, plain `--within` means 6). The search starts at the cube and at the target and meets in the middle on the colors of the stickers, so it needs no relative state and works for every size from the 2x2x2 to the 7x7x7 and for every target: the solved cube, `--to` as a move expression or as a state text, also a state with mixed center colors (made with slice moves). Every route is replayed color by color before it is printed.
+`--within K` is for a cube that is only slightly scrambled: it finds an optimal route of at most K moves (K from 1 to 10; write `--within=5`, plain `--within` means 6). The search starts at the cube and at the target and meets in the middle on the colors of the stickers, so it needs no relative state and works for every size from the 2x2x2 to the 7x7x7 and for every target: the solved cube, `--to` as a move expression or as a state text, also a state with mixed center colors (made with slice moves). Every route is replayed color by color before it is printed.
 
 ```sh
 cubacle solve -s "R U2 F' D L2 B" --within=6
@@ -167,7 +167,7 @@ metrics: htm 9, qtm 12, stm 9
 F2 U' R B' L2 D' F U2 R'
 ```
 
-(the first line is on stderr). `--max-time MS` (default 60000, 0 for none) and `--max-memory MB` (default 1000) bound the search; when one ends it, stderr says `error: time limit` or `error: memory limit` and the status is 3. `--within` works with `--notation`, `--icons`, `--group`, `--optimize` and `-v`. It does not combine with `--now`, `--optimal`, `--moves`, `--count`, `--all` (one route is listed) and, without `--then-solve`, with the options of the normal solver (`-m`, `-b`, `--probes`, `--improve`, `--parallel`, `--fast`); each is refused by name. The 2x2x2 route ends on the exact solved cube, not on a whole-cube rotation of it.
+(the first line is on stderr). `--max-time MS` (default 60000, 0 for none) and `--max-memory MB` (default 1000) bound the search; when one ends it, stderr says `error: time limit` or `error: memory limit (--max-memory N MB)` and the status is 3. `--within` works with `--notation`, `--icons`, `--group`, `--optimize` and `-v`. It does not combine with `--now`, `--optimal`, `--moves`, `--count`, `--all` (one route is listed) and, without `--then-solve`, with the options of the normal solver (`-m`, `-b`, `--probes`, `--improve`, `--parallel`, `--fast`); each is refused by name. The 2x2x2 route ends on the exact solved cube, not on a whole-cube rotation of it.
 
 Exit codes of `solve --within`: 0 success; 1 input error or refused option; 2 no route (or an impossible state); 3 a time or memory limit ended the search.
 
