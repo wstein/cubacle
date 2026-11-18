@@ -32,8 +32,8 @@ The server binds to the local machine by default. It has no authentication, so d
 | --- | --- | --- |
 | `GET /health` | None | `{"status":"ok"}` |
 | `GET /v1/scramble?moves=25&size=3` | `moves`: 1 to 200; `size`: 2 to 7; `notation`?: `wca`, `sign` or `sse` | `{"scramble":"U' L2 F2 D U2"}` |
-| `GET /v1/random?size=3` | `size`: 2 to 7 (only 2 to 5 have engines) | `{"kind":"2x2x2","facelets":"...","token":"...","canonical":{"token":"...","schema":"..."}}` |
-| `POST /v1/convert` | `{"cube" or "scramble","size"?,"scheme"?}` | `{"kind","facelets","token"?,"canonical"?}` |
+| `GET /v1/random?size=3` | `size`: 2 to 7 (only 2 to 5 have engines) | `{"kind":"2x2x2","facelets":"...","token":"...","tokenV2":"...","canonical":{"token":"...","schema":"..."}}` |
+| `POST /v1/convert` | `{"cube" or "scramble","size"?,"scheme"?}` | `{"kind","facelets","token"?,"tokenV2"?,"canonical"?}` |
 | `POST /v1/solve` | `{"cube" or "scramble","size"?,"scheme"?,"maxMoves"?,"budgetMs"?,"minProbes"?,"improve"?,"slices"?,"notation"?,"optimize"?,"target"?,"formatVersion"?}` | `{"kind","solution","inverse","length","metrics","compressed"?,"compressedLength"?,"compressedMetrics"?,"elapsedMicros","formatVersion","toolVersion","gitCommit","frame","proven","lowerBound"}` |
 
 For `POST` requests, send the header `Content-Type: application/json`.
@@ -179,6 +179,10 @@ curl -s -XPOST localhost:8080/v1/convert \
 ```
 
 The tokens differ, the canonical tokens are one. A stored identifier of a pattern is the canonical token together with the `schema`. See [Canonical token](cli/canon.md) for the command line.
+
+### The tokenV2 field
+
+`/v1/convert` and `/v1/random` also carry `tokenV2`, the [Orbit64 V2](cli/convert.md#orbit64-v2-tokens) state token of the cube in the color model and the framed pose (the whole-cube orientation stays in the token). It follows `token`, which is unchanged, and is absent when the stickers are not a cube. For the 2x2x2, 3x3x3, 4x4x4, 6x6x6 and 7x7x7 it equals `token`; the 5x5x5 `tokenV2` has 42 characters, `token` 43. The field is an addition: clients that do not know it keep working. The same token is the default `state:` line of the command line, see [State line](cli/state-line.md).
 
 ### Solve JSON versions (changed in 0.2.0)
 
