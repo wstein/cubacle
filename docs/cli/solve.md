@@ -44,6 +44,7 @@ The first two lines go to standard error. `moves N` is always printed there, `el
 | `-b`, `--budget-ms <MS>` | Hard time limit in milliseconds. Given on a 3x3x3 it also restores the first-answer search (no default 3000 probes). Reaching it is the same error as `--max-time` (exit status 3). |
 | `--max-time <MS>` | Time limit of the whole solve in milliseconds, 0 for none. Default 120000 for the 4x4x4 to 7x7x7, none for the 2x2x2 and 3x3x3; with `--moves` none. The 4x4x4 and 5x5x5 look at the clock inside every search stage, the 6x6x6 and 7x7x7 inside the center searches and between the wing stages. Reaching it is an error, see [Failure](solve-options.md#failure). Not with `-b`, `--improve` or `--parallel`. With `--now` it limits the search for the mistake (default 8000). |
 | `--keep <N\|a,b,c,d>` | 5x5x5 reduction: keep N candidates in phase 1, or set the quotas of phases 1 to 4 with four comma-separated values. Default `200,500,500,500`; each value is 1 to 20000. A fifth value is refused: the quota of phase 5, the number of finished solutions, comes from `--results`. More candidates can use more time and memory. `--probes` and `--improve` control the finishing search separately; `--fast` is 3x3x3 only. See [5x5x5](../engines/5x5.md). |
+| `--results <N>` | 2x2x2 to 5x5x5. Print N distinct solutions, 1 to 100 (default 1: the solve as always, every mode). The first is the solution a plain solve prints, the others follow in the engine's own order, none is sorted; solutions equal after normalizing count once. Fewer than N lines come with `found k of N solutions` on standard error. N above 1 is refused with `--icons`, `--optimize`, `--group`, `--every`, `--improve`, `--parallel`, `--fast`, `--moves`, `--optimal`, `--all`, `--count`, `--within`, `--now`, `--pattern-aware`, the picture-cube options, a target with open stickers and a target whose centers differ in color; the 6x6x6 and 7x7x7 are refused as well. See [Several solutions](#several-solutions). |
 | `--fast` | 3x3x3 only. Print the first solution found, about 20.6 moves on average, in a few milliseconds. Without it a plain `solve` of a 3x3x3 makes 3000 probes (see [Shorter solutions](#shorter-solutions)). Not with `--probes`, `--improve` or `--parallel`. |
 | `--probes <N>` | 3x3x3 to 7x7x7 (not the 2x2x2). Keep improving the solution until N probes were made. Counts work, not time, so the answer is the same on every machine. On the 4x4x4 to 7x7x7 it sets the probe minimum of the 3x3x3 stage; the 6x6x6 and 7x7x7 also keep N reductions of the wing stages (see [Shorter solutions](#shorter-solutions)). |
 | `--improve` | 3x3x3 to 7x7x7 (not the 2x2x2). Keep improving until the time budget (`-b`, default 1000 ms) is spent, then print the best solution found. |
@@ -407,6 +408,39 @@ cubacle solve -s "R U2 F' D L2 B R' U' F2 D2 L B' R2 U F D' L' B2 R U2 F L D B'"
 Without `--improve`, `--parallel` is refused, and so is `--parallel` without `-b`: it would never return. The 2x2x2 is already optimal and refuses these options with a one-line error; `--parallel` works on the 3x3x3 only.
 
 On the 6x6x6 and 7x7x7 the first solution is probe 1 and is what a plain `solve` prints, byte for byte. `--probes N` then repeats the wing stages and the 3x3x3 stage on the same reduced centers: the wing stages keep N reductions each (at most 48) and the 3x3x3 stage makes 1000 probes per N, and the shorter total wins, the first on a tie, so the answer is never longer. The center stages, which make most of the moves, are not varied, so the gain is small. `--improve -b MS` takes the first solution without a time limit and then spends the budget on the same repeat with N from the budget as on the 4x4x4 and 5x5x5 (at most 48); the result depends on the machine. `--max-time` bounds the first solution and the counted repeat (a repeat that runs out of time keeps the first solution). The moves are merged and canceled per axis by the engine's usual cleanup, as in every solution. Measured on fixed seeded scrambles (`tools/bench/probes_big.rs`, tables cached, mean over 20 cubes of the 6x6x6 and 15 of the 7x7x7, OBTM/BTM per cube): 6x6x6 134.3/132.1 first, 132.2/129.9 with `--probes 5` (2.6 s against 2.3 s), 132.1/129.5 with 20, 132.1/129.2 with 48 (3.4 s); 7x7x7 189.9/186.7 first, 187.9/184.2 with 5 (3.6 s against 3.3 s), 187.6/184.0 with 20, 187.5/183.7 with 48 (4.6 s). That is about 1.5 percent fewer moves; a tenfold probe count buys almost nothing more. For the target `FxnPH-jRPlq7IufcH-uQYFlfnhxdBAeZGz6ONPglYfRsWaqD8wxhAFR7zJ-nheZxFv2Gw_5ahskca3-5Xz288Kj7Lw` on the 7x7x7 (`--size 7 --to`): 194/193 first, 192/191 with `--probes 5`, 20 and 48. Only the 21 moves of the solve after the center fix-up improve (to 19); the 172 moves of the fix-up are the prefix of the plain solution and are not varied. On a single 6x6x6 scramble `--improve -b 1000` gave 133/128 against 135/131 and `--improve -b 5000` 132/127. With a target that needs a center fix-up, `--improve -b` counts the fix-up in its budget as it does for the 4x4x4 and 5x5x5, so a small budget can end in `error: the time budget ran out while fixing the target's centers`.
+
+### Several solutions
+
+`--results N` prints N distinct solutions of one cube instead of one. Standard output has one line per solution: the rank, a tab, the seven counts as `moves --metrics` prints them (htm, qtm, stm, etm, obtm, btm, atm), a tab and the moves. The first line is the solution a plain `solve` prints. Standard error has the spread of the counts and `solutions k (shortest L moves)`, and `found k of N solutions` when the engine has no more distinct ones.
+
+```sh
+cubacle solve -s "R U2 F' D L2 B U' R2 D2 F L' U B2 R' D' F2 L U2" --results 5
+```
+
+```text
+metrics over the listed solutions: htm 19-21, qtm 27-31, stm 19-21
+solutions 5 (shortest 19 moves)
+1	htm 19, qtm 27, stm 19, etm 19, obtm 19, btm 19, atm 18	U F R' L' F2 D' B R D L2 B2 L2 D2 F2 D L2 B' L' U2
+2	htm 19, qtm 27, stm 19, etm 19, obtm 19, btm 19, atm 16	U' R' U2 D' L2 B2 R' U F B' L B U2 D2 F D2 B' D2 F2
+3	htm 20, qtm 29, stm 20, etm 20, obtm 20, btm 20, atm 19	R F' U B' D R L2 D F2 D2 B R D2 R2 D2 B2 U' L2 F2 U'
+4	htm 20, qtm 29, stm 20, etm 20, obtm 20, btm 20, atm 20	R2 F L D2 B2 L2 U2 L D2 B2 R' D L2 D B' L' F' R D' F2
+5	htm 21, qtm 31, stm 21, etm 21, obtm 21, btm 21, atm 20	R' U' L2 D2 U2 B2 L2 B R2 F' U2 B' D2 R B L' U B' R2 B2 L'
+```
+
+With `--json` the output is one array with the solve report of each solution (the object of a plain `--json`, in the same order as the lines). With `--inverse` each line shows the inverse of its solution; the counts stay those of the solution. Every listed solution is replayed on the cube, and so is a plain solve's.
+
+How each engine finds several solutions:
+
+| Size | Source of the list | Order |
+| --- | --- | --- |
+| 2x2x2 | Every solution of the shortest length from the distance table, then those one move longer, and so on up to three moves longer | move order |
+| 3x3x3 | The plain solution, then the solution of the cube after one more turn put in front (every face and turn), then after two turns; the plain search runs for each, so a solution is about as long as the plain one plus the turns in front, and a solution over the move limit (21 by default) is left out | turns in front |
+| 4x4x4 | The first successes of phase 3, each finished by its own 3x3x3 search | order of phase 3 |
+| 5x5x5 | The first N results of phase 5, each finished by its own 3x3x3 search | order of phase 5 |
+
+`--keep` sets the quotas of the phases before. The 6x6x6 and 7x7x7 are a follow-up: their stages keep one route, and no list of finished solutions exists there yet. `--icons`, `--optimize`, `--group` and `--every` for a list are a follow-up too. The 3x3x3 `--count` is a different list: the solutions in order of length, found by an exhaustive search that takes minutes for a random cube; `--results` and `--count` cannot be combined.
+
+N is at most 100, the largest count measured on every size. The measured times (release build, cached tables, load 3 to 4 on 10 cores from other jobs, three runs each, whole process; 5x5x5 includes about 1 s of table load): 5x5x5 example cube 1.2 s for N = 1, 1.4 to 1.5 s for N = 20, 3.9 to 4.1 s for N = 100; 3x3x3 0.15 s for N = 5 and 3.5 s for N = 100; 4x4x4 0.3 s for N = 5, 0.8 to 1.0 s for the 57 solutions that exist for the sample cube when N = 100; 2x2x2 0.06 s for N = 5 and 100.
 
 ### Shortest solutions
 
