@@ -23,6 +23,7 @@ mod edge3;
 mod edge3_prune;
 mod facelets;
 mod finish;
+mod many;
 mod moves;
 mod output;
 mod phase1;

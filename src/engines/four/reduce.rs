@@ -85,3 +85,36 @@ pub(super) fn reduce_many(
         })
         .collect())
 }
+
+/// Reductions for a list of `wanted` results: phases 1 and 2 run once, phase 3
+/// is asked for a growing number of successes in the serial order (the first is
+/// the reduction of [`reduce`]) while `enough` says the finished solutions are
+/// too few or too alike.
+pub(super) fn reduce_listing(
+    t: &Tables,
+    cube: &Cube,
+    threads: usize,
+    ctl: &Control,
+    wanted: usize,
+    enough: impl FnMut(&[Reduction]) -> bool,
+) -> Result<Vec<Reduction>, Stop> {
+    let cands = phase1::run(t, cube, ctl)?;
+    let cubes: Vec<Cube> = cands.iter().map(|c| after(t, cube, c.moves())).collect();
+    let mut results = phase2::run(t, &cands, &cubes, threads, ctl)?;
+    results.sort_by_key(|c| c.value);
+    crate::reduction::many::grow(
+        wanted,
+        |quota| {
+            let found = phase3::run_many(t, &results, threads, ctl, quota)?;
+            Ok(found
+                .into_iter()
+                .take(quota)
+                .map(|(index, move3)| Reduction {
+                    cand: results[index],
+                    move3,
+                })
+                .collect())
+        },
+        enough,
+    )
+}

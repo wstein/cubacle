@@ -9,6 +9,7 @@ use std::sync::{Arc, OnceLock};
 use std::time::Instant;
 
 use super::control::{Control, Stop};
+use super::cube::Cube;
 use super::facelets;
 use super::reduce::reduce;
 use super::reduce::reduce_many;
@@ -136,9 +137,83 @@ impl Solver for FourSolver {
         let options = options.with_time_budget(budget);
         self.run(facelets, &options, Some(improve::plan(budget)))
     }
+
+    fn solve_many(
+        &self,
+        facelets: &Facelets,
+        options: &SolveOptions,
+        n: usize,
+    ) -> Vec<SolveResult> {
+        self.list(facelets, options, n)
+    }
+}
+
+/// A result of the solver: the outcome and what the search measured.
+pub(super) fn result_of(
+    started: Instant,
+    outcome: Result<MoveSequence, Failure>,
+    message: Option<String>,
+    probes: Option<u64>,
+) -> SolveResult {
+    SolveResult {
+        outcome,
+        message,
+        metrics: SolveMetrics {
+            elapsed: started.elapsed(),
+            probes,
+            ..SolveMetrics::default()
+        },
+        stages: Vec::new(),
+    }
 }
 
 impl FourSolver {
+    /// The checks every solve makes before it searches: the cube, the 3x3x3
+    /// solver, the tables and the clock. Gives the model cube, the tables and
+    /// the deadline, or the failed result.
+    pub(super) fn ready(
+        &self,
+        facelets: &Facelets,
+        options: &SolveOptions,
+        started: Instant,
+    ) -> Result<(Cube, &Tables, Option<Instant>), SolveResult> {
+        let fail = |failure: Failure, message: &str| {
+            result_of(started, Err(failure), Some(message.to_owned()), None)
+        };
+        if facelets.kind() != PuzzleKind::Cube4 {
+            let size = facelets.kind().size();
+            return Err(fail(
+                Failure::InvalidInput,
+                &format!("expected a 4x4x4, got a {size}x{size}x{size}"),
+            ));
+        }
+        if self.three.kind() != PuzzleKind::Cube3 {
+            return Err(fail(
+                Failure::Internal,
+                "the solver for the 3x3x3 stage does not solve 3x3x3 cubes",
+            ));
+        }
+        let cube = match facelets::read(facelets) {
+            Ok(cube) => cube,
+            Err(why) => return Err(fail(Failure::InvalidInput, why)),
+        };
+
+        let deadline = options.time_budget.map(|budget| started + budget);
+        let cold = !self.tables_ready();
+        let t = self.tables();
+        if Control::new(deadline).check() {
+            return Err(fail(
+                Failure::BudgetExhausted,
+                if cold {
+                    "building the 4x4x4 tables (first use; prepare() builds them ahead) used up the time budget"
+                } else {
+                    "the time budget was used up before the search started"
+                },
+            ));
+        }
+        Ok((cube, t, deadline))
+    }
+
     /// One solve; with a `plan`, the best of several reductions.
     pub(super) fn run(
         &self,
@@ -147,53 +222,18 @@ impl FourSolver {
         plan: Option<Plan>,
     ) -> SolveResult {
         let started = Instant::now();
-        let done = |outcome: Result<MoveSequence, Failure>,
-                    message: Option<String>,
-                    probes: Option<u64>| SolveResult {
-            outcome,
-            message,
-            metrics: SolveMetrics {
-                elapsed: started.elapsed(),
-                probes,
-                ..SolveMetrics::default()
-            },
-            stages: Vec::new(),
-        };
+        let done =
+            |outcome: Result<MoveSequence, Failure>,
+             message: Option<String>,
+             probes: Option<u64>| result_of(started, outcome, message, probes);
         let fail =
             |failure: Failure, message: &str| done(Err(failure), Some(message.to_owned()), None);
 
-        if facelets.kind() != PuzzleKind::Cube4 {
-            let size = facelets.kind().size();
-            return fail(
-                Failure::InvalidInput,
-                &format!("expected a 4x4x4, got a {size}x{size}x{size}"),
-            );
-        }
-        if self.three.kind() != PuzzleKind::Cube3 {
-            return fail(
-                Failure::Internal,
-                "the solver for the 3x3x3 stage does not solve 3x3x3 cubes",
-            );
-        }
-        let cube = match facelets::read(facelets) {
-            Ok(cube) => cube,
-            Err(why) => return fail(Failure::InvalidInput, why),
+        let (cube, t, deadline) = match self.ready(facelets, options, started) {
+            Ok(ready) => ready,
+            Err(failed) => return failed,
         };
-
-        let deadline = options.time_budget.map(|budget| started + budget);
-        let cold = !self.tables_ready();
-        let t = self.tables();
         let ctl = Control::new(deadline);
-        if ctl.check() {
-            return fail(
-                Failure::BudgetExhausted,
-                if cold {
-                    "building the 4x4x4 tables (first use; prepare() builds them ahead) used up the time budget"
-                } else {
-                    "the time budget was used up before the search started"
-                },
-            );
-        }
         let reductions = match plan {
             None => reduce(t, &cube, self.threads, &ctl).map(|r| vec![r]),
             Some(plan) => {
