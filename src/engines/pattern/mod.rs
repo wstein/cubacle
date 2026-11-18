@@ -254,6 +254,26 @@ impl Solver for PatternShortcut {
         self.shorten(facelets, options, started, answer)
     }
 
+    /// The list of the engine, its first answer shortened as in `solve`; a
+    /// known pattern that takes its place is not listed a second time.
+    fn solve_many(
+        &self,
+        facelets: &Facelets,
+        options: &SolveOptions,
+        n: usize,
+    ) -> Vec<SolveResult> {
+        let started = Instant::now();
+        let mut list = self.inner.solve_many(facelets, options, n);
+        let first = self.shorten(facelets, options, started, list.remove(0));
+        let mut out = vec![first];
+        for next in list {
+            if next.solution().is_none() || out.iter().all(|r| r.solution() != next.solution()) {
+                out.push(next);
+            }
+        }
+        out
+    }
+
     fn solve_improving(&self, facelets: &Facelets, options: &SolveOptions) -> SolveResult {
         let started = Instant::now();
         let answer = self.inner.solve_improving(facelets, options);

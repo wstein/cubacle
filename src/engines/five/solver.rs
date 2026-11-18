@@ -115,12 +115,16 @@ impl FiveSolver {
         self.tables.get().map(Tables::pruning_bytes)
     }
 
+    pub(super) fn keep(&self) -> [usize; 5] {
+        self.keep
+    }
+
     /// The number of worker threads.
     pub fn threads(&self) -> usize {
         self.config.threads
     }
 
-    fn tables(&self) -> &Tables {
+    pub(super) fn tables(&self) -> &Tables {
         self.tables.get_or_init(|| Tables::build(&self.config))
     }
 }
@@ -216,9 +220,88 @@ impl Solver for FiveSolver {
         let options = options.with_time_budget(budget);
         self.run(facelets, &options, Some(improve::plan(budget)))
     }
+
+    fn solve_many(
+        &self,
+        facelets: &Facelets,
+        options: &SolveOptions,
+        n: usize,
+    ) -> Vec<SolveResult> {
+        self.list(facelets, options, n)
+    }
+}
+
+/// A result of the solver: the outcome and what the search measured.
+pub(super) fn result_of(
+    started: Instant,
+    outcome: Result<MoveSequence, Failure>,
+    message: Option<String>,
+    probes: Option<u64>,
+) -> SolveResult {
+    SolveResult {
+        outcome,
+        message,
+        metrics: SolveMetrics {
+            elapsed: started.elapsed(),
+            probes,
+            ..SolveMetrics::default()
+        },
+        stages: Vec::new(),
+    }
 }
 
 impl FiveSolver {
+    /// The checks every solve makes before it searches: the cube, the 3x3x3
+    /// solver, the tables and the clock. Gives the cube of the five-phase
+    /// solver, the tables and the deadline, or the failed result.
+    pub(super) fn ready(
+        &self,
+        facelets: &Facelets,
+        options: &SolveOptions,
+        started: Instant,
+    ) -> Result<(Cubie, &Tables, Option<Instant>), SolveResult> {
+        let fail = |failure: Failure, message: &str| {
+            result_of(started, Err(failure), Some(message.to_owned()), None)
+        };
+        if facelets.kind() != PuzzleKind::Cube5 {
+            let size = facelets.kind().size();
+            return Err(fail(
+                Failure::InvalidInput,
+                &format!("expected a 5x5x5, got a {size}x{size}x{size}"),
+            ));
+        }
+        if self.three.kind() != PuzzleKind::Cube3 {
+            return Err(fail(
+                Failure::Internal,
+                "the solver for the 3x3x3 stage does not solve 3x3x3 cubes",
+            ));
+        }
+        let colors = match colors_of(facelets) {
+            Ok(colors) => colors,
+            Err((failure, why)) => return Err(fail(failure, &why)),
+        };
+        let cube = match Cubie::from_colors(&colors) {
+            Ok(cube) => cube,
+            Err(why) => return Err(fail(Failure::InvalidInput, why.describe())),
+        };
+
+        let deadline = options.time_budget.map(|budget| started + budget);
+        let expired = |now: Instant| deadline.is_some_and(|d| now >= d);
+        let cold = !self.tables_ready();
+        let tables = self.tables();
+        if expired(Instant::now()) {
+            return Err(fail(
+                Failure::BudgetExhausted,
+                if cold {
+                    "building the 5x5x5 tables (first use; prepare() builds them ahead) used up the time budget"
+                } else {
+                    "the time budget was used up before the search started"
+                },
+            ));
+        }
+        Ok((cube, tables, deadline))
+    }
+
     /// One solve; with a `plan`, the best of several reductions.
     pub(super) fn run(
         &self,
@@ -227,57 +310,17 @@ impl FiveSolver {
         plan: Option<Plan>,
     ) -> SolveResult {
         let started = Instant::now();
-        let done = |outcome: Result<MoveSequence, Failure>,
-                    message: Option<String>,
-                    probes: Option<u64>| SolveResult {
-            outcome,
-            message,
-            metrics: SolveMetrics {
-                elapsed: started.elapsed(),
-                probes,
-                ..SolveMetrics::default()
-            },
-            stages: Vec::new(),
-        };
+        let done =
+            |outcome: Result<MoveSequence, Failure>,
+             message: Option<String>,
+             probes: Option<u64>| result_of(started, outcome, message, probes);
         let fail =
             |failure: Failure, message: &str| done(Err(failure), Some(message.to_owned()), None);
 
-        if facelets.kind() != PuzzleKind::Cube5 {
-            let size = facelets.kind().size();
-            return fail(
-                Failure::InvalidInput,
-                &format!("expected a 5x5x5, got a {size}x{size}x{size}"),
-            );
-        }
-        if self.three.kind() != PuzzleKind::Cube3 {
-            return fail(
-                Failure::Internal,
-                "the solver for the 3x3x3 stage does not solve 3x3x3 cubes",
-            );
-        }
-        let colors = match colors_of(facelets) {
-            Ok(colors) => colors,
-            Err((failure, why)) => return fail(failure, &why),
+        let (cube, tables, deadline) = match self.ready(facelets, options, started) {
+            Ok(ready) => ready,
+            Err(failed) => return failed,
         };
-        let cube = match Cubie::from_colors(&colors) {
-            Ok(cube) => cube,
-            Err(why) => return fail(Failure::InvalidInput, why.describe()),
-        };
-
-        let deadline = options.time_budget.map(|budget| started + budget);
-        let expired = |now: Instant| deadline.is_some_and(|d| now >= d);
-        let cold = !self.tables_ready();
-        let tables = self.tables();
-        if expired(Instant::now()) {
-            return fail(
-                Failure::BudgetExhausted,
-                if cold {
-                    "building the 5x5x5 tables (first use; prepare() builds them ahead) used up the time budget"
-                } else {
-                    "the time budget was used up before the search started"
-                },
-            );
-        }
         let reductions = match plan {
             None => {
                 reduce(tables, &cube, self.config.threads, deadline, self.keep).map(|r| vec![r])

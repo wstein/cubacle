@@ -155,6 +155,33 @@ pub(super) fn reduce_many(
     Ok(sols5.into_iter().take(n).map(Reduction::of).collect())
 }
 
+/// Reductions for a list of `wanted` results: the first results of phase 5 in
+/// the serial order, starting with the reduction of [`reduce`], asked for
+/// again with a larger quota (phases 1 to 4 run once) while `enough` says the
+/// finished solutions are too few or too alike.
+pub(super) fn reduce_listing(
+    tables: &Tables,
+    cube: &Cubie,
+    threads: usize,
+    deadline: Option<Instant>,
+    keep: [usize; 5],
+    wanted: usize,
+    enough: impl FnMut(&[Reduction]) -> bool,
+) -> Result<Vec<Reduction>, Stuck> {
+    let sols4 = first_four(tables, cube, threads, deadline, keep)?;
+    crate::reduction::many::grow(
+        wanted,
+        |quota| {
+            let sols5 = last(tables, &sols4, quota, threads, deadline)?;
+            if sols5.is_empty() {
+                return Err(Stuck::NoWay);
+            }
+            Ok(sols5.into_iter().take(quota).map(Reduction::of).collect())
+        },
+        enough,
+    )
+}
+
 fn last(
     tables: &Tables,
     sols4: &[Solving],

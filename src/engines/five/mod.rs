@@ -14,6 +14,7 @@ mod build;
 mod cubie;
 mod cubie_sym;
 mod finish;
+mod many;
 mod mv;
 mod p1;
 mod p2;
