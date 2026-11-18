@@ -27,6 +27,7 @@ mod ram;
 mod recover_cmd;
 mod recover_icons;
 mod restricted_cmd;
+mod results_cmd;
 mod rows;
 mod solve_cmd;
 mod solved_start;
