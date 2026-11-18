@@ -16,7 +16,7 @@ pub(crate) fn solver_for(kind: PuzzleKind) -> Box<dyn Solver> {
     solver_with_keep(kind, None)
 }
 
-pub(crate) fn solver_with_keep(kind: PuzzleKind, keep: Option<[usize; 5]>) -> Box<dyn Solver> {
+pub(crate) fn solver_with_keep(kind: PuzzleKind, keep: Option<[usize; 4]>) -> Box<dyn Solver> {
     let engine = engine_for(kind, keep);
     if kind.size() >= 4 {
         Box::new(PatternShortcut::new(engine))
@@ -25,7 +25,7 @@ pub(crate) fn solver_with_keep(kind: PuzzleKind, keep: Option<[usize; 5]>) -> Bo
     }
 }
 
-fn engine_for(kind: PuzzleKind, keep: Option<[usize; 5]>) -> Box<dyn Solver> {
+fn engine_for(kind: PuzzleKind, keep: Option<[usize; 4]>) -> Box<dyn Solver> {
     match kind {
         PuzzleKind::Cube2 => Box::new(PocketSolver::new()),
         PuzzleKind::Cube3 => Box::new(Min2PhaseSolver::new()),

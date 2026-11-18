@@ -41,11 +41,11 @@ fn solution(keep: Option<&str>, expected: usize) -> String {
 #[test]
 fn keep_controls_reduction_and_solutions_replay() {
     let default = solution(None, 71);
-    assert_eq!(default, solution(Some("200,500,500,500,1"), 71));
+    assert_eq!(default, solution(Some("200,500,500,500"), 71));
     let thousand = solution(Some("1000"), 70);
-    assert_eq!(thousand, solution(Some("1000,500,500,500,1"), 70));
+    assert_eq!(thousand, solution(Some("1000,500,500,500"), 70));
     solution(Some("20000"), 40);
-    solution(Some("200,5000,5000,5000,1"), 71);
+    solution(Some("200,5000,5000,5000"), 71);
 }
 
 #[test]
@@ -64,6 +64,13 @@ fn keep_rejects_invalid_values_and_other_sizes() {
         let out = run(&["solve", CUBE, "--keep", value]);
         assert!(!out.status.success(), "{value}");
         assert!(String::from_utf8_lossy(&out.stderr).contains("--keep"));
+    }
+    // five values, also with a last 1: the phase 5 quota comes from --results
+    for value in ["1,2,3,4,1", "200,500,500,500,1"] {
+        let out = run(&["solve", CUBE, "--keep", value]);
+        assert!(!out.status.success(), "{value}");
+        let err = String::from_utf8_lossy(&out.stderr);
+        assert!(err.contains("--keep") && err.contains("--results"), "{err}");
     }
     for options in [
         vec!["--upright-centers"],

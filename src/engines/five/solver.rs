@@ -63,10 +63,11 @@ impl FiveSolver {
         }
     }
 
-    /// Sets the candidate quotas for phases 1 to 4; phase 5 must be 1.
-    pub fn with_keep(mut self, keep: [usize; 5]) -> FiveSolver {
-        assert!(keep[..4].iter().all(|&n| (1..=20_000).contains(&n)) && keep[4] == 1);
-        self.keep = keep;
+    /// Sets the candidate quotas for phases 1 to 4 (each 1 to 20000). Phase 5
+    /// keeps one reduction in a plain solve; a list of results sets its own quota.
+    pub fn with_keep(mut self, keep: [usize; 4]) -> FiveSolver {
+        assert!(keep.iter().all(|&n| (1..=20_000).contains(&n)));
+        self.keep = [keep[0], keep[1], keep[2], keep[3], 1];
         self
     }
 
