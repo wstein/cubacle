@@ -231,3 +231,53 @@ fn results_out_of_range_and_unsupported_combinations_name_the_option() {
         assert!(run.err.contains("--results"), "{size}: {}", run.err);
     }
 }
+
+/// The moves of a line with every run of turns about one axis sorted: two
+/// lines that differ only in the order of commuting turns get the same key.
+fn axis_key(moves: &str) -> Vec<String> {
+    let axis = |token: &str| {
+        let face = token.chars().find(char::is_ascii_uppercase).unwrap();
+        "UD RL FB"
+            .split(' ')
+            .position(|pair| pair.contains(face))
+            .unwrap()
+    };
+    let tokens: Vec<&str> = moves.split_whitespace().collect();
+    let mut key = Vec::new();
+    let mut i = 0;
+    while i < tokens.len() {
+        let mut j = i;
+        while j < tokens.len() && axis(tokens[j]) == axis(tokens[i]) {
+            j += 1;
+        }
+        let mut run: Vec<&str> = tokens[i..j].to_vec();
+        run.sort_unstable();
+        key.extend(run.iter().map(|t| (*t).to_owned()));
+        key.push("|".to_owned());
+        i = j;
+    }
+    key
+}
+
+#[test]
+fn no_two_results_differ_only_in_the_order_of_commuting_turns() {
+    for (at, count) in [(3, "20"), (3, "100"), (1, "100"), (2, "100")] {
+        let sample = &samples()[at];
+        let run = solve(sample, &["--results", count]);
+        assert!(run.ok, "size {}: {}", sample.size, run.err);
+        if sample.size == 5 {
+            // the list is filled up to N while duplicates are left out
+            assert_eq!(run.out.lines().count(), count.parse::<usize>().unwrap());
+        }
+        let mut keys: Vec<Vec<String>> = Vec::new();
+        for line in run.out.lines() {
+            let key = axis_key(fields(line).2);
+            assert!(
+                !keys.contains(&key),
+                "size {}: {line} repeats an earlier line up to commuting turns",
+                sample.size
+            );
+            keys.push(key);
+        }
+    }
+}

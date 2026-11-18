@@ -151,7 +151,7 @@ pub(crate) fn run(
     eprintln!("solutions {} (shortest {shortest} moves)", listed.len());
     if listed.len() < n {
         eprintln!(
-            "found {} of {n} solutions: the engine has no more distinct ones within the limits",
+            "found {} of {n} solutions: no more distinct ones turned up within the search limits",
             listed.len()
         );
     }
