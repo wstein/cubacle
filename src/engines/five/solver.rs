@@ -4,7 +4,7 @@ use std::sync::{Arc, OnceLock};
 use std::time::Instant;
 
 use super::cubie::Cubie;
-use super::reduction::{reduce, reduce_many, Stuck};
+use super::reduction::{reduce, reduce_many, Stuck, KEEP};
 use super::tables::{Config, Tables};
 use crate::puzzle::{
     Face, Facelets, Failure, Move, MoveSequence, PuzzleKind, SolveMetrics, SolveOptions,
@@ -35,6 +35,7 @@ pub struct FiveSolver {
     pub(super) three: Arc<dyn Solver + Send + Sync>,
     tables: Arc<OnceLock<Tables>>,
     config: Config,
+    keep: [usize; 5],
 }
 
 impl fmt::Debug for FiveSolver {
@@ -52,6 +53,7 @@ impl FiveSolver {
     pub fn new(three: Arc<dyn Solver + Send + Sync>) -> FiveSolver {
         FiveSolver {
             three,
+            keep: KEEP,
             tables: Arc::new(OnceLock::new()),
             config: Config {
                 threads: par::threads(),
@@ -59,6 +61,13 @@ impl FiveSolver {
                 cap: 15,
             },
         }
+    }
+
+    /// Sets the candidate quotas for phases 1 to 4; phase 5 must be 1.
+    pub fn with_keep(mut self, keep: [usize; 5]) -> FiveSolver {
+        assert!(keep[..4].iter().all(|&n| (1..=20_000).contains(&n)) && keep[4] == 1);
+        self.keep = keep;
+        self
     }
 
     /// Uses `threads` workers instead of the configured number.
@@ -269,7 +278,9 @@ impl FiveSolver {
             );
         }
         let reductions = match plan {
-            None => reduce(tables, &cube, self.config.threads, deadline).map(|r| vec![r]),
+            None => {
+                reduce(tables, &cube, self.config.threads, deadline, self.keep).map(|r| vec![r])
+            }
             Some(plan) => {
                 let early = deadline.map(|d| d.min(started + plan.collect));
                 reduce_many(
@@ -278,6 +289,7 @@ impl FiveSolver {
                     self.config.threads,
                     (deadline, early),
                     plan.candidates,
+                    self.keep,
                 )
             }
         };
