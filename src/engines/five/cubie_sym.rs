@@ -118,9 +118,9 @@ impl Syms {
     /// symmetry `s`, for the first `nsym` symmetries.
     pub(crate) fn sym_moves(&self, moves: &[u8], nsym: usize) -> Vec<u8> {
         let mut out = Vec::with_capacity(nsym * moves.len());
-        for s in 0..nsym {
+        for images in self.mv.iter().take(nsym) {
             for &m in moves {
-                let image = self.mv[s][usize::from(m)];
+                let image = images[usize::from(m)];
                 out.push(
                     moves
                         .iter()
@@ -215,9 +215,9 @@ mod tests {
             assert!(seen.iter().all(|&x| x), "symmetry {s}");
         }
         // moves keep their turn count
-        for s in 0..48 {
-            for m in 0..36 {
-                assert_eq!(syms.mv[s][m] % 3 == 1, m % 3 == 1);
+        for images in &syms.mv {
+            for (m, &image) in images.iter().enumerate() {
+                assert_eq!(image % 3 == 1, m % 3 == 1);
             }
         }
     }

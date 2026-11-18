@@ -103,8 +103,8 @@ impl P5 {
             }
             c.set_t(i);
             c.set_x(i);
-            for sym in 0..8 {
-                let slot = usize::from(syms.mult_inv[0][sym]);
+            for (sym, &inverse) in syms.mult_inv[0].iter().enumerate().take(8) {
+                let slot = usize::from(inverse);
                 t_conj[i * 8 + slot] = c.get_t();
                 x_conj[i * 8 + slot] = c.get_x();
                 c.do_conj(0);
@@ -186,8 +186,8 @@ impl P5 {
         let mut e = Edge::new();
         let mut c = Center::new();
         let mut mask = 0u32;
-        for i in 0..8 {
-            mask |= 1 << (cube.medge[i] >> 1);
+        for &edge in cube.medge.iter().take(8) {
+            mask |= 1 << (edge >> 1);
         }
         let rank = |piece: i32| (mask & ((1 << piece) - 1)).count_ones() as i32;
         for i in 0..8 {
