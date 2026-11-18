@@ -14,6 +14,7 @@ mod scheme;
 mod sign;
 mod sse;
 mod sse_write;
+mod state_format;
 mod subset;
 mod template;
 
@@ -30,5 +31,6 @@ pub use partial::parse_partial;
 pub use scheme::{ColorScheme, SchemeError};
 pub use sign::{parse_move, parse_moves, to_wca_token, MovesError, Notation};
 pub(crate) use sse_write::write_layer_move as write_sse_layer_move;
+pub use state_format::{state_text, token_v2, StateFormat};
 pub use subset::{named_subset, NAMED_SUBSETS};
 pub use template::{GenFile, Template, TemplateError};
