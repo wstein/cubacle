@@ -197,7 +197,7 @@ fn fewer_distinct_solutions_than_asked_say_so() {
 #[test]
 fn results_out_of_range_and_unsupported_combinations_name_the_option() {
     let three = &samples()[1];
-    for value in ["0", "101", "x"] {
+    for value in ["0", "10001", "x"] {
         let run = solve(three, &["--results", value]);
         assert!(!run.ok, "{value}");
         assert!(run.err.contains("--results"), "{value}: {}", run.err);
@@ -280,4 +280,54 @@ fn no_two_results_differ_only_in_the_order_of_commuting_turns() {
             keys.push(key);
         }
     }
+}
+
+#[test]
+fn the_limit_is_ten_thousand_and_the_message_names_it() {
+    // the 2x2x2 has far fewer solutions than that: the list ends short, no error
+    let two = &samples()[0];
+    let run = solve(two, &["--results", "10000"]);
+    assert!(run.ok, "{}", run.err);
+    let count = run.out.lines().count();
+    assert!(count > 1 && count < 10000, "{count}");
+    assert!(
+        run.err
+            .contains(&format!("found {count} of 10000 solutions")),
+        "{}",
+        run.err
+    );
+    let run = solve(two, &["--results", "10001"]);
+    assert!(!run.ok);
+    assert!(
+        run.err.contains("--results") && run.err.contains("10000"),
+        "{}",
+        run.err
+    );
+}
+
+#[test]
+fn a_closed_pipe_ends_the_list_without_an_error() {
+    use std::io::Read;
+    let three = &samples()[1];
+    let mut args = vec!["solve"];
+    args.extend(&three.input);
+    args.extend(["--results", "50"]);
+    let mut child = Command::new(env!("CARGO_BIN_EXE_cubacle"))
+        .args(&args)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    // close the reading end before the list is written (the search takes longer)
+    drop(child.stdout.take().unwrap());
+    let mut err = String::new();
+    child
+        .stderr
+        .take()
+        .unwrap()
+        .read_to_string(&mut err)
+        .unwrap();
+    let status = child.wait().unwrap();
+    assert!(!err.contains("panicked"), "{err}");
+    assert!(status.success(), "{status:?} {err}");
 }
