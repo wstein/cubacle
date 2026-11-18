@@ -21,10 +21,10 @@ fn body(args: &[&str]) -> String {
         "{}",
         String::from_utf8_lossy(&result.stderr)
     );
-    String::from_utf8(result.stdout)
-        .unwrap()
-        .trim_end()
-        .to_owned()
+    let text = String::from_utf8(result.stdout).unwrap();
+    // without the `state` object that the command line appends to the server body
+    let at = text.find(",\"state\":{").expect("a state object");
+    format!("{}}}", &text[..at])
 }
 
 fn evidence(text: &str, frame: &str, proven: bool, bound: Option<usize>) {
