@@ -104,10 +104,10 @@ impl Center1 {
                 continue;
             }
             let mut c = Flags::from_number(i as u32);
-            for j in 0..48 {
+            for (j, &inverse) in syms.inv.iter().enumerate() {
                 let idx = c.number() as usize;
                 seen[idx] = true;
-                raw2sym[idx] = (sym2raw.len() as u32) << 6 | u32::from(syms.inv[j]);
+                raw2sym[idx] = (sym2raw.len() as u32) << 6 | u32::from(inverse);
                 c.step(j);
             }
             sym2raw.push(i as u32);

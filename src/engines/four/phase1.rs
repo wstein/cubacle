@@ -134,8 +134,8 @@ impl Search<'_> {
             move_centers(&mut ct, m);
             parity ^= u8::from(flips_wing_parity(m));
         };
-        for i in 0..self.length1 {
-            turn(&mut cand, self.move1[i]);
+        for &m in self.move1.iter().take(self.length1) {
+            turn(&mut cand, m);
         }
         let (add1, model_sym) = match self.t.syms.finish[sym] {
             0 => {

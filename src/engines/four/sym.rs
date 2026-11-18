@@ -166,8 +166,8 @@ mod tests {
     #[test]
     fn the_identity_leaves_moves_alone_and_the_solved_state_finishes_at_zero() {
         let s = Syms::new();
-        for m in 0..36 {
-            assert_eq!(usize::from(s.mv[0][m]), m);
+        for (m, &image) in s.mv[0].iter().enumerate() {
+            assert_eq!(usize::from(image), m);
         }
         // The reference prints these (Center1.finish).
         let mut expected = [0u32; 48];

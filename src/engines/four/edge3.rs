@@ -75,8 +75,8 @@ impl Edge {
             self.edge[11] = self.edge[10];
             self.edge[10] = val as i32;
         }
-        for i in 0..12 {
-            self.edgeo[i] = i as i32;
+        for (i, order) in self.edgeo.iter_mut().enumerate() {
+            *order = i as i32;
         }
         self.std = true;
     }
@@ -103,8 +103,8 @@ impl Edge {
         for i in 0..12 {
             self.edge[i] = temp[usize::from(cube.ep[FULL_EDGE_MAP[i]] % 12)];
         }
-        for i in 0..12 {
-            self.edgeo[i] = i as i32;
+        for (i, order) in self.edgeo.iter_mut().enumerate() {
+            *order = i as i32;
         }
         self.std = true;
         parity
@@ -129,8 +129,8 @@ impl Edge {
         }
         let mut idx = 0;
         let mut val = ALL;
-        for i in 0..end {
-            let v = (self.edge[i] << 2) as u32;
+        for (i, &wing) in self.edge.iter().enumerate().take(end) {
+            let v = (wing << 2) as u32;
             idx *= 12 - i as i32;
             idx += ((val >> v) & 0xf) as i32;
             val = val.wrapping_sub(ONES << v);
