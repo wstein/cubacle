@@ -179,7 +179,7 @@ fn a_hit_does_not_run_the_fallback() {
 fn the_limits_have_their_own_exit_code() {
     let memory = cubacle(&["solve", "-s", "R U", "--within=4", "--max-memory", "0"]);
     assert_eq!(memory.code, 3);
-    assert_eq!(memory.err.trim(), "error: memory limit");
+    assert_eq!(memory.err.trim(), "error: memory limit (--max-memory 0 MB)");
     assert_eq!(memory.out, "");
     let time = cubacle(&[
         "solve",
@@ -269,4 +269,40 @@ fn an_impossible_goal_is_no_route() {
     assert_eq!(run.code, 2, "{}", run.err);
     let with = cubacle(&["solve", "-s", "M", "--within=7", "--slices"]);
     assert_eq!(with.code, 0, "{}", with.err);
+}
+
+#[test]
+fn routes_up_to_ten_moves_are_replayed() {
+    let words = ["R", "U2", "F'", "D", "L2", "B", "R'", "U", "F2", "D'"];
+    for k in 8..=10 {
+        let scramble = words[..k].join(" ");
+        let option = format!("--within={k}");
+        let run = cubacle(&["solve", "-s", &scramble, &option]);
+        assert_eq!(run.code, 0, "{k}: {}", run.err);
+        assert!(route(&run).len() <= k);
+        assert!(cube_of(3, &scramble)
+            .apply(&route(&run))
+            .unwrap()
+            .is_solved());
+    }
+}
+
+#[test]
+fn eleven_moves_are_rejected_with_the_limit() {
+    let run = cubacle(&["solve", "-s", "R", "--within=11"]);
+    assert_eq!(run.code, 2);
+    assert!(run.err.contains("--within"), "{}", run.err);
+    assert!(run.err.contains("10"), "{}", run.err);
+}
+
+#[test]
+fn ten_move_five_by_five_route_replays() {
+    let scramble = "R' B' Dw Bw2 Rw' Bw' Lw2 U Bw2 Lw";
+    let run = cubacle(&["solve", "-s", scramble, "--size", "5", "--within=10"]);
+    assert_eq!(run.code, 0, "{}", run.err);
+    assert!(route(&run).len() <= 10);
+    assert!(cube_of(5, scramble)
+        .apply(&route(&run))
+        .unwrap()
+        .is_solved());
 }

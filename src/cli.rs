@@ -199,13 +199,13 @@ pub(crate) struct SolveArgs {
     #[arg(long, value_name = "MB")]
     pub(crate) max_memory: Option<usize>,
     /// For a cube that is only slightly scrambled: find an optimal route of at
-    /// most K moves (1 to 7; write --within=5, plain --within means 6), searched
+    /// most K moves (1 to 10; write --within=5, plain --within means 6), searched
     /// from both ends, to the solved cube or to any --to state, in the alphabet
     /// the normal solver uses (--slices adds inner layers, --blocks every block
     /// of up to three layers). Limited by --max-time (default 60000 ms) and
     /// --max-memory (default 1000). Exit code 2: no route within K moves; 3: a
     /// limit ended the search
-    #[arg(long, value_name = "K", num_args = 0..=1, require_equals = true, default_missing_value = "6", value_parser = clap::value_parser!(u8).range(1..=7))]
+    #[arg(long, value_name = "K", num_args = 0..=1, require_equals = true, default_missing_value = "6", value_parser = clap::value_parser!(u8).range(1..=10))]
     pub(crate) within: Option<u8>,
     /// With --within: also allow the blocks of two and three layers from either
     /// side and the layers 2-3 (more routes, a larger search)
