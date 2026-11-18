@@ -305,12 +305,12 @@ impl Model {
             let last = levels.last().expect("a level");
             let mut next: Vec<Node> = Vec::new();
             for (parent, node) in last.iter().enumerate() {
-                for m in 0..self.moves.len() {
+                for (m, perm) in self.perms.iter().enumerate().take(self.moves.len()) {
                     let masks: Vec<[u32; 6]> = node
                         .1
                         .iter()
                         .enumerate()
-                        .map(|(o, colors)| colors.map(|mask| permute(&self.perms[m][o], mask)))
+                        .map(|(o, colors)| colors.map(|mask| permute(&perm[o], mask)))
                         .collect();
                     next.push((score(&masks), masks, parent, m));
                 }
