@@ -28,8 +28,10 @@ use crate::puzzle::{Facelets, MoveSequence, PuzzleKind};
 
 pub use crate::meet::Kit;
 
-/// The most moves a route may have (the packed sequences hold seven).
-pub const MAX_MOVES: usize = 7;
+/// The most moves a route may have.
+pub const MAX_MOVES: usize = 10;
+// Only the stored half is packed, and it fits in seven bytes.
+const _: () = assert!(MAX_MOVES.div_ceil(2) <= 7);
 /// Memory for the stored side unless the caller says otherwise, in megabytes.
 pub const DEFAULT_MEMORY_MB: usize = 1000;
 /// Time limit unless the caller says otherwise.

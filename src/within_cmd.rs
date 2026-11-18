@@ -159,10 +159,9 @@ pub(crate) fn run(
         Outcome::Limit(limit) => {
             crate::failure::LIMIT_REACHED.store(true, std::sync::atomic::Ordering::Relaxed);
             Err(match limit {
-                Limit::Time => "time limit",
-                Limit::Memory => "memory limit",
-            }
-            .to_owned())
+                Limit::Time => "time limit".to_owned(),
+                Limit::Memory => format!("memory limit (--max-memory {} MB)", limits.max_memory_mb),
+            })
         }
     }
 }
