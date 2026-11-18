@@ -7,6 +7,8 @@ use axum::http::HeaderMap;
 use axum::Json;
 use cubacle::generate;
 use cubacle::notation::orbit64;
+use cubacle::notation::orbit64::v2::{Model, Pose};
+use cubacle::notation::token_v2;
 use cubacle::puzzle::Facelets;
 use serde::{Deserialize, Serialize};
 
@@ -57,6 +59,10 @@ pub(crate) struct CubeBody {
     /// The Orbit64 state token; absent when the stickers are not a cube.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) token: Option<String>,
+    /// The Orbit64 V2 state token (color model, framed pose); absent when the
+    /// stickers are not a cube.
+    #[serde(rename = "tokenV2", skip_serializing_if = "Option::is_none")]
+    pub(crate) token_v2: Option<String>,
     /// The canonical Orbit64 token and its schema; absent when the stickers
     /// are not a cube.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -69,6 +75,7 @@ impl CubeBody {
             kind: cubacle::report::kind_name(facelets.kind()),
             facelets: facelets.to_string(),
             token: orbit64::encode(facelets).ok(),
+            token_v2: token_v2(facelets, Model::Color, Pose::Framed).ok(),
             canonical: Canonical::of(facelets).await,
         }
     }
