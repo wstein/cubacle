@@ -12,6 +12,10 @@
 /// is not worth its time.
 const GROWTH: usize = 4;
 const MARGIN: usize = 16;
+/// The first quota asked for. A long list starts smaller and doubles: the lists
+/// share their start, so a clock that runs out later still leaves the results of the
+/// earlier requests.
+const START: usize = 100;
 
 /// The reductions for `wanted` results: `list(quota)` gives the first `quota`
 /// of them (fewer when there are no more), `enough` is told the whole list and
@@ -23,7 +27,7 @@ pub(crate) fn grow<T, E>(
     mut enough: impl FnMut(&[T]) -> bool,
 ) -> Result<Vec<T>, E> {
     let limit = wanted.saturating_mul(GROWTH).saturating_add(MARGIN);
-    let mut quota = wanted;
+    let mut quota = wanted.min(START);
     let mut have = list(quota)?;
     loop {
         if enough(&have) || quota >= limit {
@@ -60,6 +64,21 @@ mod tests {
         };
         assert_eq!(grow(3, counted, |_| false).unwrap().len(), 10);
         assert_eq!(calls, 4);
+    }
+
+    #[test]
+    fn a_long_list_starts_with_a_small_request_and_doubles() {
+        let mut asked = Vec::new();
+        let got = grow(
+            1000,
+            |q| {
+                asked.push(q);
+                Ok::<_, ()>(vec![0u8; q])
+            },
+            |l| l.len() >= 400,
+        );
+        assert_eq!(got.unwrap().len(), 400);
+        assert_eq!(asked, [100, 200, 400]);
     }
 
     #[test]
