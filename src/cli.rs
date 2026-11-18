@@ -90,12 +90,29 @@ pub(crate) struct InputArgs {
 pub(crate) enum Output {
     /// Canonical URFDLB facelets
     Facelets,
-    /// An Orbit64 state token
+    /// An Orbit64 state token (V1)
     Token,
+    /// An Orbit64 V2 state token, written with --model and --pose (default: color model, framed pose)
+    #[value(name = "token2")]
+    Token2,
     /// W/R/G/Y/O/B sticker letters in facelet order, written with --scheme
     /// (default: the scheme of color input, else boy)
     #[value(name = "color")]
     Color,
+}
+
+/// The V2 model of `convert --to token2`.
+#[derive(Clone, Copy, ValueEnum)]
+pub(crate) enum ModelArg {
+    Color,
+    Picture,
+}
+
+/// The V2 pose of `convert --to token2`.
+#[derive(Clone, Copy, ValueEnum)]
+pub(crate) enum PoseArg {
+    Canonical,
+    Framed,
 }
 
 #[derive(Args)]
@@ -109,6 +126,12 @@ pub(crate) struct ConvertArgs {
     /// (htm qtm stm etm obtm btm atm) on stderr
     #[arg(long)]
     pub(crate) metrics: bool,
+    /// With --to token2: the V2 model, color (default) or picture (3x3x3 from colors only, center turns 0)
+    #[arg(long, value_enum)]
+    pub(crate) model: Option<ModelArg>,
+    /// With --to token2: the V2 pose, framed (default; the whole-cube orientation is kept) or canonical (one token for all orientations)
+    #[arg(long, value_enum)]
+    pub(crate) pose: Option<PoseArg>,
 }
 
 #[derive(Args)]

@@ -46,9 +46,10 @@ use std::sync::atomic::Ordering;
 
 use cubacle::generate;
 use cubacle::notation::orbit64;
-use cubacle::notation::{parse_cube, parse_expression, ColorScheme};
+use cubacle::notation::orbit64::v2::{Model, Pose};
+use cubacle::notation::{parse_cube, parse_expression, token_v2, ColorScheme};
 
-use crate::cli::{Cli, Command, InputArgs, Output};
+use crate::cli::{Cli, Command, InputArgs, ModelArg, Output, PoseArg};
 use crate::failure::{EXIT_ERROR, EXIT_LIMIT, LIMIT_REACHED};
 use crate::input::{kind_of, read_input, scrambled};
 
@@ -98,6 +99,9 @@ fn run(cli: Cli) -> Result<(), String> {
         Command::Patterns(args) => patterns_cmd::run(args),
         Command::Template(args) => template_cmd::run(args),
         Command::Convert(args) => {
+            if (args.model.is_some() || args.pose.is_some()) && !matches!(args.to, Output::Token2) {
+                return Err("--model and --pose need --to token2".into());
+            }
             let (cube, detected) = read_input(&args.input)?;
             if args.metrics {
                 print_metrics(&args.input)?;
@@ -105,6 +109,17 @@ fn run(cli: Cli) -> Result<(), String> {
             match args.to {
                 Output::Facelets => println!("{cube}"),
                 Output::Token => println!("{}", orbit64::encode(&cube).map_err(|e| e.to_string())?),
+                Output::Token2 => {
+                    let model = match args.model.unwrap_or(ModelArg::Color) {
+                        ModelArg::Color => Model::Color,
+                        ModelArg::Picture => Model::Picture,
+                    };
+                    let pose = match args.pose.unwrap_or(PoseArg::Framed) {
+                        PoseArg::Canonical => Pose::Canonical,
+                        PoseArg::Framed => Pose::Framed,
+                    };
+                    println!("{}", token_v2(&cube, model, pose)?);
+                }
                 Output::Color => {
                     let scheme = args
                         .input
