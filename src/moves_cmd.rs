@@ -19,6 +19,7 @@ use crate::icons::{
     default_height, detect_stdout, numbered, show, style, Background, Format, Graphics, Numbers,
 };
 use crate::metrics_out;
+use crate::state_line::StateOpts;
 use crate::steps::{end_line, Layout, PictureArgs, Pictures};
 
 #[derive(Args)]
@@ -88,6 +89,8 @@ pub struct MovesArgs {
     /// cube left by the moves before it (default: each move on its own start cube)
     #[arg(long, requires = "icons")]
     cumulative: bool,
+    #[command(flatten)]
+    state: StateOpts,
 }
 
 /// What `moves --expand` rewrites.
@@ -238,6 +241,7 @@ pub fn run(args: MovesArgs) -> Result<(), String> {
         Some((moves, _, _)) => moves.clone(),
         None => expand(&text, kind)?,
     };
+    print_states(&args, kind, &moves);
     if !args.pictures.icons && args.group != GroupMode::Axis && args.group != GroupMode::default() {
         return Err(
             "--group dots and --group none need --icons; without it only --group axis applies"
@@ -307,6 +311,35 @@ pub fn run(args: MovesArgs) -> Result<(), String> {
         metrics_out::text_line(&text, kind, &moves, args.metrics)
     );
     Ok(())
+}
+
+/// The state line: the cube the moves start from (the solved cube, or the cube of
+/// --from) and `target:`, the cube after the moves. A --picture start is a picture
+/// token, which the color formats cannot show.
+fn print_states(args: &MovesArgs, kind: PuzzleKind, moves: &MoveSequence) {
+    let start = match (&args.from, &args.picture) {
+        (_, Some(_)) => {
+            args.state
+                .unavailable("state", "--picture starts from a picture cube");
+            args.state
+                .unavailable("target", "--picture starts from a picture cube");
+            return;
+        }
+        (Some(from), None) => expand(from, kind).and_then(|scramble| {
+            Facelets::solved(kind)
+                .apply(&scramble)
+                .map_err(|error| error.to_string())
+        }),
+        (None, None) => Ok(Facelets::solved(kind)),
+    };
+    let Ok(start) = start else {
+        return;
+    };
+    args.state.start(&start, args.scheme);
+    match start.apply(moves) {
+        Ok(end) => args.state.target(&end, args.scheme),
+        Err(error) => args.state.unavailable("target", &error.to_string()),
+    }
 }
 
 fn semantic_actions(moves: &MoveSequence, rotations: &[Rotation]) -> Vec<Action> {

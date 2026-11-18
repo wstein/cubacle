@@ -64,6 +64,7 @@ pub(crate) struct Shared<'a> {
     pub(crate) verbose: bool,
     pub(crate) notation: Notation,
     pub(crate) pictures: &'a PictureArgs,
+    pub(crate) state: &'a crate::state_line::StateOpts,
 }
 
 /// Explains where the cube `now` went wrong against the solution of the
@@ -78,6 +79,11 @@ pub(crate) fn run_now(
     let input = shared.input;
     let real_original = read_cube(input)?;
     let real_current = parse_cube(now, input.scheme).map_err(|e| format!("--now: {e}"))?;
+    shared.state.start(&real_original, input.scheme);
+    shared.state.line("now", &real_current, input.scheme);
+    if let Some(target) = shared.target {
+        shared.state.target(target, input.scheme);
+    }
     crate::state_check::require(&real_current).map_err(|e| format!("--now: {e}"))?;
     if real_current.kind() != real_original.kind() {
         return Err(format!(

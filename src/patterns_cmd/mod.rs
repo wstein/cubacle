@@ -165,6 +165,8 @@ pub struct FindArgs {
     /// How to write the moves: wca (Rw, 3Rw) sign (r, 3r) or sse (TR, T3R)
     #[arg(long, default_value = "wca")]
     notation: Notation,
+    #[command(flatten)]
+    state_line: crate::state_line::StateOpts,
 }
 
 pub fn run(args: PatternsArgs) -> Result<(), String> {
