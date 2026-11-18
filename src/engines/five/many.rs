@@ -11,7 +11,7 @@ use std::time::Instant;
 use super::finish::{Finished, Miss};
 use super::reduction::{reduce_listing, Stuck};
 use super::solver::{result_of, FiveSolver};
-use crate::puzzle::{Facelets, Failure, SolveOptions, SolveResult};
+use crate::puzzle::{same_up_to_commuting, Facelets, Failure, SolveOptions, SolveResult};
 
 impl FiveSolver {
     /// Up to `n` distinct solutions, the plain solution first.
@@ -42,7 +42,9 @@ impl FiveSolver {
                     tried += 1;
                     match self.finish(facelets, reduction, options, deadline) {
                         Ok(done) => {
-                            if finished.iter().all(|g| g.solution != done.solution) {
+                            if finished.iter().all(|g| {
+                                !same_up_to_commuting(g.solution.moves(), done.solution.moves())
+                            }) {
                                 finished.push(done);
                             }
                         }

@@ -5,7 +5,7 @@
 //! `quota` results, in the serial order, so a longer request starts with the
 //! shorter one. Two reductions can end in the same normalized solution; the
 //! caller counts the distinct ones and the quota grows until there are enough,
-//! the phase has no more, or the growth limit is reached.
+//! a longer request brings nothing new, or the growth limit is reached.
 
 /// The largest quota asked for, as a multiple of the number of results wanted
 /// plus a margin: duplicates are the exception, so a long search for more
@@ -26,13 +26,15 @@ pub(crate) fn grow<T, E>(
     let mut quota = wanted;
     let mut have = list(quota)?;
     loop {
-        if enough(&have) || have.len() < quota || quota >= limit {
+        if enough(&have) || quota >= limit {
             return Ok(have);
         }
         quota = quota.saturating_mul(2).min(limit);
         match list(quota) {
-            Ok(more) => have = more,
-            Err(_) => return Ok(have),
+            // a phase may return fewer than its quota while it has more: the
+            // end of the list is a request that brings nothing new
+            Ok(more) if more.len() > have.len() => have = more,
+            Ok(_) | Err(_) => return Ok(have),
         }
     }
 }
@@ -50,14 +52,14 @@ mod tests {
         // needs more than asked first: distinct count below the list length
         let got = grow(3, take, |l| l.iter().filter(|&&x| x % 2 == 0).count() >= 3).unwrap();
         assert_eq!(got.len(), 6);
-        // never enough: ends with all there is, after the request that came back short
+        // never enough: ends with all there is, after the request that brought nothing new
         let mut calls = 0;
         let counted = |q: usize| {
             calls += 1;
             take(q)
         };
         assert_eq!(grow(3, counted, |_| false).unwrap().len(), 10);
-        assert_eq!(calls, 3);
+        assert_eq!(calls, 4);
     }
 
     #[test]

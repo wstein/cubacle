@@ -240,6 +240,38 @@ pub(crate) fn normalize(n: usize, moves: &[Move], slices: bool) -> Vec<Move> {
     }
 }
 
+/// `moves` with every run of turns about one axis in a fixed order. Turns
+/// about one axis commute, so two sequences with the same key reach the same
+/// state; the key only decides whether two solutions are the same one, it is
+/// never shown.
+pub(crate) fn commuting_key(moves: &[Move]) -> Vec<Move> {
+    let rank = |m: &Move| {
+        let quarters = match m.turn {
+            Turn::Clockwise => 0u8,
+            Turn::Half => 1,
+            Turn::CounterClockwise => 2,
+        };
+        (m.face.index(), m.depth, m.wide, quarters)
+    };
+    let mut out = moves.to_vec();
+    let mut i = 0;
+    while i < out.len() {
+        let axis = axis_of(out[i].face);
+        let mut j = i;
+        while j < out.len() && axis_of(out[j].face) == axis {
+            j += 1;
+        }
+        out[i..j].sort_by_key(rank);
+        i = j;
+    }
+    out
+}
+
+/// Whether two solutions differ at most in the order of turns about one axis.
+pub(crate) fn same_up_to_commuting(a: &[Move], b: &[Move]) -> bool {
+    a.len() == b.len() && commuting_key(a) == commuting_key(b)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -251,6 +283,17 @@ mod tests {
 
     fn show(moves: &[Move]) -> String {
         MoveSequence::new(moves.to_vec()).to_string()
+    }
+
+    #[test]
+    fn the_key_ignores_the_order_inside_an_axis_run_only() {
+        let same = |a: &str, b: &str| same_up_to_commuting(&seq(a), &seq(b));
+        assert!(same("Lw2 B' Bw2 D2", "Lw2 Bw2 B' D2"));
+        assert!(same("B2 F2 U2 B F'", "F2 B2 U2 F' B"));
+        // a move between two runs is not moved across them
+        assert!(!same("R U L", "R L U"));
+        assert!(!same("R U", "U R"));
+        assert!(!same("R U R'", "R U R"));
     }
 
     #[test]
