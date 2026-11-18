@@ -51,7 +51,7 @@ The inverse of a solution of a scrambled cube is, on the 3x3x3, the scramble its
 
 #### --json
 
-`--json` prints the answer as one line of JSON on standard output, the object the [REST API](../api.md) sends for `POST /v1/solve`: `kind`, `solution`, `inverse`, `length`, `metrics` (all seven counts), `compressed`, `compressedLength` and `compressedMetrics` with `--optimize ranges`, and `elapsedMicros`. After `elapsedMicros` come two keys that appear only when there is something to say: `phases`, an array of `{"name", "moves"}` objects, one per phase the engine reports (the 4x4x4 to 7x7x7 engines; the empty phases are in it with `"moves":0`; the 2x2x2 and 3x3x3 engines report none, so the key is absent), and `patternHint`, the lowercase name of the known pattern the start cube matches (for example `"superflip"`), only with `-v`, the same opt-in as the `pattern:` line. The server and the command write it with the same function of the library (`cubacle::report`), so key names, key order and escaping are the same. Nothing else goes to standard output; the lines on standard error (`moves N`, `metrics:`, and with `-v` the statistics) stay as they are. Errors are text on standard error with the usual exit codes, not JSON.
+`--json` prints the answer as one line of JSON on standard output, the object the [REST API](../api.md) sends for `POST /v1/solve`: `kind`, `solution`, `inverse`, `length`, `metrics` (all seven counts), `compressed`, `compressedLength` and `compressedMetrics` with `--optimize ranges`, and `elapsedMicros`. After `elapsedMicros` come two keys that appear only when there is something to say: `phases`, an array of `{"name", "moves"}` objects, one per phase the engine reports (the 4x4x4 to 7x7x7 engines; the empty phases are in it with `"moves":0`; the 2x2x2 and 3x3x3 engines report none, so the key is absent), and `patternHint`, the lowercase name of the known pattern the start cube matches (for example `"superflip"`), only with `-v`, the same opt-in as the `pattern:` line. The server and the command write it with the same function of the library (`cubacle::report`), so key names, key order and escaping are the same. Nothing else goes to standard output; the lines on standard error (`moves N`, `metrics:`, and with `-v` the statistics) stay as they are. Errors are text on standard error with the usual exit codes, not JSON. The command line appends one more key after all of these, `state`: the start cube in every format, see [State line](state-line.md#json); the server does not send it.
 
 **Changed in 0.2.0:** format 2 is the default. After every existing key it appends
 `formatVersion` (2), `toolVersion`, `gitCommit` (the release source revision, or null),
@@ -76,9 +76,10 @@ cubacle solve -s "R U" --fast --max-moves 21 --json
 ```
 
 ```text
+state: orbit64v2 AwtB4B1fWQAA
 moves 13
 metrics: htm 13, qtm 18, stm 13
-{"kind":"3x3x3","solution":"U R F2 R F2 R' L D2 R' D2 L' U2 R'","inverse":"R U2 L D2 R D2 L' R F2 R' F2 R' U'","length":13,"metrics":{"htm":13,"qtm":18,"stm":13,"etm":13,"obtm":13,"btm":13,"atm":12},"elapsedMicros":0,"formatVersion":2,"toolVersion":"0.1.0","gitCommit":null,"frame":"fixed","proven":false,"lowerBound":null}
+{"kind":"3x3x3","solution":"U R F2 R F2 R' L D2 R' D2 L' U2 R'","inverse":"R U2 L D2 R D2 L' R F2 R' F2 R' U'","length":13,"metrics":{"htm":13,"qtm":18,"stm":13,"etm":13,"obtm":13,"btm":13,"atm":12},"elapsedMicros":0,"formatVersion":2,"toolVersion":"0.1.0","gitCommit":null,"frame":"fixed","proven":false,"lowerBound":null,"state":{"orbit64v2":"AwtB4B1fWQAA","orbit64":"AwtB4B1fWQAA","facelets":"UUUUUUFFFUBBRRRRRRRRRFFDFFDDDBDDBDDBFFDLLLLLLLLLUBBUBB","color":"WWWWWWGGGWBBRRRRRRRRRGGYGGYYYBYYBYYBGGYOOOOOOOOOWBBWBB"}}
 ```
 <!-- /example -->
 
@@ -93,7 +94,7 @@ curl -s -XPOST localhost:8080/v1/solve -H 'Content-Type: application/json' \
 {"kind":"3x3x3","solution":"U R F2 R F2 R' L D2 R' D2 L' U2 R'","inverse":"R U2 L D2 R D2 L' R F2 R' F2 R' U'","length":13,"metrics":{"htm":13,"qtm":18,"stm":13,"etm":13,"obtm":13,"btm":13,"atm":12},"elapsedMicros":0,"formatVersion":2,"toolVersion":"0.1.0","gitCommit":null,"frame":"fixed","proven":false,"lowerBound":null}
 ```
 
-Byte equality holds only for equivalent requests, and `elapsedMicros` differs from run to run (the test suite masks it, and these pages show it as 0). `--json` uses the defaults of the command line, which are not those of the server: a plain 3x3x3 `solve` makes 3000 probes for a shorter answer and limits it to 21 moves, while the server makes no extra probes and sets no move limit. `--fast --max-moves 21` is the server's `{"maxMoves":21}`. Without `--fast` the same cube gives a shorter solution:
+Byte equality holds only for equivalent requests, apart from the trailing `state` key that only the command line writes, and `elapsedMicros` differs from run to run (the test suite masks it, and these pages show it as 0). `--json` uses the defaults of the command line, which are not those of the server: a plain 3x3x3 `solve` makes 3000 probes for a shorter answer and limits it to 21 moves, while the server makes no extra probes and sets no move limit. `--fast --max-moves 21` is the server's `{"maxMoves":21}`. Without `--fast` the same cube gives a shorter solution:
 
 <!-- example:json-default -->
 ```sh
@@ -101,7 +102,7 @@ cubacle solve -s "R U" --json
 ```
 
 ```text
-{"kind":"3x3x3","solution":"U' R'","inverse":"R U","length":2,"metrics":{"htm":2,"qtm":2,"stm":2,"etm":2,"obtm":2,"btm":2,"atm":2},"elapsedMicros":0,"formatVersion":2,"toolVersion":"0.1.0","gitCommit":null,"frame":"fixed","proven":false,"lowerBound":null}
+{"kind":"3x3x3","solution":"U' R'","inverse":"R U","length":2,"metrics":{"htm":2,"qtm":2,"stm":2,"etm":2,"obtm":2,"btm":2,"atm":2},"elapsedMicros":0,"formatVersion":2,"toolVersion":"0.1.0","gitCommit":null,"frame":"fixed","proven":false,"lowerBound":null,"state":{"orbit64v2":"AwtB4B1fWQAA","orbit64":"AwtB4B1fWQAA","facelets":"UUUUUUFFFUBBRRRRRRRRRFFDFFDDDBDDBDDBFFDLLLLLLLLLUBBUBB","color":"WWWWWWGGGWBBRRRRRRRRRGGYGGYYYBYYBYYBGGYOOOOOOOOOWBBWBB"}}
 ```
 <!-- /example -->
 
