@@ -35,11 +35,11 @@ fn edge_moves() -> Vec<(Face, Turn, EdgeMove)> {
                 to: [0; 12],
                 flip: [0; 12],
             };
-            for slot in 0..12 {
+            for (slot, &edge) in cube.ea.iter().enumerate() {
                 // slot now holds piece ea>>1 of the old position
-                let from = usize::from(cube.ea[slot] >> 1);
+                let from = usize::from(edge >> 1);
                 mv.to[from] = slot as u8;
-                mv.flip[from] = cube.ea[slot] & 1;
+                mv.flip[from] = edge & 1;
             }
             out.push((face, turn, mv));
         }

@@ -110,8 +110,8 @@ fn a_free_orientation_turns_the_twist_condition_with_the_cube() {
 fn the_search_step_of_the_twists_equals_the_tracker_for_all_18_turns() {
     let turns = Turns::new();
     let start = [1u8, 2, 0, 3, 1, 2];
-    for m in 0..TURNS {
-        let moves = MoveSequence::new(vec![turns.moves[m]]);
+    for (m, &turn) in turns.moves.iter().enumerate().take(TURNS) {
+        let moves = MoveSequence::new(vec![turn]);
         let tracked = CenterTwists::new(PuzzleKind::Cube3, start)
             .unwrap()
             .track(&moves)
