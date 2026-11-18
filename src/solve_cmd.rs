@@ -74,6 +74,7 @@ pub(crate) fn solve(args: SolveArgs) -> Result<(), String> {
             verbose: args.verbose,
             notation: args.notation,
             pictures: &args.pictures,
+            state: &args.state,
         };
         return recover_cmd::run_now(&shared, now, &args.way, depth);
     }
@@ -81,6 +82,7 @@ pub(crate) fn solve(args: SolveArgs) -> Result<(), String> {
         Some(solved) => solved,
         None => read_cube(&args.input)?,
     };
+    args.state.start(&start, args.input.scheme);
     if keep.is_some() && start.kind() != PuzzleKind::Cube5 {
         return Err("--keep applies only to 5x5x5 reduction".into());
     }
@@ -89,6 +91,15 @@ pub(crate) fn solve(args: SolveArgs) -> Result<(), String> {
         .as_deref()
         .map(|text| read_target(text, &args, &start))
         .transpose()?;
+    if let Some(t) = target.as_ref() {
+        match t.as_state() {
+            Some(state) => args.state.target(&state, args.input.scheme),
+            None => args.state.unavailable(
+                "target",
+                "open stickers: the target is a set of states, not one cube",
+            ),
+        }
+    }
     // A picture cube: a condition on the twists of the centers, and the twist of the start.
     let (start, target, picture) = if twist_cmd::wanted(&args) {
         let (start, target, picture) = twist_cmd::prepare(&args, start, target)?;

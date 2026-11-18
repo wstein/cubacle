@@ -3,6 +3,8 @@
 
 use std::process::Command;
 
+mod common;
+
 use cubacle::puzzle::{Facelets, MoveSequence, PuzzleKind};
 
 struct Run {
@@ -19,7 +21,7 @@ fn cubacle(args: &[&str]) -> Run {
     Run {
         code: output.status.code().unwrap_or(-1),
         out: String::from_utf8_lossy(&output.stdout).into_owned(),
-        err: String::from_utf8_lossy(&output.stderr).into_owned(),
+        err: common::without_state_lines(&String::from_utf8_lossy(&output.stderr)),
     }
 }
 

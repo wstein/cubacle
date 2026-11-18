@@ -1,6 +1,8 @@
 use cubacle::puzzle::{Facelets, PuzzleKind};
 use std::process::Command;
 
+mod common;
+
 const SOLUTION: &str = "B R L B L' U' D B D2 R2 F2 R2 L2 D R2 L2 U' L2 U' F2 R";
 
 fn cubacle(args: &[&str]) -> (bool, String, String) {
@@ -16,7 +18,9 @@ fn cubacle(args: &[&str]) -> (bool, String, String) {
     (
         output.status.success(),
         String::from_utf8_lossy(&output.stdout).trim().to_owned(),
-        String::from_utf8_lossy(&output.stderr).trim().to_owned(),
+        common::without_state_lines(&String::from_utf8_lossy(&output.stderr))
+            .trim()
+            .to_owned(),
     )
 }
 

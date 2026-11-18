@@ -64,6 +64,8 @@ pub struct PhotoArgs {
     /// Do not write the fingerprint (the generator settings as JSON) into the PNG files
     #[arg(long)]
     no_fingerprint: bool,
+    #[command(flatten)]
+    state: crate::state_line::StateOpts,
 }
 
 /// Where the face at this index of URFDLB sits in the net of 4 x 3 faces.
@@ -100,6 +102,7 @@ pub fn run(args: PhotoArgs) -> Result<(), String> {
         .scheme
         .or(detected)
         .unwrap_or(ColorScheme::WESTERN_BOY);
+    args.state.start(&cube, Some(scheme));
     let n = cube.kind().size();
     let size = args.pixels as usize;
     let shadow = (args.shadow_strength.is_some()
