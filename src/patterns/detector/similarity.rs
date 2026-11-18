@@ -63,9 +63,9 @@ fn color_permutations() -> &'static [[u8; 6]] {
 fn best_agreement(kind: PuzzleKind, state: &[u8], pattern: &[u8]) -> (usize, usize, [u8; 6]) {
     let tables = tables(kind);
     let mut best = (0, 0, [0u8; 6]);
-    for g in 0..48 {
+    for (g, perm) in tables.perm.iter().enumerate().take(48) {
         let mut count = [[0usize; 6]; 6];
-        for (i, &to) in tables.perm[g].iter().enumerate() {
+        for (i, &to) in perm.iter().enumerate() {
             count[pattern[i] as usize][state[to as usize] as usize] += 1;
         }
         for map in color_permutations() {
