@@ -411,7 +411,7 @@ On the 6x6x6 and 7x7x7 the first solution is probe 1 and is what a plain `solve`
 
 ### Several solutions
 
-`--results N` prints N distinct solutions of one cube instead of one. Standard output has one line per solution: the rank, a tab, the seven counts as `moves --metrics` prints them (htm, qtm, stm, etm, obtm, btm, atm), a tab and the moves. The first line is the solution a plain `solve` prints. Standard error has the spread of the counts and `solutions k (shortest L moves)`, and `found k of N solutions` when the engine has no more distinct ones.
+`--results N` prints N distinct solutions of one cube instead of one. Standard output has one line per solution: the rank, a tab, the seven counts as `moves --metrics` prints them (htm, qtm, stm, etm, obtm, btm, atm), a tab and the moves. The first line is the solution a plain `solve` prints. Standard error has the spread of the counts and `solutions k (shortest L moves)`, and `found k of N solutions` when no more distinct ones turned up within the search limits. Two solutions that differ only in the order of turns about one axis (`B' Bw2` and `Bw2 B'`) count as one; the line shows the order the engine produced.
 
 ```sh
 cubacle solve -s "R U2 F' D L2 B U' R2 D2 F L' U B2 R' D' F2 L U2" --results 5
@@ -427,7 +427,7 @@ solutions 5 (shortest 19 moves)
 5	htm 21, qtm 31, stm 21, etm 21, obtm 21, btm 21, atm 20	R' U' L2 D2 U2 B2 L2 B R2 F' U2 B' D2 R B L' U B' R2 B2 L'
 ```
 
-With `--json` the output is one array with the solve report of each solution (the object of a plain `--json`, in the same order as the lines). With `--inverse` each line shows the inverse of its solution; the counts stay those of the solution. Every listed solution is replayed on the cube, and so is a plain solve's.
+With `--json` the output is one array with the solve report of each solution (the object of a plain `--json`, in the same order as the lines). With `--inverse` each line shows the inverse of its solution; the counts stay those of the solution. Every listed solution is replayed on the cube, as a plain solve does (a 2x2x2 without `--to` is not replayed, in either).
 
 How each engine finds several solutions:
 
@@ -440,7 +440,7 @@ How each engine finds several solutions:
 
 `--keep` sets the quotas of the phases before. The 6x6x6 and 7x7x7 are a follow-up: their stages keep one route, and no list of finished solutions exists there yet. `--icons`, `--optimize`, `--group` and `--every` for a list are a follow-up too. The 3x3x3 `--count` is a different list: the solutions in order of length, found by an exhaustive search that takes minutes for a random cube; `--results` and `--count` cannot be combined.
 
-N is at most 100, the largest count measured on every size. The measured times (release build, cached tables, load 3 to 4 on 10 cores from other jobs, three runs each, whole process; 5x5x5 includes about 1 s of table load): 5x5x5 example cube 1.2 s for N = 1, 1.4 to 1.5 s for N = 20, 3.9 to 4.1 s for N = 100; 3x3x3 0.15 s for N = 5 and 3.5 s for N = 100; 4x4x4 0.3 s for N = 5, 0.8 to 1.0 s for the 57 solutions that exist for the sample cube when N = 100; 2x2x2 0.06 s for N = 5 and 100.
+N is at most 100, the largest count measured on every size. Measured times, release build, cached tables, whole process (the 5x5x5 includes about 1 s of table load), three runs each, on a machine at load 24 on 10 cores from other jobs (earlier runs at load 3 to 4 were about 2.5 times faster): 5x5x5 example cube 1.6 to 1.8 s for N = 1, 3.0 to 3.5 s for N = 20, 8.1 to 9.4 s for N = 100; 3x3x3 0.25 s for N = 5 and 4.6 to 5.6 s for N = 100; 4x4x4 0.55 to 0.7 s for N = 5; 2x2x2 0.1 s for N = 5 and 100. A 4x4x4 has fewer distinct solutions than that: for the cube `BUBUBDBUDULDLRURFLFRFBBFFBLLRRLFFBBUDRRRFDDUUFDDFLFBULFDUDUUUURDLLLDLFRBRRFRBRRLBDLDDFUBFULBRDBL` (`--size 4`) N = 100 prints 56 solutions in 1.1 to 1.3 s and says `found 56 of 100 solutions`; the 4x4x4 phase 3 asked for up to 4N+16 results gives no more. The 3x3x3 start variants are searched with the full move limit, not the limit minus the turns in front; with a tight limit on a hard cube (`--to superflip -m 20`) a list took 17 s for one line in an independent review. Searching each variant with the limit minus its turns in front finds more lines but took 154 s of CPU for ten lines in a trial, so it is a follow-up.
 
 ### Shortest solutions
 
