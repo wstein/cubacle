@@ -251,8 +251,8 @@ impl IdaContext {
         let mut cc2 = Cubie::new();
         self.target_length = target_length + 1;
         self.probes = 0;
-        for i in 0..6 {
-            self.urf_cubies[i] = cc1;
+        for (i, urf_cubie) in self.urf_cubies.iter_mut().enumerate() {
+            *urf_cubie = cc1;
             Cubie::corn_mult(&sctx.symurfi, &cc1, &mut cc2);
             Cubie::edge_mult(&sctx.symurfi, &cc1, &mut cc2);
             Cubie::corn_mult(&cc2, &sctx.symurf, &mut cc1);
