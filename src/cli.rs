@@ -136,6 +136,9 @@ pub(crate) struct SolveArgs {
     /// 5x5x5: candidate quotas for phase 1 (N) or phases 1 to 4 (a,b,c,d)
     #[arg(long, value_name = "N|a,b,c,d", conflicts_with_all = ["now", "fast", "upright_centers", "center_twist", "twist_target", "moves", "optimal", "all", "count"])]
     pub(crate) keep: Option<String>,
+    /// 2x2x2 to 5x5x5: print N distinct solutions (1 to 100, default 1), the plain solution first, the others in the engine order; one line each: rank, counts, moves. N > 1 does not combine with --icons, --optimize, --group, --every or the special searches
+    #[arg(long, value_name = "N")]
+    pub(crate) results: Option<usize>,
     /// 3x3x3, 4x4x4, 5x5x5: make at least this many probes in the 3x3x3 search (4x4x4 and 5x5x5: default 500; deterministic, the same answer on every machine)
     #[arg(long, value_name = "N", conflicts_with = "improve")]
     pub(crate) probes: Option<u64>,

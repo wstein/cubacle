@@ -13,11 +13,12 @@ use crate::failure::{failure_message, limit_message, DEFAULT_MAX_TIME_MS, LIMIT_
 use crate::input::{read_cube, read_target};
 use crate::{
     answer, enumerate_cmd, improve, optimal_cmd, partial_cmd, pattern_aware_cmd, pattern_hint,
-    recover_cmd, restricted_cmd, solved_start, twist_cmd, within_cmd,
+    recover_cmd, restricted_cmd, results_cmd, solved_start, twist_cmd, within_cmd,
 };
 
 pub(crate) fn solve(args: SolveArgs) -> Result<(), String> {
     use cubacle::ranges::Optimize;
+    results_cmd::check(&args)?;
     if matches!(args.optimize, Some(Optimize::Moves | Optimize::Easy)) {
         if !args.group.is_empty()
             || args.every.is_some()
@@ -134,6 +135,11 @@ pub(crate) fn solve(args: SolveArgs) -> Result<(), String> {
                     .into(),
             );
         }
+        if let Some(n) = results_cmd::wanted(&args) {
+            return Err(format!(
+                "--results {n} cannot be combined with a target that has open stickers, --any-orientation or a center twist condition"
+            ));
+        }
         return partial_cmd::run(&args, &start, partial, picture.as_ref());
     }
     if args.optimal && target.is_some() {
@@ -175,6 +181,12 @@ pub(crate) fn solve(args: SolveArgs) -> Result<(), String> {
         None => None,
     };
     enumerate_cmd::check(&args, facelets.kind())?;
+    results_cmd::check_kind(&args, facelets.kind())?;
+    if let (true, Some(n)) = (mixed, results_cmd::wanted(&args)) {
+        return Err(format!(
+            "--results {n} cannot be combined with a target whose centers differ in color on a face: the center fix-up is one route"
+        ));
+    }
     if mixed && restricted.is_some() {
         return Err(
             "--moves cannot be combined with a target whose centers differ in color on a face: the center fix-up uses inner slices"
@@ -241,6 +253,20 @@ pub(crate) fn solve(args: SolveArgs) -> Result<(), String> {
         if let Some(ms) = limit.filter(|&ms| ms > 0) {
             options = options.with_time_budget(Duration::from_millis(ms));
         }
+    }
+    if let Some(n) = results_cmd::wanted(&args) {
+        if let Some(improve::Mode::Probes(probes)) = mode {
+            options = options.with_min_probes(probes);
+        }
+        let request = results_cmd::Request {
+            args: &args,
+            n,
+            start: &start,
+            facelets: &facelets,
+            target: target.as_ref(),
+            oriented,
+        };
+        return results_cmd::run(solver.as_ref(), &request, &options);
     }
     let limited = match &plan {
         Some(plan) => plan.limit(&options),
