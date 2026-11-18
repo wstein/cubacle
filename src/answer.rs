@@ -192,15 +192,20 @@ fn print_json(solved: &Solved<'_>, elapsed: Duration) -> Result<(), String> {
         );
         eprintln!("compressed {}", metrics_out::compressed_line(kind, &packed));
     }
+    let json = report.to_json_format(
+        args.json_format
+            .as_deref()
+            .map(str::parse)
+            .transpose()?
+            .unwrap_or_default(),
+    );
+    // The CLI appends the start state after the keys of the server body.
+    let body = json
+        .strip_suffix('}')
+        .ok_or("the solve report is no JSON object")?;
     println!(
-        "{}",
-        report.to_json_format(
-            args.json_format
-                .as_deref()
-                .map(str::parse)
-                .transpose()?
-                .unwrap_or_default()
-        )
+        "{body},\"state\":{}}}",
+        crate::state_line::json(solved.start)
     );
     Ok(())
 }
