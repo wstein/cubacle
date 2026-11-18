@@ -104,10 +104,10 @@ impl Edge {
 
     fn set_medge(&mut self, mut idx: usize) {
         let mut parity = 0;
-        for i in 0..11 {
-            self.m[i] = (idx & 1) as i32;
+        for bit in self.m.iter_mut().take(11) {
+            *bit = (idx & 1) as i32;
             idx >>= 1;
-            parity ^= self.m[i];
+            parity ^= *bit;
         }
         self.m[11] = parity;
     }

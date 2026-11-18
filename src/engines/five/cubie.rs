@@ -196,8 +196,8 @@ impl Cubie {
             cube.xcenter[i] = solved_color(XCENTER[i]);
             cube.wedge[i] = i as i32;
         }
-        for i in 0..12 {
-            cube.medge[i] = (i as i32) << 1;
+        for (i, edge) in cube.medge.iter_mut().enumerate() {
+            *edge = (i as i32) << 1;
         }
         cube
     }
