@@ -13,6 +13,7 @@
 //! the U, R and F positions, so that it solves the cube as it was given.
 
 pub mod fixed;
+mod many;
 mod partial;
 
 use crate::puzzle::Instant;
@@ -411,6 +412,15 @@ impl Solver for PocketSolver {
 
     fn solve_to(&self, start: &Facelets, target: &Target, options: &SolveOptions) -> SolveResult {
         partial::solve_to(self, start, target, options)
+    }
+
+    fn solve_many(
+        &self,
+        facelets: &Facelets,
+        options: &SolveOptions,
+        n: usize,
+    ) -> Vec<SolveResult> {
+        self.list(facelets, options, n)
     }
 
     fn solve(&self, facelets: &Facelets, options: &SolveOptions) -> SolveResult {
