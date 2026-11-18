@@ -60,6 +60,7 @@ pub(crate) fn check(args: &SolveArgs) -> Result<(), String> {
             (args.improve, "--improve"),
             (args.parallel, "--parallel"),
             (args.fast, "--fast"),
+            (args.keep.is_some(), "--keep"),
         ];
         for (set, name) in solver {
             if set {
