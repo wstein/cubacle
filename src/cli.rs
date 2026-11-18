@@ -4,6 +4,7 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use cubacle::notation::{ColorScheme, Notation};
 use cubacle::ranges::Optimize;
 
+use crate::state_line::StateOpts;
 use crate::{
     canon_cmd, moves_cmd, order_cmd, patterns_cmd, phase_dots, photo_cmd, recover_cmd, steps,
     template_cmd,
@@ -44,12 +45,16 @@ pub(crate) enum Command {
         /// How to write the moves: wca (Rw, 3Rw) sign (r, 3r) or sse (TR, T3R)
         #[arg(long, default_value = "wca")]
         notation: Notation,
+        #[command(flatten)]
+        state: StateOpts,
     },
     /// Print a random cube state as facelets
     Random {
         /// Cube size
         #[arg(long, default_value_t = 3)]
         size: usize,
+        #[command(flatten)]
+        state: StateOpts,
     },
     /// Translate any supported notation into URFDLB facelets, colors or an Orbit64 token
     Convert(ConvertArgs),
@@ -60,6 +65,8 @@ pub(crate) enum Command {
         /// Cube size
         #[arg(long, default_value_t = 3)]
         size: usize,
+        #[command(flatten)]
+        state: StateOpts,
     },
 }
 
@@ -318,6 +325,8 @@ pub(crate) struct SolveArgs {
     /// $CUBACLE_CONFIG, ./cubacle.toml, ~/.config/cubacle/config.toml)
     #[arg(long, value_name = "FILE", requires = "pattern_aware")]
     pub(crate) config: Option<std::path::PathBuf>,
+    #[command(flatten)]
+    pub(crate) state: StateOpts,
     #[command(flatten)]
     pub(crate) pictures: steps::PictureArgs,
 }

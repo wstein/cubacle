@@ -122,3 +122,17 @@ pub fn table() -> String {
     ]
     .join("\n")
 }
+
+/// Standard error without the state lines (`state:`, `target:`, `now:`) that
+/// the commands with a cube print; `state_line_cli_test.rs` tests them.
+pub fn without_state_lines(stderr: &str) -> String {
+    stderr
+        .lines()
+        .filter(|line| {
+            !["state: ", "target: ", "now: "]
+                .iter()
+                .any(|prefix| line.starts_with(prefix))
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}

@@ -2,6 +2,8 @@
 
 use std::process::Command;
 
+mod common;
+
 fn cubacle(args: &[&str]) -> (bool, String, String) {
     let output = Command::new(env!("CARGO_BIN_EXE_cubacle"))
         .args(args)
@@ -10,7 +12,9 @@ fn cubacle(args: &[&str]) -> (bool, String, String) {
     (
         output.status.success(),
         String::from_utf8_lossy(&output.stdout).trim().to_owned(),
-        String::from_utf8_lossy(&output.stderr).trim().to_owned(),
+        common::without_state_lines(&String::from_utf8_lossy(&output.stderr))
+            .trim()
+            .to_owned(),
     )
 }
 
