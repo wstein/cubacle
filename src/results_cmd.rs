@@ -21,7 +21,7 @@ use crate::failure::{failure_message, limit_message, note_limit};
 use crate::{inverse, metrics_out};
 
 /// The most solutions one run lists. Measured: see docs/cli/solve.md.
-pub(crate) const MAX_RESULTS: usize = 100;
+pub(crate) const MAX_RESULTS: usize = 10_000;
 
 /// The number of solutions asked for when it is more than one.
 pub(crate) fn wanted(args: &SolveArgs) -> Option<usize> {
@@ -151,7 +151,7 @@ pub(crate) fn run(
     eprintln!("solutions {} (shortest {shortest} moves)", listed.len());
     if listed.len() < n {
         eprintln!(
-            "found {} of {n} solutions: no more distinct ones turned up within the search limits",
+            "found {} of {n} solutions: no more distinct ones turned up within the search limits, which include --max-time",
             listed.len()
         );
     }
