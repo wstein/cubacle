@@ -36,7 +36,7 @@ pub use alphabet::Alphabet;
 pub(crate) use alphabet::{inner_layer_set, layer_set};
 pub use apply::ApplyError;
 pub(crate) use apply::{destinations, locate};
-pub(crate) use axis::normalize;
+pub(crate) use axis::{normalize, same_up_to_commuting};
 pub(crate) use centers::centers_off_face;
 pub use centers::{oriented_by_centers, solves_by_color};
 pub(crate) use clock::Instant;

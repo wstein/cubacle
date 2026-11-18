@@ -37,8 +37,8 @@ use std::sync::OnceLock;
 use std::time::Instant;
 
 use crate::puzzle::{
-    Facelets, Failure, Move, MoveSequence, PuzzleKind, SolveMetrics, SolveOptions, SolveResult,
-    SolveStage, Solver,
+    same_up_to_commuting, Facelets, Failure, Move, MoveSequence, PuzzleKind, SolveMetrics,
+    SolveOptions, SolveResult, SolveStage, Solver,
 };
 pub use find::{find_generator, find_generator_with, Generator, NotFound};
 use library::Library;
@@ -267,7 +267,12 @@ impl Solver for PatternShortcut {
         let first = self.shorten(facelets, options, started, list.remove(0));
         let mut out = vec![first];
         for next in list {
-            if next.solution().is_none() || out.iter().all(|r| r.solution() != next.solution()) {
+            if next.solution().is_none()
+                || out.iter().all(|r| match (r.solution(), next.solution()) {
+                    (Some(a), Some(b)) => !same_up_to_commuting(a.moves(), b.moves()),
+                    _ => true,
+                })
+            {
                 out.push(next);
             }
         }

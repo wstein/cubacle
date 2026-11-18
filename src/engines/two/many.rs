@@ -10,8 +10,8 @@ use std::time::Instant;
 
 use super::{normalize, search_move, tables, PocketSolver, Tables};
 use crate::puzzle::{
-    Face, Facelets, Move, MoveSequence, SolveEvidence, SolveFrame, SolveMetrics, SolveOptions,
-    SolveResult, Solver,
+    same_up_to_commuting, Face, Facelets, Move, MoveSequence, SolveEvidence, SolveFrame,
+    SolveMetrics, SolveOptions, SolveResult, Solver,
 };
 
 /// Paths of exactly `left` more moves from `state` to the solved state that
@@ -96,7 +96,10 @@ impl PocketSolver {
                     })
                     .collect();
                 let solution = MoveSequence::new(moves);
-                if found.iter().any(|r| r.solution() == Some(&solution)) {
+                if found.iter().any(|r| {
+                    r.solution()
+                        .is_some_and(|f| same_up_to_commuting(f.moves(), solution.moves()))
+                }) {
                     continue;
                 }
                 let evidence = if length == shortest {

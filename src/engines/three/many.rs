@@ -13,7 +13,8 @@ use std::time::Instant;
 
 use super::solver::Min2PhaseSolver;
 use crate::puzzle::{
-    normalize, Face, Facelets, Move, MoveSequence, SolveOptions, SolveResult, Solver, Turn,
+    normalize, same_up_to_commuting, Face, Facelets, Move, MoveSequence, SolveOptions, SolveResult,
+    Solver, Turn,
 };
 
 /// The most turns put in front of a variant.
@@ -84,7 +85,10 @@ impl Min2PhaseSolver {
             moves.extend_from_slice(tail.moves());
             let solution = MoveSequence::new(normalize(3, &moves, false));
             if limit.is_some_and(|max| solution.len() > max)
-                || found.iter().any(|r| r.solution() == Some(&solution))
+                || found.iter().any(|r| {
+                    r.solution()
+                        .is_some_and(|f| same_up_to_commuting(f.moves(), solution.moves()))
+                })
             {
                 continue;
             }
