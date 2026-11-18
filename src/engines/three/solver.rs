@@ -198,6 +198,15 @@ impl Solver for Min2PhaseSolver {
             solve_with_limits(&self.tables, text, max, Duration::ZERO, budget, probe_min)
         })
     }
+
+    fn solve_many(
+        &self,
+        facelets: &Facelets,
+        options: &SolveOptions,
+        n: usize,
+    ) -> Vec<SolveResult> {
+        self.list(facelets, options, n)
+    }
 }
 
 fn max_moves(options: &SolveOptions) -> u8 {

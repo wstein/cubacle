@@ -12,6 +12,7 @@ mod consts;
 mod coordinates;
 mod cubie;
 mod engine;
+mod many;
 mod partial;
 mod pool;
 mod search;
