@@ -13,7 +13,11 @@ use cubacle::puzzle::{PuzzleKind, SolveOptions, Solver};
 /// The engine for a cube size, prepared; progress goes to standard error. From
 /// the 4x4x4 up it also tries known patterns and answers with the shorter solution.
 pub(crate) fn solver_for(kind: PuzzleKind) -> Box<dyn Solver> {
-    let engine = engine_for(kind);
+    solver_with_keep(kind, None)
+}
+
+pub(crate) fn solver_with_keep(kind: PuzzleKind, keep: Option<[usize; 5]>) -> Box<dyn Solver> {
+    let engine = engine_for(kind, keep);
     if kind.size() >= 4 {
         Box::new(PatternShortcut::new(engine))
     } else {
@@ -21,7 +25,7 @@ pub(crate) fn solver_for(kind: PuzzleKind) -> Box<dyn Solver> {
     }
 }
 
-pub(crate) fn engine_for(kind: PuzzleKind) -> Box<dyn Solver> {
+fn engine_for(kind: PuzzleKind, keep: Option<[usize; 5]>) -> Box<dyn Solver> {
     match kind {
         PuzzleKind::Cube2 => Box::new(PocketSolver::new()),
         PuzzleKind::Cube3 => Box::new(Min2PhaseSolver::new()),
@@ -32,7 +36,10 @@ pub(crate) fn engine_for(kind: PuzzleKind) -> Box<dyn Solver> {
             Box::new(four)
         }
         PuzzleKind::Cube5 => {
-            let five = FiveSolver::new(Arc::new(Min2PhaseSolver::new()));
+            let mut five = FiveSolver::new(Arc::new(Min2PhaseSolver::new()));
+            if let Some(keep) = keep {
+                five = five.with_keep(keep);
+            }
             match five.cache_dir() {
                 Some(dir) => eprintln!(
                     "preparing the 5x5x5 tables (cache directory {})",

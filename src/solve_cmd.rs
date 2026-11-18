@@ -8,7 +8,7 @@ use cubacle::notation::parse_expression;
 use cubacle::puzzle::{oriented_by_centers, relative_state, Failure, PuzzleKind, SolveOptions};
 
 use crate::cli::SolveArgs;
-use crate::engine::{default_options, solver_for};
+use crate::engine::{default_options, solver_with_keep};
 use crate::failure::{failure_message, limit_message, DEFAULT_MAX_TIME_MS, LIMIT_REACHED};
 use crate::input::{read_cube, read_target};
 use crate::{
@@ -49,6 +49,7 @@ pub(crate) fn solve(args: SolveArgs) -> Result<(), String> {
     if args.json && args.inverse {
         return Err("--json always carries the inverse; do not combine it with --inverse".into());
     }
+    let keep = args.keep.as_deref().map(parse_keep).transpose()?;
     within_cmd::check(&args)?;
     twist_cmd::check(&args)?;
     if let Some(now) = &args.now {
@@ -80,6 +81,9 @@ pub(crate) fn solve(args: SolveArgs) -> Result<(), String> {
         Some(solved) => solved,
         None => read_cube(&args.input)?,
     };
+    if keep.is_some() && start.kind() != PuzzleKind::Cube5 {
+        return Err("--keep applies only to 5x5x5 reduction".into());
+    }
     let target = args
         .to
         .as_deref()
@@ -113,6 +117,13 @@ pub(crate) fn solve(args: SolveArgs) -> Result<(), String> {
     // searches for the set. Every other target is a state and keeps the
     // relative-state path below.
     // --any-orientation also takes a complete target: some orientation of it.
+    if keep.is_some()
+        && target.as_ref().is_some_and(|t| {
+            t.as_state().is_none() || args.any_orientation || t.has_twist_condition()
+        })
+    {
+        return Err("--keep requires a complete target".into());
+    }
     if let Some(partial) = target
         .as_ref()
         .filter(|t| t.as_state().is_none() || args.any_orientation || t.has_twist_condition())
@@ -180,7 +191,7 @@ pub(crate) fn solve(args: SolveArgs) -> Result<(), String> {
             Some(alphabet) => {
                 restricted_cmd::solver_for(alphabet.clone(), args.max_memory.unwrap_or(1500))?
             }
-            None => solver_for(facelets.kind()),
+            None => solver_with_keep(facelets.kind(), keep),
         }
     };
 
@@ -329,6 +340,51 @@ pub(crate) fn solve(args: SolveArgs) -> Result<(), String> {
                 }
                 _ => Err(failure_message(failure, result.message)),
             }
+        }
+    }
+}
+
+fn parse_keep(text: &str) -> Result<[usize; 5], String> {
+    let invalid = || {
+        "--keep expects N or five comma-separated values from 1 to 20000; the last must be 1"
+            .to_owned()
+    };
+    let values: Vec<usize> = text
+        .split(',')
+        .map(|s| s.parse::<usize>().map_err(|_| invalid()))
+        .collect::<Result<_, _>>()?;
+    if values.iter().any(|&n| !(1..=20_000).contains(&n)) {
+        return Err(invalid());
+    }
+    match values.as_slice() {
+        [n] => Ok([*n, 500, 500, 500, 1]),
+        [a, b, c, d, 1] => Ok([*a, *b, *c, *d, 1]),
+        _ => Err(invalid()),
+    }
+}
+
+#[cfg(test)]
+mod keep_tests {
+    use super::parse_keep;
+
+    #[test]
+    fn parses_each_phase_and_rejects_invalid_lists() {
+        assert_eq!(
+            parse_keep("500,1000,2000,3000,1"),
+            Ok([500, 1000, 2000, 3000, 1])
+        );
+        assert_eq!(parse_keep("1000"), Ok([1000, 500, 500, 500, 1]));
+        for bad in [
+            "",
+            "0",
+            "20001",
+            "1,2",
+            "1,,3,4,1",
+            "1,2,0,4,1",
+            "1,2,x,4,1",
+            "1,2,3,4,2",
+        ] {
+            assert!(parse_keep(bad).unwrap_err().contains("--keep"), "{bad}");
         }
     }
 }
