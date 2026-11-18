@@ -344,9 +344,9 @@ pub(crate) fn solve(args: SolveArgs) -> Result<(), String> {
     }
 }
 
-fn parse_keep(text: &str) -> Result<[usize; 5], String> {
+fn parse_keep(text: &str) -> Result<[usize; 4], String> {
     let invalid = || {
-        "--keep expects N or five comma-separated values from 1 to 20000; the last must be 1"
+        "--keep expects N (the quota of phase 1) or four comma-separated values (phases 1 to 4), each from 1 to 20000; the quota of phase 5 comes from --results, not from --keep"
             .to_owned()
     };
     let values: Vec<usize> = text
@@ -357,8 +357,8 @@ fn parse_keep(text: &str) -> Result<[usize; 5], String> {
         return Err(invalid());
     }
     match values.as_slice() {
-        [n] => Ok([*n, 500, 500, 500, 1]),
-        [a, b, c, d, 1] => Ok([*a, *b, *c, *d, 1]),
+        [n] => Ok([*n, 500, 500, 500]),
+        [a, b, c, d] => Ok([*a, *b, *c, *d]),
         _ => Err(invalid()),
     }
 }
@@ -370,19 +370,20 @@ mod keep_tests {
     #[test]
     fn parses_each_phase_and_rejects_invalid_lists() {
         assert_eq!(
-            parse_keep("500,1000,2000,3000,1"),
-            Ok([500, 1000, 2000, 3000, 1])
+            parse_keep("500,1000,2000,3000"),
+            Ok([500, 1000, 2000, 3000])
         );
-        assert_eq!(parse_keep("1000"), Ok([1000, 500, 500, 500, 1]));
+        assert_eq!(parse_keep("1000"), Ok([1000, 500, 500, 500]));
         for bad in [
             "",
             "0",
             "20001",
             "1,2",
-            "1,,3,4,1",
-            "1,2,0,4,1",
-            "1,2,x,4,1",
-            "1,2,3,4,2",
+            "1,,3,4",
+            "1,2,0,4",
+            "1,2,x,4",
+            "1,2,3,4,1",
+            "1,2,3,4,5",
         ] {
             assert!(parse_keep(bad).unwrap_err().contains("--keep"), "{bad}");
         }

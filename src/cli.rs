@@ -133,8 +133,8 @@ pub(crate) struct SolveArgs {
     /// Hard time limit in milliseconds
     #[arg(short, long)]
     pub(crate) budget_ms: Option<u64>,
-    /// 5x5x5: candidate quotas for phase 1 (N) or all phases (a,b,c,d,1)
-    #[arg(long, value_name = "N|a,b,c,d,1", conflicts_with_all = ["now", "fast", "upright_centers", "center_twist", "twist_target", "moves", "optimal", "all", "count"])]
+    /// 5x5x5: candidate quotas for phase 1 (N) or phases 1 to 4 (a,b,c,d)
+    #[arg(long, value_name = "N|a,b,c,d", conflicts_with_all = ["now", "fast", "upright_centers", "center_twist", "twist_target", "moves", "optimal", "all", "count"])]
     pub(crate) keep: Option<String>,
     /// 3x3x3, 4x4x4, 5x5x5: make at least this many probes in the 3x3x3 search (4x4x4 and 5x5x5: default 500; deterministic, the same answer on every machine)
     #[arg(long, value_name = "N", conflicts_with = "improve")]
