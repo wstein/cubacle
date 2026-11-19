@@ -41,6 +41,8 @@ no lookup-table files of the reference.
 3. **Finish.** The corners and one wing of each edge form a 3x3x3 that
    `Min2PhaseSolver` solves.
 
+`solve --results N` lists solutions that share the center moves: the center stages run once, and the inner-wing, outer-wing and 3x3x3 stages list their first results (`src/engines/dwalton/many.rs`; see [Several solutions](../cli/solve.md#several-solutions)).
+
 The solver ignores `maxMoves`, `budgetMs` and `slices`: there is no search for a
 shorter answer yet.
 
