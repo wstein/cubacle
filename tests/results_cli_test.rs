@@ -71,20 +71,36 @@ fn cube_of(sample: &Sample) -> Facelets {
     }
     let mut args = vec!["facelets"];
     let scramble = sample.input[1];
-    args.extend([
-        "--size",
-        if sample.size == 2 {
-            "2"
-        } else if sample.size == 3 {
-            "3"
-        } else {
-            "4"
-        },
-    ]);
+    let size = sample.size.to_string();
+    args.extend(["--size", &size]);
     args.push(scramble);
     let run = cubacle(&args);
     assert!(run.ok, "{}", run.err);
     parse_cube(&run.out, None).unwrap()
+}
+
+/// A 6x6x6 and a 7x7x7 from scrambles: the size, the arguments that give the cube.
+fn big_samples() -> Vec<Sample> {
+    vec![
+        Sample {
+            size: 6,
+            input: vec![
+                "-s",
+                "R U2 Rw' F D2 Uw B' L2 Fw U' R2 Bw L' D Rw2 U F' Lw B2 D' R Uw' F2 L 3Fw 3Rw' 3Uw2 B' D2 3Bw L2 3Dw' U R' F2 3Lw B D2 Rw2 U'",
+                "--size",
+                "6",
+            ],
+        },
+        Sample {
+            size: 7,
+            input: vec![
+                "-s",
+                "R U2 Rw' F D2 Uw B' L2 Fw U' R2 Bw L' D Rw2 U F' Lw B2 D' R Uw' F2 L 3Fw 3Rw' 3Uw2 B' D2 3Bw L2 3Dw' U R' F2 3Lw B D2 Rw2 U'",
+                "--size",
+                "7",
+            ],
+        },
+    ]
 }
 
 /// The three fields of a result line: rank, counts, moves.
@@ -108,45 +124,66 @@ fn one_result_is_the_plain_solve_in_every_size() {
 #[test]
 fn three_results_are_distinct_solve_the_cube_and_start_with_the_plain_one() {
     for sample in samples() {
-        let plain = solve(&sample, &[]);
-        let run = solve(&sample, &["--results", "3"]);
-        assert!(run.ok, "size {}: {}", sample.size, run.err);
-        let lines: Vec<&str> = run.out.lines().collect();
-        assert_eq!(lines.len(), 3, "size {}: {}", sample.size, run.out);
-        let cube = cube_of(&sample);
-        let mut seen = Vec::new();
-        for (at, line) in lines.iter().enumerate() {
-            let (rank, counts, moves) = fields(line);
-            assert_eq!(rank, at + 1);
-            let sequence: MoveSequence = moves.parse().unwrap();
-            // the counts are those of `moves --metrics`
-            let size = sample.size.to_string();
-            let counted = cubacle(&["moves", "--size", &size, "--metrics", moves]);
-            assert_eq!(
-                counted.err,
-                format!("metrics: {counts}"),
-                "size {}: {moves}",
-                sample.size
-            );
-            assert!(
-                cube.apply(&sequence).unwrap().is_solved(),
-                "size {}: {moves}",
-                sample.size
-            );
-            assert!(
-                !seen.contains(&moves),
-                "size {}: {moves} twice",
-                sample.size
-            );
-            seen.push(moves);
-        }
-        assert_eq!(fields(lines[0]).2, plain.out, "size {}", sample.size);
+        check_three(&sample);
     }
+}
+
+/// Three results of `sample`: distinct, each replayed, the counts those of
+/// `moves --metrics`, the first the plain solution.
+fn check_three(sample: &Sample) {
+    // one result stays the plain solve: stdout and stderr byte for byte
+    let single = solve(sample, &["--results", "1"]);
+    let plain_run = solve(sample, &[]);
+    assert!(
+        single.ok && plain_run.ok,
+        "{} {}",
+        single.err,
+        plain_run.err
+    );
+    assert_eq!(single.out, plain_run.out, "size {}", sample.size);
+    assert_eq!(single.err, plain_run.err, "size {}", sample.size);
+    let plain = solve(sample, &[]);
+    let run = solve(sample, &["--results", "3"]);
+    assert!(run.ok, "size {}: {}", sample.size, run.err);
+    let lines: Vec<&str> = run.out.lines().collect();
+    assert_eq!(lines.len(), 3, "size {}: {}", sample.size, run.out);
+    let cube = cube_of(sample);
+    let mut seen = Vec::new();
+    for (at, line) in lines.iter().enumerate() {
+        let (rank, counts, moves) = fields(line);
+        assert_eq!(rank, at + 1);
+        let sequence: MoveSequence = moves.parse().unwrap();
+        // the counts are those of `moves --metrics`
+        let size = sample.size.to_string();
+        let counted = cubacle(&["moves", "--size", &size, "--metrics", moves]);
+        assert_eq!(
+            counted.err,
+            format!("metrics: {counts}"),
+            "size {}: {moves}",
+            sample.size
+        );
+        assert!(
+            cube.apply(&sequence).unwrap().is_solved(),
+            "size {}: {moves}",
+            sample.size
+        );
+        assert!(
+            !seen.contains(&moves),
+            "size {}: {moves} twice",
+            sample.size
+        );
+        seen.push(moves);
+    }
+    assert_eq!(fields(lines[0]).2, plain.out, "size {}", sample.size);
 }
 
 #[test]
 fn json_is_an_array_of_reports_and_inverse_writes_each_solution_inverted() {
-    let sample = &samples()[3];
+    check_json_and_inverse(&samples()[3], PuzzleKind::Cube5);
+}
+
+/// `--json` and `--inverse` of three results of `sample`, a cube of `kind`.
+fn check_json_and_inverse(sample: &Sample, kind: PuzzleKind) {
     let json = solve(sample, &["--results", "3", "--json"]);
     assert!(json.ok, "{}", json.err);
     let value: serde_json::Value = serde_json::from_str(&json.out).unwrap();
@@ -167,7 +204,7 @@ fn json_is_an_array_of_reports_and_inverse_writes_each_solution_inverted() {
     let back = solve(sample, &["--results", "3", "--inverse"]);
     assert!(back.ok, "{}", back.err);
     let cube = cube_of(sample);
-    let solved = Facelets::solved(PuzzleKind::Cube5);
+    let solved = Facelets::solved(kind);
     for (line, forward) in back.out.lines().zip(text.out.lines()) {
         let (_, counts, moves) = fields(line);
         assert_eq!(
@@ -248,11 +285,6 @@ fn results_out_of_range_and_unsupported_combinations_name_the_option() {
     // one result stays possible in every mode
     let run = solve(three, &["--results", "1", "--optimize", "ranges"]);
     assert!(run.ok, "{}", run.err);
-    for size in ["6", "7"] {
-        let run = cubacle(&["solve", "-s", "R", "--size", size, "--results", "3"]);
-        assert!(!run.ok, "{size}");
-        assert!(run.err.contains("--results"), "{size}: {}", run.err);
-    }
 }
 
 /// The moves of a line with every run of turns about one axis sorted: two
@@ -355,4 +387,40 @@ fn a_closed_pipe_ends_the_list_without_an_error() {
     let status = child.wait().unwrap();
     assert!(!err.contains("panicked"), "{err}");
     assert!(status.success(), "{status:?} {err}");
+}
+
+#[test]
+fn three_results_on_a_6x6x6_are_distinct_replayed_and_start_with_the_plain_one() {
+    let sample = &big_samples()[0];
+    // the list shares the center moves and differs in the rest
+    check_three(sample);
+    check_json_and_inverse(sample, PuzzleKind::Cube6);
+}
+
+#[test]
+fn three_results_on_a_7x7x7_are_distinct_replayed_and_start_with_the_plain_one() {
+    check_three(&big_samples()[1]);
+}
+
+#[test]
+fn a_list_of_a_6x6x6_or_7x7x7_refuses_what_a_list_cannot_combine_with() {
+    for size in ["6", "7"] {
+        for (extra, named) in [
+            (vec!["--icons"], "--icons"),
+            (vec!["--optimize", "ranges"], "--optimize"),
+            (vec!["--group", "axis"], "--group"),
+            (vec!["--every", "5"], "--every"),
+            (vec!["--improve"], "--improve"),
+        ] {
+            let mut args = vec!["solve", "-s", "R", "--size", size, "--results", "3"];
+            args.extend(&extra);
+            let run = cubacle(&args);
+            assert!(!run.ok, "{size} {extra:?}");
+            assert!(
+                run.err.contains(named) && run.err.contains("--results"),
+                "{size} {extra:?}: {}",
+                run.err
+            );
+        }
+    }
 }
