@@ -466,6 +466,29 @@ mod tests {
 }
 
 #[cfg(test)]
+mod refuse_tests {
+    use super::*;
+    use crate::engines::four::FourSolver;
+    use crate::engines::three::Min2PhaseSolver;
+
+    #[test]
+    fn a_cube_with_a_twisted_corner_is_refused_before_any_search() {
+        let three = Arc::new(Min2PhaseSolver::new());
+        let four: Engine = Arc::new(FourSolver::new(three.clone()));
+        let solver = DwaltonSolver::new(PuzzleKind::Cube6, three, four.clone(), four);
+        let mut stickers = Facelets::solved(PuzzleKind::Cube6).stickers().to_vec();
+        // the corner U L B: swap its U and L stickers
+        stickers.swap(0, 4 * 36);
+        let cube = Facelets::from_stickers(stickers).unwrap();
+        let (failure, _) = solver.refuse(&cube).expect("an impossible cube");
+        assert_eq!(failure, Failure::InvalidInput);
+        assert!(solver
+            .refuse(&Facelets::solved(PuzzleKind::Cube6))
+            .is_none());
+    }
+}
+
+#[cfg(test)]
 mod block_tests {
     use super::*;
 
