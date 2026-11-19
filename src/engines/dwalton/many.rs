@@ -13,6 +13,7 @@
 use std::time::{Duration, Instant};
 
 use super::groups;
+use super::six::Done;
 use super::solver::DwaltonSolver;
 use super::wings::{self, Refused, Staged};
 use crate::puzzle::{
@@ -71,25 +72,18 @@ impl DwaltonSolver {
         if let Some((failure, why)) = self.refuse(cube) {
             return failed(failure, why);
         }
-        let (after, done) = if self.kind == PuzzleKind::Cube6 {
-            match self.six().centers(cube, 40, deadline) {
-                Some((c, d, true)) => (c, d),
-                Some(_) => return failed(Failure::Internal, "step 60 found nothing".into()),
-                None => (cube.clone(), Vec::new()),
-            }
+        let centers = if self.kind == PuzzleKind::Cube6 {
+            self.six().centers(cube, 40, deadline)
         } else {
-            match self.seven().centers(cube, deadline) {
-                Some(found) => found,
-                None => (cube.clone(), Vec::new()),
-            }
+            self.seven()
+                .centers(cube, deadline)
+                .map(|(c, d)| (c, d, true))
         };
-        let timed_out = "the time limit was reached in the center stages";
-        if deadline.is_some_and(|d| Instant::now() >= d) {
-            return failed(Failure::BudgetExhausted, timed_out.into());
-        }
-        if done.is_empty() {
-            return failed(Failure::Internal, "the center stages found nothing".into());
-        }
+        let expired = deadline.is_some_and(|d| Instant::now() >= d);
+        let (after, done) = match after_centers(centers, expired) {
+            Ok(found) => found,
+            Err((failure, why)) => return failed(failure, why),
+        };
         let mut head: Vec<Move> = Vec::new();
         let mut head_marks: Vec<(&'static str, usize)> = Vec::new();
         for (name, names) in &done {
@@ -144,11 +138,7 @@ impl DwaltonSolver {
                             raw.extend_from_slice(&part.moves);
                         }
                         let solution = normalize(self.kind.size(), &raw, false);
-                        let new = found
-                            .solutions
-                            .iter()
-                            .all(|g| !same_up_to_commuting(g, &solution));
-                        if new {
+                        if is_new(&found.solutions, &solution) {
                             let mut marks = head_marks.clone();
                             let names = self.stage_names();
                             let parts = [(names[0], first), (names[1], second), (names[2], tail)];
@@ -223,7 +213,66 @@ impl DwaltonSolver {
     }
 }
 
+/// The cube and stages after the center stages, or why there are none. The
+/// clock is looked at first, as in a plain solve: a stage that ran out of time
+/// reports nothing, which is a time limit and not a fault.
+fn after_centers(
+    centers: Option<(Facelets, Vec<Done>, bool)>,
+    expired: bool,
+) -> Result<(Facelets, Vec<Done>), (Failure, String)> {
+    if expired {
+        return Err((
+            Failure::BudgetExhausted,
+            "the time limit was reached in the center stages".into(),
+        ));
+    }
+    match centers {
+        Some((cube, done, true)) if !done.is_empty() => Ok((cube, done)),
+        Some((_, _, false)) => Err((Failure::Internal, "step 60 found nothing".into())),
+        _ => Err((Failure::Internal, "the center stages found nothing".into())),
+    }
+}
+
+/// Whether `solution` differs from every one of `found` by more than the order
+/// of commuting turns.
+fn is_new(found: &[Vec<Move>], solution: &[Move]) -> bool {
+    found.iter().all(|g| !same_up_to_commuting(g, solution))
+}
+
 fn apply(cube: &Facelets, moves: &[Move]) -> Facelets {
     cube.apply(&MoveSequence::new(moves.to_vec()))
         .expect("the moves fit the cube")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn moves(text: &str) -> Vec<Move> {
+        text.parse::<MoveSequence>().unwrap().moves().to_vec()
+    }
+
+    #[test]
+    fn a_stage_that_ran_out_of_time_is_a_time_limit_not_a_fault() {
+        let cube = Facelets::solved(PuzzleKind::Cube6);
+        // step 60 reports "not ok" when the clock cut it short
+        let cut = Some((cube.clone(), vec![("stage", vec!["U".to_owned()])], false));
+        let (failure, why) = after_centers(cut.clone(), true).unwrap_err();
+        assert_eq!(failure, Failure::BudgetExhausted);
+        assert!(why.contains("time limit"), "{why}");
+        let (failure, why) = after_centers(cut, false).unwrap_err();
+        assert_eq!(failure, Failure::Internal);
+        assert!(why.contains("step 60"), "{why}");
+        let (failure, _) = after_centers(None, true).unwrap_err();
+        assert_eq!(failure, Failure::BudgetExhausted);
+    }
+
+    #[test]
+    fn solutions_that_differ_only_in_commuting_turns_count_once() {
+        let found = vec![moves("R L U")];
+        assert!(!is_new(&found, &moves("L R U")));
+        assert!(!is_new(&found, &moves("R L U")));
+        assert!(is_new(&found, &moves("R L U'")));
+        assert!(is_new(&found, &moves("U R L")));
+    }
 }
