@@ -12,7 +12,7 @@ The JSON form is described with the [definition file](definition-file.md); color
 
 ## The `canonical` field (implemented)
 
-Unlike the rest of this page, this part runs. The state descriptions of `POST /v1/convert` and `GET /v1/random` carry `tokenV2` (the Orbit64 V2 token, added after `token`; see [REST API reference](../api.md#the-tokenv2-field)) and `canonical`, an object with `token` (the canonical Orbit64 token) and `schema` (`orbit64-Nxn-draft@1`), after the existing keys `kind`, `facelets` and `token`, which are unchanged. The key is absent when the stickers are not a cube. Keys are camelCase, as everywhere in the API. The pattern identifier is the canonical token stored with its schema name; the token is not a search key and never a file name. Example and meaning: [REST API reference](../api.md#the-canonical-field).
+Unlike the rest of this page, this part runs. The state descriptions of `POST /v1/convert` and `GET /v1/random` carry `tokenV2` (the Orbit64 V2 token, added after `token`; see [REST API reference](../api.md#the-tokenv2-field)) and `canonical`, an object with `token` (the canonical Orbit64 token) and `schema` (`orbit64-Nxn-draft@1`), after the existing keys `kind`, `facelets` and `token`, which are unchanged. Both `tokenV2` and `canonical` are absent when the stickers are not a cube. Keys are camelCase, as everywhere in the API. The pattern identifier is the canonical token stored with its schema name; the token is not a search key and never a file name. Example and meaning: [REST API reference](../api.md#the-canonical-field).
 
 ## POST /v1/patterns/search
 
