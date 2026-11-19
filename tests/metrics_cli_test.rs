@@ -39,7 +39,7 @@ fn big_cubes_show_block_counts() {
     let (ok, out, err) = cubacle(&["moves", "--size", "5", "2-3Rw 3Rw2"]);
     assert!(ok, "{err}");
     assert_eq!(out, "3Rw R' 3Rw2");
-    assert_eq!(err, "metrics: obtm 3, qtm 4, stm 5, btm 2");
+    assert_eq!(err, "metrics: htm 3, obtm 3, qtm 4, stm 5, btm 2");
 }
 
 #[test]
@@ -55,7 +55,7 @@ fn optimize_ranges_counts_the_compressed_form() {
     let (ok, out, err) = cubacle(&["moves", "--size", "5", "--optimize", "ranges", "3Rw R'"]);
     assert!(ok, "{err}");
     assert_eq!(out, "2-3Rw");
-    assert_eq!(err, "metrics: obtm 2, qtm 2, stm 2, btm 1");
+    assert_eq!(err, "metrics: htm 2, obtm 2, qtm 2, stm 2, btm 1");
 }
 
 #[test]
