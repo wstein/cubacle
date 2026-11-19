@@ -124,8 +124,10 @@ const REPAIR_WINDOW: usize = 4;
 /// cube is never in the state the engine reached there. The stage end goes to
 /// the first position where every sticker that was in its solved place at the
 /// engine's end is in place again, so the facts of the stage (centers and
-/// wings done, outer faces only in the 3x3 stage) hold at its end. The moves
-/// themselves are not changed.
+/// wings done, outer faces only in the 3x3 stage) hold at its end. Where
+/// normalizing reordered moves of different slices across the end, no position
+/// within the window has all of them; the one with the fewest out of place
+/// is taken (the first on a tie). The moves themselves are not changed.
 fn repair(
     start: &Facelets,
     raw: &[Move],
@@ -148,29 +150,31 @@ fn repair(
         let kept: Vec<usize> = (0..solved.stickers().len())
             .filter(|&i| want.stickers()[i] == solved.stickers()[i])
             .collect();
+        let missing = |state: &Facelets| {
+            kept.iter()
+                .filter(|&&i| state.stickers()[i] != solved.stickers()[i])
+                .count()
+        };
         let mut at = stage.end;
         let mut cur = have;
-        // a merged run is a few moves long; kept stickers that match by
-        // chance are not found again soon
-        while at < fin.len().min(stage.end + REPAIR_WINDOW) {
-            if kept
-                .iter()
-                .all(|&i| cur.stickers()[i] == solved.stickers()[i])
-            {
-                break;
-            }
+        // the earliest position in the window with the fewest of the kept
+        // stickers out of place; a merged run that reorders moves of
+        // different slices need not pass through the engine's state, and
+        // then the nearest state is the end
+        let mut best = (missing(&cur), at);
+        // a merged run is a few moves long
+        while best.0 > 0 && at < fin.len().min(stage.end + REPAIR_WINDOW) {
             let Ok(next) = cur.apply(&MoveSequence::new(vec![fin[at]])) else {
                 break;
             };
             cur = next;
             at += 1;
+            let out = missing(&cur);
+            if out < best.0 {
+                best = (out, at);
+            }
         }
-        if kept
-            .iter()
-            .all(|&i| cur.stickers()[i] == solved.stickers()[i])
-        {
-            stage.end = at;
-        }
+        stage.end = best.1;
     }
     for i in 1..stages.len() {
         stages[i].end = stages[i].end.max(stages[i - 1].end);
