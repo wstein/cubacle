@@ -339,6 +339,7 @@ fn none_also_silences_unavailable_lines() {
 }
 
 #[test]
+#[cfg(target_os = "linux")]
 fn an_unwritable_stderr_does_not_panic() {
     let status = command(&["random", "--size", "3"])
         .stderr(
