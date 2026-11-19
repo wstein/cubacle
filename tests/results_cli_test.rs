@@ -197,6 +197,27 @@ fn fewer_distinct_solutions_than_asked_say_so() {
 }
 
 #[test]
+fn a_short_list_names_the_time_option_that_was_set() {
+    // -b ends the 4x4x4 list: the message names -b, not --max-time
+    let four = &samples()[2];
+    let run = solve(four, &["--results", "100", "-b", "100000"]);
+    assert!(run.ok, "{}", run.err);
+    assert!(run.err.contains("--budget-ms"), "{}", run.err);
+    assert!(!run.err.contains("--max-time"), "{}", run.err);
+    // --max-time on the 2x2x2 sets a limit: the message names it
+    let two = &samples()[0];
+    let run = solve(two, &["--results", "10000", "--max-time", "100000"]);
+    assert!(run.ok, "{}", run.err);
+    assert!(run.err.contains("--max-time"), "{}", run.err);
+    assert!(!run.err.contains("--budget-ms"), "{}", run.err);
+    // -b on the 2x2x2 sets a limit too
+    let run = solve(two, &["--results", "10000", "-b", "100000"]);
+    assert!(run.ok, "{}", run.err);
+    assert!(run.err.contains("--budget-ms"), "{}", run.err);
+    assert!(!run.err.contains("--max-time"), "{}", run.err);
+}
+
+#[test]
 fn results_out_of_range_and_unsupported_combinations_name_the_option() {
     let three = &samples()[1];
     for value in ["0", "10001", "x"] {
