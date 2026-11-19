@@ -418,3 +418,26 @@ fn a_list_of_a_6x6x6_or_7x7x7_refuses_what_a_list_cannot_combine_with() {
         }
     }
 }
+
+#[test]
+fn probes_with_a_list_of_a_6x6x6_or_7x7x7_are_refused_naming_both_options() {
+    for size in ["6", "7"] {
+        let run = cubacle(&[
+            "solve",
+            "-s",
+            "R",
+            "--size",
+            size,
+            "--results",
+            "3",
+            "--probes",
+            "3",
+        ]);
+        assert!(!run.ok, "{size}");
+        assert!(
+            run.err.contains("--probes") && run.err.contains("--results 3"),
+            "{size}: {}",
+            run.err
+        );
+    }
+}
