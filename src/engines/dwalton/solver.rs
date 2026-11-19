@@ -25,10 +25,10 @@ pub struct StageTally {
 
 /// Solves the 6x6x6 by reduction, after dwalton76/rubiks-cube-NxNxN-solver.
 pub struct DwaltonSolver {
-    kind: PuzzleKind,
-    three: Engine,
-    four: Engine,
-    five: Engine,
+    pub(super) kind: PuzzleKind,
+    pub(super) three: Engine,
+    pub(super) four: Engine,
+    pub(super) five: Engine,
     threads: usize,
     six: OnceLock<Six>,
     seven: OnceLock<Seven>,
@@ -94,12 +94,36 @@ impl DwaltonSolver {
         self
     }
 
-    fn six(&self) -> &Six {
+    pub(super) fn six(&self) -> &Six {
         self.six.get_or_init(|| Six::new(self.threads))
     }
 
-    fn seven(&self) -> &Seven {
+    pub(super) fn seven(&self) -> &Seven {
         self.seven.get_or_init(|| Seven::new(self.threads))
+    }
+
+    /// Why `cube` cannot be solved at all, if it cannot: a wrong size, a
+    /// 7x7x7 with moved centers, an impossible cube.
+    pub(super) fn refuse(&self, cube: &Facelets) -> Option<(Failure, String)> {
+        if cube.kind() != self.kind || !matches!(self.kind, PuzzleKind::Cube6 | PuzzleKind::Cube7) {
+            return Some((
+                Failure::InvalidInput,
+                format!("this solver handles the {:?} only", self.kind),
+            ));
+        }
+        // The 7x7x7 keeps its six face centers fixed; with a middle-slice turn
+        // in the scramble the center stages would search for ever.
+        if self.kind == PuzzleKind::Cube7 {
+            let stickers = cube.stickers();
+            if (0..6).any(|face| stickers[face * 49 + 24] != Face::ALL[face]) {
+                return Some(crate::puzzle::centers_off_face(cube));
+            }
+        }
+        // The Orbit64 codec checks that the pieces form a reachable cube; do it
+        // before the search so an impossible cube is reported at once and plainly.
+        crate::notation::orbit64::encode(cube)
+            .err()
+            .map(|error| (Failure::InvalidInput, error.to_string()))
     }
 
     /// Solves and reports the moves of each stage.
@@ -211,26 +235,8 @@ impl DwaltonSolver {
                 tally.clone(),
             )
         };
-        if cube.kind() != self.kind || !matches!(self.kind, PuzzleKind::Cube6 | PuzzleKind::Cube7) {
-            return fail(
-                Failure::InvalidInput,
-                format!("this solver handles the {:?} only", self.kind),
-                &tally,
-            );
-        }
-        // The 7x7x7 keeps its six face centers fixed; with a middle-slice turn
-        // in the scramble the center stages would search for ever.
-        if self.kind == PuzzleKind::Cube7 {
-            let stickers = cube.stickers();
-            if (0..6).any(|face| stickers[face * 49 + 24] != Face::ALL[face]) {
-                let (failure, why) = crate::puzzle::centers_off_face(cube);
-                return fail(failure, why, &tally);
-            }
-        }
-        // The Orbit64 codec checks that the pieces form a reachable cube; do it
-        // before the search so an impossible cube is reported at once and plainly.
-        if let Err(error) = crate::notation::orbit64::encode(cube) {
-            return fail(Failure::InvalidInput, error.to_string(), &tally);
+        if let Some((failure, why)) = self.refuse(cube) {
+            return fail(failure, why, &tally);
         }
         let mut all: Vec<Move> = Vec::new();
         // each step of the engine with the length of `all` at its end
@@ -399,6 +405,20 @@ impl Solver for DwaltonSolver {
         });
         self.tallied(facelets, options.time_budget, better, options.centers_only)
             .0
+    }
+
+    /// Up to `n` distinct solutions that share the center moves and differ in
+    /// the wing and 3x3x3 stages (see `many`).
+    fn solve_many(
+        &self,
+        facelets: &Facelets,
+        options: &SolveOptions,
+        n: usize,
+    ) -> Vec<SolveResult> {
+        if n <= 1 || options.centers_only {
+            return vec![self.solve(facelets, options)];
+        }
+        self.list(facelets, options, n)
     }
 
     /// The first solution without a time limit, then the improving tail
