@@ -13,10 +13,17 @@ use cubacle::puzzle::Facelets;
 #[derive(Args, Clone, Copy)]
 pub(crate) struct StateOpts {
     /// Format of the state line on stderr (the cube the command starts from,
-    /// and with --to the target): orbit64v2 (Orbit64 V2 token, color model,
+    /// and the cube it aims at, where it has one): orbit64v2 (Orbit64 V2 token, color model,
     /// framed pose), orbit64 (V1 token), facelets, color, or none for no line
     #[arg(long, value_name = "FORMAT", default_value = "orbit64v2")]
     pub(crate) state_format: StateFormat,
+}
+
+/// Writes one line to stderr; a stderr that cannot be written is ignored, as
+/// for a closed pipe, instead of a panic.
+fn write_line(text: &str) {
+    use std::io::Write;
+    let _ = writeln!(std::io::stderr(), "{text}");
 }
 
 impl StateOpts {
@@ -33,14 +40,14 @@ impl StateOpts {
     /// A line under another label (`now` for the cube of `solve --now`).
     pub(crate) fn line(&self, label: &str, cube: &Facelets, scheme: Option<ColorScheme>) {
         if let Some(text) = self.text(label, cube, scheme) {
-            eprintln!("{text}");
+            write_line(&text);
         }
     }
 
     /// A line for a state that is not one cube, with the reason.
     pub(crate) fn unavailable(&self, label: &str, reason: &str) {
         if self.state_format != StateFormat::None {
-            eprintln!("{label}: unavailable: {reason}");
+            write_line(&format!("{label}: unavailable: {reason}"));
         }
     }
 

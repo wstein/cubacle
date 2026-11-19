@@ -19,10 +19,10 @@ target: orbit64v2 HYKC9_HL1gAA
 
 | `--state-format` | The line shows |
 | --- | --- |
-| `orbit64v2` (default) | The [Orbit64 V2](convert.md#orbit64-v2-tokens) token, color model, framed pose: the whole-cube orientation stays in the token, and the token gives the state back exactly |
+| `orbit64v2` (default) | The [Orbit64 V2](convert.md#orbit64-v2-tokens) token, color model, framed pose: the whole-cube orientation stays in the token, so it describes the state exactly. `cubacle` reads V2 tokens back as input only where they equal the V1 token (2x2x2, 3x3x3, 4x4x4, 6x6x6, 7x7x7); a 5x5x5 V2 token (42 characters) is not read as input yet, use `--state-format orbit64` to get a token that `cubacle` reads back |
 | `orbit64` | The Orbit64 V1 token (`convert --to token`) |
 | `facelets` | Canonical URFDLB facelets |
-| `color` | W/R/G/Y/O/B sticker letters (the scheme of the input colors, else `boy`) |
+| `color` | W/R/G/Y/O/B sticker letters (`boy`, or the scheme given with `--scheme`; `photo` uses the scheme it detected in color input) |
 | `none` | No line |
 
 ### Which commands

@@ -316,3 +316,39 @@ fn commands_without_a_cube_print_no_state_line() {
         );
     }
 }
+
+#[test]
+fn none_also_silences_unavailable_lines() {
+    let out = ok(&[
+        "solve",
+        "--size",
+        "3",
+        "-s",
+        "R U",
+        "--to",
+        "cross",
+        "--fast",
+        "--state-format",
+        "none",
+    ]);
+    assert!(
+        !out.stderr.contains("target:") && !out.stderr.contains("state:"),
+        "{}",
+        out.stderr
+    );
+}
+
+#[test]
+fn an_unwritable_stderr_does_not_panic() {
+    let status = command(&["random", "--size", "3"])
+        .stderr(
+            std::fs::OpenOptions::new()
+                .write(true)
+                .open("/dev/full")
+                .unwrap(),
+        )
+        .stdout(Stdio::null())
+        .status()
+        .unwrap();
+    assert!(status.success(), "{status}");
+}
