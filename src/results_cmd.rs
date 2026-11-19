@@ -77,11 +77,13 @@ pub(crate) fn check(args: &SolveArgs) -> Result<(), String> {
     Ok(())
 }
 
-/// Rejects a cube size whose engine cannot list solutions.
+/// Rejects what a list of the 6x6x6 and 7x7x7 cannot do: their lists keep the
+/// first solution of a plain solve, so a probe count (which repeats the tail
+/// and keeps the shorter) has no meaning there.
 pub(crate) fn check_kind(args: &SolveArgs, kind: PuzzleKind) -> Result<(), String> {
     match wanted(args) {
-        Some(n) if kind.size() > 7 => Err(format!(
-            "--results {n} is not supported for the {0}x{0}x{0}: its engine cannot list solutions",
+        Some(n) if kind.size() >= 6 && args.probes.is_some() => Err(format!(
+            "--results {n} cannot be combined with --probes on the {0}x{0}x{0}: a list does not repeat the wing and 3x3x3 stages with more probes",
             kind.size()
         )),
         _ => Ok(()),
