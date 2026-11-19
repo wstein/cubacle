@@ -81,7 +81,7 @@ pub(crate) fn check(args: &SolveArgs) -> Result<(), String> {
 pub(crate) fn check_kind(args: &SolveArgs, kind: PuzzleKind) -> Result<(), String> {
     match wanted(args) {
         Some(n) if kind.size() > 7 => Err(format!(
-            "--results {n} is not supported for the {0}x{0}x{0}: its stages keep one route, no list of finished solutions (a follow-up)",
+            "--results {n} is not supported for the {0}x{0}x{0}: its engine cannot list solutions",
             kind.size()
         )),
         _ => Ok(()),
