@@ -8,6 +8,8 @@
 
 use std::process::{Command, Output};
 
+mod common;
+
 const BODY: &str = include_str!("solve_json_body.txt");
 
 fn cubacle(args: &[&str]) -> Output {
@@ -19,6 +21,13 @@ fn cubacle(args: &[&str]) -> Output {
         )
         .output()
         .expect("cubacle runs")
+}
+
+/// The body without the `state` object that `cubacle solve --json` appends after
+/// the keys of the server body.
+fn without_state(body: &str) -> String {
+    let at = body.find(",\"state\":{").expect("a state object");
+    format!("{}}}", &body[..at])
 }
 
 /// Replaces the number after `"elapsedMicros":` by 0.
@@ -45,8 +54,8 @@ fn json_is_the_rest_body_of_the_equivalent_request() {
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.ends_with("}\n"), "one line: {stdout:?}");
-    assert_eq!(masked(stdout.trim_end()), BODY.trim_end());
-    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert_eq!(masked(&without_state(stdout.trim_end())), BODY.trim_end());
+    let stderr = common::without_state_lines(&String::from_utf8(output.stderr).unwrap());
     assert!(stderr.starts_with("moves 13\n"), "{stderr}");
 }
 
@@ -113,7 +122,7 @@ fn json_of_a_staged_engine_ends_with_the_phases() {
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert_eq!(
-        masked(stdout.trim_end()),
+        masked(&without_state(stdout.trim_end())),
         include_str!("solve_json_body_four.txt").trim_end()
     );
 }
@@ -132,7 +141,7 @@ fn json_names_a_known_pattern_only_with_verbose() {
         "-v",
     ]);
     assert!(hinted.status.success());
-    let stdout = String::from_utf8(hinted.stdout).unwrap();
+    let stdout = without_state(&String::from_utf8(hinted.stdout).unwrap()) + "\n";
     assert!(
         stdout.ends_with(",\"patternHint\":\"superflip\"}\n"),
         "{stdout}"

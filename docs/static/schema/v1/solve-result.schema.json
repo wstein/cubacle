@@ -59,6 +59,18 @@
     "lowerBound": {
       "description": "Format 2 only: the proven lower bound; equal to length when proven, null when nothing is proven.",
       "oneOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }]
+    },
+    "state": {
+      "description": "Command line only (`cubacle solve --json`), after all other keys: the start cube in every state format. A format that cannot show the state is null. The REST server does not send it.",
+      "type": "object",
+      "properties": {
+        "orbit64v2": { "type": ["string", "null"] },
+        "orbit64": { "type": ["string", "null"] },
+        "facelets": { "type": ["string", "null"] },
+        "color": { "type": ["string", "null"] }
+      },
+      "required": ["orbit64v2", "orbit64", "facelets", "color"],
+      "additionalProperties": false
     }
   },
   "required": ["kind", "solution", "inverse", "length", "metrics", "elapsedMicros"],

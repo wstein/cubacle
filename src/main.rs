@@ -33,6 +33,7 @@ mod solve_cmd;
 mod solved_start;
 mod stage_phases;
 mod state_check;
+mod state_line;
 mod steps;
 mod target_name;
 mod template_cmd;
@@ -46,9 +47,11 @@ use std::sync::atomic::Ordering;
 
 use cubacle::generate;
 use cubacle::notation::orbit64;
-use cubacle::notation::{parse_cube, parse_expression, ColorScheme};
+use cubacle::notation::orbit64::v2::{Model, Pose};
+use cubacle::notation::{parse_cube, parse_expression, token_v2, ColorScheme};
+use cubacle::puzzle::Facelets;
 
-use crate::cli::{Cli, Command, InputArgs, Output};
+use crate::cli::{Cli, Command, InputArgs, ModelArg, Output, PoseArg};
 use crate::failure::{EXIT_ERROR, EXIT_LIMIT, LIMIT_REACHED};
 use crate::input::{kind_of, read_input, scrambled};
 
@@ -98,6 +101,9 @@ fn run(cli: Cli) -> Result<(), String> {
         Command::Patterns(args) => patterns_cmd::run(args),
         Command::Template(args) => template_cmd::run(args),
         Command::Convert(args) => {
+            if (args.model.is_some() || args.pose.is_some()) && !matches!(args.to, Output::Token2) {
+                return Err("--model and --pose need --to token2".into());
+            }
             let (cube, detected) = read_input(&args.input)?;
             if args.metrics {
                 print_metrics(&args.input)?;
@@ -105,6 +111,17 @@ fn run(cli: Cli) -> Result<(), String> {
             match args.to {
                 Output::Facelets => println!("{cube}"),
                 Output::Token => println!("{}", orbit64::encode(&cube).map_err(|e| e.to_string())?),
+                Output::Token2 => {
+                    let model = match args.model.unwrap_or(ModelArg::Color) {
+                        ModelArg::Color => Model::Color,
+                        ModelArg::Picture => Model::Picture,
+                    };
+                    let pose = match args.pose.unwrap_or(PoseArg::Framed) {
+                        PoseArg::Canonical => Pose::Canonical,
+                        PoseArg::Framed => Pose::Framed,
+                    };
+                    println!("{}", token_v2(&cube, model, pose)?);
+                }
                 Output::Color => {
                     let scheme = args
                         .input
@@ -120,6 +137,7 @@ fn run(cli: Cli) -> Result<(), String> {
             moves,
             size,
             notation,
+            state,
         } => {
             if moves > cubacle::notation::MAX_EXPANDED_MOVES {
                 return Err(format!(
@@ -128,18 +146,30 @@ fn run(cli: Cli) -> Result<(), String> {
                 ));
             }
             let kind = kind_of(size)?;
-            println!("{}", notation.write(kind, &generate::scramble(kind, moves)));
+            let scramble = generate::scramble(kind, moves);
+            println!("{}", notation.write(kind, &scramble));
+            match Facelets::solved(kind).apply(&scramble) {
+                Ok(cube) => state.start(&cube, None),
+                Err(error) => state.unavailable("state", &error.to_string()),
+            }
             Ok(())
         }
-        Command::Random { size } => {
+        Command::Random { size, state } => {
             let kind = kind_of(size)?;
             let cube = generate::random_state(kind)
                 .ok_or_else(|| format!("no random state generator for the {size}x{size}x{size}"))?;
             println!("{cube}");
+            state.start(&cube, None);
             Ok(())
         }
-        Command::Facelets { scramble, size } => {
-            println!("{}", scrambled(&scramble, kind_of(size)?)?);
+        Command::Facelets {
+            scramble,
+            size,
+            state,
+        } => {
+            let cube = scrambled(&scramble, kind_of(size)?)?;
+            println!("{cube}");
+            state.start(&cube, None);
             Ok(())
         }
     }

@@ -4,6 +4,7 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use cubacle::notation::{ColorScheme, Notation};
 use cubacle::ranges::Optimize;
 
+use crate::state_line::StateOpts;
 use crate::{
     canon_cmd, moves_cmd, order_cmd, patterns_cmd, phase_dots, photo_cmd, recover_cmd, steps,
     template_cmd,
@@ -44,12 +45,16 @@ pub(crate) enum Command {
         /// How to write the moves: wca (Rw, 3Rw) sign (r, 3r) or sse (TR, T3R)
         #[arg(long, default_value = "wca")]
         notation: Notation,
+        #[command(flatten)]
+        state: StateOpts,
     },
     /// Print a random cube state as facelets
     Random {
         /// Cube size
         #[arg(long, default_value_t = 3)]
         size: usize,
+        #[command(flatten)]
+        state: StateOpts,
     },
     /// Translate any supported notation into URFDLB facelets, colors or an Orbit64 token
     Convert(ConvertArgs),
@@ -60,6 +65,8 @@ pub(crate) enum Command {
         /// Cube size
         #[arg(long, default_value_t = 3)]
         size: usize,
+        #[command(flatten)]
+        state: StateOpts,
     },
 }
 
@@ -90,12 +97,29 @@ pub(crate) struct InputArgs {
 pub(crate) enum Output {
     /// Canonical URFDLB facelets
     Facelets,
-    /// An Orbit64 state token
+    /// An Orbit64 state token (V1)
     Token,
+    /// An Orbit64 V2 state token, written with --model and --pose (default: color model, framed pose)
+    #[value(name = "token2")]
+    Token2,
     /// W/R/G/Y/O/B sticker letters in facelet order, written with --scheme
     /// (default: the scheme of color input, else boy)
     #[value(name = "color")]
     Color,
+}
+
+/// The V2 model of `convert --to token2`.
+#[derive(Clone, Copy, ValueEnum)]
+pub(crate) enum ModelArg {
+    Color,
+    Picture,
+}
+
+/// The V2 pose of `convert --to token2`.
+#[derive(Clone, Copy, ValueEnum)]
+pub(crate) enum PoseArg {
+    Canonical,
+    Framed,
 }
 
 #[derive(Args)]
@@ -109,6 +133,12 @@ pub(crate) struct ConvertArgs {
     /// (htm qtm stm etm obtm btm atm) on stderr
     #[arg(long)]
     pub(crate) metrics: bool,
+    /// With --to token2: the V2 model, color (default) or picture (3x3x3 from colors only, center turns 0)
+    #[arg(long, value_enum)]
+    pub(crate) model: Option<ModelArg>,
+    /// With --to token2: the V2 pose, framed (default; the whole-cube orientation is kept) or canonical (one token for all orientations)
+    #[arg(long, value_enum)]
+    pub(crate) pose: Option<PoseArg>,
 }
 
 #[derive(Args)]
@@ -295,6 +325,8 @@ pub(crate) struct SolveArgs {
     /// $CUBACLE_CONFIG, ./cubacle.toml, ~/.config/cubacle/config.toml)
     #[arg(long, value_name = "FILE", requires = "pattern_aware")]
     pub(crate) config: Option<std::path::PathBuf>,
+    #[command(flatten)]
+    pub(crate) state: StateOpts,
     #[command(flatten)]
     pub(crate) pictures: steps::PictureArgs,
 }

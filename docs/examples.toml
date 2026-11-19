@@ -35,3 +35,8 @@ id = "json-default"
 page = "cli/solve-options.md"
 args = ["solve", "-s", "R U", "--json"]
 mask = ["elapsedMicros"]
+
+[[example]]
+id = "convert-token2"
+page = "cli/convert.md"
+args = ["convert", "A4ib8aejxj4Y", "--to", "token2"]

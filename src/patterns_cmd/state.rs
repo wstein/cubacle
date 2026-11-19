@@ -154,6 +154,7 @@ pub(super) fn find_state(
         None => crate::input::parse_text(&args.cube.join(" "), args.scheme, size)?.0,
     };
     crate::state_check::require(&state)?;
+    args.state_line.target(&state, args.scheme);
     let cap = Cap::megabytes(args.max_memory);
     let time = args.budget_ms.map(Duration::from_millis);
     let alphabet = match &args.moves {
