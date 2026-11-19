@@ -133,16 +133,10 @@ fn three_results_are_distinct_solve_the_cube_and_start_with_the_plain_one() {
 fn check_three(sample: &Sample) {
     // one result stays the plain solve: stdout and stderr byte for byte
     let single = solve(sample, &["--results", "1"]);
-    let plain_run = solve(sample, &[]);
-    assert!(
-        single.ok && plain_run.ok,
-        "{} {}",
-        single.err,
-        plain_run.err
-    );
-    assert_eq!(single.out, plain_run.out, "size {}", sample.size);
-    assert_eq!(single.err, plain_run.err, "size {}", sample.size);
     let plain = solve(sample, &[]);
+    assert!(single.ok && plain.ok, "{} {}", single.err, plain.err);
+    assert_eq!(single.out, plain.out, "size {}", sample.size);
+    assert_eq!(single.err, plain.err, "size {}", sample.size);
     let run = solve(sample, &["--results", "3"]);
     assert!(run.ok, "size {}: {}", sample.size, run.err);
     let lines: Vec<&str> = run.out.lines().collect();
