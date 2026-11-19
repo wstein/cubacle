@@ -202,6 +202,11 @@ fn a_seven_by_seven_whose_inner_centers_settle_after_the_middle_wings() {
     let (result, _) = solver7().solve_tallied(&cube);
     assert!(result.is_solved(), "{:?}", result.message);
     check_stages(&cube, &result);
+    let ends: Vec<usize> = result.stages.iter().map(|s| s.end).collect();
+    assert_eq!(
+        ends,
+        [12, 21, 31, 49, 56, 76, 89, 104, 116, 131, 138, 152, 164, 184]
+    );
     let moves = result.solution().unwrap();
     assert!(cube.apply(moves).unwrap().is_solved());
 }
@@ -221,6 +226,11 @@ fn a_seven_by_seven_where_a_tie_of_kept_stickers_hid_the_centers() {
     let (result, _) = solver7().solve_tallied(&cube);
     assert!(result.is_solved(), "{:?}", result.message);
     check_stages(&cube, &result);
+    let ends: Vec<usize> = result.stages.iter().map(|s| s.end).collect();
+    assert_eq!(
+        ends,
+        [10, 21, 32, 50, 60, 80, 90, 104, 115, 130, 137, 150, 164, 185]
+    );
     let moves = result.solution().unwrap();
     assert!(cube.apply(moves).unwrap().is_solved());
 }
