@@ -51,4 +51,4 @@ This happens for a `--to` target with open stickers (`X`, or a name like `cross`
 
 ### JSON
 
-`solve --json` appends the object `state` after the other keys, with the start cube in all four formats: `orbit64v2`, `orbit64`, `facelets` and `color` (`null` for a format that cannot show the state). `--state-format` does not change it. The server does not send this object for `/v1/solve`; its other state descriptions carry [`tokenV2`](../api.md#the-tokenv2-field).
+`solve --json` appends the object `state` after the other keys, with the start cube in all four formats: `orbit64v2`, `orbit64`, `facelets` and `color` (`null` for a format that cannot show the state). With `--results N`, every element of the array carries the same `state` of the start cube. `--state-format` does not change it. The server does not send this object for `/v1/solve`; its other state descriptions carry [`tokenV2`](../api.md#the-tokenv2-field).
