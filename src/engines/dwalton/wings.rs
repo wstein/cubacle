@@ -71,6 +71,38 @@ fn reduce_with(
     }
 }
 
+/// The moves of a reduction and the ends of the engine's own stages inside.
+type Reduction = (Vec<Move>, Vec<usize>);
+
+/// Up to `n` reductions of a wing stage through `engine`, the plain one first,
+/// each with the ends of the engine's own stages.
+fn reduce_many_with(
+    engine: &Arc<dyn Solver + Send + Sync>,
+    fake: &Facelets,
+    stage: &'static str,
+    n: usize,
+    budget: Option<Duration>,
+) -> Result<Vec<Reduction>, Refused> {
+    let options = limited(SolveOptions::default().with_reduce_only(true), budget);
+    let results = engine.solve_many(fake, &options, n);
+    let mut listed = Vec::new();
+    for result in results {
+        let ends: Vec<usize> = result.stages.iter().map(|s| s.end).collect();
+        match result.outcome {
+            Ok(seq) => listed.push((seq.moves().to_vec(), ends)),
+            Err(failure) if listed.is_empty() => {
+                return Err(Refused {
+                    stage,
+                    failure,
+                    message: result.message,
+                })
+            }
+            Err(_) => {}
+        }
+    }
+    Ok(listed)
+}
+
 fn apply(cube: &Facelets, moves: &[Move]) -> Facelets {
     cube.apply(&MoveSequence::new(moves.to_vec()))
         .expect("the lifted moves fit the cube")
@@ -78,7 +110,7 @@ fn apply(cube: &Facelets, moves: &[Move]) -> Facelets {
 
 /// The moves `moves` lifted by `depth`, with the stage `ends` of the originals
 /// counted in the lifted moves.
-fn lifted(moves: &[Move], ends: &[usize], depth: u8) -> Staged {
+pub(super) fn lifted(moves: &[Move], ends: &[usize], depth: u8) -> Staged {
     let mut out = Vec::new();
     let mut at = vec![0];
     for m in moves {
@@ -145,4 +177,60 @@ pub(super) fn finish(
 #[allow(unused)]
 pub(super) fn replay(cube: &Facelets, moves: &[Move]) -> Facelets {
     apply(cube, moves)
+}
+
+/// Up to `n` ways to pair the inner wings of an even cube, the plain one first.
+pub(super) fn inner_wings_many(
+    four: &Arc<dyn Solver + Send + Sync>,
+    cube: &Facelets,
+    n: usize,
+    budget: Option<Duration>,
+) -> Result<Vec<Staged>, Refused> {
+    let depth = (cube.kind().size() / 2) as u8;
+    let listed = reduce_many_with(four, &four_of(cube), "inner wings (4x4x4)", n, budget)?;
+    Ok(listed.iter().map(|(m, e)| lifted(m, e, depth)).collect())
+}
+
+/// Up to `n` ways to pair the wings of `orbit` through a 5x5x5.
+pub(super) fn orbit_wings_many(
+    five: &Arc<dyn Solver + Send + Sync>,
+    cube: &Facelets,
+    orbit: usize,
+    n: usize,
+    budget: Option<Duration>,
+) -> Result<Vec<Staged>, Refused> {
+    let fake = five_of(cube, orbit);
+    let listed = reduce_many_with(five, &fake, "outer wings (5x5x5)", n, budget)?;
+    Ok(listed
+        .iter()
+        .map(|(m, e)| lifted(m, e, (orbit + 2) as u8))
+        .collect())
+}
+
+/// Up to `n` solutions of the reduced cube as a 3x3x3, the plain one first.
+pub(super) fn finish_many(
+    three: &Arc<dyn Solver + Send + Sync>,
+    cube: &Facelets,
+    n: usize,
+    budget: Option<Duration>,
+) -> Result<Vec<Staged>, Refused> {
+    let options = limited(SolveOptions::default(), budget);
+    let mut listed = Vec::new();
+    for result in three.solve_many(&three_of(cube), &options, n) {
+        match result.outcome {
+            Ok(seq) => listed.push(Staged {
+                ends: vec![seq.len()],
+                moves: seq.moves().to_vec(),
+            }),
+            Err(failure) if listed.is_empty() => {
+                return Err(Refused {
+                    stage: "3x3x3",
+                    failure,
+                    message: result.message,
+                })
+            }
+            Err(_) => {}
+        }
+    }
+    Ok(listed)
 }

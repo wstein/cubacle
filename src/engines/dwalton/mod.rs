@@ -10,6 +10,7 @@
 mod fake;
 mod geometry;
 mod groups;
+mod many;
 mod pattern;
 mod seven;
 mod seven_final_tables;
