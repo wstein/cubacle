@@ -19,7 +19,7 @@ metrics: htm 8, qtm 10, stm 8
 B L2 D' F2 U R U' R'
 ```
 
-The line shows the four counts most useful for the cube: `htm qtm stm` for the 2x2x2 and 3x3x3, and `obtm qtm stm btm` from the 4x4x4, where wide turns and inner layers make the block counts differ. `moves N` is unchanged.
+The line shows the counts most useful for the cube: `htm qtm stm` for the 2x2x2 and 3x3x3, and `htm obtm qtm stm btm` from the 4x4x4, where wide turns and inner layers make the block counts differ (`htm` and `obtm` are the same number, see below). `moves N` is unchanged.
 
 | Command | Where the line appears |
 | --- | --- |

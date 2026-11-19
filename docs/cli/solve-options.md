@@ -131,7 +131,7 @@ F2 U F' D
 
 ```text
 moves 2
-metrics: obtm 2, qtm 2, stm 2, btm 2
+metrics: htm 2, obtm 2, qtm 2, stm 2, btm 2
 R' F'
 ```
 
@@ -148,7 +148,7 @@ error: no route of at most 3 moves in the outer-block alphabet (obtm)
 
 ```text
 moves 3
-metrics: obtm 6, qtm 6, stm 3, btm 3
+metrics: htm 6, obtm 6, qtm 6, stm 3, btm 3
 3B 3D 3L
 ```
 
@@ -196,7 +196,7 @@ A "none" run takes about as long as a hit of the same K. The stored side is capp
 
 ### Move counts
 
-`solve` writes `moves N` and one more line to standard error, the counts in the common move metrics (`htm qtm stm` up to the 3x3x3, `obtm qtm stm btm` from the 4x4x4). Standard output is unchanged. The page [Move metrics](../metrics.md) defines each count, says what the solvers minimize (the move count of their own alphabet, not QTM or STM) and lists where else the line appears.
+`solve` writes `moves N` and one more line to standard error, the counts in the common move metrics (`htm qtm stm` up to the 3x3x3, `htm obtm qtm stm btm` from the 4x4x4). Standard output is unchanged. The page [Move metrics](../metrics.md) defines each count, says what the solvers minimize (the move count of their own alphabet, not QTM or STM) and lists where else the line appears.
 
 ```sh
 cubacle solve -s "R U R' U' F2 D L2 B'"
@@ -223,7 +223,7 @@ metrics: htm 4, qtm 5, stm 3, etm 4, obtm 4, btm 3, atm 1
 R R U' F F
 metrics: htm 5, qtm 5, stm 5
 2-3Rw
-metrics: obtm 2, qtm 2, stm 2, btm 1
+metrics: htm 2, obtm 2, qtm 2, stm 2, btm 1
 metrics: htm 2, qtm 3, stm 2, etm 2, obtm 2, btm 2, atm 2
 FUUFUUFUULLLRRRRRRUBBFFDFFDDDBDDBDDBRRRLLLLLLFFDUBBUBB
 ```
@@ -430,7 +430,7 @@ cubacle solve --size 5 --scramble "2-4Uw 2-4Rw' 2-4Uw' 2-4Rw"
 ```text
 note: the face centers are not on their own faces; the solution makes every face the color of its center
 moves 8
-metrics: obtm 8, qtm 8, stm 8, btm 8
+metrics: htm 8, obtm 8, qtm 8, stm 8, btm 8
 U D' R L' F B' U D'
 ```
 

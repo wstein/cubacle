@@ -108,7 +108,7 @@ cubacle solve --size 4 "R U" --to Rw
 
 ```text
 moves 2
-metrics: obtm 3, qtm 3, stm 2, btm 2
+metrics: htm 3, obtm 3, qtm 3, stm 2, btm 2
 U' 3L'
 ```
 
@@ -371,7 +371,7 @@ cubacle solve --size 4 "Rw U2 F' 2D Lw2 B R' 2U F2 D' Lw B2 U' 2R F Dw2 L' U Fw 
 
 ```text
 moves 13
-metrics: obtm 18, qtm 25, stm 18, btm 13
+metrics: htm 18, obtm 18, qtm 25, stm 18, btm 13
 best found: 13 moves, the engine's center stage cut to the target and shortened by a beam search, not proven shortest
 Rw' 3U' 2R2 Bw' Rw2 2U U2 Fw D2 Fw2 2R F2 2R'
 ```

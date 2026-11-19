@@ -115,7 +115,7 @@ Every solve answer also carries `inverse`, next to `solution`: the moves that un
 
 (The `elapsedMicros` value is that of one run.)
 
-Every solve answer carries `metrics`: the length of `solution` in all seven metrics of [Move metrics](metrics.md), as integers, always in the key order `htm`, `qtm`, `stm`, `etm`, `obtm`, `btm`, `atm`. The command line shows three or four of them on its `metrics:` line; the server always sends all seven, so a client picks what it needs and ignores the rest. The counts are those of `cubacle::metrics::count` on the returned moves (`length` is the solver's own count, `moves N` on the command line). The same object under `compressedMetrics` counts `compressed` when `optimize` asked for it. The counts are part of every answer and cannot be turned off.
+Every solve answer carries `metrics`: the length of `solution` in all seven metrics of [Move metrics](metrics.md), as integers, always in the key order `htm`, `qtm`, `stm`, `etm`, `obtm`, `btm`, `atm`. The command line shows three or five of them on its `metrics:` line; the server always sends all seven, so a client picks what it needs and ignores the rest. The counts are those of `cubacle::metrics::count` on the returned moves (`length` is the solver's own count, `moves N` on the command line). The same object under `compressedMetrics` counts `compressed` when `optimize` asked for it. The counts are part of every answer and cannot be turned off.
 
 The server has no endpoint for `solve --now`, so there is no route variant to count; `/v1/solve` is the only answer with moves.
 
