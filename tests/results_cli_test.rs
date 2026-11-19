@@ -4,6 +4,8 @@ use cubacle::notation::parse_cube;
 use cubacle::puzzle::{Facelets, MoveSequence, PuzzleKind};
 use std::process::Command;
 
+mod common;
+
 struct Run {
     ok: bool,
     out: String,
@@ -18,7 +20,9 @@ fn cubacle(args: &[&str]) -> Run {
     Run {
         ok: output.status.success(),
         out: String::from_utf8_lossy(&output.stdout).trim().to_owned(),
-        err: String::from_utf8_lossy(&output.stderr).trim().to_owned(),
+        err: common::without_state_lines(&String::from_utf8_lossy(&output.stderr))
+            .trim()
+            .to_owned(),
     }
 }
 
@@ -155,6 +159,11 @@ fn json_is_an_array_of_reports_and_inverse_writes_each_solution_inverted() {
     let text = solve(sample, &["--results", "3"]);
     for (report, line) in reports.iter().zip(text.out.lines()) {
         assert_eq!(report["solution"].as_str().unwrap(), fields(line).2);
+        // every report carries the start cube, as a single solution does
+        assert_eq!(
+            report["state"]["facelets"].as_str().unwrap(),
+            cube_of(sample).to_string()
+        );
         let counts = fields(line).1;
         let obtm: u64 = counts
             .split(", ")

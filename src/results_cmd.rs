@@ -163,7 +163,7 @@ pub(crate) fn run(
         );
     }
     if args.json {
-        return print_json(args, &listed, kind);
+        return print_json(args, start, &listed, kind);
     }
     for (rank, result) in listed.iter().enumerate() {
         let solution = result.solution().expect("a solved result");
@@ -182,8 +182,14 @@ pub(crate) fn run(
     Ok(())
 }
 
-/// `--json`: an array with the solve report of each solution.
-fn print_json(args: &SolveArgs, listed: &[&SolveResult], kind: PuzzleKind) -> Result<(), String> {
+/// `--json`: an array with the solve report of each solution, each followed by
+/// the `state` of the start cube.
+fn print_json(
+    args: &SolveArgs,
+    start: &Facelets,
+    listed: &[&SolveResult],
+    kind: PuzzleKind,
+) -> Result<(), String> {
     let format = args
         .json_format
         .as_deref()
@@ -194,10 +200,13 @@ fn print_json(args: &SolveArgs, listed: &[&SolveResult], kind: PuzzleKind) -> Re
         .iter()
         .map(|result| {
             let solution = result.solution().expect("a solved result");
-            SolveReport::of(kind, solution, args.notation, None, result.metrics.elapsed)
+            let json = SolveReport::of(kind, solution, args.notation, None, result.metrics.elapsed)
                 .with_phases(&result.stages)
                 .with_evidence(result.metrics.evidence)
-                .to_json_format(format)
+                .to_json_format(format);
+            // the start cube follows the keys of the report, as for a single solution
+            let body = json.strip_suffix('}').expect("a JSON object");
+            format!("{body},\"state\":{}}}", crate::state_line::json(start))
         })
         .collect();
     println!("[{}]", reports.join(","));
