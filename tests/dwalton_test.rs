@@ -187,3 +187,21 @@ fn an_impossible_7x7x7_is_refused_before_any_search() {
     assert_eq!(result.outcome.unwrap_err(), Failure::InvalidInput);
     assert!(result.message.unwrap().contains("parity"));
 }
+
+/// A 7x7x7 scramble from a CI failure (wstein/cubacle#80): the engine ends
+/// its group "middle wings paired" at move 129, and the state-based phases
+/// put the end of the inner centers at 131.
+#[test]
+fn a_seven_by_seven_whose_inner_centers_settle_after_the_middle_wings() {
+    let scramble: cubacle::puzzle::MoveSequence = "3F' 2L2 D2 2R' F 2L D' 2F2 3R2 B 3R2 3U2 R 2D' 2U 3B' 2U' 3R2 U' B2 3D 2U' 2F2 3R 3B 2D' 3B2 3L' 3B2 2R 3D 2B' 3R' U2 3R 3U2 3B' 3R2 3F2 R2 3F2 2U' 3B2 2D' 2F' 2U 3F' U' 2R 3U' F2 2R 2B 2R B2 2L' 3F D2 2L 2B2 2L F2 3L' 2D 3F2 2D2 2B' 3U2 2F 3U 2L U' 2B' U' R B' F' 2R2 3D' 2U2 3F' 3D2 2B' 3F2 D' 3R B2 3R' 2U2 F2 D2 3U' 3L2 3R 3B' 2U' 2R' D' 2U R2"
+        .parse()
+        .unwrap();
+    let cube = Facelets::solved(PuzzleKind::Cube7)
+        .apply(&scramble)
+        .unwrap();
+    let (result, _) = solver7().solve_tallied(&cube);
+    assert!(result.is_solved(), "{:?}", result.message);
+    check_stages(&cube, &result);
+    let moves = result.solution().unwrap();
+    assert!(cube.apply(moves).unwrap().is_solved());
+}
