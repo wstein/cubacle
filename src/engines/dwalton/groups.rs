@@ -17,7 +17,7 @@
 //! | `3x3 stage` | the 3x3x3 solver |
 
 use crate::puzzle::{
-    stage_ends, stage_parts, Facelets, Move, MoveSequence, PuzzleKind, SolveStage,
+    locate, stage_ends, stage_parts, Facelets, Move, MoveSequence, PuzzleKind, SolveStage,
 };
 
 /// The stages in order.
@@ -126,8 +126,10 @@ const REPAIR_WINDOW: usize = 4;
 /// engine's end is in place again, so the facts of the stage (centers and
 /// wings done, outer faces only in the 3x3 stage) hold at its end. Where
 /// normalizing reordered moves of different slices across the end, no position
-/// within the window has all of them; the one with the fewest out of place
-/// is taken (the first on a tie). The moves themselves are not changed.
+/// within the window has all of them; the one with the fewest inner centers
+/// out of place is taken, then the fewest centers, then the fewest stickers
+/// (the first on a tie): the centers are the facts the state-based phases
+/// check. The moves themselves are not changed.
 fn repair(
     start: &Facelets,
     raw: &[Move],
@@ -150,28 +152,49 @@ fn repair(
         let kept: Vec<usize> = (0..solved.stickers().len())
             .filter(|&i| want.stickers()[i] == solved.stickers()[i])
             .collect();
-        let missing = |state: &Facelets| {
-            kept.iter()
-                .filter(|&&i| state.stickers()[i] != solved.stickers()[i])
-                .count()
+        // the facts of a stage come first: the kept inner centers (not in the
+        // outermost ring of their face), then the kept centers, then every
+        // kept sticker
+        let n = start.kind().size();
+        let tier = |i: usize| -> u8 {
+            let (position, _) = locate(start.kind(), i);
+            if position.iter().filter(|c| c.abs() == n as i32 - 1).count() != 1 {
+                return 2;
+            }
+            let (row, col) = ((i % (n * n)) / n, i % n);
+            if row.min(col).min(n - 1 - row).min(n - 1 - col) >= 2 {
+                0
+            } else {
+                1
+            }
+        };
+        let tiers: Vec<u8> = kept.iter().map(|&i| tier(i)).collect();
+        let key = |state: &Facelets| {
+            let out = |max: u8| {
+                kept.iter()
+                    .zip(&tiers)
+                    .filter(|&(&i, &t)| t <= max && state.stickers()[i] != solved.stickers()[i])
+                    .count()
+            };
+            (out(0), out(1), out(2))
         };
         let mut at = stage.end;
         let mut cur = have;
-        // the earliest position in the window with the fewest of the kept
-        // stickers out of place; a merged run that reorders moves of
-        // different slices need not pass through the engine's state, and
-        // then the nearest state is the end
-        let mut best = (missing(&cur), at);
+        // the earliest position in the window with the fewest kept inner
+        // centers out of place, then the fewest kept centers, then the fewest
+        // kept stickers; a merged run that reorders moves of different slices need not pass through the
+        // engine's state, and then the nearest state is the end
+        let mut best = (key(&cur), at);
         // a merged run is a few moves long
-        while best.0 > 0 && at < fin.len().min(stage.end + REPAIR_WINDOW) {
+        while best.0 != (0, 0, 0) && at < fin.len().min(stage.end + REPAIR_WINDOW) {
             let Ok(next) = cur.apply(&MoveSequence::new(vec![fin[at]])) else {
                 break;
             };
             cur = next;
             at += 1;
-            let out = missing(&cur);
-            if out < best.0 {
-                best = (out, at);
+            let k = key(&cur);
+            if k < best.0 {
+                best = (k, at);
             }
         }
         stage.end = best.1;
