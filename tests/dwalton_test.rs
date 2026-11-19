@@ -205,3 +205,22 @@ fn a_seven_by_seven_whose_inner_centers_settle_after_the_middle_wings() {
     let moves = result.solution().unwrap();
     assert!(cube.apply(moves).unwrap().is_solved());
 }
+
+/// A random 7x7x7 scramble found by the review of the first fix
+/// (wstein/cubacle#80): the engine ends "middle wings paired" at move 127,
+/// the state-based phases end the inner centers at 130; the tie in the count
+/// of out-of-place stickers must not decide the end.
+#[test]
+fn a_seven_by_seven_where_a_tie_of_kept_stickers_hid_the_centers() {
+    let scramble: cubacle::puzzle::MoveSequence = "2U 2B R' B' L B2 F' 3L2 2F' U' 3F' 2L' 3B 3U2 F 2D' 2B2 L 2F 2D2 R' U' 3L' 3U2 2F 2R' 2B2 3L2 U R 2U2 3F' U 2L' 3F 3D2 2L 3D 3F' 2R2 2F 3R2 3U 2B2 R 2U' F' 2U2 L' R' 3F' D2 2F2 L2 U' 2F' 3L2 2D 2F' 3U 2L2 2R 3F' R F 3L 2R' 3B' 2D2 F' R' 2B2 F 3R' 3F 2L2 3B 3U' 2B 3R' 3B2 3R 3D' 2L' 3B2 2D2 L' 3R 2F' 2D 2B' D' 2L2 2R' F' U' 3L2 3R2 2D' 2F2"
+        .parse()
+        .unwrap();
+    let cube = Facelets::solved(PuzzleKind::Cube7)
+        .apply(&scramble)
+        .unwrap();
+    let (result, _) = solver7().solve_tallied(&cube);
+    assert!(result.is_solved(), "{:?}", result.message);
+    check_stages(&cube, &result);
+    let moves = result.solution().unwrap();
+    assert!(cube.apply(moves).unwrap().is_solved());
+}
