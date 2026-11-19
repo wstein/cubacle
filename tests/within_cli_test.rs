@@ -245,7 +245,11 @@ fn the_printing_options_work() {
         "sign",
     ]);
     assert_eq!(sign.code, 0, "{}", sign.err);
-    assert!(sign.err.contains("metrics: obtm 2"), "{}", sign.err);
+    assert!(
+        sign.err.contains("metrics: htm 2, obtm 2, qtm 2"),
+        "{}",
+        sign.err
+    );
     let ranges = cubacle(&[
         "solve",
         "-s",

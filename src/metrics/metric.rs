@@ -51,12 +51,19 @@ impl Metric {
     }
 
     /// The metrics shown by default for a cube: `htm qtm stm` up to the 3x3x3,
-    /// `obtm qtm stm btm` from the 4x4x4 (where blocks and inner layers matter).
+    /// `htm obtm qtm stm btm` from the 4x4x4 (where blocks and inner layers matter;
+    /// htm stays first, the name people know).
     pub fn headline(kind: PuzzleKind) -> &'static [Metric] {
         if kind.size() <= 3 {
             &[Metric::Htm, Metric::Qtm, Metric::Stm]
         } else {
-            &[Metric::Obtm, Metric::Qtm, Metric::Stm, Metric::Btm]
+            &[
+                Metric::Htm,
+                Metric::Obtm,
+                Metric::Qtm,
+                Metric::Stm,
+                Metric::Btm,
+            ]
         }
     }
 }

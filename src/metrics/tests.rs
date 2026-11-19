@@ -81,7 +81,7 @@ fn summary_names_the_headline_metrics() {
     assert_eq!(summary(&seq, PuzzleKind::Cube3), "htm 3, qtm 4, stm 4");
     assert_eq!(
         summary(&seq, PuzzleKind::Cube4),
-        "obtm 3, qtm 4, stm 4, btm 3"
+        "htm 3, obtm 3, qtm 4, stm 4, btm 3"
     );
 }
 
