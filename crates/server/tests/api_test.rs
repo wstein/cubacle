@@ -416,17 +416,25 @@ async fn orbit64_tokens_of_the_big_sizes_convert() {
     }
 }
 
+/// Multiple of the default request timeout that the big-cube solve test allows.
+const LOADED_RUNNER_BUDGET_FACTOR: u64 = 10;
+
 #[tokio::test]
 async fn a_6x6_and_a_7x7_are_solved_and_the_solutions_replay() {
     for (kind, name) in [(PuzzleKind::Cube6, "6x6x6"), (PuzzleKind::Cube7, "7x7x7")] {
         let cube = Facelets::solved(kind)
             .apply(&cubacle::generate::scramble(kind, 60))
             .unwrap();
-        // The default budget is the request timeout: scaled on a loaded machine.
+        // The service default (30 s) is meant for an idle machine: a 6x6 or 7x7 solve
+        // takes about 10 s there on four cores and over 35 s on a runner that shares
+        // its cores with other jobs. This test checks that the solve succeeds and
+        // replays, not how fast it is, so the budget is a multiple of the default
+        // (then scaled by CUBACLE_TEST_TIME_FACTOR). The production default stays.
         let config = Config {
             request_timeout: Duration::from_millis(time_factor::milliseconds(
                 u64::try_from(Config::default().request_timeout.as_millis())
-                    .expect("default timeout fits milliseconds"),
+                    .expect("default timeout fits milliseconds")
+                    * LOADED_RUNNER_BUDGET_FACTOR,
             )),
             ..Config::default()
         };
