@@ -109,6 +109,11 @@ fn find<'a>(
         return Ok(pattern);
     }
     let compact: String = name.split_whitespace().collect();
+    // Canonical-pose lengths are also move expressions, so only a framed
+    // token is a cube here. Anything else is a pattern name.
+    if !orbit64::looks_like_token(&compact) {
+        return Err(format!("no pattern named {name:?}"));
+    }
     let Ok(state) = orbit64::decode(&compact) else {
         return Err(format!("no pattern named {name:?}"));
     };

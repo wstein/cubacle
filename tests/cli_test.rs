@@ -516,12 +516,13 @@ fn an_impossible_token_is_an_error() {
     let (ok, _, error) = cubacle(&["convert", &"_".repeat(42)]);
     assert!(!ok);
     assert!(error.contains("out of range"), "{error}");
-    // 43 characters was the class-`00` 5x5x5 width. It is not a V2 token length,
-    // so it is refused as cube text rather than decoded.
+    // 43 characters was the class-`00` 5x5x5 width.
     let (ok, _, error) = cubacle(&["convert", &"A".repeat(43)]);
     assert!(!ok);
-    assert!(error.contains("not a cube"), "{error}");
-    assert!(error.contains("orbit64"), "{error}");
+    assert!(
+        error.contains("Orbit64 V1 is no longer supported"),
+        "{error}"
+    );
 }
 
 #[test]

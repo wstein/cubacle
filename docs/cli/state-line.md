@@ -19,7 +19,7 @@ target: orbit64v2 HYKC9_HL1gAA
 
 | `--state-format` | The line shows |
 | --- | --- |
-| `orbit64v2` (default) | The [Orbit64 V2](convert.md#orbit64-v2-tokens) token, color model, framed pose: the whole-cube orientation stays in the token, so it describes the state exactly. `cubacle` reads any V2 color token of a supported size back, framed or canonical, including a 5x5x5 token of 42 characters |
+| `orbit64v2` (default) | The [Orbit64 V2](convert.md#orbit64-v2-tokens) token, color model, framed pose: the whole-cube orientation stays in the token, so it describes the state exactly. `cubacle` reads a color framed token back (5, 12, 27, 42, 66 or 90 characters). A canonical-pose length (4, 11, 26, 65 or 89) is not taken as a token, so a move expression of that length stays a move expression |
 | `orbit64` | The same color framed V2 token as `orbit64v2` (`convert --to token`) |
 | `facelets` | Canonical URFDLB facelets |
 | `color` | W/R/G/Y/O/B sticker letters (`boy`, or the scheme given with `--scheme`; `photo` uses the scheme it detected in color input) |

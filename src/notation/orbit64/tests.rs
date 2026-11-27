@@ -159,6 +159,19 @@ fn the_alphabet_and_length_of_a_token_are_checked() {
 }
 
 #[test]
+fn a_picture_token_is_out_of_range() {
+    let cube = v2::Cube::solved(3, v2::Model::Picture).unwrap();
+    let entry = v2::entries()
+        .iter()
+        .find(|entry| {
+            entry.n == 3 && entry.model == v2::Model::Picture && entry.pose == v2::Pose::Framed
+        })
+        .unwrap();
+    let token = v2::encode(entry.id, &cube).unwrap();
+    assert_eq!(decode(&token), Err(Orbit64Error::OutOfRange));
+}
+
+#[test]
 fn tokens_above_the_state_count_are_out_of_range() {
     for size in 2..=7 {
         let token = "_".repeat(token_width(size).unwrap());
@@ -240,8 +253,10 @@ fn centers_with_the_wrong_colors_are_refused_on_even_cubes() {
 #[test]
 fn detection_uses_width_and_alphabet() {
     assert!(looks_like_token("A4ib8aejxj4Y"));
-    // 11 characters is the 3x3x3 canonical color entry, so it is a V2 token length.
-    assert!(looks_like_token("A4ib8aejxj4"));
+    // 11 characters is the 3x3x3 canonical color entry, and also a move
+    // expression (`R2 U2 F2 B2 L2 D`). The reader accepts framed lengths only.
+    assert!(!looks_like_token("A4ib8aejxj4"));
+    assert!(is_retired_v1_token(&"A".repeat(43)));
     assert!(!looks_like_token("A4ib8aejxj4+"));
     assert!(looks_like_token(&"A".repeat(90)));
     assert_eq!(
