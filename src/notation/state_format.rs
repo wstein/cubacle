@@ -1,9 +1,10 @@
 //! The state of a cube written in one of the formats a command can print.
 //!
 //! One formatter serves `convert` and the `state:` line of the other commands:
-//! the Orbit64 V2 token, the Orbit64 V1 token, URFDLB facelets and sticker
-//! colors. A state that a format cannot show is an `Err` with the reason; the
-//! caller decides whether that is an error or a note.
+//! the Orbit64 V2 color token, URFDLB facelets and sticker colors. `orbit64`
+//! and `orbit64v2` both write the color framed entry. A state that a format
+//! cannot show is an `Err` with the reason; the caller decides whether that
+//! is an error or a note.
 
 use std::fmt;
 use std::str::FromStr;
@@ -19,7 +20,8 @@ pub enum StateFormat {
     /// An Orbit64 V2 token, color model, framed pose (the whole-cube
     /// orientation is part of the token).
     Orbit64V2,
-    /// The Orbit64 V1 state token.
+    /// The color framed V2 token, under the historical `orbit64` name.
+    /// Same bytes as [`StateFormat::Orbit64V2`].
     Orbit64,
     /// Canonical URFDLB facelets.
     Facelets,

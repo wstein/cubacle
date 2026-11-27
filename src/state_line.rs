@@ -13,8 +13,8 @@ use cubacle::puzzle::Facelets;
 #[derive(Args, Clone, Copy)]
 pub(crate) struct StateOpts {
     /// Format of the state line on stderr (the cube the command starts from,
-    /// and the cube it aims at, where it has one): orbit64v2 (Orbit64 V2 token, color model,
-    /// framed pose), orbit64 (V1 token), facelets, color, or none for no line
+    /// and the cube it aims at, where it has one): orbit64v2 or orbit64 (Orbit64 V2
+    /// color framed token; both names write the same bytes), facelets, color, or none for no line
     #[arg(long, value_name = "FORMAT", default_value = "orbit64v2")]
     pub(crate) state_format: StateFormat,
 }

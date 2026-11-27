@@ -97,7 +97,7 @@ pub(crate) struct InputArgs {
 pub(crate) enum Output {
     /// Canonical URFDLB facelets
     Facelets,
-    /// An Orbit64 state token (V1)
+    /// The Orbit64 V2 color framed state token
     Token,
     /// An Orbit64 V2 state token, written with --model and --pose (default: color model, framed pose)
     #[value(name = "token2")]
