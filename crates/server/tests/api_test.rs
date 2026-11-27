@@ -488,7 +488,7 @@ async fn convert_answers_the_orbit64_token_of_every_size() {
     assert_eq!(status, StatusCode::BAD_REQUEST, "{body}");
     assert!(
         body.to_string()
-            .contains("Orbit64 V1 is no longer supported"),
+            .contains("Orbit64 V1 is no longer supported; convert with an older version"),
         "{body}"
     );
     for cube in ["F2 B2", "D L2 B", "R2 U2 F2 B2 L2 D"] {

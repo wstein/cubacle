@@ -520,7 +520,7 @@ fn an_impossible_token_is_an_error() {
     let (ok, _, error) = cubacle(&["convert", &"A".repeat(43)]);
     assert!(!ok);
     assert!(
-        error.contains("Orbit64 V1 is no longer supported"),
+        error.contains("Orbit64 V1 is no longer supported; convert with an older version"),
         "{error}"
     );
 }
