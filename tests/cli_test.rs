@@ -526,6 +526,27 @@ fn an_impossible_token_is_an_error() {
 }
 
 #[test]
+fn a_42_character_move_list_stays_moves() {
+    let half_turns = format!("{}R2 U2 F2", "R2 U2 F2 B2 L2 D2 ".repeat(3));
+    let belt = "U R F D L B ".repeat(7);
+    let quarters = "R U ".repeat(21);
+    for list in [half_turns.as_str(), belt.trim_end(), quarters.trim_end()] {
+        let compact: String = list.split_whitespace().collect();
+        assert_eq!(compact.len(), 42, "{list}");
+        let (ok, out, err) = cubacle(&["convert", "--size", "3", list]);
+        assert!(ok, "{list}: {err}");
+        assert_eq!(
+            out.chars().filter(|c| !c.is_whitespace()).count(),
+            54,
+            "{list} was read as a 5x5x5: {out}"
+        );
+        let (same, via_scramble, scramble_err) = cubacle(&["convert", "--size", "3", "-s", list]);
+        assert!(same, "{list}: {scramble_err}");
+        assert_eq!(out, via_scramble, "{list}");
+    }
+}
+
+#[test]
 fn moves_icons_draw_each_move_on_its_own_start_cube_unless_cumulative() {
     let (_, both, _) = cubacle(&["moves", "R", "U", "--icons", "--format", "text"]);
     let (_, second, _) = cubacle(&["moves", "U", "--icons", "--format", "text"]);
