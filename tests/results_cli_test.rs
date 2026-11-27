@@ -33,7 +33,7 @@ struct Sample {
     input: Vec<&'static str>,
 }
 
-const FIVE: &str = "Ak_VhCkouy6cxCwk0oBN17-MS2FVAHOpnrxMJFyj0yA";
+const FIVE: &str = "nfb3sIV3UzMJrpAzyyp53BTN5MDza09nzxMJFyj0yA";
 
 fn samples() -> Vec<Sample> {
     vec![

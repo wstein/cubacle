@@ -151,7 +151,7 @@ fn cubacle_verbose(size: &str) -> (bool, String) {
 /// minimum finds 66 without a limit, for any thread count.
 #[test]
 fn a_high_probe_minimum_finds_the_short_answer_of_a_5x5x5() {
-    let token = "Am9suG17g2aJzonSCHWNZHX9CPO6oqgWCGgVoOTI_bQ";
+    let token = "pdzEwZopYS5MRfuBSHpdCbD9SVpb-GqCOgVoOTI_bQ";
     let cube = cubacle::notation::parse_cube(token, None).expect("a token");
     let mut answers = Vec::new();
     for threads in ["1", "4"] {

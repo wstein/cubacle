@@ -3,7 +3,7 @@ use cubacle::notation::parse_cube;
 use cubacle::puzzle::{MoveSequence, PuzzleKind};
 use std::process::{Command, Output};
 
-const CUBE: &str = "Ak_VhCkouy6cxCwk0oBN17-MS2FVAHOpnrxMJFyj0yA";
+const CUBE: &str = "nfb3sIV3UzMJrpAzyyp53BTN5MDza09nzxMJFyj0yA";
 
 fn run(args: &[&str]) -> Output {
     Command::new(env!("CARGO_BIN_EXE_cubacle"))
