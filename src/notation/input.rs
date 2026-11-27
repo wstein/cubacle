@@ -84,7 +84,12 @@ pub fn parse_cube(text: &str, scheme: Option<ColorScheme>) -> Result<Facelets, I
     if orbit64::is_retired_v1_token(&compact) {
         return Err(InputError::RetiredV1);
     }
-    if orbit64::looks_like_token(&compact) {
+    // A framed 5×5×5 token is 42 characters, and so is a move list of 21
+    // turns once its spaces are removed (`R U` twenty-one times, `U R F D L B`
+    // seven times, twenty-one half turns). That text stays a move list.
+    if orbit64::looks_like_token(&compact)
+        && !(compact.chars().count() == 42 && super::parse_moves(text).is_ok())
+    {
         return Ok(orbit64::decode(&compact)?);
     }
     // Face letters and color letters share R and B; whichever alphabet covers
@@ -247,6 +252,15 @@ mod tests {
         assert!(parse_cube("AAAAA", None).unwrap().is_solved());
         // Canonical-pose lengths stay out of the token reader.
         for text in ["AAAA", "F2 B2", "D L2 B", "R2 U2 F2 B2 L2 D"] {
+            assert!(parse_cube(text, None).is_err(), "{text}");
+        }
+        // 42 characters is a framed 5×5×5 token and also these move lists.
+        let half_turns = format!("{}R2 U2 F2", "R2 U2 F2 B2 L2 D2 ".repeat(3));
+        let belt = "U R F D L B ".repeat(7);
+        let quarters = "R U ".repeat(21);
+        for text in [half_turns.as_str(), belt.trim_end(), quarters.trim_end()] {
+            let compact: String = text.split_whitespace().collect();
+            assert_eq!(compact.len(), 42, "{text}");
             assert!(parse_cube(text, None).is_err(), "{text}");
         }
         assert_eq!(

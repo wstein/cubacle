@@ -495,6 +495,15 @@ async fn convert_answers_the_orbit64_token_of_every_size() {
         let (status, _, body) = call(app(), post_json("/v1/convert", json!({"cube": cube}))).await;
         assert_eq!(status, StatusCode::BAD_REQUEST, "{cube}: {body}");
     }
+    // 42 characters is also a move list. The cube field must not read it as a 5×5×5.
+    let half_turns = format!("{}R2 U2 F2", "R2 U2 F2 B2 L2 D2 ".repeat(3));
+    let belt = "U R F D L B ".repeat(7);
+    let quarters = "R U ".repeat(21);
+    for cube in [half_turns.as_str(), belt.trim_end(), quarters.trim_end()] {
+        let (status, _, body) = call(app(), post_json("/v1/convert", json!({"cube": cube}))).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST, "{cube}: {body}");
+        assert_ne!(body["kind"], "5x5x5", "{cube}: {body}");
+    }
 }
 
 #[tokio::test]

@@ -1,6 +1,6 @@
 //! `patterns show`: one pattern with its generators.
 
-use cubacle::notation::orbit64;
+use cubacle::notation::{orbit64, parse_moves};
 use cubacle::patterns::{self, Generator, Pattern, Span};
 use cubacle::puzzle::PuzzleKind;
 
@@ -110,8 +110,10 @@ fn find<'a>(
     }
     let compact: String = name.split_whitespace().collect();
     // Canonical-pose lengths are also move expressions, so only a framed
-    // token is a cube here. Anything else is a pattern name.
-    if !orbit64::looks_like_token(&compact) {
+    // token is a cube here. A framed 5×5×5 token is 42 characters, and so is
+    // a compact move list; that text stays a pattern name.
+    let move_list = compact.chars().count() == 42 && parse_moves(name).is_ok();
+    if move_list || !orbit64::looks_like_token(&compact) {
         return Err(format!("no pattern named {name:?}"));
     }
     let Ok(state) = orbit64::decode(&compact) else {

@@ -116,6 +116,13 @@ fn show_reads_a_token_as_the_library_pattern_it_is() {
     let (ok, _, err) = cubacle(&["patterns", "show", "ABCD"]);
     assert!(!ok);
     assert!(err.contains("no pattern named"), "{err}");
+    // 42 characters is a framed 5×5×5 token and also this move list.
+    let quarters = "R U ".repeat(21);
+    let compact: String = quarters.split_whitespace().collect();
+    assert_eq!(compact.len(), 42);
+    let (ok, _, err) = cubacle(&["patterns", "show", quarters.trim_end()]);
+    assert!(!ok);
+    assert!(err.contains("no pattern named"), "{err}");
 }
 
 #[test]
