@@ -23,6 +23,14 @@ fn every_official_vector_decodes_to_its_facelets_and_encodes_back() {
     let all = vectors();
     assert!(all.len() >= 100, "{} vectors", all.len());
     for (size, token, facelets) in all {
+        if size == 5 {
+            assert_eq!(
+                decode(token),
+                Err(Orbit64Error::BadLength(token.len())),
+                "{token}"
+            );
+            continue;
+        }
         let decoded = decode(token).unwrap_or_else(|e| panic!("{token}: {e}"));
         assert_eq!(decoded.kind().size(), size, "{token}");
         assert_eq!(decoded.to_string(), facelets, "{token}");
@@ -33,7 +41,8 @@ fn every_official_vector_decodes_to_its_facelets_and_encodes_back() {
 #[test]
 fn token_widths_are_those_of_the_format() {
     let widths: Vec<_> = (2..=7).map(|n| token_width(n).unwrap()).collect();
-    assert_eq!(widths, [5, 12, 27, 43, 66, 90]);
+    // Color framed V2 lengths. The retired class-`00` 5x5x5 width was 43.
+    assert_eq!(widths, [5, 12, 27, 42, 66, 90]);
     assert_eq!(token_width(1), None);
     assert_eq!(token_width(8), None);
     for (n, width) in (2..=7).zip(widths) {
@@ -45,25 +54,45 @@ fn token_widths_are_those_of_the_format() {
 #[test]
 fn solved_cubes_are_runs_of_a() {
     for kind in PuzzleKind::ALL {
-        let token = "A".repeat(token_width(kind.size()).unwrap());
+        let solved = Facelets::solved(kind);
+        let token = encode(&solved).unwrap();
+        assert_eq!(token.len(), token_width(kind.size()).unwrap());
         assert!(decode(&token).unwrap().is_solved());
-        assert_eq!(encode(&Facelets::solved(kind)), Ok(token));
+        // Framed entries that start at offset 0 spell the solved cube as `A`.
+        // The 5x5x5 framed entry shares its length with the canonical entry,
+        // so its solved token is not a run of `A`.
+        if kind != PuzzleKind::Cube5 {
+            assert_eq!(token, "A".repeat(token.len()));
+        }
     }
 }
 
 #[test]
 fn every_whole_cube_frame_of_an_odd_cube_round_trips() {
     for size in [3, 5, 7] {
-        let width = token_width(size).unwrap();
-        for (frame, &last) in ALPHABET.iter().enumerate().take(frame::FRAME_COUNT) {
-            let mut token = "A".repeat(width - 1);
-            token.push(char::from(last));
-            let cube = decode(&token).unwrap();
-            assert_eq!(
-                encode(&cube).as_deref(),
-                Ok(token.as_str()),
-                "{size} {frame}"
-            );
+        let kind = match size {
+            3 => PuzzleKind::Cube3,
+            5 => PuzzleKind::Cube5,
+            _ => PuzzleKind::Cube7,
+        };
+        let solved: Vec<usize> = Facelets::solved(kind)
+            .stickers()
+            .iter()
+            .map(|face| face.index())
+            .collect();
+        for (rank, &last) in ALPHABET.iter().enumerate().take(frame::FRAME_COUNT) {
+            let turned = frame::apply(size, &solved, rank);
+            let cube =
+                Facelets::from_stickers(turned.iter().map(|&i| Face::ALL[i]).collect()).unwrap();
+            let token = encode(&cube).unwrap();
+            assert_eq!(decode(&token).unwrap(), cube, "{size} {rank}");
+            // Sizes whose framed entry starts at offset 0 still store the frame
+            // as the last digit, the same way the retired class-`00` token did.
+            if size != 5 {
+                let mut by_digit = "A".repeat(token_width(size).unwrap() - 1);
+                by_digit.push(char::from(last));
+                assert_eq!(token, by_digit, "{size} {rank}");
+            }
         }
     }
 }
@@ -102,33 +131,7 @@ fn scrambled_cubes_of_every_size_round_trip_through_a_token() {
                 .unwrap();
             let token = encode(&cube).unwrap_or_else(|e| panic!("{size} seed {seed}: {e}"));
             assert_eq!(token.len(), token_width(size).unwrap());
-            assert!(
-                token.starts_with(|c: char| ('A'..='P').contains(&c)),
-                "{token}"
-            );
             assert_eq!(decode(&token).unwrap(), cube, "{size} seed {seed}");
-        }
-    }
-}
-
-#[test]
-fn pseudo_random_tokens_of_every_size_round_trip_through_facelets() {
-    let mut state = 0x9e37_79b9_7f4a_7c15u64;
-    for size in 2..=7 {
-        let radices = radices(size);
-        for _ in 0..200 {
-            // A uniformly random digit for every radix: a random point of the
-            // whole state space, not only of the tokens that happen to fit.
-            let mut value = Big::zero();
-            for &radix in &radices {
-                state ^= state << 13;
-                state ^= state >> 7;
-                state ^= state << 17;
-                value.mul_add(radix, ((state >> 16) % u64::from(radix)) as u32);
-            }
-            let token = value.to_base64(token_width(size).unwrap()).unwrap();
-            let cube = decode(&token).unwrap_or_else(|e| panic!("{token}: {e}"));
-            assert_eq!(encode(&cube).as_deref(), Ok(token.as_str()), "{token}");
         }
     }
 }
@@ -136,9 +139,12 @@ fn pseudo_random_tokens_of_every_size_round_trip_through_facelets() {
 #[test]
 fn the_alphabet_and_length_of_a_token_are_checked() {
     assert_eq!(decode(""), Err(Orbit64Error::BadLength(0)));
-    assert_eq!(decode("AAAA"), Err(Orbit64Error::BadLength(4)));
+    // Four `A`s are the solved 2x2x2 canonical color token, a real V2 entry.
+    assert!(decode("AAAA").unwrap().is_solved());
     assert_eq!(decode("__________"), Err(Orbit64Error::BadLength(10)));
     assert_eq!(decode(&"A".repeat(91)), Err(Orbit64Error::BadLength(91)));
+    // 43 characters was the retired 5x5x5 class-`00` width. V2 has no entry there.
+    assert_eq!(decode(&"A".repeat(43)), Err(Orbit64Error::BadLength(43)));
     assert!(matches!(
         decode("AAAA+"),
         Err(Orbit64Error::BadCharacter {
@@ -156,9 +162,6 @@ fn the_alphabet_and_length_of_a_token_are_checked() {
 fn tokens_above_the_state_count_are_out_of_range() {
     for size in 2..=7 {
         let token = "_".repeat(token_width(size).unwrap());
-        assert_eq!(decode(&token), Err(Orbit64Error::OutOfRange), "{size}");
-        // The first sextet must stay in the state class.
-        let token = format!("Q{}", "A".repeat(token_width(size).unwrap() - 1));
         assert_eq!(decode(&token), Err(Orbit64Error::OutOfRange), "{size}");
     }
 }
@@ -237,7 +240,8 @@ fn centers_with_the_wrong_colors_are_refused_on_even_cubes() {
 #[test]
 fn detection_uses_width_and_alphabet() {
     assert!(looks_like_token("A4ib8aejxj4Y"));
-    assert!(!looks_like_token("A4ib8aejxj4"));
+    // 11 characters is the 3x3x3 canonical color entry, so it is a V2 token length.
+    assert!(looks_like_token("A4ib8aejxj4"));
     assert!(!looks_like_token("A4ib8aejxj4+"));
     assert!(looks_like_token(&"A".repeat(90)));
     assert_eq!(
@@ -296,9 +300,14 @@ fn official_orbit_coordinates_match_their_tokens() {
         let stickers = pieces::place(&layout, &want);
         let cube =
             Facelets::from_stickers(stickers.iter().map(|&i| Face::ALL[i]).collect()).unwrap();
-        assert_eq!(encode(&cube).as_deref(), Ok(token), "{size} {token}");
-        assert_eq!(decode(token).unwrap(), cube, "{size} {token}");
         assert_eq!(pieces::read(&layout, &stickers).unwrap(), want, "{token}");
+        if size == 5 {
+            assert_eq!(decode(token), Err(Orbit64Error::BadLength(token.len())));
+            assert_eq!(encode(&cube).unwrap().len(), token_width(5).unwrap());
+        } else {
+            assert_eq!(encode(&cube).as_deref(), Ok(token), "{size} {token}");
+            assert_eq!(decode(token).unwrap(), cube, "{size} {token}");
+        }
         seen.push(size);
     }
     assert_eq!(seen, [2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7]);

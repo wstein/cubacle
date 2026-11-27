@@ -1,8 +1,11 @@
 //! Orbit64 state tokens: a canonical base64url encoding of a cube state.
 //!
-//! The format is defined by <https://github.com/wstein/flix-orbit64> (`FORMAT.md`).
-//! A token's length identifies the cube size; the state is a mixed-radix number
-//! over the cube's orbits, followed on odd cubes by one of 24 whole-cube frames.
+//! State tokens are Orbit64 V2, specified by `FORMAT-V2.md` in
+//! <https://github.com/wstein/flix-orbit64>. This module is the color-cube
+//! facelet bridge: it writes the color framed entry and reads any color entry
+//! Cubacle can show (sizes 2 through 7). Move sequences and structured
+//! algorithms stay in `FORMAT.md` (classes `01` and `10`). The algorithm DAG
+//! envelope is a separate unaccepted draft and is not implemented here.
 //!
 //! Every size from the 2x2x2 to the 7x7x7 is decoded and encoded by the same
 //! code; the orbit structure and the slot tables are derived from the size
@@ -11,16 +14,19 @@
 //! DRB) and midges (UR UF UL UB DR DF DL DB FR FL BL BR), wings and centers by
 //! facelet index. A token carries ordinals only, so it cannot prove its
 //! producer used the same numbering; the reference vectors of the format are
-//! the evidence it matches: facelet vectors for the 2x2x2 to 5x5x5, and for
-//! every size orbit-coordinate vectors (two scrambled cubes each for the 6x6x6
-//! and 7x7x7).
+//! the evidence it matches: facelet vectors for the 2x2x2, 3x3x3, 4x4x4, 6x6x6
+//! and 7x7x7. A 5x5x5 class-`00` token is 43 characters and is rejected; the
+//! color framed 5x5x5 entry is 42.
 //!
 //! Origin: Rust re-implementation of flix-orbit64 (Apache-2.0, Werner Stein).
 
 use std::fmt;
 
 use super::impossible::Impossible;
-use crate::puzzle::{Face, Facelets, FaceletsError};
+use crate::puzzle::{Facelets, FaceletsError};
+
+#[cfg(test)]
+use crate::puzzle::Face;
 
 mod big;
 mod coords;
@@ -29,9 +35,10 @@ mod layout;
 mod pieces;
 pub mod v2;
 
-use big::Big;
-use coords::{radices, Coords};
 use layout::Layout;
+
+#[cfg(test)]
+use coords::Coords;
 
 pub(crate) use layout::{CORNER_COLORS, CORNER_FACELETS};
 
@@ -64,7 +71,7 @@ impl fmt::Display for Orbit64Error {
             ),
             Orbit64Error::BadLength(len) => write!(
                 f,
-                "{len} characters is not an orbit64 state width (5, 12, 27, 43, 66 or 90)"
+                "{len} characters is not an Orbit64 V2 color-token length this solver reads"
             ),
             Orbit64Error::OutOfRange => write!(f, "orbit64 token is out of range for its cube"),
             Orbit64Error::NotACube(error) => write!(f, "orbit64 token is not a cube: {error}"),
@@ -92,77 +99,97 @@ pub(crate) fn fixed_centers(n: usize) -> Vec<usize> {
     }
 }
 
-/// The number of characters of a state token of the `size`x`size`x`size`.
-///
-/// It is the smallest width for which every state fits while the first
-/// character stays in the state class (`A` to `P`, a leading `00` sextet).
-pub fn token_width(size: usize) -> Option<usize> {
+/// The color framed V2 entry for a cube size Cubacle can show, if there is one.
+fn framed_color(size: usize) -> Option<&'static v2::Entry> {
     if !SIZES.contains(&size) {
         return None;
     }
-    let mut states = Big::one();
-    for radix in radices(size) {
-        states.mul_add(radix, 0);
-    }
-    (1..).find(|&width| states.at_most_power_of_two(4 + 6 * (width - 1)))
+    v2::entries().iter().find(|entry| {
+        entry.n == size && entry.model == v2::Model::Color && entry.pose == v2::Pose::Framed
+    })
 }
 
-/// The cube size whose state tokens have this width.
-pub fn size_of_width(width: usize) -> Option<usize> {
-    SIZES
-        .into_iter()
-        .find(|&size| token_width(size) == Some(width))
+/// Whether a color V2 entry of a supported size has this token length.
+fn color_length(width: usize) -> bool {
+    v2::entries().iter().any(|entry| {
+        entry.length == width && entry.model == v2::Model::Color && SIZES.contains(&entry.n)
+    })
 }
 
-/// Whether the text could be an Orbit64 state token: a state width, base64url only.
-pub fn looks_like_token(text: &str) -> bool {
-    size_of_width(text.chars().count()).is_some()
-        && text.bytes().all(|byte| ALPHABET.contains(&byte))
-}
-
-/// Decodes a state token into the facelets it shows, whole-cube frame applied.
+/// The number of characters of the color framed state token of the
+/// `size`x`size`x`size`.
 ///
-/// Never panics: a token that is too long, too short, outside the alphabet or
-/// above the number of states of its cube is an error.
-pub fn decode(token: &str) -> Result<Facelets, Orbit64Error> {
-    let size = size_of_width(token.chars().count())
-        .ok_or_else(|| Orbit64Error::BadLength(token.chars().count()))?;
-    let mut value = Big::from_base64(token)
-        .map_err(|(position, found)| Orbit64Error::BadCharacter { position, found })?;
+/// This is the token [`encode`] writes. V2 has no class bits, so the length is
+/// the registry entry's length, not the old class-`00` width.
+pub fn token_width(size: usize) -> Option<usize> {
+    framed_color(size).map(|entry| entry.length)
+}
 
-    let mut digits: Vec<u32> = radices(size)
-        .iter()
-        .rev()
-        .map(|&radix| value.div_rem(radix))
-        .collect();
-    if !value.is_zero() {
+/// The cube size whose color framed state tokens have this width.
+pub fn size_of_width(width: usize) -> Option<usize> {
+    let mut found = v2::entries().iter().filter_map(|entry| {
+        (entry.length == width
+            && entry.model == v2::Model::Color
+            && entry.pose == v2::Pose::Framed
+            && SIZES.contains(&entry.n))
+        .then_some(entry.n)
+    });
+    let size = found.next()?;
+    found.next().is_none().then_some(size)
+}
+
+/// Whether the text could be an Orbit64 V2 color state token: a color entry
+/// length for a supported size, and base64url characters only.
+pub fn looks_like_token(text: &str) -> bool {
+    color_length(text.chars().count()) && text.bytes().all(|byte| ALPHABET.contains(&byte))
+}
+
+fn from_v2(error: v2::V2Error) -> Orbit64Error {
+    match error {
+        v2::V2Error::BadCharacter { position, found } => {
+            Orbit64Error::BadCharacter { position, found }
+        }
+        v2::V2Error::UnknownToken | v2::V2Error::UnknownEntry(_) => Orbit64Error::OutOfRange,
+        v2::V2Error::Invalid(_) | v2::V2Error::Facelets(_) | v2::V2Error::Unsupported(_) => {
+            Orbit64Error::OutOfRange
+        }
+    }
+}
+
+/// Decodes a V2 color state token into the facelets it shows.
+///
+/// Never panics: a token that is too long, too short, outside the alphabet,
+/// outside every color entry, or not a color cube of a supported size is an
+/// error. A picture token is out of range here; picture states are read
+/// through [`v2`].
+pub fn decode(token: &str) -> Result<Facelets, Orbit64Error> {
+    let len = token.chars().count();
+    let (entry, text) = match v2::facelets::decode(token) {
+        Ok(pair) => pair,
+        Err(v2::V2Error::BadCharacter { position, found }) => {
+            return Err(Orbit64Error::BadCharacter { position, found });
+        }
+        Err(v2::V2Error::UnknownToken) if !color_length(len) => {
+            return Err(Orbit64Error::BadLength(len));
+        }
+        Err(error) => return Err(from_v2(error)),
+    };
+    if entry.model != v2::Model::Color || !SIZES.contains(&entry.n) {
         return Err(Orbit64Error::OutOfRange);
     }
-    digits.reverse();
-
-    let layout = Layout::new(size);
-    let odd = layout.has_fixed_centers();
-    let frame = if odd {
-        digits.pop().unwrap_or(0) as usize
-    } else {
-        0
-    };
-    let coords = Coords::from_digits(size, &digits);
-    let mut stickers = pieces::place(&layout, &coords);
-    if odd {
-        stickers = frame::apply(size, &stickers, frame);
-    }
-    let faces = stickers.iter().map(|&index| Face::ALL[index]).collect();
-    Facelets::from_stickers(faces).map_err(Orbit64Error::NotACube)
+    let compact: String = text.chars().filter(|c| *c != ' ').collect();
+    Facelets::parse(&compact).map_err(Orbit64Error::NotACube)
 }
 
-/// Encodes facelets as a state token; the inverse of [`decode`].
+/// Encodes facelets as the color framed V2 state token; the inverse of [`decode`]
+/// for tokens this function writes.
 ///
 /// An odd cube's fixed centers select the stored frame. Facelets whose pieces
-/// are not those of a cube (a stickers swapped in place, a twisted corner,
+/// are not those of a cube (stickers swapped in place, a twisted corner,
 /// corner and edge parity that disagree, moved fixed centers that are not a
 /// rotation) are an error, not a token. An even cube has no fixed centers and
-/// is encoded as it stands.
+/// is encoded as it stands. The token is the V2 color framed entry, not the
+/// retired class-`00` ranking. A 5×5×5 token is 42 characters.
 pub fn encode(facelets: &Facelets) -> Result<String, Orbit64Error> {
     let size = facelets.kind().size();
     let layout = Layout::new(size);
@@ -172,34 +199,25 @@ pub fn encode(facelets: &Facelets) -> Result<String, Orbit64Error> {
         .map(|face| face.index())
         .collect();
 
-    let mut frame = None;
     if layout.has_fixed_centers() {
-        let found = (0..frame::FRAME_COUNT).find_map(|rank| {
+        let upright = (0..frame::FRAME_COUNT).find_map(|rank| {
             let upright = frame::unapply(size, &stickers, rank);
             let centered = layout
                 .fixed
                 .iter()
                 .enumerate()
                 .all(|(face, &at)| upright[at] == face);
-            centered.then_some((rank, upright))
+            centered.then_some(upright)
         });
-        let (rank, upright) = found.ok_or(Orbit64Error::Impossible(Impossible::FixedCenters))?;
-        frame = Some(rank);
-        stickers = upright;
+        stickers = upright.ok_or(Orbit64Error::Impossible(Impossible::FixedCenters))?;
     }
 
     let coords = pieces::read(&layout, &stickers).map_err(Orbit64Error::Impossible)?;
-    let mut digits = coords.digits(size).map_err(Orbit64Error::Impossible)?;
-    digits.extend(frame.map(|rank| rank as u32));
-
-    let radices = radices(size);
-    debug_assert_eq!(digits.len(), radices.len());
-    let mut value = Big::zero();
-    for (digit, radix) in digits.iter().zip(&radices) {
-        value.mul_add(*radix, *digit);
-    }
-    let width = token_width(size).unwrap_or(0);
-    value.to_base64(width).ok_or(Orbit64Error::OutOfRange)
+    // `digits` is the reachability check (twist, flip, parity, distinct pieces).
+    // The token itself is the V2 color framed entry, not this ranking.
+    coords.digits(size).map_err(Orbit64Error::Impossible)?;
+    let entry = framed_color(size).ok_or(Orbit64Error::BadLength(size))?;
+    v2::facelets::encode(entry.id, &facelets.to_string()).map_err(from_v2)
 }
 
 #[cfg(test)]

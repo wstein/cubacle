@@ -115,6 +115,7 @@ impl Big {
     }
 
     /// `self - 1`; a zero stays zero.
+    #[cfg(test)]
     fn decrement(&mut self) {
         for limb in &mut self.limbs {
             if *limb == 0 {
@@ -129,6 +130,7 @@ impl Big {
         }
     }
 
+    #[cfg(test)]
     fn bit_len(&self) -> usize {
         match self.limbs.last() {
             None => 0,
@@ -137,6 +139,7 @@ impl Big {
     }
 
     /// Whether `self <= 2^bits`.
+    #[cfg(test)]
     pub(super) fn at_most_power_of_two(&self, bits: usize) -> bool {
         let mut below = self.clone();
         below.decrement();
