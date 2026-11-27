@@ -40,7 +40,9 @@ impl fmt::Display for InputError {
                 write!(f, "the centers do not match the color scheme {scheme}")
             }
             InputError::Orbit64(error) => error.fmt(f),
-            InputError::RetiredV1 => f.write_str("Orbit64 V1 is no longer supported"),
+            InputError::RetiredV1 => f.write_str(
+                "Orbit64 V1 is no longer supported; convert with an older version",
+            ),
             InputError::Target(reason) => f.write_str(reason),
         }
     }
@@ -265,7 +267,7 @@ mod tests {
         }
         assert_eq!(
             parse_cube(&"A".repeat(43), None).unwrap_err().to_string(),
-            "Orbit64 V1 is no longer supported"
+            "Orbit64 V1 is no longer supported; convert with an older version"
         );
     }
 
