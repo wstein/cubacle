@@ -47,11 +47,11 @@ Tokens exist for every size from 2x2x2 to 7x7x7. `solve` and `convert` read all 
 | 2x2x2 | 5 | 20 official examples |
 | 3x3x3 | 12 | 20 official examples, the format's compatibility vectors |
 | 4x4x4 | 27 | 20 official examples |
-| 5x5x5 | 43 | 20 official examples |
+| 5x5x5 | 42 | color framed V2; a 43-character class-`00` token is rejected |
 | 6x6x6 | 66 | the official solved cube, and round trips only |
 | 7x7x7 | 90 | the official solved cube, and round trips only |
 
-"Round trips only" means the 6x6x6 and 7x7x7 slot numbering follows the rules of the format but has no official scrambled vector to compare with: tests scramble cubes with outer, wide and inner moves, and decode random points of the state space, and each time `encode` and `decode` agree and the token has the length above. A token made by another program for these sizes may use a different slot numbering; see the format's own caveat. A token with a wrong length, a character outside the base64url alphabet, a number above the state count, or (when encoding) pieces that no cube has, is refused with a one-sentence error.
+"Round trips only" means the 6x6x6 and 7x7x7 slot numbering follows the rules of the format but has no official scrambled vector to compare with: tests scramble cubes with outer, wide and inner moves, and each time `encode` and `decode` agree and the token has the length above. A token made by another program for these sizes may use a different slot numbering; see the format's own caveat. A token with a wrong length, a character outside the base64url alphabet, a number above the state count, or (when encoding) pieces that no cube has, is refused with a one-sentence error. State tokens are Orbit64 V2 (`FORMAT-V2.md`). Move sequences and structured algorithms stay on the existing notation; the algorithm DAG draft is not read.
 
 ### Facelets (URFDLB)
 

@@ -15,7 +15,8 @@ core, `nice`); every command below was run.
 
 The reference implementation of the canonical form is flix-orbit64 (tag v0.9.0, Apache-2.0,
 `FORMAT.md`, sections "Canonical form" and "Facelet geometry"); the rule text lives
-there and this Rust code follows it. This paper explains the rule and records the
+there and this Rust code follows it. The token it writes is the Orbit64 V2 color
+framed entry (`FORMAT-V2.md`). This paper explains the rule and records the
 Rust measurements. The shared conformance suite is `tests/canonical_vectors.txt`
 (17 token vectors, 76 facelet vectors and the pinned failures of the reference),
 checked by `canonical::tests::every_reference_vector_gives_the_reference_token`
@@ -25,9 +26,11 @@ and `every_reference_failure_is_an_error`; Rust and the reference agree on all o
 
 A pattern is a color state: pieces of one color are interchangeable. Its
 identifier must therefore be the same for a cube, its rotated and mirrored image,
-and a recolored copy. The identifier chosen is an Orbit64 state token (widths 5,
-12, 27, 43, 66 and 90 characters for the 2x2x2 to the 7x7x7), because it is exact,
-short, ordered and convertible back to a cube.
+and a recolored copy. The identifier chosen is an Orbit64 V2 color framed state
+token (widths 5, 12, 27, 42, 66 and 90 characters for the 2x2x2 to the 7x7x7),
+because it is exact, short, ordered and convertible back to a cube. Sizes other
+than 5x5x5 still match the retired class-`00` strings. The 5x5x5 framed entry
+shares its length with the canonical entry, so its solved token is not a run of `A`.
 
 `cubacle::canonical::canonical(&cube) -> Result<Token, CanonError>` returns it; `canonical_text` reads an Orbit64 token,
 facelets (`URFDLB`) or colors (`WRGYOB`); `canonical_moves` takes a move
@@ -128,7 +131,7 @@ size):
 | 2x2x2 | 5 | 6.6 us |
 | 3x3x3 | 12 | 11.9 us |
 | 4x4x4 | 27 | 21 us |
-| 5x5x5 | 43 | 29 us |
+| 5x5x5 | 42 | 29 us |
 | 6x6x6 | 66 | 41 us |
 | 7x7x7 | 90 | 53 us |
 
