@@ -80,27 +80,24 @@ fn the_token_of_a_cube_in_another_orientation_keeps_the_orientation() {
 }
 
 #[test]
-fn the_framed_token_of_the_sizes_with_a_shared_width_is_the_v1_token() {
+fn the_state_token_is_the_framed_color_v2_token() {
     for kind in PuzzleKind::ALL {
-        if kind == PuzzleKind::Cube5 {
-            continue;
-        }
         for _ in 0..3 {
             let cube = random_state(kind).unwrap();
-            let v1 = orbit64::encode(&cube).unwrap();
-            assert_eq!(token_v2(&cube, Model::Color, Pose::Framed).unwrap(), v1);
+            let token = orbit64::encode(&cube).unwrap();
+            assert_eq!(token_v2(&cube, Model::Color, Pose::Framed).unwrap(), token);
         }
     }
 }
 
 #[test]
-fn the_5x5x5_framed_token_differs_from_v1_and_reads_back() {
+fn the_5x5x5_framed_token_is_42_characters_and_reads_back() {
     let cube = random_state(PuzzleKind::Cube5).unwrap();
-    let v1 = orbit64::encode(&cube).unwrap();
-    let v2_token = token_v2(&cube, Model::Color, Pose::Framed).unwrap();
-    assert_ne!(v1, v2_token);
-    assert_eq!(v2_token.len(), 42);
-    assert_eq!(decoded(&v2_token), face_fields(5, &cube));
+    let token = orbit64::encode(&cube).unwrap();
+    assert_eq!(token, token_v2(&cube, Model::Color, Pose::Framed).unwrap());
+    assert_eq!(token.len(), 42);
+    assert!(orbit64::decode(&"A".repeat(43)).is_err());
+    assert_eq!(decoded(&token), face_fields(5, &cube));
 }
 
 #[test]

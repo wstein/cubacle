@@ -55,9 +55,16 @@ fn samples(kind: PuzzleKind) -> usize {
 fn the_solved_cube_is_the_token_of_all_a() {
     for kind in PuzzleKind::ALL {
         let solved = Facelets::solved(kind);
-        let width = orbit64::token_width(kind.size()).unwrap();
-        assert_eq!(token(&solved).as_str(), "A".repeat(width));
+        let text = token(&solved).as_str().to_string();
+        assert_eq!(text.len(), orbit64::token_width(kind.size()).unwrap());
         assert_eq!(token(&solved).kind(), kind);
+        // Framed entries that start at offset 0 spell the solved cube as `A`.
+        // The 5x5x5 framed entry shares its length with the canonical entry.
+        if kind != PuzzleKind::Cube5 {
+            assert_eq!(text, "A".repeat(text.len()));
+        } else {
+            assert_eq!(orbit64::decode(&text).unwrap(), solved);
+        }
     }
 }
 
@@ -396,6 +403,8 @@ fn rows(kind: &str) -> Vec<Vec<&'static str>> {
 
 /// The shared conformance suite: vectors of flix-orbit64 v0.9.0, the
 /// reference of the canonical form. Every vector must give the same token.
+/// Size 5 expected tokens are the V2 color framed form of that same
+/// representative; see the header of `tests/canonical_vectors.txt`.
 #[test]
 fn every_reference_vector_gives_the_reference_token() {
     let (tokens, facelets) = (rows("token"), rows("facelets"));
@@ -422,7 +431,7 @@ fn every_reference_failure_is_an_error() {
     for row in rows("failtext") {
         assert!(canonical_text(row[1]).is_err(), "{}", row[1]);
     }
-    assert_eq!((rows("fail").len(), rows("failtext").len()), (9, 7));
+    assert_eq!((rows("fail").len(), rows("failtext").len()), (9, 6));
 }
 
 /// The physically mirrored cube (stickers across the R/L plane, R and L
@@ -449,7 +458,7 @@ fn a_chiral_pattern_and_its_mirror_image_share_a_token() {
         "AP7AYhnwDQbA",
         "EKYDgqvYC5rw",
         "BJStkD4cayBhsWj6eHgDZLTP1th",
-        "AQshP-X3WpOUAtv878ZKcZyT5P3So75Lb-WOh2gDJ2w",
+        "TMnmn7kfLHDZWoY7HKmgU1a0S-BcPffcGWOh2gDJ2w",
     ] {
         let cube = orbit64::decode(token_text).unwrap();
         let other = mirror(&cube);

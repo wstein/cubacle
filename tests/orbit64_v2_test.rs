@@ -3,7 +3,6 @@
 //! Vectors: flix-orbit64 (Apache-2.0, Werner Stein).
 
 use cubacle::notation::orbit64::v2::{decode, encode, entries, Cube, Model, Pose, V2Error};
-use cubacle::notation::orbit64::{decode as decode_v1, encode as encode_v1};
 
 const VECTORS: &str = include_str!("fixtures/orbit64_v2.txt");
 const V1_VECTORS: &str = include_str!("fixtures/orbit64.txt");
@@ -166,8 +165,6 @@ fn the_v1_vectors_of_the_even_and_odd_sizes_round_trip_as_v2() {
         let (entry, cube) = decode(token).unwrap();
         assert_eq!(entry.id, framed_color_id(n), "{token}");
         assert_eq!(encode(entry.id, &cube).as_deref(), Ok(token));
-        // The V1 decoder reads the same token as a cube of the same size.
-        assert_eq!(decode_v1(token).map(|f| f.kind().size()), Ok(n));
         per_size[n - 2] += 1;
     }
     assert!(
@@ -175,8 +172,6 @@ fn the_v1_vectors_of_the_even_and_odd_sizes_round_trip_as_v2() {
         "{per_size:?}"
     );
     assert_eq!(per_size[4..], [1, 1]);
-    let solved = encode_v1(&decode_v1(&"A".repeat(12)).unwrap());
-    assert_eq!(solved.as_deref(), Ok("AAAAAAAAAAAA"));
 }
 
 #[test]
