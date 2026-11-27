@@ -20,7 +20,7 @@ FUFUUFFFFUUUURRURURRRFFRRFRBDBBDDBBBDLDDLLDDDLBLBBLLLL
 ```
 <!-- /example -->
 
-`--to` picks the output: `facelets` (default), `token` (Orbit64 V1), `token2` (Orbit64 V2, below) or `color`. `color` (also spelled `color`) writes one W/R/G/Y/O/B letter per sticker, in the same order as the facelets output, through the color scheme named by `--scheme` (default: the scheme the input colors were read in, else `boy`, the western scheme, white up and yellow down; so a Japanese-scheme color cube with its centers converts back into Japanese letters, and tokens, facelets and scrambles come out western). `--scheme western` is another name for `boy`; `jp` and six letters in URFDLB order work too. The text reads back with `convert --scheme <same>`.
+`--to` picks the output: `facelets` (default), `token` (the Orbit64 V2 color framed state token), `token2` (an Orbit64 V2 entry chosen with `--model` and `--pose`, below) or `color`. `color` (also spelled `color`) writes one W/R/G/Y/O/B letter per sticker, in the same order as the facelets output, through the color scheme named by `--scheme` (default: the scheme the input colors were read in, else `boy`, the western scheme, white up and yellow down; so a Japanese-scheme color cube with its centers converts back into Japanese letters, and tokens, facelets and scrambles come out western). `--scheme western` is another name for `boy`; `jp` and six letters in URFDLB order work too. The text reads back with `convert --scheme <same>`.
 
 ```sh
 cubacle convert A4ib8aejxj4Y --to color
@@ -61,4 +61,4 @@ A4ib8aejxj4Y
 ```
 <!-- /example -->
 
-The color framed token of the 2x2x2, 3x3x3, 4x4x4, 6x6x6 and 7x7x7 is the V1 token of the same state; only the 5x5x5 differs: its V2 token has 42 characters, a V1 token 43. `--model` and `--pose` are refused without `--to token2`.
+`--to token` writes that same color framed entry. For the 2x2x2, 3x3x3, 4x4x4, 6x6x6 and 7x7x7 the string still matches the retired class-`00` token. A 5x5x5 token is 42 characters; a 43-character class-`00` token is rejected. `--model` and `--pose` are refused without `--to token2`.

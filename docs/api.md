@@ -147,7 +147,7 @@ The 6x6x6 and 7x7x7 are solved by reduction through the 4x4x4, 5x5x5 and 3x3x3 e
 
 A 3x3x3, 5x5x5 or 7x7x7 whose face centers a slice turn moved is solved by the color of its centers, as on the command line: the answer leaves every face one color, the color of its center, which is not the color a solved cube shows on that face. A `target` still needs the centers in place (`centers_off_face`).
 
-A 5x5x5 is sent as its 150 facelets or its 43-character token. This request solves the cube of a scramble:
+A 5x5x5 is sent as its 150 facelets or its 42-character color framed token. A 43-character class-`00` token is rejected. This request solves the cube of a scramble:
 
 ```sh
 CUBE=$(cubacle facelets "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F" --size 5)
@@ -182,7 +182,7 @@ The tokens differ, the canonical tokens are one. A stored identifier of a patter
 
 ### The tokenV2 field
 
-`/v1/convert` and `/v1/random` also carry `tokenV2`, the [Orbit64 V2](cli/convert.md#orbit64-v2-tokens) state token of the cube in the color model and the framed pose (the whole-cube orientation stays in the token). It follows `token`, which is unchanged, and is absent when the stickers are not a cube. For the 2x2x2, 3x3x3, 4x4x4, 6x6x6 and 7x7x7 it equals `token`; the 5x5x5 `tokenV2` has 42 characters, `token` 43. The field is an addition: clients that do not know it keep working. The same token is the default `state:` line of the command line, see [State line](cli/state-line.md).
+`/v1/convert` and `/v1/random` also carry `tokenV2`, the [Orbit64 V2](cli/convert.md#orbit64-v2-tokens) state token of the cube in the color model and the framed pose (the whole-cube orientation stays in the token). It follows `token` and is absent when the stickers are not a cube. `token` is that same color framed entry, so the two fields are equal for every size Cubacle writes, including the 5x5x5 (42 characters). The field is an addition: clients that do not know it keep working. The same token is the default `state:` line of the command line, see [State line](cli/state-line.md).
 
 ### Solve JSON versions (changed in 0.2.0)
 
