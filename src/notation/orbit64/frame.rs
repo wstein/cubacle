@@ -84,7 +84,6 @@ fn repeat(
 }
 
 /// The facelets of a cube in canonical pose, seen in `frame`.
-#[cfg(test)]
 pub(super) fn apply(n: usize, stickers: &[usize], frame: usize) -> Vec<usize> {
     let (x, z, y) = turns(frame);
     let n = n as i32;

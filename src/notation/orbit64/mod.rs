@@ -25,7 +25,6 @@ use std::fmt;
 use super::impossible::Impossible;
 use crate::puzzle::{Facelets, FaceletsError};
 
-#[cfg(test)]
 use crate::puzzle::Face;
 
 mod big;
@@ -35,10 +34,9 @@ mod layout;
 mod pieces;
 pub mod v2;
 
-use layout::Layout;
-
-#[cfg(test)]
+use big::Big;
 use coords::Coords;
+use layout::Layout;
 
 pub(crate) use layout::{CORNER_COLORS, CORNER_FACELETS};
 
@@ -223,21 +221,101 @@ pub fn encode(facelets: &Facelets) -> Result<String, Orbit64Error> {
     v2::facelets::encode(entry.id, &facelets.to_string()).map_err(from_v2)
 }
 
-/// The V2 color canonical-pose token of a reachable cube.
+/// The class-`00` width. Sizes other than 5×5×5 share it with the framed V2
+/// token; the 5×5×5 class-`00` token is 43 characters.
+fn class00_width(size: usize) -> Option<usize> {
+    match size {
+        2 => Some(5),
+        3 => Some(12),
+        4 => Some(27),
+        5 => Some(43),
+        6 => Some(66),
+        7 => Some(90),
+        _ => None,
+    }
+}
+
+/// The class-`00` token of a reachable cube.
 ///
-/// The canonical identifier of a 5×5×5 uses this entry. The framed 5×5×5
-/// entry shares that length and is not the class-`00` token, so the
-/// identifier is the canonical-pose entry and carries its own schema name.
-pub(crate) fn encode_canonical_pose(facelets: &Facelets) -> Result<String, Orbit64Error> {
-    ensure_reachable(facelets)?;
+/// The canonical identifier still uses this encoding, so a 5×5×5 identifier
+/// stays the 43-character token of flix-orbit64 v0.9.0. State tokens go
+/// through [`encode`], which writes the color framed V2 entry.
+pub(crate) fn encode_class00(facelets: &Facelets) -> Result<String, Orbit64Error> {
     let size = facelets.kind().size();
-    let entry = v2::entries()
+    let layout = Layout::new(size);
+    let mut stickers: Vec<usize> = facelets
+        .stickers()
         .iter()
-        .find(|entry| {
-            entry.n == size && entry.model == v2::Model::Color && entry.pose == v2::Pose::Canonical
-        })
-        .ok_or(Orbit64Error::BadLength(size))?;
-    v2::facelets::encode(entry.id, &facelets.to_string()).map_err(from_v2)
+        .map(|face| face.index())
+        .collect();
+
+    let mut frame = None;
+    if layout.has_fixed_centers() {
+        let found = (0..frame::FRAME_COUNT).find_map(|rank| {
+            let upright = frame::unapply(size, &stickers, rank);
+            let centered = layout
+                .fixed
+                .iter()
+                .enumerate()
+                .all(|(face, &at)| upright[at] == face);
+            centered.then_some((rank, upright))
+        });
+        let (rank, upright) = found.ok_or(Orbit64Error::Impossible(Impossible::FixedCenters))?;
+        frame = Some(rank);
+        stickers = upright;
+    }
+
+    let coords = pieces::read(&layout, &stickers).map_err(Orbit64Error::Impossible)?;
+    let mut digits = coords.digits(size).map_err(Orbit64Error::Impossible)?;
+    digits.extend(frame.map(|rank| rank as u32));
+
+    let radices = coords::radices(size);
+    debug_assert_eq!(digits.len(), radices.len());
+    let mut value = Big::zero();
+    for (digit, radix) in digits.iter().zip(&radices) {
+        value.mul_add(*radix, *digit);
+    }
+    let width = class00_width(size).ok_or(Orbit64Error::BadLength(size))?;
+    value.to_base64(width).ok_or(Orbit64Error::OutOfRange)
+}
+
+/// The facelets of a class-`00` token. State input does not call this: a
+/// 43-character token is refused there. The canonical form reads the
+/// identifier it still writes.
+pub(crate) fn decode_class00(token: &str) -> Result<Facelets, Orbit64Error> {
+    let size = class00_width_of(token.chars().count())
+        .ok_or_else(|| Orbit64Error::BadLength(token.chars().count()))?;
+    let mut value = Big::from_base64(token)
+        .map_err(|(position, found)| Orbit64Error::BadCharacter { position, found })?;
+
+    let mut digits: Vec<u32> = coords::radices(size)
+        .iter()
+        .rev()
+        .map(|&radix| value.div_rem(radix))
+        .collect();
+    if !value.is_zero() {
+        return Err(Orbit64Error::OutOfRange);
+    }
+    digits.reverse();
+
+    let layout = Layout::new(size);
+    let odd = layout.has_fixed_centers();
+    let frame = if odd {
+        digits.pop().unwrap_or(0) as usize
+    } else {
+        0
+    };
+    let coords = Coords::from_digits(size, &digits);
+    let mut stickers = pieces::place(&layout, &coords);
+    if odd {
+        stickers = frame::apply(size, &stickers, frame);
+    }
+    let faces = stickers.iter().map(|&index| Face::ALL[index]).collect();
+    Facelets::from_stickers(faces).map_err(Orbit64Error::NotACube)
+}
+
+fn class00_width_of(width: usize) -> Option<usize> {
+    (2..=7).find(|&size| class00_width(size) == Some(width))
 }
 
 /// Refuses a coloring that is not a reachable cube. The token is written

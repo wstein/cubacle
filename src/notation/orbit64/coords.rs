@@ -11,9 +11,7 @@
 use crate::notation::{Impossible, PieceKind};
 
 /// Twist and flip digits are little-endian: the first slot is the units digit.
-#[cfg(test)]
 const TWIST_STATES: u32 = 2187;
-#[cfg(test)]
 const FLIP_STATES: u32 = 2048;
 
 /// The coordinates of every orbit, as the pieces sitting in each slot.
@@ -34,18 +32,15 @@ pub(super) fn choose(n: usize, k: usize) -> u32 {
     (0..k).fold(1u64, |acc, i| acc * (n - i) as u64 / (i as u64 + 1)) as u32
 }
 
-#[cfg(test)]
 fn permutation_radices(n: usize, free: usize) -> impl Iterator<Item = u32> {
     (0..free).map(move |i| (n - i) as u32)
 }
 
-#[cfg(test)]
 fn center_radices() -> impl Iterator<Item = u32> {
     (0..5).map(|t| choose(24 - 4 * t, 4))
 }
 
-/// The radix of every digit of an `n x n x n` state, most significant first.
-#[cfg(test)]
+/// The radix of every digit of an `n x n x n` class-`00` state, most significant first.
 pub(super) fn radices(n: usize) -> Vec<u32> {
     use super::frame::FRAME_COUNT;
 
@@ -226,7 +221,6 @@ impl Coords {
     }
 
     /// The inverse of [`Coords::digits`], for digits within their radices.
-    #[cfg(test)]
     pub(super) fn from_digits(n: usize, digits: &[u32]) -> Coords {
         let mut digits = digits.iter().copied();
         let corner_perm = unlehmer(&mut digits, 8, None);
