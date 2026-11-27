@@ -40,14 +40,14 @@ ASj79
 A3DZCufPmdSpgSdAXL5x0iJAczTlcP4refzTMJv_VgBoTFSReBHZMvFpjDdnSJzhHA
 ```
 
-Tokens exist for every size from 2x2x2 to 7x7x7. `solve` and `convert` read all of them.
+Tokens exist for every size from 2x2x2 to 7x7x7. `solve` and `convert` read the color framed lengths in the table. A canonical-pose length (4, 11, 26, 65 or 89 characters) is not read as a token, so a move expression of that length stays a move expression. A token that begins with `-` is an option to the command unless it comes after `--`.
 
 | Cube | Token length | Checked against |
 | --- | ---: | --- |
 | 2x2x2 | 5 | 20 official examples |
 | 3x3x3 | 12 | 20 official examples, the format's compatibility vectors |
 | 4x4x4 | 27 | 20 official examples |
-| 5x5x5 | 42 | color framed V2; a 43-character class-`00` token is rejected |
+| 5x5x5 | 42 | color framed V2; a 43-character class-`00` token is refused with "Orbit64 V1 is no longer supported" |
 | 6x6x6 | 66 | the official solved cube, and round trips only |
 | 7x7x7 | 90 | the official solved cube, and round trips only |
 

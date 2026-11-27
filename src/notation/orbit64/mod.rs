@@ -116,6 +116,21 @@ fn color_length(width: usize) -> bool {
     })
 }
 
+/// Whether the color framed entry of a supported size has this token length.
+///
+/// These are the lengths [`encode`] writes: 5, 12, 27, 42, 66 and 90. The
+/// canonical-pose lengths 4, 11, 26, 65 and 89 are real V2 entries, and they
+/// are also the lengths of ordinary move expressions (`F2 B2`, `D L2 B`),
+/// so the reader does not treat them as tokens.
+fn framed_color_length(width: usize) -> bool {
+    v2::entries().iter().any(|entry| {
+        entry.length == width
+            && entry.model == v2::Model::Color
+            && entry.pose == v2::Pose::Framed
+            && SIZES.contains(&entry.n)
+    })
+}
+
 /// The number of characters of the color framed state token of the
 /// `size`x`size`x`size`.
 ///
@@ -138,10 +153,21 @@ pub fn size_of_width(width: usize) -> Option<usize> {
     found.next().is_none().then_some(size)
 }
 
-/// Whether the text could be an Orbit64 V2 color state token: a color entry
-/// length for a supported size, and base64url characters only.
+/// Whether the text could be an Orbit64 V2 color framed state token: a framed
+/// color length for a supported size, and base64url characters only.
+///
+/// Canonical-pose lengths are not included. A string of one of those lengths
+/// is read as moves when it is a move expression.
 pub fn looks_like_token(text: &str) -> bool {
-    color_length(text.chars().count()) && text.bytes().all(|byte| ALPHABET.contains(&byte))
+    framed_color_length(text.chars().count()) && text.bytes().all(|byte| ALPHABET.contains(&byte))
+}
+
+/// Whether `text` is a retired class-`00` 5×5×5 token: 43 base64url characters.
+///
+/// That width is not a V2 color length. Every other class-`00` width of a
+/// size Cubacle reads is also the color framed V2 length.
+pub fn is_retired_v1_token(text: &str) -> bool {
+    text.chars().count() == 43 && text.bytes().all(|byte| ALPHABET.contains(&byte))
 }
 
 fn from_v2(error: v2::V2Error) -> Orbit64Error {

@@ -486,6 +486,15 @@ async fn convert_answers_the_orbit64_token_of_every_size() {
     )
     .await;
     assert_eq!(status, StatusCode::BAD_REQUEST, "{body}");
+    assert!(
+        body.to_string()
+            .contains("Orbit64 V1 is no longer supported"),
+        "{body}"
+    );
+    for cube in ["F2 B2", "D L2 B", "R2 U2 F2 B2 L2 D"] {
+        let (status, _, body) = call(app(), post_json("/v1/convert", json!({"cube": cube}))).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST, "{cube}: {body}");
+    }
 }
 
 #[tokio::test]

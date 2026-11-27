@@ -21,6 +21,8 @@ pub enum InputError {
         scheme: ColorScheme,
     },
     Orbit64(Orbit64Error),
+    /// A 43-character class-`00` 5×5×5 token. V2 does not use that width.
+    RetiredV1,
     /// A partial target that no state can meet.
     Target(String),
 }
@@ -38,6 +40,7 @@ impl fmt::Display for InputError {
                 write!(f, "the centers do not match the color scheme {scheme}")
             }
             InputError::Orbit64(error) => error.fmt(f),
+            InputError::RetiredV1 => f.write_str("Orbit64 V1 is no longer supported"),
             InputError::Target(reason) => f.write_str(reason),
         }
     }
@@ -78,6 +81,9 @@ const COLOR_LETTERS: &str = "WRGYOB";
 pub fn parse_cube(text: &str, scheme: Option<ColorScheme>) -> Result<Facelets, InputError> {
     let compact: String = text.split_whitespace().collect();
 
+    if orbit64::is_retired_v1_token(&compact) {
+        return Err(InputError::RetiredV1);
+    }
     if orbit64::looks_like_token(&compact) {
         return Ok(orbit64::decode(&compact)?);
     }
@@ -239,6 +245,14 @@ mod tests {
         );
         assert!(parse_cube("AAAAAAAAAAAA", None).unwrap().is_solved());
         assert!(parse_cube("AAAAA", None).unwrap().is_solved());
+        // Canonical-pose lengths stay out of the token reader.
+        for text in ["AAAA", "F2 B2", "D L2 B", "R2 U2 F2 B2 L2 D"] {
+            assert!(parse_cube(text, None).is_err(), "{text}");
+        }
+        assert_eq!(
+            parse_cube(&"A".repeat(43), None).unwrap_err().to_string(),
+            "Orbit64 V1 is no longer supported"
+        );
     }
 
     #[test]
