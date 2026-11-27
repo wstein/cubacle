@@ -6,8 +6,7 @@ use cubacle::canonical::{canonical, schema_name};
 use cubacle::puzzle::Facelets;
 use serde::Serialize;
 
-/// `{"token": ..., "schema": "orbit64-Nxn-draft@1"}`, or
-/// `orbit64-5x5-v2canon@1` for a 5×5×5.
+/// `{"token": ..., "schema": "orbit64-Nxn-draft@1"}`.
 #[derive(Serialize)]
 pub(crate) struct Canonical {
     token: String,

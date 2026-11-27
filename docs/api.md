@@ -164,7 +164,7 @@ The `solution` is shortened here, and the `inverse` and `metrics` values are lef
 
 ### The canonical field
 
-`/v1/convert` and `/v1/random` describe a cube with `kind`, `facelets` and `token`. `token` is the color framed V2 token (42 characters on a 5×5×5; the retired class-`00` token was 43). They also carry `canonical`, an object with the canonical Orbit64 token of the cube (the same for the cube, its turned and mirrored images and any renaming of its colors) and `schema`, the name of the slot convention the token is written in (`orbit64-Nxn-draft@1`, N the size, or `orbit64-5x5-v2canon@1` for a 5×5×5). Like `token`, it is absent when the stickers are not a cube. No separate endpoint was added: `/v1/convert` already takes every input form. The same request as `cubacle canon`, for a scramble and its mirror image:
+`/v1/convert` and `/v1/random` describe a cube with `kind`, `facelets` and `token`. `token` is the color framed V2 token (42 characters on a 5×5×5; the retired class-`00` state token was 43). They also carry `canonical`, an object with the canonical Orbit64 token of the cube (the same for the cube, its turned and mirrored images and any renaming of its colors) and `schema`, the name of the slot convention the token is written in (`orbit64-Nxn-draft@1`, N the size). The 5×5×5 canonical token is still the 43-character class-`00` identifier. Like `token`, it is absent when the stickers are not a cube. No separate endpoint was added: `/v1/convert` already takes every input form. The same request as `cubacle canon`, for a scramble and its mirror image:
 
 ```sh
 curl -s -XPOST localhost:8080/v1/convert \
