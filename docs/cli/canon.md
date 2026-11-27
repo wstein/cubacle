@@ -28,7 +28,7 @@ Dki5KH1XWMQR-MYl-jyNBoh54zmGNjlON6_sDBROhBhzl8DJ7cw2FaslOb-HhRAA5OvOUzsxSlROfgJt
 
 ## Schema and size
 
-The token depends on the slot numbering of Orbit64, which is still a draft. A stored identifier therefore carries the name of that convention, `orbit64-Nxn-draft@1` (N is the size). `-v` prints the token with the schema name and the size; `--format json` writes one JSON object with the same data:
+The token depends on the slot numbering of Orbit64, which is still a draft. A stored identifier therefore carries the name of that convention, `orbit64-Nxn-draft@1` (N is the size). A 5×5×5 identifier is the V2 color canonical-pose token and carries `orbit64-5x5-v2canon@1`. `-v` prints the token with the schema name and the size; `--format json` writes one JSON object with the same data:
 
 ```sh
 cubacle canon -v -s "R U"
