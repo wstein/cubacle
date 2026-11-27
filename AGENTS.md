@@ -67,10 +67,10 @@ change pass; a change that alters solver output needs an explicit decision.
 - Keep the search code unchanged unless the task is about the search.
 - Default visibility is `pub(crate)`. Expose only what is meant to be the API.
 - Dependencies point one way: puzzle types, then notation, then engines, then the
-  applications (CLI, server). Engines do not use each other's internals; a
-  reduction engine (4x4/5x5 and 6x6/7x7 currently, via distinct implementations)
-  uses the 3x3 solver only through the
-  `Solver` trait, with an injected instance, never through a global.
+  applications (CLI, server). Engines do not use each other's internals. The 4x4
+  and the 5x5 each use the 3x3 solver only through the `Solver` trait, with an
+  injected instance, never through a global. The 6x6 and 7x7 engine is given
+  that 3x3 solver and, in addition, an injected 4x4 engine and an injected 5x5 engine.
 - File size: no source file over 1000 lines, ever. From about 500 lines, plan a split
   along a real responsibility. Most files should stay far smaller.
 - Compute-heavy work never runs on async threads in the server.
