@@ -17,6 +17,8 @@ extend-exclude = [
 extend-ignore-re = [
   # hex and base64 blobs
   "[0-9a-fA-F]{32,}",
+  # framed 5x5 state token in docs/cli/solve.md; `lik` is part of the token
+  "FnO9gsSjaVkWsyanXmps-7VBfv7ZT0likPxlSSZMsw",
 ]
 
 [default.extend-words]
