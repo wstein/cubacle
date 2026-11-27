@@ -70,7 +70,8 @@ change pass; a change that alters solver output needs an explicit decision.
   applications (CLI, server). Engines do not use each other's internals. The 4x4
   and the 5x5 each take an injected 3x3 solver. The 6x6 and 7x7 engine is given
   that 3x3 solver and, in addition, an injected 4x4 engine and an injected 5x5
-  engine, all through the `Solver` trait, never through a global.
+  engine. Each engine uses the engines it is given only through
+  the `Solver` trait, never through a global.
 - File size: no source file over 1000 lines, ever. From about 500 lines, plan a split
   along a real responsibility. Most files should stay far smaller.
 - Compute-heavy work never runs on async threads in the server.
