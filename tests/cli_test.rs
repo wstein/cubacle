@@ -485,7 +485,7 @@ fn solve_icons_prints_the_start_token_and_a_token_after_each_phase() {
 
 #[test]
 fn convert_writes_orbit64_tokens_for_every_size() {
-    for (size, width) in [(2, 5), (3, 12), (4, 27), (5, 43), (6, 66), (7, 90)] {
+    for (size, width) in [(2, 5), (3, 12), (4, 27), (5, 42), (6, 66), (7, 90)] {
         let scramble = if size < 4 {
             "R U F' R2 U'"
         } else {
@@ -513,9 +513,15 @@ fn a_solved_7x7_token_is_read_and_solved() {
 
 #[test]
 fn an_impossible_token_is_an_error() {
-    let (ok, _, error) = cubacle(&["convert", &"_".repeat(43)]);
+    let (ok, _, error) = cubacle(&["convert", &"_".repeat(42)]);
     assert!(!ok);
     assert!(error.contains("out of range"), "{error}");
+    // 43 characters was the class-`00` 5x5x5 width. It is not a V2 token length,
+    // so it is refused as cube text rather than decoded.
+    let (ok, _, error) = cubacle(&["convert", &"A".repeat(43)]);
+    assert!(!ok);
+    assert!(error.contains("not a cube"), "{error}");
+    assert!(error.contains("orbit64"), "{error}");
 }
 
 #[test]

@@ -22,6 +22,11 @@ fn vectors() -> impl Iterator<Item = (usize, &'static str, &'static str)> {
 fn parse_cube_reads_every_official_token_by_its_length() {
     let mut per_size = [0usize; 6];
     for (size, token, facelets) in vectors() {
+        if size == 5 {
+            assert!(parse_cube(token, None).is_err(), "{token}");
+            per_size[size - 2] += 1;
+            continue;
+        }
         let cube = parse_cube(token, None).unwrap();
         assert_eq!(cube.kind().size(), size, "{token}");
         assert_eq!(cube.to_string(), facelets, "{token}");
@@ -63,7 +68,8 @@ fn scrambled_big_cubes_round_trip_through_tokens() {
 
 #[test]
 fn bad_tokens_are_errors_not_panics() {
-    assert_eq!(decode("AAAA"), Err(Orbit64Error::BadLength(4)));
+    assert!(decode("AAAA").unwrap().is_solved());
+    assert_eq!(decode(&"A".repeat(43)), Err(Orbit64Error::BadLength(43)));
     assert_eq!(decode(&"_".repeat(90)), Err(Orbit64Error::OutOfRange));
     assert!(parse_cube(&"-".repeat(66), None).is_err());
     assert!(decode(&format!("{}!", "A".repeat(11))).is_err());

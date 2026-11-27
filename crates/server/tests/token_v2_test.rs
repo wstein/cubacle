@@ -53,21 +53,32 @@ async fn convert_answers_the_v2_token_of_the_state() {
 }
 
 #[tokio::test]
-async fn the_v2_token_is_the_v1_token_where_the_two_share_a_width_and_longer_on_the_5x5x5() {
-    for size in [2, 3, 4, 6, 7] {
+async fn the_token_field_is_the_framed_color_v2_token() {
+    for size in [2, 3, 4, 5, 6, 7] {
         let request = Request::get(format!("/v1/random?size={size}"))
             .body(Body::empty())
             .unwrap();
         let (_, body) = call(request).await;
         assert_eq!(body["tokenV2"], body["token"], "size {size}");
+        assert_eq!(
+            facelets_of(body["tokenV2"].as_str().unwrap()),
+            body["facelets"],
+            "size {size}"
+        );
     }
-    let request = Request::get("/v1/random?size=5")
-        .body(Body::empty())
-        .unwrap();
-    let (_, body) = call(request).await;
-    let token = body["tokenV2"].as_str().unwrap();
-    assert_eq!(token.len(), 42);
-    assert_eq!(facelets_of(token), body["facelets"]);
+    assert_eq!(
+        call(
+            Request::get("/v1/random?size=5")
+                .body(Body::empty())
+                .unwrap()
+        )
+        .await
+        .1["token"]
+            .as_str()
+            .unwrap()
+            .len(),
+        42
+    );
 }
 
 #[tokio::test]

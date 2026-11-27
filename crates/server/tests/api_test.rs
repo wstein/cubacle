@@ -452,7 +452,8 @@ async fn a_6x6_and_a_7x7_are_solved_and_the_solutions_replay() {
 
 #[tokio::test]
 async fn convert_answers_the_orbit64_token_of_every_size() {
-    // Official vectors of the format: a 4x4x4 and a 5x5x5 token and their facelets.
+    // A 4x4x4 token still matches its old vector. The 5x5x5 token is the color
+    // framed V2 token of the same cube; the retired 43-character vector is rejected.
     let vectors = [
         (
             "BJStkD4cayBhsWj6eHgDZLTP1th",
@@ -460,7 +461,7 @@ async fn convert_answers_the_orbit64_token_of_every_size() {
             "DLLDLLDLBFLFLRBR DRDLFBRLUURUUDDU FUUFLDFDRBUFURRL LBDFFFDFFFBRFBFR RDDDBLUUBURBRULB BFBBUDRURBLLBRDU",
         ),
         (
-            "AQshP-X3WpOUAtv878ZKcZyT5P3So75Lb-WOh2gDJ2w",
+            "TMnmn7kfLHDZWoY7HKmgU1a0S-BcPffcGWOh2gDJ2w",
             "5x5x5",
             "DBRFRFUBLDDBUFFURBDDFUUDL BLDBFULULLLRRUURRDFDRLLFD LFLRURFURRFFFFBUBLUFRLUBU BDBRFDFRUULRDFDULLDDRBRFL LDBFUUFDUFRLLURBRDDBBRFRD DLDUFBBBBLFRBDUBDLBLBLBRU",
         ),
@@ -476,6 +477,15 @@ async fn convert_answers_the_orbit64_token_of_every_size() {
         let (_, _, again) = call(app(), post_json("/v1/convert", json!({"cube": facelets}))).await;
         assert_eq!(again["token"], token);
     }
+    let (status, _, body) = call(
+        app(),
+        post_json(
+            "/v1/convert",
+            json!({"cube": "AQshP-X3WpOUAtv878ZKcZyT5P3So75Lb-WOh2gDJ2w"}),
+        ),
+    )
+    .await;
+    assert_eq!(status, StatusCode::BAD_REQUEST, "{body}");
 }
 
 #[tokio::test]
@@ -484,14 +494,14 @@ async fn convert_and_random_carry_a_token() {
     assert_eq!(body["token"], "AAAAAAAAAAAA");
     let (_, _, body) = call(app(), get("/v1/random?size=5")).await;
     let token = body["token"].as_str().unwrap();
-    assert_eq!(token.len(), 43);
+    assert_eq!(token.len(), 42);
     let (_, _, back) = call(app(), post_json("/v1/convert", json!({"cube": token}))).await;
     assert_eq!(back["facelets"], body["facelets"]);
 }
 
 #[tokio::test]
 async fn impossible_orbit64_tokens_are_400() {
-    for width in [5, 12, 27, 43, 66, 90] {
+    for width in [5, 12, 27, 42, 66, 90] {
         let (status, _, body) = call(
             app(),
             post_json("/v1/convert", json!({"cube": "_".repeat(width)})),
@@ -755,14 +765,19 @@ async fn a_cube_with_moved_centers_is_solved_by_color() {
 
 #[tokio::test]
 async fn a_5x5_orbit64_token_converts() {
-    let cube = "A".repeat(43);
+    let solved = Facelets::solved(PuzzleKind::Cube5);
+    let cube = cubacle::notation::orbit64::encode(&solved).unwrap();
+    assert_eq!(cube.len(), 42);
     let (status, _, body) = call(app(), post_json("/v1/convert", json!({"cube": cube}))).await;
     assert_eq!(status, StatusCode::OK, "{body}");
     assert_eq!(body["kind"], "5x5x5");
-    assert_eq!(
-        body["facelets"].as_str().unwrap(),
-        Facelets::solved(PuzzleKind::Cube5).to_string()
-    );
+    assert_eq!(body["facelets"].as_str().unwrap(), solved.to_string());
+    let (status, _, body) = call(
+        app(),
+        post_json("/v1/convert", json!({"cube": "A".repeat(43)})),
+    )
+    .await;
+    assert_eq!(status, StatusCode::BAD_REQUEST, "{body}");
 }
 
 #[tokio::test]
