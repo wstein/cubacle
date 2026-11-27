@@ -89,7 +89,25 @@ pub fn canonical(cube: &Facelets) -> Result<Token, CanonError> {
     let state = standard(least.kind(), &colors)?;
     let faces = state.iter().map(|&c| Face::ALL[c as usize]).collect();
     let cube = Facelets::from_stickers(faces).expect("a renaming keeps every count");
-    orbit64::encode(&cube).map(Token).map_err(CanonError::State)
+    let encoded = if cube.kind().size() == 5 {
+        orbit64::encode_canonical_pose(&cube)
+    } else {
+        orbit64::encode(&cube)
+    };
+    encoded.map(Token).map_err(CanonError::State)
+}
+
+/// The schema name stored with a canonical token.
+///
+/// Sizes other than 5×5×5 still use `orbit64-Nxn-draft@1`, the convention
+/// whose tokens match the v0.9.0 reference. The 5×5×5 identifier is the V2
+/// color canonical-pose token, so it has its own name.
+pub fn schema_name(size: usize) -> String {
+    if size == 5 {
+        "orbit64-5x5-v2canon@1".to_owned()
+    } else {
+        format!("orbit64-{size}x{size}-draft@1")
+    }
 }
 
 /// The canonical token of a cube written as an Orbit64 token, facelets in

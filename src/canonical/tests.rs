@@ -59,10 +59,13 @@ fn the_solved_cube_is_the_token_of_all_a() {
         assert_eq!(text.len(), orbit64::token_width(kind.size()).unwrap());
         assert_eq!(token(&solved).kind(), kind);
         // Framed entries that start at offset 0 spell the solved cube as `A`.
-        // The 5x5x5 framed entry shares its length with the canonical entry.
+        // The 5x5x5 identifier is the canonical-pose entry, which also starts
+        // at offset 0, so it is `A` as well. The framed state token does not.
         if kind != PuzzleKind::Cube5 {
             assert_eq!(text, "A".repeat(text.len()));
         } else {
+            assert_eq!(text, "A".repeat(42));
+            assert_ne!(orbit64::encode(&solved).unwrap(), text);
             assert_eq!(orbit64::decode(&text).unwrap(), solved);
         }
     }
@@ -95,7 +98,12 @@ fn the_token_is_idempotent_and_round_trips() {
             assert_eq!(token(&tok.state()), tok, "{kind:?} {seed}");
             assert!(is_standard(&tok.state()), "{kind:?} {seed}");
             assert_eq!(canonical_text(tok.as_str()).unwrap(), tok);
-            assert_eq!(orbit64::encode(&tok.state()).unwrap(), tok.as_str());
+            let written = if kind == PuzzleKind::Cube5 {
+                orbit64::encode_canonical_pose(&tok.state()).unwrap()
+            } else {
+                orbit64::encode(&tok.state()).unwrap()
+            };
+            assert_eq!(written, tok.as_str());
         }
     }
 }
@@ -402,14 +410,26 @@ fn rows(kind: &str) -> Vec<Vec<&'static str>> {
 }
 
 /// The shared conformance suite: vectors of flix-orbit64 v0.9.0, the
-/// reference of the canonical form. Every vector must give the same token.
-/// Size 5 expected tokens are the V2 color framed form of that same
-/// representative; see the header of `tests/canonical_vectors.txt`.
+/// reference of the canonical form. Every vector except the 5×5×5 gives the
+/// same token. The 5×5×5 rows stay the retired 43-character class-`00`
+/// reference. This version writes the V2 color canonical-pose token under
+/// [`schema_name`] `orbit64-5x5-v2canon@1` and does not claim those rows.
 #[test]
 fn every_reference_vector_gives_the_reference_token() {
     let (tokens, facelets) = (rows("token"), rows("facelets"));
     assert_eq!((tokens.len(), facelets.len()), (17, 76));
     for row in tokens {
+        if row[1] == "5" {
+            let error = canonical_text(row[2]).unwrap_err();
+            assert!(
+                error
+                    .to_string()
+                    .contains("Orbit64 V1 is no longer supported"),
+                "{error}"
+            );
+            assert_eq!(row[3].len(), 43, "the reference token stays class-00");
+            continue;
+        }
         let got = canonical_text(row[2]).unwrap_or_else(|e| panic!("{}: {e}", row[2]));
         assert_eq!(got.as_str(), row[3], "token {}", row[2]);
         assert_eq!(got.kind().size().to_string(), row[1]);
@@ -417,6 +437,17 @@ fn every_reference_vector_gives_the_reference_token() {
     for row in facelets {
         let cube: Facelets = row[2].parse().unwrap();
         assert_eq!(cube.kind().size().to_string(), row[1]);
+        if row[1] == "5" {
+            let got = token(&cube);
+            assert_eq!(got.as_str().len(), 42, "{}", row[2]);
+            assert_ne!(got.as_str(), row[3]);
+            assert_eq!(row[3].len(), 43);
+            let (entry, _) = orbit64::v2::facelets::decode(got.as_str()).unwrap();
+            assert_eq!((entry.n, entry.pose), (5, orbit64::v2::Pose::Canonical));
+            assert_eq!(canonical_text(row[2]).unwrap().as_str(), got.as_str());
+            assert_eq!(schema_name(5), "orbit64-5x5-v2canon@1");
+            continue;
+        }
         assert_eq!(token(&cube).as_str(), row[3], "facelets {}", row[2]);
         assert_eq!(canonical_text(row[2]).unwrap().as_str(), row[3]);
     }
@@ -431,7 +462,7 @@ fn every_reference_failure_is_an_error() {
     for row in rows("failtext") {
         assert!(canonical_text(row[1]).is_err(), "{}", row[1]);
     }
-    assert_eq!((rows("fail").len(), rows("failtext").len()), (9, 6));
+    assert_eq!((rows("fail").len(), rows("failtext").len()), (9, 7));
 }
 
 /// The physically mirrored cube (stickers across the R/L plane, R and L
@@ -452,7 +483,12 @@ fn a_chiral_pattern_and_its_mirror_image_share_a_token() {
     };
     for row in rows("facelets") {
         let cube: Facelets = row[2].parse().unwrap();
-        assert_eq!(token(&mirror(&cube)).as_str(), row[3], "{}", row[2]);
+        let got = token(&mirror(&cube));
+        if row[1] == "5" {
+            assert_eq!(got.as_str(), token(&cube).as_str(), "{}", row[2]);
+        } else {
+            assert_eq!(got.as_str(), row[3], "{}", row[2]);
+        }
     }
     for token_text in [
         "AP7AYhnwDQbA",

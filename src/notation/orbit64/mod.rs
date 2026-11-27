@@ -217,6 +217,32 @@ pub fn decode(token: &str) -> Result<Facelets, Orbit64Error> {
 /// is encoded as it stands. The token is the V2 color framed entry, not the
 /// retired class-`00` ranking. A 5×5×5 token is 42 characters.
 pub fn encode(facelets: &Facelets) -> Result<String, Orbit64Error> {
+    ensure_reachable(facelets)?;
+    let entry = framed_color(facelets.kind().size())
+        .ok_or(Orbit64Error::BadLength(facelets.kind().size()))?;
+    v2::facelets::encode(entry.id, &facelets.to_string()).map_err(from_v2)
+}
+
+/// The V2 color canonical-pose token of a reachable cube.
+///
+/// The canonical identifier of a 5×5×5 uses this entry. The framed 5×5×5
+/// entry shares that length and is not the class-`00` token, so the
+/// identifier is the canonical-pose entry and carries its own schema name.
+pub(crate) fn encode_canonical_pose(facelets: &Facelets) -> Result<String, Orbit64Error> {
+    ensure_reachable(facelets)?;
+    let size = facelets.kind().size();
+    let entry = v2::entries()
+        .iter()
+        .find(|entry| {
+            entry.n == size && entry.model == v2::Model::Color && entry.pose == v2::Pose::Canonical
+        })
+        .ok_or(Orbit64Error::BadLength(size))?;
+    v2::facelets::encode(entry.id, &facelets.to_string()).map_err(from_v2)
+}
+
+/// Refuses a coloring that is not a reachable cube. The token is written
+/// from the original facelets, frame included.
+fn ensure_reachable(facelets: &Facelets) -> Result<(), Orbit64Error> {
     let size = facelets.kind().size();
     let layout = Layout::new(size);
     let mut stickers: Vec<usize> = facelets
@@ -240,10 +266,8 @@ pub fn encode(facelets: &Facelets) -> Result<String, Orbit64Error> {
 
     let coords = pieces::read(&layout, &stickers).map_err(Orbit64Error::Impossible)?;
     // `digits` is the reachability check (twist, flip, parity, distinct pieces).
-    // The token itself is the V2 color framed entry, not this ranking.
     coords.digits(size).map_err(Orbit64Error::Impossible)?;
-    let entry = framed_color(size).ok_or(Orbit64Error::BadLength(size))?;
-    v2::facelets::encode(entry.id, &facelets.to_string()).map_err(from_v2)
+    Ok(())
 }
 
 #[cfg(test)]

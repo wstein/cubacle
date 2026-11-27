@@ -1,7 +1,7 @@
 //! The `canon` subcommand: the canonical Orbit64 token of a cube state.
 
 use clap::{Args, ValueEnum};
-use cubacle::canonical::canonical;
+use cubacle::canonical::{canonical, schema_name};
 
 use crate::cli::InputArgs;
 use crate::input::read_unchecked;
@@ -27,11 +27,6 @@ pub struct CanonArgs {
     format: Format,
 }
 
-/// The name of the slot convention the token is written in.
-fn schema(size: usize) -> String {
-    format!("orbit64-{size}x{size}-draft@1")
-}
-
 pub fn run(args: CanonArgs) -> Result<(), String> {
     let (cube, _) = read_unchecked(&args.input)?;
     let token = canonical(&cube).map_err(|error| error.to_string())?;
@@ -39,11 +34,11 @@ pub fn run(args: CanonArgs) -> Result<(), String> {
     match (args.format, args.verbose) {
         (Format::Json, _) => println!(
             "{{\"canonical\":{{\"token\":\"{token}\",\"schema\":\"{}\"}},\"size\":{size}}}",
-            schema(size)
+            schema_name(size)
         ),
         (Format::Text, true) => {
             println!("canonical: {token}");
-            println!("schema: {}", schema(size));
+            println!("schema: {}", schema_name(size));
             println!("size: {size}x{size}x{size}");
         }
         (Format::Text, false) => println!("{token}"),
