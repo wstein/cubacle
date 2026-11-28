@@ -109,7 +109,7 @@ pub(crate) fn parse_text(
 /// `parse_moves` has no size, so it rejects an SSE turn such as `WR`. The
 /// expression parser accepts it when the cube is large enough. That text is
 /// moves, unless the caller asked for the token.
-fn sized_move_expression(text: &str, size: usize) -> bool {
+pub(crate) fn sized_move_expression(text: &str, size: usize) -> bool {
     let compact: String = text.split_whitespace().collect();
     if compact.chars().count() != 42 {
         return false;
