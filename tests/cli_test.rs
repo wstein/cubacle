@@ -516,13 +516,9 @@ fn an_impossible_token_is_an_error() {
     let (ok, _, error) = cubacle(&["convert", &"_".repeat(42)]);
     assert!(!ok);
     assert!(error.contains("out of range"), "{error}");
-    // 43 characters was the class-`00` 5x5x5 width.
     let (ok, _, error) = cubacle(&["convert", &"A".repeat(43)]);
     assert!(!ok);
-    assert!(
-        error.contains("Orbit64 V1 is no longer supported; convert with an older version"),
-        "{error}"
-    );
+    assert!(!error.contains("V1"), "{error}");
 }
 
 #[test]

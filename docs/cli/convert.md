@@ -61,4 +61,4 @@ A4ib8aejxj4Y
 ```
 <!-- /example -->
 
-`--to token` writes that same color framed entry. For the 2x2x2, 3x3x3, 4x4x4, 6x6x6 and 7x7x7 the string still matches the retired class-`00` token. A 5x5x5 token is 42 characters; a 43-character class-`00` token is rejected. `--model` and `--pose` are refused without `--to token2`.
+`--to token` writes that same color framed entry. For the 2x2x2, 3x3x3, 4x4x4, 6x6x6 and 7x7x7 the string matches the older class-`00` token. A 5x5x5 token is 42 characters; a string that is not a V2 token is rejected. `--model` and `--pose` are refused without `--to token2`.

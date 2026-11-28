@@ -21,8 +21,6 @@ pub enum InputError {
         scheme: ColorScheme,
     },
     Orbit64(Orbit64Error),
-    /// A 43-character class-`00` 5×5×5 token. V2 does not use that width.
-    RetiredV1,
     /// A partial target that no state can meet.
     Target(String),
 }
@@ -40,9 +38,6 @@ impl fmt::Display for InputError {
                 write!(f, "the centers do not match the color scheme {scheme}")
             }
             InputError::Orbit64(error) => error.fmt(f),
-            InputError::RetiredV1 => f.write_str(
-                "Orbit64 V1 is no longer supported; convert with an older version",
-            ),
             InputError::Target(reason) => f.write_str(reason),
         }
     }
@@ -112,9 +107,6 @@ pub fn parse_cube_as(
 ) -> Result<Facelets, InputError> {
     let compact: String = text.split_whitespace().collect();
 
-    if orbit64::is_retired_v1_token(&compact) {
-        return Err(InputError::RetiredV1);
-    }
     // A move list with no size-dependent turn (`R U` twenty-one times). A turn
     // that needs the cube size, such as `WR`, is decided by the command.
     let spaced_moves = reading == CubeReading::Automatic
@@ -308,10 +300,8 @@ mod tests {
             parse_cube(&word, None)
         );
         assert!(parse_cube(spaced, None).is_err());
-        assert_eq!(
-            parse_cube(&"A".repeat(43), None).unwrap_err().to_string(),
-            "Orbit64 V1 is no longer supported; convert with an older version"
-        );
+        let rejected = parse_cube(&"A".repeat(43), None).unwrap_err().to_string();
+        assert!(!rejected.contains("V1"), "{rejected}");
     }
 
     #[test]

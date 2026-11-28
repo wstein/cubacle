@@ -148,7 +148,7 @@ fn a_v1_state_token_reads_as_the_color_framed_v2_entry() {
 }
 
 #[test]
-fn the_v1_vectors_of_the_even_and_odd_sizes_round_trip_as_v2() {
+fn the_published_color_vectors_round_trip_as_v2() {
     let mut per_size = [0usize; 6];
     for line in V1_VECTORS
         .lines()
@@ -157,18 +157,13 @@ fn the_v1_vectors_of_the_even_and_odd_sizes_round_trip_as_v2() {
         let mut fields = line.split(' ');
         let n: usize = fields.next().unwrap().parse().unwrap();
         let token = fields.next().unwrap();
-        if n == 5 {
-            // A V1 5x5x5 token has 43 characters, where V2 has no entry.
-            assert_eq!(decode(token), Err(V2Error::UnknownToken));
-            continue;
-        }
         let (entry, cube) = decode(token).unwrap();
         assert_eq!(entry.id, framed_color_id(n), "{token}");
         assert_eq!(encode(entry.id, &cube).as_deref(), Ok(token));
         per_size[n - 2] += 1;
     }
     assert!(
-        per_size[..3].iter().all(|&count| count >= 20),
+        per_size[..4].iter().all(|&count| count >= 20),
         "{per_size:?}"
     );
     assert_eq!(per_size[4..], [1, 1]);

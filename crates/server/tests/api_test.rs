@@ -452,8 +452,8 @@ async fn a_6x6_and_a_7x7_are_solved_and_the_solutions_replay() {
 
 #[tokio::test]
 async fn convert_answers_the_orbit64_token_of_every_size() {
-    // A 4x4x4 token still matches its old vector. The 5x5x5 token is the color
-    // framed V2 token of the same cube; the retired 43-character vector is rejected.
+    // A 4x4x4 token still matches its published vector. The 5x5x5 token is the
+    // color framed V2 token of the same cube. A string of another length is rejected.
     let vectors = [
         (
             "BJStkD4cayBhsWj6eHgDZLTP1th",
@@ -479,18 +479,11 @@ async fn convert_answers_the_orbit64_token_of_every_size() {
     }
     let (status, _, body) = call(
         app(),
-        post_json(
-            "/v1/convert",
-            json!({"cube": "AQshP-X3WpOUAtv878ZKcZyT5P3So75Lb-WOh2gDJ2w"}),
-        ),
+        post_json("/v1/convert", json!({"cube": "A".repeat(43)})),
     )
     .await;
     assert_eq!(status, StatusCode::BAD_REQUEST, "{body}");
-    assert!(
-        body.to_string()
-            .contains("Orbit64 V1 is no longer supported; convert with an older version"),
-        "{body}"
-    );
+    assert!(!body.to_string().contains("V1"), "{body}");
     for cube in ["F2 B2", "D L2 B", "R2 U2 F2 B2 L2 D"] {
         let (status, _, body) = call(app(), post_json("/v1/convert", json!({"cube": cube}))).await;
         assert_eq!(status, StatusCode::BAD_REQUEST, "{cube}: {body}");

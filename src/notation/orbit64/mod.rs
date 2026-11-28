@@ -15,8 +15,8 @@
 //! facelet index. A token carries ordinals only, so it cannot prove its
 //! producer used the same numbering; the reference vectors of the format are
 //! the evidence it matches: facelet vectors for the 2x2x2, 3x3x3, 4x4x4, 6x6x6
-//! and 7x7x7. A 5x5x5 class-`00` token is 43 characters and is rejected; the
-//! color framed 5x5x5 entry is 42.
+//! and 7x7x7. The color framed 5x5x5 entry is 42 characters. A string that is
+//! not a V2 color token of a supported size is rejected.
 //!
 //! Origin: Rust re-implementation of flix-orbit64 (Apache-2.0, Werner Stein).
 
@@ -25,8 +25,6 @@ use std::fmt;
 use super::impossible::Impossible;
 use crate::puzzle::{Facelets, FaceletsError};
 
-use crate::puzzle::Face;
-
 mod big;
 mod coords;
 mod frame;
@@ -34,8 +32,6 @@ mod layout;
 mod pieces;
 pub mod v2;
 
-use big::Big;
-use coords::Coords;
 use layout::Layout;
 
 pub(crate) use layout::{CORNER_COLORS, CORNER_FACELETS};
@@ -160,14 +156,6 @@ pub fn looks_like_token(text: &str) -> bool {
     framed_color_length(text.chars().count()) && text.bytes().all(|byte| ALPHABET.contains(&byte))
 }
 
-/// Whether `text` is a retired class-`00` 5×5×5 token: 43 base64url characters.
-///
-/// That width is not a V2 color length. Every other class-`00` width of a
-/// size Cubacle reads is also the color framed V2 length.
-pub fn is_retired_v1_token(text: &str) -> bool {
-    text.chars().count() == 43 && text.bytes().all(|byte| ALPHABET.contains(&byte))
-}
-
 fn from_v2(error: v2::V2Error) -> Orbit64Error {
     match error {
         v2::V2Error::BadCharacter { position, found } => {
@@ -219,103 +207,6 @@ pub fn encode(facelets: &Facelets) -> Result<String, Orbit64Error> {
     let entry = framed_color(facelets.kind().size())
         .ok_or(Orbit64Error::BadLength(facelets.kind().size()))?;
     v2::facelets::encode(entry.id, &facelets.to_string()).map_err(from_v2)
-}
-
-/// The class-`00` width. Sizes other than 5×5×5 share it with the framed V2
-/// token; the 5×5×5 class-`00` token is 43 characters.
-fn class00_width(size: usize) -> Option<usize> {
-    match size {
-        2 => Some(5),
-        3 => Some(12),
-        4 => Some(27),
-        5 => Some(43),
-        6 => Some(66),
-        7 => Some(90),
-        _ => None,
-    }
-}
-
-/// The class-`00` token of a reachable cube.
-///
-/// The canonical identifier still uses this encoding, so a 5×5×5 identifier
-/// stays the 43-character token of flix-orbit64 v0.9.0. State tokens go
-/// through [`encode`], which writes the color framed V2 entry.
-pub(crate) fn encode_class00(facelets: &Facelets) -> Result<String, Orbit64Error> {
-    let size = facelets.kind().size();
-    let layout = Layout::new(size);
-    let mut stickers: Vec<usize> = facelets
-        .stickers()
-        .iter()
-        .map(|face| face.index())
-        .collect();
-
-    let mut frame = None;
-    if layout.has_fixed_centers() {
-        let found = (0..frame::FRAME_COUNT).find_map(|rank| {
-            let upright = frame::unapply(size, &stickers, rank);
-            let centered = layout
-                .fixed
-                .iter()
-                .enumerate()
-                .all(|(face, &at)| upright[at] == face);
-            centered.then_some((rank, upright))
-        });
-        let (rank, upright) = found.ok_or(Orbit64Error::Impossible(Impossible::FixedCenters))?;
-        frame = Some(rank);
-        stickers = upright;
-    }
-
-    let coords = pieces::read(&layout, &stickers).map_err(Orbit64Error::Impossible)?;
-    let mut digits = coords.digits(size).map_err(Orbit64Error::Impossible)?;
-    digits.extend(frame.map(|rank| rank as u32));
-
-    let radices = coords::radices(size);
-    debug_assert_eq!(digits.len(), radices.len());
-    let mut value = Big::zero();
-    for (digit, radix) in digits.iter().zip(&radices) {
-        value.mul_add(*radix, *digit);
-    }
-    let width = class00_width(size).ok_or(Orbit64Error::BadLength(size))?;
-    value.to_base64(width).ok_or(Orbit64Error::OutOfRange)
-}
-
-/// The facelets of a class-`00` token. State input does not call this: a
-/// 43-character token is refused there. The canonical form reads the
-/// identifier it still writes.
-pub(crate) fn decode_class00(token: &str) -> Result<Facelets, Orbit64Error> {
-    let size = class00_width_of(token.chars().count())
-        .ok_or_else(|| Orbit64Error::BadLength(token.chars().count()))?;
-    let mut value = Big::from_base64(token)
-        .map_err(|(position, found)| Orbit64Error::BadCharacter { position, found })?;
-
-    let mut digits: Vec<u32> = coords::radices(size)
-        .iter()
-        .rev()
-        .map(|&radix| value.div_rem(radix))
-        .collect();
-    if !value.is_zero() {
-        return Err(Orbit64Error::OutOfRange);
-    }
-    digits.reverse();
-
-    let layout = Layout::new(size);
-    let odd = layout.has_fixed_centers();
-    let frame = if odd {
-        digits.pop().unwrap_or(0) as usize
-    } else {
-        0
-    };
-    let coords = Coords::from_digits(size, &digits);
-    let mut stickers = pieces::place(&layout, &coords);
-    if odd {
-        stickers = frame::apply(size, &stickers, frame);
-    }
-    let faces = stickers.iter().map(|&index| Face::ALL[index]).collect();
-    Facelets::from_stickers(faces).map_err(Orbit64Error::NotACube)
-}
-
-fn class00_width_of(width: usize) -> Option<usize> {
-    (2..=7).find(|&size| class00_width(size) == Some(width))
 }
 
 /// Refuses a coloring that is not a reachable cube. The token is written

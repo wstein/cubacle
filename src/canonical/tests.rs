@@ -57,16 +57,12 @@ fn the_solved_cube_is_the_token_of_all_a() {
         let solved = Facelets::solved(kind);
         let text = token(&solved).as_str().to_string();
         assert_eq!(token(&solved).kind(), kind);
-        // The identifier is a run of A. On a 5×5×5 that is the 43-character
-        // class-`00` token, not the 42-character framed state token.
-        let width = if kind == PuzzleKind::Cube5 {
-            43
-        } else {
-            orbit64::token_width(kind.size()).unwrap()
-        };
-        assert_eq!(text, "A".repeat(width));
+        assert_eq!(text, orbit64::encode(&solved).unwrap());
+        assert_eq!(text.len(), orbit64::token_width(kind.size()).unwrap());
         if kind == PuzzleKind::Cube5 {
-            assert_ne!(orbit64::encode(&solved).unwrap(), text);
+            assert_ne!(text, "A".repeat(text.len()));
+        } else {
+            assert_eq!(text, "A".repeat(text.len()));
         }
     }
 }
@@ -98,12 +94,7 @@ fn the_token_is_idempotent_and_round_trips() {
             assert_eq!(token(&tok.state()), tok, "{kind:?} {seed}");
             assert!(is_standard(&tok.state()), "{kind:?} {seed}");
             assert_eq!(canonical_text(tok.as_str()).unwrap(), tok);
-            let written = if kind == PuzzleKind::Cube5 {
-                orbit64::encode_class00(&tok.state()).unwrap()
-            } else {
-                orbit64::encode(&tok.state()).unwrap()
-            };
-            assert_eq!(written, tok.as_str());
+            assert_eq!(orbit64::encode(&tok.state()).unwrap(), tok.as_str());
         }
     }
 }
@@ -409,9 +400,8 @@ fn rows(kind: &str) -> Vec<Vec<&'static str>> {
         .collect()
 }
 
-/// The shared conformance suite: vectors of flix-orbit64 v0.9.0, the
-/// reference of the canonical form. Rust and the reference agree on every
-/// row, including the 43-character 5×5×5 class-`00` identifier.
+/// The shared conformance suite. Sizes other than 5 keep the flix-orbit64
+/// v0.9.0 tokens. Size 5 rows are the color framed V2 tokens of those cubes.
 #[test]
 fn every_reference_vector_gives_the_reference_token() {
     let (tokens, facelets) = (rows("token"), rows("facelets"));
@@ -467,13 +457,9 @@ fn a_chiral_pattern_and_its_mirror_image_share_a_token() {
         "AP7AYhnwDQbA",
         "EKYDgqvYC5rw",
         "BJStkD4cayBhsWj6eHgDZLTP1th",
-        "AQshP-X3WpOUAtv878ZKcZyT5P3So75Lb-WOh2gDJ2w",
+        "TMnmn7kfLHDZWoY7HKmgU1a0S-BcPffcGWOh2gDJ2w",
     ] {
-        let cube = if token_text.len() == 43 {
-            orbit64::decode_class00(token_text).unwrap()
-        } else {
-            orbit64::decode(token_text).unwrap()
-        };
+        let cube = orbit64::decode(token_text).unwrap();
         let other = mirror(&cube);
         assert_ne!(orbit64::encode(&other).unwrap(), token_text);
         assert_eq!(token(&other), canonical_text(token_text).unwrap());

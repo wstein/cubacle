@@ -22,6 +22,7 @@ fn letters(seen: &[usize]) -> String {
 }
 
 /// The stickers of a cube whose pieces are as `coords` say, canonical pose.
+#[cfg_attr(not(test), allow(dead_code))]
 pub(super) fn place(layout: &Layout, coords: &Coords) -> Vec<usize> {
     let mut stickers = vec![0; 6 * layout.face_len()];
     for (face, &at) in layout.fixed.iter().enumerate() {
@@ -57,6 +58,7 @@ pub(super) fn place(layout: &Layout, coords: &Coords) -> Vec<usize> {
     stickers
 }
 
+#[cfg_attr(not(test), allow(dead_code))]
 fn place_oriented(
     layout: &Layout,
     stickers: &mut [usize],

@@ -41,22 +41,14 @@ impl Token {
 
     /// The size of the cube the token stands for.
     pub fn kind(&self) -> PuzzleKind {
-        let size = if self.0.len() == 43 {
-            5
-        } else {
-            orbit64::size_of_width(self.0.len()).expect("a canonical token has a state width")
-        };
+        let size =
+            orbit64::size_of_width(self.0.len()).expect("a canonical token has a state width");
         PuzzleKind::of_size(size).expect("a canonical token has a state width")
     }
 
     /// The representative the token stands for: standard colors, right-handed.
     pub fn state(&self) -> Facelets {
-        let decoded = if self.0.len() == 43 {
-            orbit64::decode_class00(&self.0)
-        } else {
-            orbit64::decode(&self.0)
-        };
-        decoded.expect("a canonical token decodes")
+        orbit64::decode(&self.0).expect("a canonical token decodes")
     }
 }
 
@@ -97,15 +89,9 @@ pub fn canonical(cube: &Facelets) -> Result<Token, CanonError> {
     let state = standard(least.kind(), &colors)?;
     let faces = state.iter().map(|&c| Face::ALL[c as usize]).collect();
     let cube = Facelets::from_stickers(faces).expect("a renaming keeps every count");
-    // The identifier stays the class-`00` token on a 5×5×5 (43 characters,
-    // schema `orbit64-5x5-draft@1`). Every other size's framed V2 token is
-    // that same string.
-    let encoded = if cube.kind().size() == 5 {
-        orbit64::encode_class00(&cube)
-    } else {
-        orbit64::encode(&cube)
-    };
-    encoded.map(Token).map_err(CanonError::State)
+    // The identifier is the color framed V2 token of the representative.
+    // A 5×5×5 token is 42 characters, the same encoding `convert` writes.
+    orbit64::encode(&cube).map(Token).map_err(CanonError::State)
 }
 
 /// The schema name stored with a canonical token: `orbit64-Nxn-draft@1`.
@@ -113,27 +99,12 @@ pub fn schema_name(size: usize) -> String {
     format!("orbit64-{size}x{size}-draft@1")
 }
 
-/// Whether `text`, whitespace aside, is a class-`00` token of a reachable
-/// 5×5×5. A 43-character string that does not decode to a cube is not an
-/// identifier, so `canon` reads it as an ordinary cube or move list.
-pub fn is_class00_identifier(text: &str) -> bool {
-    let compact: String = text.split_whitespace().collect();
-    orbit64::is_retired_v1_token(&compact) && orbit64::decode_class00(&compact).is_ok()
-}
-
-/// The canonical token of a cube written as an Orbit64 token, facelets in
+/// The canonical token of a cube written as an Orbit64 V2 token, facelets in
 /// `URFDLB` order or colors `WRGYOB`. The names of the colors do not matter.
-///
-/// A 43-character class-`00` token is not a state token anymore. It is still
-/// the 5×5×5 canonical identifier, so this function reads that one form.
+/// A string that does not parse as a V2 cube is an error.
 pub fn canonical_text(text: &str) -> Result<Token, CanonError> {
     match parse_cube(text, None) {
         Ok(cube) => canonical(&cube),
-        Err(InputError::RetiredV1) => {
-            let compact: String = text.split_whitespace().collect();
-            let cube = orbit64::decode_class00(&compact).map_err(CanonError::State)?;
-            canonical(&cube)
-        }
         Err(error) => Err(CanonError::Input(error)),
     }
 }
