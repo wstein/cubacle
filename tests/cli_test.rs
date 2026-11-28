@@ -561,6 +561,25 @@ fn a_42_character_move_list_stays_moves() {
     assert_eq!(token_ok, word_ok, "word: {word_err}; token: {token_err}");
     assert_eq!(token_out, word_out);
     assert_eq!(token_err, word_err);
+    // `WR` needs the cube size. Twenty `R U` plus `WR` is 42 characters, so
+    // without the size it looks like a 5×5 token. `--size 4` keeps it moves.
+    let wide = format!("{}WR", "R U ".repeat(20));
+    let wide_compact: String = wide.split_whitespace().collect();
+    assert_eq!(wide_compact.len(), 42, "{wide}");
+    let (ok, out, err) = cubacle(&["convert", "--size", "4", &wide]);
+    assert!(ok, "{wide}: {err}");
+    assert_eq!(
+        out.chars().filter(|c| !c.is_whitespace()).count(),
+        96,
+        "{wide} was read as a 5x5x5: {out}"
+    );
+    let (same, via_scramble, scramble_err) = cubacle(&["convert", "--size", "4", "-s", &wide]);
+    assert!(same, "{wide}: {scramble_err}");
+    assert_eq!(out, via_scramble, "{wide}");
+    let (forced_ok, forced_out, forced_err) = cubacle(&["convert", "--as-token", &wide]);
+    let (word_ok, word_out, word_err) = cubacle(&["convert", &wide_compact]);
+    assert_eq!(forced_ok, word_ok, "word: {word_err}; token: {forced_err}");
+    assert_eq!(forced_out, word_out);
 }
 
 #[test]

@@ -69,14 +69,20 @@ pub(crate) fn cube_text(input: &InputArgs) -> Result<String, String> {
     }
 }
 
-/// Reads cube text: cube text always wins; only text that is no cube is tried
-/// as a move expression for a cube of `size`.
+/// Reads cube text. Cube text wins over a move expression, except a
+/// 42-character text that [`parse_expression`] accepts for `size`: that text
+/// is the moves (`R U` twenty times plus `WR` on a 4×4×4). `--as-token` reads
+/// it as the token instead.
 pub(crate) fn parse_text(
     text: &str,
     scheme: Option<ColorScheme>,
     size: usize,
     as_token: bool,
 ) -> Result<(Facelets, Option<ColorScheme>), String> {
+    if !as_token && sized_move_expression(text, size) {
+        let cube = expression_cube(text, kind_of(size)?)?;
+        return Ok((cube, None));
+    }
     let reading = if as_token {
         CubeReading::Token
     } else {
@@ -96,6 +102,22 @@ pub(crate) fn parse_text(
             }
         }
     }
+}
+
+/// A 42-character text that is a move expression on a cube of `size`.
+///
+/// `parse_moves` has no size, so it rejects an SSE turn such as `WR`. The
+/// expression parser accepts it when the cube is large enough. That text is
+/// moves, unless the caller asked for the token.
+fn sized_move_expression(text: &str, size: usize) -> bool {
+    let compact: String = text.split_whitespace().collect();
+    if compact.chars().count() != 42 {
+        return false;
+    }
+    let Ok(kind) = kind_of(size) else {
+        return false;
+    };
+    parse_expression(text, kind).is_ok()
 }
 
 /// The state `--to` names, read like the start; a move expression is applied
