@@ -22,11 +22,6 @@ fn vectors() -> impl Iterator<Item = (usize, &'static str, &'static str)> {
 fn parse_cube_reads_every_official_token_by_its_length() {
     let mut per_size = [0usize; 6];
     for (size, token, facelets) in vectors() {
-        if size == 5 {
-            assert!(parse_cube(token, None).is_err(), "{token}");
-            per_size[size - 2] += 1;
-            continue;
-        }
         let cube = parse_cube(token, None).unwrap();
         assert_eq!(cube.kind().size(), size, "{token}");
         assert_eq!(cube.to_string(), facelets, "{token}");

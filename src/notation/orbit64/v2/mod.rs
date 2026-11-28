@@ -13,9 +13,8 @@
 //! in six face fields either way.
 //!
 //! The color framed entries of the 2x2x2, 3x3x3, 4x4x4, 6x6x6 and 7x7x7 start
-//! at offset 0 at the widths of V1's state tokens and share V1's digit order,
-//! so a V1 state token of those sizes is also the V2 token of the same state.
-//! A V1 5x5x5 token (43 characters) is rejected.
+//! at offset 0 and share the older digit order, so those older tokens are also
+//! the V2 tokens of the same states. A 43-character string is not a V2 token.
 //!
 //! Origin: Rust re-implementation of `Orbit64.V2` (flix-orbit64, Apache-2.0,
 //! Werner Stein).

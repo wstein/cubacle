@@ -2,7 +2,8 @@
 //! tokens that must be refused. Origin: flix-orbit64 (Apache-2.0, Werner Stein).
 
 use super::*;
-use crate::puzzle::{MoveSequence, PuzzleKind};
+use crate::puzzle::{Face, MoveSequence, PuzzleKind};
+use coords::Coords;
 
 const VECTORS: &str = include_str!("../../../tests/fixtures/orbit64.txt");
 
@@ -23,14 +24,6 @@ fn every_official_vector_decodes_to_its_facelets_and_encodes_back() {
     let all = vectors();
     assert!(all.len() >= 100, "{} vectors", all.len());
     for (size, token, facelets) in all {
-        if size == 5 {
-            assert_eq!(
-                decode(token),
-                Err(Orbit64Error::BadLength(token.len())),
-                "{token}"
-            );
-            continue;
-        }
         let decoded = decode(token).unwrap_or_else(|e| panic!("{token}: {e}"));
         assert_eq!(decoded.kind().size(), size, "{token}");
         assert_eq!(decoded.to_string(), facelets, "{token}");
@@ -41,7 +34,7 @@ fn every_official_vector_decodes_to_its_facelets_and_encodes_back() {
 #[test]
 fn token_widths_are_those_of_the_format() {
     let widths: Vec<_> = (2..=7).map(|n| token_width(n).unwrap()).collect();
-    // Color framed V2 lengths. The retired class-`00` 5x5x5 width was 43.
+    // Color framed V2 lengths.
     assert_eq!(widths, [5, 12, 27, 42, 66, 90]);
     assert_eq!(token_width(1), None);
     assert_eq!(token_width(8), None);
@@ -143,7 +136,7 @@ fn the_alphabet_and_length_of_a_token_are_checked() {
     assert!(decode("AAAA").unwrap().is_solved());
     assert_eq!(decode("__________"), Err(Orbit64Error::BadLength(10)));
     assert_eq!(decode(&"A".repeat(91)), Err(Orbit64Error::BadLength(91)));
-    // 43 characters was the retired 5x5x5 class-`00` width. V2 has no entry there.
+    // 43 characters is not a V2 color length.
     assert_eq!(decode(&"A".repeat(43)), Err(Orbit64Error::BadLength(43)));
     assert!(matches!(
         decode("AAAA+"),
@@ -256,7 +249,7 @@ fn detection_uses_width_and_alphabet() {
     // 11 characters is the 3x3x3 canonical color entry, and also a move
     // expression (`R2 U2 F2 B2 L2 D`). The reader accepts framed lengths only.
     assert!(!looks_like_token("A4ib8aejxj4"));
-    assert!(is_retired_v1_token(&"A".repeat(43)));
+    assert!(!looks_like_token(&"A".repeat(43)));
     assert!(!looks_like_token("A4ib8aejxj4+"));
     assert!(looks_like_token(&"A".repeat(90)));
     assert_eq!(
@@ -316,13 +309,8 @@ fn official_orbit_coordinates_match_their_tokens() {
         let cube =
             Facelets::from_stickers(stickers.iter().map(|&i| Face::ALL[i]).collect()).unwrap();
         assert_eq!(pieces::read(&layout, &stickers).unwrap(), want, "{token}");
-        if size == 5 {
-            assert_eq!(decode(token), Err(Orbit64Error::BadLength(token.len())));
-            assert_eq!(encode(&cube).unwrap().len(), token_width(5).unwrap());
-        } else {
-            assert_eq!(encode(&cube).as_deref(), Ok(token), "{size} {token}");
-            assert_eq!(decode(token).unwrap(), cube, "{size} {token}");
-        }
+        assert_eq!(encode(&cube).as_deref(), Ok(token), "{size} {token}");
+        assert_eq!(decode(token).unwrap(), cube, "{size} {token}");
         seen.push(size);
     }
     assert_eq!(seen, [2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7]);

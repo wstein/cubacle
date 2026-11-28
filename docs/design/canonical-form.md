@@ -20,19 +20,18 @@ Rust measurements. The shared conformance suite is `tests/canonical_vectors.txt`
 (17 token vectors, 76 facelet vectors and the pinned failures of the reference),
 checked by `canonical::tests::every_reference_vector_gives_the_reference_token`
 and `every_reference_failure_is_an_error`; Rust and the reference agree on all of them.
-The state token written by `convert` is the Orbit64 V2 color framed entry. On
-every size except the 5×5×5 that string is the class-`00` identifier. The
-5×5×5 identifier stays the 43-character class-`00` token under
-`orbit64-5x5-draft@1`; its framed state token is 42 characters.
+The state token written by `convert`, and the canonical identifier, are the
+Orbit64 V2 color framed entry under `orbit64-Nxn-draft@1`. On every size
+except the 5×5×5 that string matches the older class-`00` token. A 5×5×5
+token is 42 characters.
 
 ## 1. Goal
 
 A pattern is a color state: pieces of one color are interchangeable. Its
 identifier must therefore be the same for a cube, its rotated and mirrored image,
 and a recolored copy. The identifier chosen is an Orbit64 state
-token (widths 5, 12, 27, 43, 66 and 90 characters for the 2x2x2 to the 7x7x7),
-because it is exact, short, ordered and convertible back to a cube. On a
-5x5x5 that is the class-`00` token, not the 42-character framed state token.
+token (widths 5, 12, 27, 42, 66 and 90 characters for the 2x2x2 to the 7x7x7),
+because it is exact, short, ordered and convertible back to a cube.
 
 `cubacle::canonical::canonical(&cube) -> Result<Token, CanonError>` returns it; `canonical_text` reads an Orbit64 token,
 facelets (`URFDLB`) or colors (`WRGYOB`); `canonical_moves` takes a move
@@ -57,9 +56,8 @@ Let `S` be the sticker string of a cube (`6 n^2` colors, `U R F D L B` = 0 to 5)
    - even cube: there are no centers, so the three colors of the corner in the
      URF slot become `U R F` in turning order and the three colors that share no
      corner with them (the opposite colors) become `D L B`.
-3. **Token.** The result is the class-`00` token. On every size except a
-   5×5×5 that is what `orbit64::encode` writes; a 5×5×5 is encoded by the
-   class-`00` ranking, 43 characters. A state that is no
+3. **Token.** The result is the color framed V2 token, which `orbit64::encode`
+   writes for every size. A 5×5×5 token is 42 characters. A state that is no
    cube (twisted corner, parity) is an error. There is no mirroring step and no
    second attempt: the reachable states are closed under mirroring, so a mirror
    image renames to a cube as well (the reference proved the retry unreachable;
@@ -69,9 +67,9 @@ The token is a function of `C(S)` only, so it is invariant. It is injective on
 classes because step 2 only recolors, which keeps the state in
 its class: `C(decode(token)) = C(S)`, checked in the tests.
 
-The solved cube of every size is the token of `A` repeated (`AAAAA`,
-`AAAAAAAAAAAA`, and 43 `A`s on the 5×5×5). The framed state token of a solved
-5×5×5 is a different 42-character string.
+The solved cube of every size except the 5×5×5 is the token of `A` repeated
+(`AAAAA`, `AAAAAAAAAAAA`, and so on). A solved 5×5×5 is a 42-character token
+that is not a run of `A`.
 
 The token is **not** the numerically smallest token of its class, and the order
 of step 1 is on stickers, not on tokens. That keeps the cost at 48 images and
@@ -131,14 +129,15 @@ Exhaustive on the 2x2x2: `cargo test --release --lib burnside -- --ignored
 
 Token widths and time per call (`cargo test --release --lib
 canonical::tests::numbers -- --ignored --nocapture`, 200 random 40-move cubes per
-size):
+size; the times are from that measurement, and the 5×5×5 width is the
+current 42-character token):
 
 | Size | Width | Time per call |
 | --- | --- | --- |
 | 2x2x2 | 5 | 6.6 us |
 | 3x3x3 | 12 | 11.9 us |
 | 4x4x4 | 27 | 21 us |
-| 5x5x5 | 43 | 29 us |
+| 5x5x5 | 42 | 29 us |
 | 6x6x6 | 66 | 41 us |
 | 7x7x7 | 90 | 53 us |
 

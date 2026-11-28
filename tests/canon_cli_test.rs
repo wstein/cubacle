@@ -144,15 +144,10 @@ fn a_43_character_move_list_stays_moves() {
         assert_eq!(out, token, "{list}");
         assert_eq!(out, canon("3", list), "{list}");
     }
-    // The 43-character identifier of a solved 5×5×5 is still that token.
-    let solved = "A".repeat(43);
-    let (ok, out, err) = cubacle(&["canon", &solved]);
-    assert!(ok, "{err}");
-    assert_eq!(out, solved);
-    // The same identifier, and the same move list, through standard input.
-    let (ok, again, err) = cubacle_in(&["canon", "-"], Some(&format!("{solved}\n")));
-    assert!(ok, "{err}");
-    assert_eq!(again, solved);
+    // 43 A's is not a V2 token and not a move.
+    let (ok, _, err) = cubacle(&["canon", &"A".repeat(43)]);
+    assert!(!ok, "{err}");
+    assert!(!err.contains("V1"), "{err}");
     let (ok, from_moves, err) = cubacle_in(&["canon", "-"], Some(&format!("{}\n", lists[0])));
     assert!(ok, "{err}");
     assert_eq!(from_moves, "MXfucRh0pgAA");
@@ -162,7 +157,7 @@ fn a_43_character_move_list_stays_moves() {
 fn a_5x5_identifier_round_trips_through_stdin() {
     let (ok, token, err) = cubacle(&["canon", "-s", "R", "--size", "5"]);
     assert!(ok, "{err}");
-    assert_eq!(token.len(), 43, "{token}");
+    assert_eq!(token.len(), 42, "{token}");
     let (ok, again, err) = cubacle_in(&["canon", "-"], Some(&format!("{token}\n")));
     assert!(ok, "{err}");
     assert_eq!(again, token);

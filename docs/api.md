@@ -148,7 +148,7 @@ The 6x6x6 and 7x7x7 are solved by reduction through the 4x4x4, 5x5x5 and 3x3x3 e
 
 A 3x3x3, 5x5x5 or 7x7x7 whose face centers a slice turn moved is solved by the color of its centers, as on the command line: the answer leaves every face one color, the color of its center, which is not the color a solved cube shows on that face. A `target` still needs the centers in place (`centers_off_face`).
 
-A 5x5x5 is sent as its 150 facelets or its 42-character color framed token. A 43-character class-`00` token is rejected. A 42-character move list in `cube` is rejected too; `"asToken": true` reads the same letters as the token. This request solves the cube of a scramble:
+A 5x5x5 is sent as its 150 facelets or its 42-character color framed token. A string that is not a V2 token is rejected. A 42-character move list in `cube` is rejected too; `"asToken": true` reads the same letters as the token. This request solves the cube of a scramble:
 
 ```sh
 CUBE=$(cubacle facelets "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F" --size 5)
@@ -165,7 +165,7 @@ The `solution` is shortened here, and the `inverse` and `metrics` values are lef
 
 ### The canonical field
 
-`/v1/convert` and `/v1/random` describe a cube with `kind`, `facelets` and `token`. `token` is the color framed V2 token (42 characters on a 5×5×5; the retired class-`00` state token was 43). They also carry `canonical`, an object with the canonical Orbit64 token of the cube (the same for the cube, its turned and mirrored images and any renaming of its colors) and `schema`, the name of the slot convention the token is written in (`orbit64-Nxn-draft@1`, N the size). The 5×5×5 canonical token is still the 43-character class-`00` identifier. Like `token`, it is absent when the stickers are not a cube. No separate endpoint was added: `/v1/convert` already takes every input form. The same request as `cubacle canon`, for a scramble and its mirror image:
+`/v1/convert` and `/v1/random` describe a cube with `kind`, `facelets` and `token`. `token` is the color framed V2 token (42 characters on a 5×5×5). They also carry `canonical`, an object with the canonical Orbit64 token of the cube (the same for the cube, its turned and mirrored images and any renaming of its colors) and `schema`, the name of the slot convention the token is written in (`orbit64-Nxn-draft@1`, N the size). The canonical token is that same framed encoding, so on a 5×5×5 it is 42 characters too. Like `token`, it is absent when the stickers are not a cube. No separate endpoint was added: `/v1/convert` already takes every input form. The same request as `cubacle canon`, for a scramble and its mirror image:
 
 ```sh
 curl -s -XPOST localhost:8080/v1/convert \
