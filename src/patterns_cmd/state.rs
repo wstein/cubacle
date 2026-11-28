@@ -23,6 +23,7 @@ pub(super) fn cycles_state(args: &IdentifyArgs, size: usize) -> Result<(), Strin
     };
     let cube = match &args.scramble {
         Some(_) => None,
+        None if crate::input::sized_move_expression(&text, size) => None,
         None => parse_cube(&text, args.scheme).ok(),
     };
     let (cycles, state_of_cycles) = match cube {

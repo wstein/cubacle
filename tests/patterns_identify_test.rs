@@ -94,6 +94,18 @@ fn the_fingerprint_reads_the_pieces() {
 }
 
 #[test]
+fn cycles_of_a_sized_42_character_expression_follow_the_moves() {
+    // `WR` needs the cube size. Twenty `R U` plus `WR` is 42 characters, so
+    // `parse_cube` reads a 5×5. `--size 4` follows the moves, as `--scramble` does.
+    let wide = format!("{}WR", "R U ".repeat(20));
+    let (ok, out) = cycles(&["--size", "4", &wide]);
+    assert!(ok, "{out}");
+    let (same, via_scramble) = cycles(&["--size", "4", "-s", &wide]);
+    assert!(same, "{via_scramble}");
+    assert_eq!(out, via_scramble, "{wide}");
+}
+
+#[test]
 fn cycles_of_moves_give_the_order() {
     let (ok, text) = cycles(&["R U"]);
     assert!(ok);
