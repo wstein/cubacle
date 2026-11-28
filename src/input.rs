@@ -3,8 +3,8 @@
 use std::io::Read;
 
 use cubacle::notation::{
-    color_scheme_of, named_subset, named_target, parse_cube, parse_expression, parse_partial,
-    ColorScheme,
+    color_scheme_of, named_subset, named_target, parse_cube_as, parse_expression, parse_partial,
+    ColorScheme, CubeReading,
 };
 use cubacle::puzzle::{Facelets, PuzzleKind, Target};
 
@@ -49,18 +49,24 @@ pub(crate) fn read_unchecked(input: &InputArgs) -> Result<(Facelets, Option<Colo
     if let Some(scramble) = &input.scramble {
         return Ok((scrambled(scramble, kind_of(input.size)?)?, None));
     }
-    let text = match input.cube.as_slice() {
-        [] => return Err(solved_start::NO_CUBE.into()),
+    let text = cube_text(input)?;
+    parse_text(&text, input.scheme, input.size, input.as_token)
+}
+
+/// The cube text of a command: one `-` reads standard input, and several
+/// arguments are joined with spaces. A scramble is not cube text.
+pub(crate) fn cube_text(input: &InputArgs) -> Result<String, String> {
+    match input.cube.as_slice() {
+        [] => Err(solved_start::NO_CUBE.into()),
         [single] if single == "-" => {
             let mut text = String::new();
             std::io::stdin()
                 .read_to_string(&mut text)
                 .map_err(|error| format!("cannot read stdin: {error}"))?;
-            text
+            Ok(text)
         }
-        parts => parts.join(" "),
-    };
-    parse_text(&text, input.scheme, input.size)
+        parts => Ok(parts.join(" ")),
+    }
 }
 
 /// Reads cube text: cube text always wins; only text that is no cube is tried
@@ -69,10 +75,16 @@ pub(crate) fn parse_text(
     text: &str,
     scheme: Option<ColorScheme>,
     size: usize,
+    as_token: bool,
 ) -> Result<(Facelets, Option<ColorScheme>), String> {
-    match parse_cube(text, scheme) {
+    let reading = if as_token {
+        CubeReading::Token
+    } else {
+        CubeReading::Automatic
+    };
+    match parse_cube_as(text, scheme, reading) {
         Ok(cube) => Ok((cube, scheme.or_else(|| color_scheme_of(text)))),
-        Err(error) if text.trim().is_empty() => Err(error.to_string()),
+        Err(error) if as_token || text.trim().is_empty() => Err(error.to_string()),
         Err(error) => {
             let expression = kind_of(size).and_then(|kind| expression_cube(text, kind));
             match expression {
@@ -116,7 +128,7 @@ pub(crate) fn read_target(
         }
         return Ok(partial);
     }
-    match parse_text(text, args.input.scheme, start.kind().size()) {
+    match parse_text(text, args.input.scheme, start.kind().size(), false) {
         Ok((target, _)) => {
             state_check::require(&target).map_err(|error| format!("--to: {error}"))?;
             Ok(Target::complete(&target))

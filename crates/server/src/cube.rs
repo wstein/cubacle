@@ -99,6 +99,10 @@ pub(crate) struct ConvertRequest {
     /// Cube size of a `scramble`, 2 to 7 (default 3).
     pub(crate) size: Option<usize>,
     pub(crate) scheme: Option<String>,
+    /// Read `cube` as an Orbit64 token. A 42-character text that also parses
+    /// as moves is not a cube unless this is true.
+    #[serde(default)]
+    pub(crate) as_token: bool,
 }
 
 pub(crate) async fn convert(
@@ -106,6 +110,13 @@ pub(crate) async fn convert(
     body: Result<Bytes, BytesRejection>,
 ) -> ApiResult<CubeBody> {
     let request: ConvertRequest = read_body(&headers, body)?;
-    let facelets = read_input(request.cube, request.scramble, request.size, request.scheme).await?;
+    let facelets = read_input(
+        request.cube,
+        request.scramble,
+        request.size,
+        request.scheme,
+        request.as_token,
+    )
+    .await?;
     Ok(Json(CubeBody::of(&facelets).await))
 }

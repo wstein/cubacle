@@ -53,6 +53,8 @@ Tokens exist for every size from 2x2x2 to 7x7x7. `solve` and `convert` read the 
 
 "Round trips only" means the 6x6x6 and 7x7x7 slot numbering follows the rules of the format but has no official scrambled vector to compare with: tests scramble cubes with outer, wide and inner moves, and each time `encode` and `decode` agree and the token has the length above. A token made by another program for these sizes may use a different slot numbering; see the format's own caveat. A token with a wrong length, a character outside the base64url alphabet, a number above the state count, or (when encoding) pieces that no cube has, is refused with a one-sentence error. State tokens are Orbit64 V2 (`FORMAT-V2.md`). Move sequences and structured algorithms stay on the existing notation; the algorithm DAG draft is not read.
 
+Cube text wins over a move expression, with one exception. Forty-two characters is both a framed 5×5×5 token and a compact move list (`R U` twenty-one times, `U R F D L B` seven times, twenty-one half turns). Written as one word, `RU` twenty-one times is a token, because that word is not moves. Written with spaces, the same letters are moves: the command line applies them, and a server `cube` field rejects them. `--as-token` reads that spaced text as the token. It applies to the cube argument, not to `--to`. `patterns show` still treats the spaced form as a pattern name.
+
 ### Facelets (URFDLB)
 
 Each sticker is named by the face it belongs to: `U`, `R`, `F`, `D`, `L` or `B`. Stickers are listed face by face in the order U, R, F, D, L, B. A face has 4 stickers on a 2x2x2 and 9 on a 3x3x3. The solved 3x3x3 is:

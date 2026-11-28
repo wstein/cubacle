@@ -90,6 +90,11 @@ pub(crate) struct InputArgs {
     /// --to color`: the scheme the colors were read in, else boy)
     #[arg(long)]
     pub(crate) scheme: Option<ColorScheme>,
+    /// Read the cube as an Orbit64 token, including a 42-character token
+    /// written with spaces. Without this, that text is a move list when it
+    /// parses as one (`R U` twenty-one times). Does not apply to `--to`.
+    #[arg(long = "as-token", conflicts_with = "scramble")]
+    pub(crate) as_token: bool,
 }
 
 /// What `convert` writes.

@@ -33,8 +33,8 @@ The server binds to the local machine by default. It has no authentication, so d
 | `GET /health` | None | `{"status":"ok"}` |
 | `GET /v1/scramble?moves=25&size=3` | `moves`: 1 to 200; `size`: 2 to 7; `notation`?: `wca`, `sign` or `sse` | `{"scramble":"U' L2 F2 D U2"}` |
 | `GET /v1/random?size=3` | `size`: 2 to 7 (only 2 to 5 have engines) | `{"kind":"2x2x2","facelets":"...","token":"...","tokenV2":"...","canonical":{"token":"...","schema":"..."}}` |
-| `POST /v1/convert` | `{"cube" or "scramble","size"?,"scheme"?}` | `{"kind","facelets","token"?,"tokenV2"?,"canonical"?}` |
-| `POST /v1/solve` | `{"cube" or "scramble","size"?,"scheme"?,"maxMoves"?,"budgetMs"?,"minProbes"?,"improve"?,"slices"?,"notation"?,"optimize"?,"target"?,"formatVersion"?}` | `{"kind","solution","inverse","length","metrics","compressed"?,"compressedLength"?,"compressedMetrics"?,"elapsedMicros","formatVersion","toolVersion","gitCommit","frame","proven","lowerBound"}` |
+| `POST /v1/convert` | `{"cube" or "scramble","size"?,"scheme"?,"asToken"?}` | `{"kind","facelets","token"?,"tokenV2"?,"canonical"?}` |
+| `POST /v1/solve` | `{"cube" or "scramble","size"?,"scheme"?,"asToken"?,"maxMoves"?,"budgetMs"?,"minProbes"?,"improve"?,"slices"?,"notation"?,"optimize"?,"target"?,"formatVersion"?}` | `{"kind","solution","inverse","length","metrics","compressed"?,"compressedLength"?,"compressedMetrics"?,"elapsedMicros","formatVersion","toolVersion","gitCommit","frame","proven","lowerBound"}` |
 
 For `POST` requests, send the header `Content-Type: application/json`.
 
@@ -42,7 +42,8 @@ For `POST` requests, send the header `Content-Type: application/json`.
 
 | Field | Meaning |
 | --- | --- |
-| `cube` | The cube as an Orbit64 token, URFDLB facelets (spaced or compact) or W/R/G/Y/O/B colors. See [Input notations](cli/input-notations.md#input-notations). |
+| `cube` | The cube as an Orbit64 token, URFDLB facelets (spaced or compact) or W/R/G/Y/O/B colors. See [Input notations](cli/input-notations.md#input-notations). A 42-character text that also parses as moves is not a cube. |
+| `asToken` | Optional, default `false`. Read `cube` as an Orbit64 token, including that 42-character text written with spaces (`R U` twenty-one times is the token `RU` twenty-one times). Does not change `target`. Goes with `cube`, not with `scramble`. |
 | `scheme` | Optional. `boy`, `jp` or six letters in URFDLB order. |
 | `maxMoves` | Optional. Longest accepted solution, 1 to 25 (1 to 255 for a 4x4x4 or 5x5x5, whose solutions have about 48 and 73 moves). |
 | `slices` | Optional, default `false`. For a 4x4x4 or 5x5x5: allow single inner layers (`2R`) in the answer where they make it shorter. Without it the answer uses outer layers and two-layer turns only (a 5x5x5 also second layers). Ignored for other sizes. See [the move metric](performance.md#move-metric). |
@@ -52,7 +53,7 @@ For `POST` requests, send the header `Content-Type: application/json`.
 | `notation` | Optional, `wca` (default), `sign` or `sse`. How the `solution` is written: `Rw`, `3Rw` or `r`, `3r` or `TR`, `T3R` (see [Move notations](cli/move-notations.md#move-notations)). Also a query parameter of `/v1/scramble`. Anything else is a 400. |
 | `optimize` | Optional, `ranges` or `moves`. `moves` rewrites axis runs in the engine turn count while preserving the exact state. `easy` is refused because the compressed result has no separate frame field. Adds `compressed` (the solution with layer ranges such as `2-3r`, in the chosen `notation`), `compressedLength` and `compressedMetrics` to the answer; `solution`, `length` and `metrics` are unchanged. Anything else is a 400. See [`--optimize`](cli.md). |
 
-| `target` | Optional, `/v1/solve` only. Solve to this state instead of to the solved cube; the `solution` takes the start (`cube` or `scramble`) to it. How the server reads the text: if it is exactly `superflip`, `checkerboard` or `cube-in-cube` it is that pattern (3x3x3 only); otherwise, if it parses as a cube (an Orbit64 token, URFDLB facelets or colors, read with `scheme`), it is that cube; otherwise it is read as a move expression applied to the solved cube of the start's size. Cube text always wins over a move expression, as it does for the start on the command line. On a 4x4x4 to 7x7x7 a target whose centers of one kind show different colors on one face (built with inner slices or wide turns) is reached by a center fix-up, the last moves of the `solution`; `maxMoves` and `budgetMs` count the whole route. See [Solve to a target](cli/solve.md#solve-to-a-target) and [Targets with mixed centers](cli/solve.md#targets-with-mixed-centers). |
+| `target` | Optional, `/v1/solve` only. Solve to this state instead of to the solved cube; the `solution` takes the start (`cube` or `scramble`) to it. How the server reads the text: if it is exactly `superflip`, `checkerboard` or `cube-in-cube` it is that pattern (3x3x3 only); otherwise, if it parses as a cube (an Orbit64 token, URFDLB facelets or colors, read with `scheme`), it is that cube; otherwise it is read as a move expression applied to the solved cube of the start's size. Cube text wins over a move expression, except a 42-character text that also parses as moves: that text is moves. `asToken` does not change this reading of `target`. On a 4x4x4 to 7x7x7 a target whose centers of one kind show different colors on one face (built with inner slices or wide turns) is reached by a center fix-up, the last moves of the `solution`; `maxMoves` and `budgetMs` count the whole route. See [Solve to a target](cli/solve.md#solve-to-a-target) and [Targets with mixed centers](cli/solve.md#targets-with-mixed-centers). |
 
 Other sizes answer 400 to `minProbes` and `improve`.
 
@@ -147,7 +148,7 @@ The 6x6x6 and 7x7x7 are solved by reduction through the 4x4x4, 5x5x5 and 3x3x3 e
 
 A 3x3x3, 5x5x5 or 7x7x7 whose face centers a slice turn moved is solved by the color of its centers, as on the command line: the answer leaves every face one color, the color of its center, which is not the color a solved cube shows on that face. A `target` still needs the centers in place (`centers_off_face`).
 
-A 5x5x5 is sent as its 150 facelets or its 42-character color framed token. A 43-character class-`00` token is rejected. This request solves the cube of a scramble:
+A 5x5x5 is sent as its 150 facelets or its 42-character color framed token. A 43-character class-`00` token is rejected. A 42-character move list in `cube` is rejected too; `"asToken": true` reads the same letters as the token. This request solves the cube of a scramble:
 
 ```sh
 CUBE=$(cubacle facelets "R U 2R 2U' F 2L' B2 D 2D' R' U2 2F" --size 5)

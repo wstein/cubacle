@@ -25,7 +25,7 @@ pub use expr::{
     Item, Rotation, MAX_DEPTH, MAX_EXPANDED_MOVES,
 };
 pub use impossible::{check, Impossible, PieceKind};
-pub use input::{color_scheme_of, parse_cube, InputError};
+pub use input::{color_scheme_of, parse_cube, parse_cube_as, CubeReading, InputError};
 pub use named::{named_target, NAMED_TARGETS};
 pub use partial::parse_partial;
 pub use scheme::{ColorScheme, SchemeError};

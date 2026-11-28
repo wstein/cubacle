@@ -8,7 +8,7 @@ weight: 10
 
 `cubacle canon CUBE` prints the canonical Orbit64 token of a cube state: one identifier for the pattern the cube shows. A pattern is a color state, so the identifier must not depend on how the cube is turned, mirrored or colored. The token is the same for a cube, its rotated and mirrored images, and any renaming of its six colors. How the token is made is in the [concept paper](../design/canonical-form.md).
 
-`canon` reads a cube like [`convert`](convert.md): an Orbit64 token, URFDLB facelets, W/R/G/Y/O/B colors, or a move expression for a cube of `--size`, or `-s` with a scramble; see [Input notations](input-notations.md). Sizes are 2x2x2 to 7x7x7. By default the output is one line with the token alone, so scripts can use it:
+`canon` reads a cube like [`convert`](convert.md): an Orbit64 token, URFDLB facelets, W/R/G/Y/O/B colors, or a move expression for a cube of `--size`, or `-s` with a scramble; see [Input notations](input-notations.md). Sizes are 2x2x2 to 7x7x7. `-` reads the same text from standard input, including the 43-character 5×5×5 identifier this command writes, so `cubacle canon -s R --size 5 | cubacle canon -` prints that identifier again. A 43-character move list stays moves on either path. By default the output is one line with the token alone, so scripts can use it:
 
 ```sh
 cubacle canon -s "R U"

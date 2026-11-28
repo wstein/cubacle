@@ -71,6 +71,23 @@ impl From<Orbit64Error> for InputError {
 const FACE_LETTERS: &str = "URFDLB";
 const COLOR_LETTERS: &str = "WRGYOB";
 
+/// Which reading wins when 42 characters are both an Orbit64 token and a move list.
+///
+/// A framed 5×5×5 token is 42 characters. So is a compact move list (`R U`
+/// twenty-one times, `U R F D L B` seven times, twenty-one half turns). The
+/// same characters with no spaces are a token, because that word does not
+/// parse as moves. With spaces, [`CubeReading::Automatic`] leaves the text as
+/// moves: it is not a cube, so the command line reads moves and a server
+/// `cube` field rejects it. [`CubeReading::Token`] reads that spaced text as
+/// the token.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum CubeReading {
+    /// Cube text wins, except a 42-character move list, which is not a cube.
+    Automatic,
+    /// An Orbit64 token, including a 42-character token written with spaces.
+    Token,
+}
+
 /// Reads a cube from any of the supported notations.
 ///
 /// - an Orbit64 state token, such as `A4ib8aejxj4Y`;
@@ -80,18 +97,31 @@ const COLOR_LETTERS: &str = "WRGYOB";
 /// Whitespace is ignored anywhere. Colors are read through `scheme` when one is
 /// given; otherwise an odd cube's fixed centers decide, and a cube without
 /// centers (the 2x2x2) falls back to [`ColorScheme::WESTERN_BOY`].
+///
+/// See [`CubeReading`] for the one text that is both a token and a move list.
 pub fn parse_cube(text: &str, scheme: Option<ColorScheme>) -> Result<Facelets, InputError> {
+    parse_cube_as(text, scheme, CubeReading::Automatic)
+}
+
+/// [`parse_cube`] with an explicit choice for a 42-character token that is
+/// also a move list.
+pub fn parse_cube_as(
+    text: &str,
+    scheme: Option<ColorScheme>,
+    reading: CubeReading,
+) -> Result<Facelets, InputError> {
     let compact: String = text.split_whitespace().collect();
 
     if orbit64::is_retired_v1_token(&compact) {
         return Err(InputError::RetiredV1);
     }
-    // A framed 5×5×5 token is 42 characters, and so is a move list of 21
-    // turns once its spaces are removed (`R U` twenty-one times, `U R F D L B`
-    // seven times, twenty-one half turns). That text stays a move list.
-    if orbit64::looks_like_token(&compact)
-        && !(compact.chars().count() == 42 && super::parse_moves(text).is_ok())
-    {
+    let spaced_moves = reading == CubeReading::Automatic
+        && compact.chars().count() == 42
+        && super::parse_moves(text).is_ok();
+    if reading == CubeReading::Token || (orbit64::looks_like_token(&compact) && !spaced_moves) {
+        if !orbit64::looks_like_token(&compact) {
+            return Err(Orbit64Error::BadLength(compact.chars().count()).into());
+        }
         return Ok(orbit64::decode(&compact)?);
     }
     // Face letters and color letters share R and B; whichever alphabet covers
@@ -265,6 +295,17 @@ mod tests {
             assert_eq!(compact.len(), 42, "{text}");
             assert!(parse_cube(text, None).is_err(), "{text}");
         }
+        // `RU` twenty-one times is one token. The same letters as `R U` are
+        // moves unless the token reading is asked for.
+        let word = "RU".repeat(21);
+        let spaced = "R U ".repeat(21);
+        let spaced = spaced.trim_end();
+        assert_eq!(spaced.split_whitespace().collect::<String>(), word);
+        assert_eq!(
+            parse_cube_as(spaced, None, CubeReading::Token),
+            parse_cube(&word, None)
+        );
+        assert!(parse_cube(spaced, None).is_err());
         assert_eq!(
             parse_cube(&"A".repeat(43), None).unwrap_err().to_string(),
             "Orbit64 V1 is no longer supported; convert with an older version"

@@ -35,7 +35,7 @@ pub(super) fn cycles_state(args: &IdentifyArgs, size: usize) -> Result<(), Strin
                 patterns::cycles_of_moves(kind, &moves)?,
                 cubacle::puzzle::Facelets::solved(kind).apply(&moves).ok(),
             ),
-            Err(_) => return crate::input::parse_text(&text, args.scheme, size).map(|_| ()),
+            Err(_) => return crate::input::parse_text(&text, args.scheme, size, false).map(|_| ()),
         },
     };
     print!("{cycles}");
@@ -56,7 +56,7 @@ pub(super) fn identify_state(
 ) -> Result<(), String> {
     let state = match &args.scramble {
         Some(scramble) => crate::input::scrambled(scramble, crate::input::kind_of(size)?)?,
-        None => crate::input::parse_text(&args.cube.join(" "), args.scheme, size)?.0,
+        None => crate::input::parse_text(&args.cube.join(" "), args.scheme, size, false)?.0,
     };
     crate::state_check::warn(&state);
     let mut report = patterns::detect_with(&state, &library.extra, args.closest);
@@ -151,7 +151,7 @@ pub(super) fn find_state(
 ) -> Result<(), String> {
     let state = match &args.scramble {
         Some(scramble) => crate::input::scrambled(scramble, crate::input::kind_of(size)?)?,
-        None => crate::input::parse_text(&args.cube.join(" "), args.scheme, size)?.0,
+        None => crate::input::parse_text(&args.cube.join(" "), args.scheme, size, false)?.0,
     };
     crate::state_check::require(&state)?;
     args.state_line.target(&state, args.scheme);
