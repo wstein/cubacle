@@ -113,6 +113,14 @@ pub fn schema_name(size: usize) -> String {
     format!("orbit64-{size}x{size}-draft@1")
 }
 
+/// Whether `text`, whitespace aside, is a class-`00` token of a reachable
+/// 5×5×5. A 43-character string that does not decode to a cube is not an
+/// identifier, so `canon` reads it as an ordinary cube or move list.
+pub fn is_class00_identifier(text: &str) -> bool {
+    let compact: String = text.split_whitespace().collect();
+    orbit64::is_retired_v1_token(&compact) && orbit64::decode_class00(&compact).is_ok()
+}
+
 /// The canonical token of a cube written as an Orbit64 token, facelets in
 /// `URFDLB` order or colors `WRGYOB`. The names of the colors do not matter.
 ///
