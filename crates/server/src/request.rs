@@ -3,7 +3,7 @@
 use axum::body::Bytes;
 use axum::extract::rejection::BytesRejection;
 use axum::http::{header, HeaderMap, StatusCode};
-use cubacle::notation::{parse_cube, ColorScheme, Notation};
+use cubacle::notation::{parse_cube_as, ColorScheme, CubeReading, Notation};
 use cubacle::puzzle::{Facelets, PuzzleKind};
 
 use crate::error::ApiError;
@@ -61,10 +61,19 @@ pub(crate) fn read_body<T: serde::de::DeserializeOwned>(
     serde_json::from_slice(&bytes).map_err(|e| ApiError::bad_input(format!("bad JSON: {e}")))
 }
 
-pub(crate) fn read_cube(cube: &str, scheme: Option<&str>) -> Result<Facelets, ApiError> {
+pub(crate) fn read_cube(
+    cube: &str,
+    scheme: Option<&str>,
+    as_token: bool,
+) -> Result<Facelets, ApiError> {
     let scheme = scheme
         .map(str::parse::<ColorScheme>)
         .transpose()
         .map_err(|e| ApiError::bad_input(e.to_string()))?;
-    parse_cube(cube, scheme).map_err(|e| ApiError::bad_input(e.to_string()))
+    let reading = if as_token {
+        CubeReading::Token
+    } else {
+        CubeReading::Automatic
+    };
+    parse_cube_as(cube, scheme, reading).map_err(|e| ApiError::bad_input(e.to_string()))
 }

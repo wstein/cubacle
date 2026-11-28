@@ -4,7 +4,7 @@ use clap::{Args, ValueEnum};
 use cubacle::canonical::{canonical, canonical_text, is_class00_identifier, schema_name};
 
 use crate::cli::InputArgs;
-use crate::input::read_unchecked;
+use crate::input::{cube_text, parse_text, read_unchecked};
 
 /// How `canon` writes its answer.
 #[derive(Clone, Copy, PartialEq, Eq, ValueEnum)]
@@ -29,16 +29,27 @@ pub struct CanonArgs {
 
 pub fn run(args: CanonArgs) -> Result<(), String> {
     // A 43-character class-`00` token is no longer a state, but it is still
-    // the 5×5×5 canonical identifier, so `canon` reads the identifier it writes.
-    let (token, size) = if let Some(text) = class00_identifier(&args.input) {
-        let token = canonical_text(&text).map_err(|error| error.to_string())?;
-        let size = token.kind().size();
-        (token.to_string(), size)
-    } else {
+    // the 5×5×5 canonical identifier, so `canon` reads the identifier it writes,
+    // whether that text is an argument or the standard input of `-`.
+    let (token, size) = if args.input.scramble.is_some() {
         let (cube, _) = read_unchecked(&args.input)?;
         let token = canonical(&cube).map_err(|error| error.to_string())?;
-        let size = cube.kind().size();
-        (token.to_string(), size)
+        (token.to_string(), cube.kind().size())
+    } else {
+        let text = cube_text(&args.input)?;
+        if is_class00_identifier(&text) {
+            let token = canonical_text(&text).map_err(|error| error.to_string())?;
+            (token.to_string(), token.kind().size())
+        } else {
+            let (cube, _) = parse_text(
+                &text,
+                args.input.scheme,
+                args.input.size,
+                args.input.as_token,
+            )?;
+            let token = canonical(&cube).map_err(|error| error.to_string())?;
+            (token.to_string(), cube.kind().size())
+        }
     };
     match (args.format, args.verbose) {
         (Format::Json, _) => println!(
@@ -53,15 +64,4 @@ pub fn run(args: CanonArgs) -> Result<(), String> {
         (Format::Text, false) => println!("{token}"),
     }
     Ok(())
-}
-
-/// The one class-`00` form `canon` still reads: a 43-character 5×5×5 identifier
-/// that [`is_class00_identifier`] accepts. Anything else, including a compact
-/// move list of that length, is read by the ordinary path.
-fn class00_identifier(input: &InputArgs) -> Option<String> {
-    if input.scramble.is_some() || input.cube.len() != 1 {
-        return None;
-    }
-    let text = &input.cube[0];
-    is_class00_identifier(text).then(|| text.split_whitespace().collect())
 }

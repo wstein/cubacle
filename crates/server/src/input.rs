@@ -15,6 +15,7 @@ pub(crate) async fn read_input(
     scramble: Option<String>,
     size: Option<usize>,
     scheme: Option<String>,
+    as_token: bool,
 ) -> Result<Facelets, ApiError> {
     match (cube, scramble) {
         (Some(_), Some(_)) => Err(ApiError::bad_input("send cube or scramble, not both")),
@@ -25,12 +26,17 @@ pub(crate) async fn read_input(
                     "size goes with a scramble; a cube has its size already",
                 ));
             }
-            read_cube(&cube, scheme.as_deref())
+            read_cube(&cube, scheme.as_deref(), as_token)
         }
         (None, Some(scramble)) => {
             if scheme.is_some() {
                 return Err(ApiError::bad_input(
                     "scheme goes with a cube, not a scramble",
+                ));
+            }
+            if as_token {
+                return Err(ApiError::bad_input(
+                    "asToken goes with a cube, not a scramble",
                 ));
             }
             let kind = engine_kind(size.unwrap_or(3))?;
@@ -61,7 +67,7 @@ pub(crate) async fn read_target(
     if let Some(named) = named_target(&target, kind) {
         return named.map_err(|e| ApiError::bad_input(format!("target: {e}")));
     }
-    let not_a_cube = match read_cube(&target, scheme.as_deref()) {
+    let not_a_cube = match read_cube(&target, scheme.as_deref(), false) {
         Ok(cube) => return Ok(cube),
         Err(error) => error,
     };

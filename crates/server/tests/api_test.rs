@@ -504,6 +504,23 @@ async fn convert_answers_the_orbit64_token_of_every_size() {
         assert_eq!(status, StatusCode::BAD_REQUEST, "{cube}: {body}");
         assert_ne!(body["kind"], "5x5x5", "{cube}: {body}");
     }
+    // The same letters as one word are a token. `asToken` reads the spaced form
+    // as that token; without it the cube field rejects the move list.
+    let word = "RU".repeat(21);
+    let spaced = "R U ".repeat(21);
+    let spaced = spaced.trim_end();
+    let (word_status, _, word_body) =
+        call(app(), post_json("/v1/convert", json!({"cube": word}))).await;
+    let (spaced_status, _, spaced_body) =
+        call(app(), post_json("/v1/convert", json!({"cube": spaced}))).await;
+    assert_eq!(spaced_status, StatusCode::BAD_REQUEST, "{spaced_body}");
+    let (token_status, _, token_body) = call(
+        app(),
+        post_json("/v1/convert", json!({"cube": spaced, "asToken": true})),
+    )
+    .await;
+    assert_eq!(token_status, word_status, "{token_body} vs {word_body}");
+    assert_eq!(token_body, word_body);
 }
 
 #[tokio::test]

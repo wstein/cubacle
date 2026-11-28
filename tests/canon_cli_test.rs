@@ -1,18 +1,39 @@
 //! `canon` prints the canonical Orbit64 token of a state in any input form.
 
-use std::process::Command;
+use std::io::Write;
+use std::process::{Command, Stdio};
 
 fn cubacle(args: &[&str]) -> (bool, String, String) {
-    let output = Command::new(env!("CARGO_BIN_EXE_cubacle"))
+    cubacle_in(args, None)
+}
+
+fn cubacle_in(args: &[&str], stdin: Option<&str>) -> (bool, String, String) {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_cubacle"));
+    command
         .args(args)
         .env("HOME", std::env::temp_dir().join("cubacle-test-home"))
         .env(
             "XDG_CONFIG_HOME",
             std::env::temp_dir().join("cubacle-test-xdg"),
         )
-        .env_remove("CUBACLE_CONFIG")
-        .output()
-        .expect("cubacle runs");
+        .env_remove("CUBACLE_CONFIG");
+    let output = if let Some(text) = stdin {
+        let mut child = command
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .expect("cubacle runs");
+        child
+            .stdin
+            .take()
+            .unwrap()
+            .write_all(text.as_bytes())
+            .unwrap();
+        child.wait_with_output().expect("cubacle runs")
+    } else {
+        command.output().expect("cubacle runs")
+    };
     (
         output.status.success(),
         String::from_utf8_lossy(&output.stdout).trim().to_owned(),
@@ -114,7 +135,8 @@ fn a_43_character_move_list_stays_moves() {
     let belt = format!("{}U", "U R F D L B ".repeat(7));
     let half_turns = format!("{}R2 U2 F2 R", "R2 U2 F2 B2 L2 D2 ".repeat(3));
     let expected = ["MXfucRh0pgAA", "E_hEi42H-aw4", "NVcmrcj4LkAA"];
-    for (list, token) in [quarters, belt, half_turns].iter().zip(expected) {
+    let lists = [quarters, belt, half_turns];
+    for (list, token) in lists.iter().zip(expected) {
         let compact: String = list.split_whitespace().collect();
         assert_eq!(compact.len(), 43, "{list}");
         let (ok, out, err) = cubacle(&["canon", list]);
@@ -127,6 +149,23 @@ fn a_43_character_move_list_stays_moves() {
     let (ok, out, err) = cubacle(&["canon", &solved]);
     assert!(ok, "{err}");
     assert_eq!(out, solved);
+    // The same identifier, and the same move list, through standard input.
+    let (ok, again, err) = cubacle_in(&["canon", "-"], Some(&format!("{solved}\n")));
+    assert!(ok, "{err}");
+    assert_eq!(again, solved);
+    let (ok, from_moves, err) = cubacle_in(&["canon", "-"], Some(&format!("{}\n", lists[0])));
+    assert!(ok, "{err}");
+    assert_eq!(from_moves, "MXfucRh0pgAA");
+}
+
+#[test]
+fn a_5x5_identifier_round_trips_through_stdin() {
+    let (ok, token, err) = cubacle(&["canon", "-s", "R", "--size", "5"]);
+    assert!(ok, "{err}");
+    assert_eq!(token.len(), 43, "{token}");
+    let (ok, again, err) = cubacle_in(&["canon", "-"], Some(&format!("{token}\n")));
+    assert!(ok, "{err}");
+    assert_eq!(again, token);
 }
 
 #[test]

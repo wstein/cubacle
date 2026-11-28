@@ -544,6 +544,23 @@ fn a_42_character_move_list_stays_moves() {
         assert!(same, "{list}: {scramble_err}");
         assert_eq!(out, via_scramble, "{list}");
     }
+    // `RU` twenty-one times is a token. Spaces make the same letters moves
+    // unless `--as-token` asks for the token.
+    let word = "RU".repeat(21);
+    let spaced = "R U ".repeat(21);
+    let spaced = spaced.trim_end();
+    let (word_ok, word_out, word_err) = cubacle(&["convert", &word]);
+    let (spaced_ok, spaced_out, spaced_err) = cubacle(&["convert", "--size", "3", spaced]);
+    assert!(spaced_ok, "{spaced}: {spaced_err}");
+    assert_eq!(
+        spaced_out.chars().filter(|c| !c.is_whitespace()).count(),
+        54,
+        "{spaced} was read as a 5x5x5: {spaced_out}"
+    );
+    let (token_ok, token_out, token_err) = cubacle(&["convert", "--as-token", spaced]);
+    assert_eq!(token_ok, word_ok, "word: {word_err}; token: {token_err}");
+    assert_eq!(token_out, word_out);
+    assert_eq!(token_err, word_err);
 }
 
 #[test]

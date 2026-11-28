@@ -34,6 +34,10 @@ pub(crate) struct SolveRequest {
     /// Cube size of a `scramble`, 2 to 7 (default 3).
     pub(crate) size: Option<usize>,
     pub(crate) scheme: Option<String>,
+    /// Read `cube` as an Orbit64 token. A 42-character text that also parses
+    /// as moves is not a cube unless this is true. Does not change `target`.
+    #[serde(default)]
+    pub(crate) as_token: bool,
     /// 1..=25, or 1..=255 for the 5x5x5.
     pub(crate) max_moves: Option<u8>,
     /// 1..=600000, further capped by the server's request timeout.
@@ -98,7 +102,14 @@ pub(crate) async fn solve(
         ));
     }
     let scheme = request.scheme.clone();
-    let start = read_input(request.cube, request.scramble, request.size, request.scheme).await?;
+    let start = read_input(
+        request.cube,
+        request.scramble,
+        request.size,
+        request.scheme,
+        request.as_token,
+    )
+    .await?;
     let kind = start.kind();
     engine_kind(kind.size())?;
     cubacle::notation::check(&start).map_err(|reason| {
