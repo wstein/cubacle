@@ -115,6 +115,8 @@ pub fn parse_cube_as(
     if orbit64::is_retired_v1_token(&compact) {
         return Err(InputError::RetiredV1);
     }
+    // A move list with no size-dependent turn (`R U` twenty-one times). A turn
+    // that needs the cube size, such as `WR`, is decided by the command.
     let spaced_moves = reading == CubeReading::Automatic
         && compact.chars().count() == 42
         && super::parse_moves(text).is_ok();
