@@ -108,6 +108,28 @@ fn verbose_and_json_name_the_schema_and_the_size() {
 }
 
 #[test]
+fn a_43_character_move_list_stays_moves() {
+    // One move past a framed 5×5 token: 43 base64url characters, still moves.
+    let quarters = format!("{}R", "R U ".repeat(21));
+    let belt = format!("{}U", "U R F D L B ".repeat(7));
+    let half_turns = format!("{}R2 U2 F2 R", "R2 U2 F2 B2 L2 D2 ".repeat(3));
+    let expected = ["MXfucRh0pgAA", "E_hEi42H-aw4", "NVcmrcj4LkAA"];
+    for (list, token) in [quarters, belt, half_turns].iter().zip(expected) {
+        let compact: String = list.split_whitespace().collect();
+        assert_eq!(compact.len(), 43, "{list}");
+        let (ok, out, err) = cubacle(&["canon", list]);
+        assert!(ok, "{list}: {err}");
+        assert_eq!(out, token, "{list}");
+        assert_eq!(out, canon("3", list), "{list}");
+    }
+    // The 43-character identifier of a solved 5×5×5 is still that token.
+    let solved = "A".repeat(43);
+    let (ok, out, err) = cubacle(&["canon", &solved]);
+    assert!(ok, "{err}");
+    assert_eq!(out, solved);
+}
+
+#[test]
 fn an_impossible_state_is_an_error_with_a_nonzero_exit() {
     // the URF corner twisted in place
     let (ok, out, err) = cubacle(&[

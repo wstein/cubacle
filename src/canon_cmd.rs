@@ -1,8 +1,7 @@
 //! The `canon` subcommand: the canonical Orbit64 token of a cube state.
 
 use clap::{Args, ValueEnum};
-use cubacle::canonical::{canonical, canonical_text, schema_name};
-use cubacle::notation::orbit64;
+use cubacle::canonical::{canonical, canonical_text, is_class00_identifier, schema_name};
 
 use crate::cli::InputArgs;
 use crate::input::read_unchecked;
@@ -56,11 +55,13 @@ pub fn run(args: CanonArgs) -> Result<(), String> {
     Ok(())
 }
 
-/// The one class-`00` form `canon` still reads: a 43-character 5×5×5 identifier.
+/// The one class-`00` form `canon` still reads: a 43-character 5×5×5 identifier
+/// that [`is_class00_identifier`] accepts. Anything else, including a compact
+/// move list of that length, is read by the ordinary path.
 fn class00_identifier(input: &InputArgs) -> Option<String> {
     if input.scramble.is_some() || input.cube.len() != 1 {
         return None;
     }
-    let compact: String = input.cube[0].split_whitespace().collect();
-    orbit64::is_retired_v1_token(&compact).then_some(compact)
+    let text = &input.cube[0];
+    is_class00_identifier(text).then(|| text.split_whitespace().collect())
 }
